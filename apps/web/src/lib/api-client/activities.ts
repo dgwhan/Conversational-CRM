@@ -146,7 +146,8 @@ export function createActivityApi(client: BaseApiClient) {
         // Fallback local storage
         let list = getLocalActivities();
         if (params.customerId) {
-          list = list.filter((a) => a.customerId === params.customerId);
+          const rawId = params.customerId.replace(/^(cust|cand)-/, '');
+          list = list.filter((a) => a.customerId === params.customerId || a.customerId === rawId);
         }
         if (params.type && params.type !== 'ALL') {
           list = list.filter((a) => a.type === params.type);

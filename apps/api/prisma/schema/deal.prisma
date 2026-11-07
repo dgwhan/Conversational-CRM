@@ -1,0 +1,38 @@
+model Deal {
+    id                 String           @id @default(uuid()) @db.Uuid
+    workspaceId        String           @map("workspace_id") @db.Uuid
+    customerId         String?          @map("customer_id") @db.Uuid
+    contactId          String?          @map("contact_id") @db.Uuid
+    assignedMemberId   String?          @map("assigned_member_id") @db.Uuid
+    
+    title              String           @db.VarChar(255)
+    stage              String           @default("STAGE_NEW") @db.VarChar(50)
+    pipelineId         String?          @map("pipeline_id") @db.VarChar(100)
+    intake             String?          @db.VarChar(100) // Niên khóa: K2025, K2026-Đợt 1, Khóa hè
+    courses            String[]         @default([]) // Danh sách khóa học quan tâm đợt này
+    expectedRevenue    Float            @default(0) @map("expected_revenue")
+    actualRevenue      Float?           @default(0) @map("actual_revenue")
+    priority           String           @default("MEDIUM") @db.VarChar(50) // LOW, MEDIUM, HIGH, URGENT
+    status             String           @default("OPEN") @db.VarChar(50) // OPEN, WON, LOST
+    lostReason         String?          @map("lost_reason") @db.VarChar(255)
+    expectedCloseDate  DateTime?        @map("expected_close_date") @db.Timestamptz(3)
+    actualCloseDate    DateTime?        @map("actual_close_date") @db.Timestamptz(3)
+    assignedStaffName  String?          @map("assigned_staff_name") @db.VarChar(255)
+    notes              String?          @db.Text
+    metadata           Json?            @db.JsonB
+    createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace          Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    customer           Customer?        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+    contact            Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+    assignedMember     WorkspaceMember? @relation(fields: [assignedMemberId], references: [id], onDelete: SetNull)
+    activities         Activity[]
+
+    @@index([workspaceId, stage])
+    @@index([customerId])
+    @@index([contactId])
+    @@index([assignedMemberId])
+    @@index([status])
+    @@map("deals")
+}

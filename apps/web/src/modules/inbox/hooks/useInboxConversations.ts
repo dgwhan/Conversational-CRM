@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   ConversationItem,
   ChatMessage,
@@ -758,25 +758,26 @@ export const useInboxConversations = ({
   );
 
   useEffect(() => {
-    if (currentConv?.channel !== 'FACEBOOK' || currentConv.unreadCount <= 0) return;
+    if (!currentConv?.id || currentConv.channel !== 'FACEBOOK' || currentConv.unreadCount <= 0) return;
 
+    const convId = currentConv.id;
     let active = true;
-    void apiClient.markFacebookConversationSeen(currentConv.id)
-      .then(() => {
-        if (!active) return;
-        setConversations((prev) =>
-          prev.map((conversation) =>
-            conversation.id === currentConv.id
-              ? { ...conversation, unreadCount: 0 }
-              : conversation,
-          ),
-        );
-      })
+
+    // Cập nhật trạng thái đã xem ngay trên UI
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === convId
+          ? { ...conversation, unreadCount: 0 }
+          : conversation,
+      ),
+    );
+
+    // Đồng bộ trạng thái đã xem lên Facebook Graph API trong nền
+    void apiClient.markFacebookConversationSeen(convId)
       .catch((error: unknown) => {
-        notify.error(
-          `Không thể đồng bộ trạng thái đã xem lên Facebook: ${
-            error instanceof Error ? error.message : 'Lỗi không xác định'
-          }`,
+        console.warn(
+          'Không thể đồng bộ trạng thái đã xem lên Facebook:',
+          error instanceof Error ? error.message : error,
         );
       });
 

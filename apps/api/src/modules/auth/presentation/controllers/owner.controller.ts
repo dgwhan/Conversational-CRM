@@ -45,7 +45,7 @@ export class OwnerController {
   @Get('owner/audit-logs')
   @Roles('OWNER')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async getAuditLogs() {
+  async getAuditLogs(): Promise<any> {
     return this.prisma.auditLog.findMany({
       take: 50,
       orderBy: { createdAt: 'desc' },

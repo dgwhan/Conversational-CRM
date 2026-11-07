@@ -23,6 +23,7 @@ import { notify } from '../../../components/feedback/toastEmitter.js';
 
 export interface ActivityTimelineSectionProps {
   customerId: string;
+  contactId?: string;
   customerName: string;
   workspaceId?: string;
   onNavigateToCalendar?: () => void;
@@ -30,6 +31,7 @@ export interface ActivityTimelineSectionProps {
 
 export const ActivityTimelineSection: React.FC<ActivityTimelineSectionProps> = ({
   customerId,
+  contactId,
   customerName,
   workspaceId,
   onNavigateToCalendar,
@@ -62,8 +64,9 @@ export const ActivityTimelineSection: React.FC<ActivityTimelineSectionProps> = (
   }, [customerId, workspaceId, filterType]);
 
   useEffect(() => {
+    setActivities([]);
     loadActivities();
-  }, [loadActivities]);
+  }, [customerId, contactId, loadActivities]);
 
   const handleOpenCreateModal = (type: ActivityType) => {
     setEditingActivity(null);
@@ -340,6 +343,7 @@ export const ActivityTimelineSection: React.FC<ActivityTimelineSectionProps> = (
         workspaceId={workspaceId}
         defaultType={modalDefaultType}
         defaultCustomerId={customerId}
+        defaultContactId={contactId}
         defaultCustomerName={customerName}
         initialActivity={editingActivity}
         onSuccess={() => {

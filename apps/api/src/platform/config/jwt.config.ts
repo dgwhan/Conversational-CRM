@@ -49,7 +49,7 @@ export class JwtTokenService {
       audience = process.env.JWT_AUDIENCE;
     }
 
-    let expiresInMinutes = 15;
+    let expiresInMinutes = 60 * 24 * 3;
     if (this.configService) {
       const configuredExpires = this.configService.get<number>(
         'JWT_EXPIRES_IN_MINUTES',

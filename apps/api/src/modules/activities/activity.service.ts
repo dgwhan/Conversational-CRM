@@ -23,9 +23,61 @@ export class ActivityService {
     ) { }
 
     /**
+     * Phân giải ID khách hàng từ UUID hoặc định danh kênh/mạng xã hội/SĐT
+     */
+    async resolveCustomerId(rawId?: string): Promise<string | undefined> {
+        if (!rawId) return undefined;
+        const cleanId = rawId.trim();
+        const stripped = cleanId.replace(/^(cust|cand)-/, '');
+
+        // 1. Kiểm tra trực tiếp nếu là UUID chuẩn
+        if (UUID_REGEX.test(stripped)) {
+            try {
+                const cust = await this.prisma.customer.findUnique({
+                    where: { id: stripped },
+                    select: { id: true },
+                });
+                if (cust) return cust.id;
+
+                const contact = await this.prisma.contact.findUnique({
+                    where: { id: stripped },
+                    select: { id: true },
+                });
+                if (contact) return contact.id;
+
+                return stripped;
+            } catch {
+                return stripped;
+            }
+        }
+
+        // 2. Tìm kiếm qua số điện thoại hoặc mã định danh mạng xã hội (Facebook PSID / Zalo ID)
+        try {
+            const cleanSocial = stripped.replace(/^(facebook-|zalo-)/, '');
+            const cust = await this.prisma.customer.findFirst({
+                where: {
+                    OR: [
+                        { phone: cleanSocial },
+                        { phoneNormalized: cleanSocial },
+                        { identities: { some: { externalUserId: cleanSocial } } },
+                        { channelIdentities: { path: ['facebook'], equals: cleanSocial } },
+                        { channelIdentities: { path: ['zalo', 'id'], equals: cleanSocial } },
+                        { channelIdentities: { path: ['zalo'], equals: cleanSocial } },
+                        { channelIdentities: { path: ['socialId'], equals: cleanSocial } },
+                    ],
+                },
+                select: { id: true },
+            });
+            if (cust) return cust.id;
+        } catch {}
+
+        return undefined;
+    }
+
+    /**
      * Tạo một hoạt động mới (Nhật ký cuộc gọi, Lịch hẹn, Công việc nhắc hẹn)
      */
-    async create(dto: CreateActivityDto, creatorId?: string) {
+    async create(dto: CreateActivityDto, creatorId?: string): Promise<any> {
         if (!dto.workspaceId) {
             throw new BadRequestException('workspaceId is required');
         }
@@ -35,11 +87,24 @@ export class ActivityService {
             throw new BadRequestException('workspaceId must be a valid UUID');
         }
 
-        let safeCustomerId: string | undefined = undefined;
-        if (dto.customerId) {
-            const stripped = dto.customerId.replace(/^(cust|cand)-/, '');
-            if (UUID_REGEX.test(stripped)) {
-                safeCustomerId = stripped;
+        let safeCustomerId = await this.resolveCustomerId(dto.customerId);
+        if (!safeCustomerId && dto.customerId) {
+            try {
+                const cleanPhone = dto.customerId.replace(/\D/g, '');
+                const newCust = await this.prisma.customer.create({
+                    data: {
+                        workspaceId: safeWsId,
+                        fullName: dto.metadata?.customerName || 'Khách hàng',
+                        phone: cleanPhone.length >= 9 ? cleanPhone : undefined,
+                        leadStatus: 'POTENTIAL',
+                        channelIdentities: {
+                            externalId: dto.customerId,
+                        },
+                    },
+                });
+                safeCustomerId = newCust.id;
+            } catch (err) {
+                this.logger.warn(`Không thể tự động tạo customer khi tạo activity: ${(err as Error).message}`);
             }
         }
 
@@ -182,7 +247,7 @@ export class ActivityService {
     /**
      * Lấy danh sách hoạt động có phân trang và lọc
      */
-    async findAll(filter: ActivityFilterDto) {
+    async findAll(filter: ActivityFilterDto): Promise<any> {
         const safeWsId = filter.workspaceId && UUID_REGEX.test(filter.workspaceId) ? filter.workspaceId : undefined;
         if (!safeWsId) {
             return { items: [], total: 0, page: 1, limit: 50 };
@@ -195,9 +260,25 @@ export class ActivityService {
         const where: any = { workspaceId: safeWsId };
 
         if (filter.customerId) {
-            const stripped = filter.customerId.replace(/^(cust|cand)-/, '');
-            if (UUID_REGEX.test(stripped)) {
-                where.customerId = stripped;
+            const resolvedCustomerId = await this.resolveCustomerId(filter.customerId);
+            if (resolvedCustomerId) {
+                where.AND = [
+                    ...(where.AND || []),
+                    {
+                        OR: [
+                            { customerId: resolvedCustomerId },
+                            { contactId: resolvedCustomerId },
+                        ],
+                    },
+                ];
+            } else {
+                return {
+                    items: [],
+                    total: 0,
+                    page,
+                    limit,
+                    totalPages: 0,
+                };
             }
         }
 
@@ -288,7 +369,7 @@ export class ActivityService {
     /**
      * Lấy các hoạt động phục vụ hiển thị Lịch biểu (Calendar View)
      */
-    async getCalendarEvents(workspaceId: string, startDate?: string, endDate?: string) {
+    async getCalendarEvents(workspaceId: string, startDate?: string, endDate?: string): Promise<any> {
         const safeWsId = UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
         if (!safeWsId) return [];
 
@@ -349,7 +430,7 @@ export class ActivityService {
     /**
      * Lấy chi tiết một hoạt động
      */
-    async findById(id: string) {
+    async findById(id: string): Promise<any> {
         const activity = await this.prisma.activity.findUnique({
             where: { id },
             include: {
@@ -366,7 +447,7 @@ export class ActivityService {
     /**
      * Cập nhật thông tin hoạt động / hoàn thành task
      */
-    async update(id: string, dto: UpdateActivityDto) {
+    async update(id: string, dto: UpdateActivityDto): Promise<any> {
         const existing = await this.findById(id);
 
         const updateData: any = {};
@@ -474,7 +555,7 @@ export class ActivityService {
     /**
      * Xóa một hoạt động
      */
-    async delete(id: string) {
+    async delete(id: string): Promise<any> {
         const existing = await this.findById(id);
         await this.prisma.activity.delete({ where: { id } });
 
@@ -491,7 +572,7 @@ export class ActivityService {
     /**
      * Tự động tạo Task xếp phòng máy khi Lead chuyển sang trạng thái "Hẹn Test đầu vào"
      */
-    async autoCreateTestTask(workspaceId: string, customerId: string, customerName: string, notes?: string) {
+    async autoCreateTestTask(workspaceId: string, customerId: string, customerName: string, notes?: string): Promise<any> {
         const safeWsId = UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
         if (!safeWsId) return null;
 
@@ -508,7 +589,7 @@ export class ActivityService {
 
         const created = await this.create({
             workspaceId: safeWsId,
-            customerId: validCustomerId,
+            customerId: customerId,
             type: ActivityTypeEnum.TASK,
             title: taskTitle,
             description: taskDesc,
@@ -532,7 +613,7 @@ export class ActivityService {
     /**
      * Lấy danh sách nhiệm vụ cần nhắc nhở hiện tại (due hoặc reminder đến hạn)
      */
-    async getDueReminders(workspaceId: string) {
+    async getDueReminders(workspaceId: string): Promise<any> {
         const safeWsId = UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
         if (!safeWsId) return [];
 

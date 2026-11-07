@@ -24,6 +24,7 @@ import { ReportsModule } from './modules/reports/reports.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { NlpModule } from './modules/nlp/nlp.module.js';
 import { ActivityModule } from './modules/activities/activity.module.js';
+import { DealModule } from './modules/deals/deal.module.js';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ActivityModule } from './modules/activities/activity.module.js';
     NotificationModule,
     NlpModule,
     ActivityModule,
+    DealModule,
   ],
   controllers: [AppController],
   providers: [

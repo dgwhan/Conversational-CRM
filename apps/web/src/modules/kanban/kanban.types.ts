@@ -20,6 +20,11 @@ export interface KanbanCandidate {
   notesCount: number;
   tags: string[];
   conversationId?: string; // Để 1-click nhảy sang chat trực tuyến
+  dealId?: string;
+  dealTitle?: string;
+  intake?: string; // Niên khóa: K2025, K2026-Đợt 1
+  school?: string;
+  idCard?: string;
 }
 
 export interface KanbanColumnConfig {

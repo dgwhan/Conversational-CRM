@@ -767,23 +767,66 @@ export class MessageDispatcherService {
   }
 
   async markFacebookConversationSeen(conversationId: string, workspaceId?: string): Promise<void> {
-    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(conversationId)) {
-      throw new BadRequestException('conversationId không hợp lệ');
+    if (!conversationId?.trim()) {
+      return;
     }
 
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: {
-        channelAccount: true,
-        customer: true,
-        messages: {
-          where: { direction: MessageDirection.INBOUND },
-          orderBy: { sentAt: 'desc' },
-          take: 1,
-          select: { rawPayload: true },
+    const trimmedId = conversationId.trim();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmedId);
+
+    let conversation: any = null;
+
+    if (isUuid) {
+      conversation = await this.prisma.conversation.findUnique({
+        where: { id: trimmedId },
+        include: {
+          channelAccount: true,
+          customer: true,
+          messages: {
+            where: { direction: MessageDirection.INBOUND },
+            orderBy: { sentAt: 'desc' },
+            take: 1,
+            select: { rawPayload: true },
+          },
         },
-      },
-    });
+      });
+    } else {
+      // Hỗ trợ trường hợp ID dạng composite FACEBOOK_<pageId>_<senderId> hoặc FACEBOOK_<senderId>
+      const match = trimmedId.match(/^FACEBOOK_([^_]+)(?:_(.+))?$/);
+      if (match) {
+        const pageOrSenderId = match[1];
+        const senderId = match[2] || match[1];
+
+        conversation = await this.prisma.conversation.findFirst({
+          where: {
+            channelAccount: {
+              channel: Channel.FACEBOOK,
+              ...(match[2] ? { externalAccountId: pageOrSenderId } : {}),
+            },
+            OR: [
+              { customer: { identities: { some: { channel: Channel.FACEBOOK, externalUserId: senderId } } } },
+              { customer: { channelIdentities: { path: ['facebook'], equals: senderId } } },
+            ],
+          },
+          include: {
+            channelAccount: true,
+            customer: true,
+            messages: {
+              where: { direction: MessageDirection.INBOUND },
+              orderBy: { sentAt: 'desc' },
+              take: 1,
+              select: { rawPayload: true },
+            },
+          },
+          orderBy: { lastMessageAt: 'desc' },
+        });
+      }
+    }
+
+    if (!conversation) {
+      this.logger.warn(`Không tìm thấy cuộc hội thoại hợp lệ để mark-seen: ${conversationId}`);
+      return;
+    }
 
     if (
       !conversation ||
@@ -857,9 +900,11 @@ export class MessageDispatcherService {
       );
     }
 
-    await this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: { unreadCount: 0 },
-    });
+    if (conversation?.id) {
+      await this.prisma.conversation.update({
+        where: { id: conversation.id },
+        data: { unreadCount: 0 },
+      }).catch(() => {});
+    }
   }
 }

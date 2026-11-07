@@ -3,6 +3,10 @@ model Contact {
     displayName         String            @map("display_name") @db.VarChar(255)
     phoneNormalized     String?           @unique @map("phone_normalized") @db.VarChar(50)
     email               String?           @db.VarChar(255)
+    idCard              String?           @map("id_card") @db.VarChar(50)
+    school              String?           @db.VarChar(255)
+    address             String?           @db.Text
+    dateOfBirth         DateTime?         @map("date_of_birth") @db.Date
     notes               String?           @db.Text
     isMerged            Boolean           @default(false) @map("is_merged")
     mergedIntoContactId String?           @map("merged_into_contact_id") @db.Uuid
@@ -11,6 +15,7 @@ model Contact {
 
     channelIdentities   ChannelIdentity[]
     mergeLogsTarget     ContactMergeLog[] @relation("MergeTargetContact")
+    deals               Deal[]
 
     @@index([isMerged])
     @@index([mergedIntoContactId])

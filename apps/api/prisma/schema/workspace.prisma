@@ -22,6 +22,7 @@ model Workspace {
     configuration   WorkspaceConfiguration?
     notifications   Notification[]
     activities      Activity[]
+    deals           Deal[]
 
     @@index([ownerId])
     @@map("workspaces")
@@ -60,6 +61,7 @@ model WorkspaceMember {
     user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
     assignedConversations Conversation[]
     activities            Activity[]
+    assignedDeals         Deal[]
 
     @@unique([workspaceId, userId])
     @@index([workspaceId])

@@ -408,7 +408,7 @@ export class ContactMergeService {
   /**
    * Lấy danh sách lịch sử gộp linh hoạt theo Contact ID, Customer ID, Số điện thoại hoặc Identity
    */
-  async getMergeHistory(identifier: string) {
+  async getMergeHistory(identifier: string): Promise<any> {
     if (!identifier) {
       return { items: [], total: 0 };
     }

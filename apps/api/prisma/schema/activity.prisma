@@ -13,6 +13,7 @@ model Activity {
     workspaceId       String        @map("workspace_id") @db.Uuid
     customerId        String?       @map("customer_id") @db.Uuid
     contactId         String?       @map("contact_id") @db.Uuid
+    dealId            String?       @map("deal_id") @db.Uuid
     creatorId         String?       @map("creator_id") @db.Uuid
     assignedMemberId  String?       @map("assigned_member_id") @db.Uuid
     
@@ -49,10 +50,12 @@ model Activity {
 
     workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
     customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+    deal              Deal?         @relation(fields: [dealId], references: [id], onDelete: SetNull)
     assignedMember    WorkspaceMember? @relation(fields: [assignedMemberId], references: [id], onDelete: SetNull)
 
     @@index([workspaceId, type, status])
     @@index([customerId])
+    @@index([dealId])
     @@index([assignedMemberId])
     @@index([scheduledAt])
     @@index([dueAt])

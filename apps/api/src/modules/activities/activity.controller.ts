@@ -39,7 +39,7 @@ export class ActivityController {
         @Query('search') search?: string,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
-    ) {
+    ): Promise<any> {
         const workspaceId = queryWsId || headerWsId || '';
         return this.activityService.findAll({
             workspaceId,
@@ -64,7 +64,7 @@ export class ActivityController {
         @Query('workspaceId') queryWsId?: string,
         @Query('startDate') startDate?: string,
         @Query('endDate') endDate?: string,
-    ) {
+    ): Promise<any> {
         const workspaceId = queryWsId || headerWsId || '';
         return this.activityService.getCalendarEvents(workspaceId, startDate, endDate);
     }
@@ -76,7 +76,7 @@ export class ActivityController {
     async getDueReminders(
         @Headers('x-workspace-id') headerWsId?: string,
         @Query('workspaceId') queryWsId?: string,
-    ) {
+    ): Promise<any> {
         const workspaceId = queryWsId || headerWsId || '';
         return this.activityService.getDueReminders(workspaceId);
     }
@@ -85,7 +85,7 @@ export class ActivityController {
      * Lấy chi tiết một hoạt động
      */
     @Get(':id')
-    async getActivityById(@Param('id') id: string) {
+    async getActivityById(@Param('id') id: string): Promise<any> {
         return this.activityService.findById(id);
     }
 
@@ -98,7 +98,7 @@ export class ActivityController {
         @Body() body: CreateActivityDto,
         @Headers('x-workspace-id') headerWsId?: string,
         @Req() req?: any,
-    ) {
+    ): Promise<any> {
         const workspaceId = body.workspaceId || headerWsId || '';
         const creatorId = req?.user?.id;
         return this.activityService.create({ ...body, workspaceId }, creatorId);
@@ -112,7 +112,7 @@ export class ActivityController {
     async updateActivity(
         @Param('id') id: string,
         @Body() body: UpdateActivityDto,
-    ) {
+    ): Promise<any> {
         return this.activityService.update(id, body);
     }
 
@@ -121,7 +121,7 @@ export class ActivityController {
      */
     @Delete(':id')
     @SkipCsrf()
-    async deleteActivity(@Param('id') id: string) {
+    async deleteActivity(@Param('id') id: string): Promise<any> {
         return this.activityService.delete(id);
     }
 
@@ -133,7 +133,7 @@ export class ActivityController {
     async triggerAutoTestTask(
         @Body() body: { workspaceId?: string; customerId: string; customerName: string; notes?: string },
         @Headers('x-workspace-id') headerWsId?: string,
-    ) {
+    ): Promise<any> {
         const workspaceId = body.workspaceId || headerWsId || '';
         return this.activityService.autoCreateTestTask(
             workspaceId,

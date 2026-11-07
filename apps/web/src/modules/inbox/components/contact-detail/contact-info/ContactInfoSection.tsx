@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, PenLine, Phone, Mail, Plus, AlertCircle } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  PenLine,
+  Phone,
+  Mail,
+  Plus,
+  AlertCircle,
+  CreditCard,
+  GraduationCap,
+  Calendar,
+  MapPin,
+} from 'lucide-react';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { Button } from '../../../../../components/ui/Button.js';
 import { Modal } from '../../../../../components/ui/Modal.js';
@@ -11,11 +23,23 @@ import {
 interface ContactInfoSectionProps {
   phone?: string;
   email?: string;
+  idCard?: string;
+  school?: string;
+  address?: string;
+  dateOfBirth?: string;
   channelAccountName?: string;
   contactId?: string;
   copiedField: string | null;
   onCopy: (text: string, fieldName: string) => void;
-  onUpdateContactInfo?: (info: { phone?: string; email?: string; fullName?: string }) => void;
+  onUpdateContactInfo?: (info: {
+    phone?: string;
+    email?: string;
+    fullName?: string;
+    idCard?: string;
+    school?: string;
+    address?: string;
+    dateOfBirth?: string;
+  }) => void;
   isEditingPhoneExternal?: boolean;
   onResetEditingPhoneExternal?: () => void;
   isEditingEmailExternal?: boolean;
@@ -25,6 +49,10 @@ interface ContactInfoSectionProps {
 export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
   phone,
   email,
+  idCard,
+  school,
+  address,
+  dateOfBirth,
   copiedField,
   onCopy,
   onUpdateContactInfo,
@@ -37,15 +65,32 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
   const [phoneInput, setPhoneInput] = useState('');
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState('');
+  const [isEditingIdCard, setIsEditingIdCard] = useState(false);
+  const [idCardInput, setIdCardInput] = useState('');
+  const [isEditingSchool, setIsEditingSchool] = useState(false);
+  const [schoolInput, setSchoolInput] = useState('');
+  const [isEditingDob, setIsEditingDob] = useState(false);
+  const [dobInput, setDobInput] = useState('');
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState('');
+
   const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
 
   // Đồng bộ giá trị khởi tạo
   useEffect(() => {
     setPhoneInput(phone && phone !== 'Chưa có SĐT' ? phone : '');
     setEmailInput(email && email !== 'Chưa có Email' ? email : '');
+    setIdCardInput(idCard || '');
+    setSchoolInput(school || '');
+    setDobInput(dateOfBirth || '');
+    setAddressInput(address || '');
     setIsEditingPhone(false);
     setIsEditingEmail(false);
-  }, [phone, email]);
+    setIsEditingIdCard(false);
+    setIsEditingSchool(false);
+    setIsEditingDob(false);
+    setIsEditingAddress(false);
+  }, [phone, email, idCard, school, dateOfBirth, address]);
 
   // Phản hồi trigger sửa từ nút header ("Gọi ngay" / "Gửi Mail")
   useEffect(() => {
@@ -95,22 +140,62 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
     setIsEditingEmail(false);
   };
 
+  const handleSaveIdCard = () => {
+    const trimmed = idCardInput.trim();
+    if (onUpdateContactInfo) {
+      onUpdateContactInfo({ idCard: trimmed });
+    }
+    notify.success(trimmed ? 'Đã lưu CCCD/CMND!' : 'Đã xóa CCCD/CMND');
+    setIsEditingIdCard(false);
+  };
+
+  const handleSaveSchool = () => {
+    const trimmed = schoolInput.trim();
+    if (onUpdateContactInfo) {
+      onUpdateContactInfo({ school: trimmed });
+    }
+    notify.success(trimmed ? 'Đã lưu thông tin trường!' : 'Đã xóa thông tin trường');
+    setIsEditingSchool(false);
+  };
+
+  const handleSaveDob = () => {
+    const trimmed = dobInput.trim();
+    if (onUpdateContactInfo) {
+      onUpdateContactInfo({ dateOfBirth: trimmed });
+    }
+    notify.success(trimmed ? 'Đã lưu ngày sinh!' : 'Đã xóa ngày sinh');
+    setIsEditingDob(false);
+  };
+
+  const handleSaveAddress = () => {
+    const trimmed = addressInput.trim();
+    if (onUpdateContactInfo) {
+      onUpdateContactInfo({ address: trimmed });
+    }
+    notify.success(trimmed ? 'Đã lưu địa chỉ!' : 'Đã xóa địa chỉ');
+    setIsEditingAddress(false);
+  };
+
   const hasPhone = Boolean(phone && phone !== 'Chưa có SĐT');
   const hasEmail = Boolean(email && email !== 'Chưa có Email');
+  const hasIdCard = Boolean(idCard && idCard.trim());
+  const hasSchool = Boolean(school && school.trim());
+  const hasDob = Boolean(dateOfBirth && dateOfBirth.trim());
+  const hasAddress = Boolean(address && address.trim());
 
   return (
     <div className="p-4 bg-white space-y-2.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 shrink-0">
           <h4 className="m-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Thông Tin Liên Hệ
+            Hồ Sơ Cá Nhân (Contact)
           </h4>
           <button
             type="button"
             onClick={() => setIsExplainModalOpen(true)}
             className="inline-flex items-center justify-center p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer rounded"
-            title="Xem giải thích thông tin liên hệ"
-            aria-label="Giải thích thông tin liên hệ"
+            title="Xem giải thích hồ sơ cá nhân"
+            aria-label="Giải thích hồ sơ cá nhân"
           >
             <AlertCircle size={13} />
           </button>
@@ -118,7 +203,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
       </div>
 
       <div className="space-y-1.5">
-        {/* SỐ ĐIỆN THOẠI */}
+        {/* 1. SỐ ĐIỆN THOẠI */}
         <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
           <div className="flex items-center gap-2 text-slate-500 shrink-0">
             <Phone size={13} className="text-slate-400" />
@@ -168,7 +253,6 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
                 {hasPhone ? formatVietnamesePhoneNumber(phone, 'space') || phone : 'Chưa có'}
               </span>
 
-              {/* Action icons: Hiển thị khi hover */}
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {hasPhone && (
                   <button
@@ -201,7 +285,7 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
           )}
         </div>
 
-        {/* EMAIL */}
+        {/* 2. EMAIL */}
         <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
           <div className="flex items-center gap-2 text-slate-500 shrink-0">
             <Mail size={13} className="text-slate-400" />
@@ -252,7 +336,6 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
                 {hasEmail ? email : 'Chưa có'}
               </span>
 
-              {/* Action icons: Hiển thị khi hover */}
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 {hasEmail && (
                   <button
@@ -284,13 +367,329 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
             </div>
           )}
         </div>
+
+        {/* 3. CMND / CCCD */}
+        <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
+          <div className="flex items-center gap-2 text-slate-500 shrink-0">
+            <CreditCard size={13} className="text-slate-400" />
+            <span>CCCD:</span>
+          </div>
+
+          {isEditingIdCard ? (
+            <div className="flex items-center gap-1.5 flex-1 justify-end ml-2">
+              <input
+                type="text"
+                value={idCardInput}
+                onChange={(e) => setIdCardInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveIdCard();
+                  if (e.key === 'Escape') setIsEditingIdCard(false);
+                }}
+                placeholder="12 số CCCD..."
+                autoFocus
+                className="h-6 px-2 text-xs border border-blue-500 rounded bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleSaveIdCard}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Lưu
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditingIdCard(false)}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Hủy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 justify-end flex-1 min-w-0 ml-2">
+              <span
+                className={`truncate font-medium ${
+                  hasIdCard ? 'text-slate-800 font-mono' : 'text-slate-400 italic'
+                }`}
+                title={hasIdCard ? idCard : undefined}
+              >
+                {hasIdCard ? idCard : 'Chưa có'}
+              </span>
+
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {hasIdCard && (
+                  <button
+                    type="button"
+                    onClick={() => onCopy(idCard!, 'CCCD/CMND')}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
+                    title="Sao chép CCCD"
+                  >
+                    {copiedField === 'CCCD/CMND' ? (
+                      <Check size={11} className="text-emerald-600" />
+                    ) : (
+                      <Copy size={11} />
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIdCardInput(hasIdCard ? idCard! : '');
+                    setIsEditingIdCard(true);
+                  }}
+                  className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
+                  title={hasIdCard ? 'Sửa CCCD' : 'Thêm CCCD'}
+                >
+                  {hasIdCard ? <PenLine size={11} /> : <Plus size={11} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 4. TRƯỜNG THPT / ĐẠI HỌC */}
+        <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
+          <div className="flex items-center gap-2 text-slate-500 shrink-0">
+            <GraduationCap size={13} className="text-slate-400" />
+            <span>Trường:</span>
+          </div>
+
+          {isEditingSchool ? (
+            <div className="flex items-center gap-1.5 flex-1 justify-end ml-2">
+              <input
+                type="text"
+                value={schoolInput}
+                onChange={(e) => setSchoolInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveSchool();
+                  if (e.key === 'Escape') setIsEditingSchool(false);
+                }}
+                placeholder="VD: THPT Châu Văn Liêm..."
+                autoFocus
+                className="h-6 px-2 text-xs border border-blue-500 rounded bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleSaveSchool}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Lưu
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditingSchool(false)}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Hủy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 justify-end flex-1 min-w-0 ml-2">
+              <span
+                className={`truncate font-medium ${
+                  hasSchool ? 'text-slate-800' : 'text-slate-400 italic'
+                }`}
+                title={hasSchool ? school : undefined}
+              >
+                {hasSchool ? school : 'Chưa có'}
+              </span>
+
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {hasSchool && (
+                  <button
+                    type="button"
+                    onClick={() => onCopy(school!, 'Trường THPT/ĐH')}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
+                    title="Sao chép Trường"
+                  >
+                    {copiedField === 'Trường THPT/ĐH' ? (
+                      <Check size={11} className="text-emerald-600" />
+                    ) : (
+                      <Copy size={11} />
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSchoolInput(hasSchool ? school! : '');
+                    setIsEditingSchool(true);
+                  }}
+                  className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
+                  title={hasSchool ? 'Sửa Trường' : 'Thêm Trường'}
+                >
+                  {hasSchool ? <PenLine size={11} /> : <Plus size={11} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 5. NGÀY SINH */}
+        <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
+          <div className="flex items-center gap-2 text-slate-500 shrink-0">
+            <Calendar size={13} className="text-slate-400" />
+            <span>Ngày sinh:</span>
+          </div>
+
+          {isEditingDob ? (
+            <div className="flex items-center gap-1.5 flex-1 justify-end ml-2">
+              <input
+                type="date"
+                value={dobInput}
+                onChange={(e) => setDobInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveDob();
+                  if (e.key === 'Escape') setIsEditingDob(false);
+                }}
+                autoFocus
+                className="h-6 px-1.5 text-xs border border-blue-500 rounded bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-32"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleSaveDob}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Lưu
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditingDob(false)}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Hủy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 justify-end flex-1 min-w-0 ml-2">
+              <span
+                className={`truncate font-medium ${
+                  hasDob ? 'text-slate-800' : 'text-slate-400 italic'
+                }`}
+                title={hasDob ? dateOfBirth : undefined}
+              >
+                {hasDob ? dateOfBirth : 'Chưa có'}
+              </span>
+
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDobInput(hasDob ? dateOfBirth! : '');
+                    setIsEditingDob(true);
+                  }}
+                  className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
+                  title={hasDob ? 'Sửa Ngày sinh' : 'Thêm Ngày sinh'}
+                >
+                  {hasDob ? <PenLine size={11} /> : <Plus size={11} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 6. ĐỊA CHỈ */}
+        <div className="group flex items-center justify-between text-xs py-1 rounded hover:bg-slate-50 px-1 -mx-1 transition-colors">
+          <div className="flex items-center gap-2 text-slate-500 shrink-0">
+            <MapPin size={13} className="text-slate-400" />
+            <span>Địa chỉ:</span>
+          </div>
+
+          {isEditingAddress ? (
+            <div className="flex items-center gap-1.5 flex-1 justify-end ml-2">
+              <input
+                type="text"
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveAddress();
+                  if (e.key === 'Escape') setIsEditingAddress(false);
+                }}
+                placeholder="VD: Cần Thơ, Hậu Giang..."
+                autoFocus
+                className="h-6 px-2 text-xs border border-blue-500 rounded bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+              />
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleSaveAddress}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Lưu
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsEditingAddress(false)}
+                className="h-6 px-1.5 text-[11px]"
+              >
+                Hủy
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 justify-end flex-1 min-w-0 ml-2">
+              <span
+                className={`truncate font-medium ${
+                  hasAddress ? 'text-slate-800' : 'text-slate-400 italic'
+                }`}
+                title={hasAddress ? address : undefined}
+              >
+                {hasAddress ? address : 'Chưa có'}
+              </span>
+
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                {hasAddress && (
+                  <button
+                    type="button"
+                    onClick={() => onCopy(address!, 'Địa chỉ')}
+                    className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
+                    title="Sao chép Địa chỉ"
+                  >
+                    {copiedField === 'Địa chỉ' ? (
+                      <Check size={11} className="text-emerald-600" />
+                    ) : (
+                      <Copy size={11} />
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddressInput(hasAddress ? address! : '');
+                    setIsEditingAddress(true);
+                  }}
+                  className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
+                  title={hasAddress ? 'Sửa Địa chỉ' : 'Thêm Địa chỉ'}
+                >
+                  {hasAddress ? <PenLine size={11} /> : <Plus size={11} />}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Modal Giải thích Thông Tin Liên Hệ */}
+      {/* Modal Giải thích Hồ Sơ Cá Nhân */}
       <Modal
         isOpen={isExplainModalOpen}
         onClose={() => setIsExplainModalOpen(false)}
-        title="Thông Tin Liên Hệ Khách Hàng"
+        title="Chuẩn Hồ Sơ Khách Hàng (Contact Profile)"
         size="md"
         showCloseButton={true}
         primaryAction={{
@@ -302,28 +701,28 @@ export const ContactInfoSection: React.FC<ContactInfoSectionProps> = ({
         <div className="space-y-3.5 text-xs text-slate-600 leading-relaxed">
           <div className="space-y-1">
             <h5 className="m-0 font-semibold text-slate-900 text-xs">
-              1. Số điện thoại (SĐT) & Hợp nhất tự động
+              1. Hồ sơ cá nhân (Contact) cố định & không bị ghi đè
             </h5>
             <p className="m-0 text-slate-600">
-              Số điện thoại được chuẩn hóa tự động theo định dạng quốc gia (10 số). Khi cùng một SĐT xuất hiện trên các kênh khác nhau (Facebook, Zalo, Web), hệ thống sẽ tự động gộp chung vào hồ sơ này.
+              Theo chuẩn CRM HubSpot/Salesforce, hồ sơ cá nhân lưu trữ định danh xuyên suốt của học viên (Họ tên, SĐT, Email, CCCD, Trường học, Ngày sinh). Dữ liệu này được bảo toàn khi học viên đăng ký nhiều khóa học hoặc nhiều niên khóa khác nhau.
             </p>
           </div>
 
           <div className="space-y-1">
             <h5 className="m-0 font-semibold text-slate-900 text-xs">
-              2. Địa chỉ Email
+              2. Cơ hội tuyển sinh (Deals / Opportunities) độc lập
             </h5>
             <p className="m-0 text-slate-600">
-              Dùng để gửi thông tin báo giá, hợp đồng điện tử và tài liệu tư vấn chi tiết cho khách hàng.
+              Mỗi đợt ứng viên đăng ký học (VD: Lập trình Web ngắn hạn 2025, Aptech Quốc tế 2026) được quản lý như một Deal độc lập với phễu tuyển sinh, học phí và tư vấn viên phụ trách riêng biệt.
             </p>
           </div>
 
           <div className="space-y-1">
             <h5 className="m-0 font-semibold text-slate-900 text-xs">
-              3. Chỉnh sửa nhanh & Sao chép tiện lợi
+              3. Định danh & Tự động hợp nhất
             </h5>
             <p className="m-0 text-slate-600">
-              Bạn có thể nhấn vào biểu tượng cây bút để sửa trực tiếp hoặc nhấn nút sao chép để dán nhanh vào ứng dụng gọi điện/CRM ngoài.
+              Hệ thống tự động liên kết đa kênh qua Số điện thoại hoặc CCCD, giúp tư vấn viên luôn nắm trọn vẹn hành trình của ứng viên.
             </p>
           </div>
         </div>

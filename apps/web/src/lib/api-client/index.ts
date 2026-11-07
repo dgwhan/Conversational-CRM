@@ -4,6 +4,7 @@ import { createCustomerApi } from './customers.js';
 import { createWorkspaceApi } from './workspaces.js';
 import { createContactApi } from './contacts.js';
 import { createActivityApi } from './activities.js';
+import { createDealApi } from './deals.js';
 
 export * from './types.js';
 export * from './core.js';
@@ -12,6 +13,7 @@ export * from './customers.js';
 export * from './workspaces.js';
 export * from './contacts.js';
 export * from './activities.js';
+export * from './deals.js';
 
 export class ApiClient extends BaseApiClient {
   private channels = createChannelApi(this);
@@ -19,6 +21,7 @@ export class ApiClient extends BaseApiClient {
   private workspaces = createWorkspaceApi(this);
   private contacts = createContactApi(this);
   private activities = createActivityApi(this);
+  private deals = createDealApi(this);
 
   // Sub-modules
   readonly channelApi = this.channels;
@@ -26,6 +29,7 @@ export class ApiClient extends BaseApiClient {
   readonly workspaceApi = this.workspaces;
   readonly contactApi = this.contacts;
   readonly activityApi = this.activities;
+  readonly dealApi = this.deals;
 
   // Channel & OAuth APIs
   getAuthorizeUrl = this.channels.getAuthorizeUrl;
@@ -80,6 +84,14 @@ export class ApiClient extends BaseApiClient {
   mergeContacts = this.contacts.mergeContacts;
   unmergeContact = this.contacts.unmergeContact;
   getContactMergeHistory = this.contacts.getContactMergeHistory;
+
+  // Deal / Registration Opportunity APIs
+  getDeals = this.deals.getDeals;
+  getDealsByCustomer = this.deals.getDealsByCustomer;
+  getDealById = this.deals.getDealById;
+  createDeal = this.deals.createDeal;
+  updateDeal = this.deals.updateDeal;
+  deleteDeal = this.deals.deleteDeal;
 }
 
 export const apiClient = new ApiClient();

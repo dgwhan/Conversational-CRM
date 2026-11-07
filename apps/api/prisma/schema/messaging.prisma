@@ -55,6 +55,10 @@ model Customer {
     phone                String?            @db.VarChar(50)
     phoneNormalized      String?            @map("phone_normalized") @db.VarChar(50)
     email                String?            @db.VarChar(255)
+    idCard               String?            @map("id_card") @db.VarChar(50)
+    school               String?            @db.VarChar(255)
+    address              String?            @db.Text
+    dateOfBirth          DateTime?          @map("date_of_birth") @db.Date
     avatarUrl            String?            @map("avatar_url")
     leadStatus           String             @default("NEW") @map("lead_status") @db.VarChar(50)
     leadStage            String?            @map("lead_stage") @db.VarChar(50)
@@ -70,6 +74,7 @@ model Customer {
     identities           ChannelIdentity[]
     mergeLogsTarget      CustomerMergeLog[] @relation("MergeTargetCustomer")
     activities           Activity[]
+    deals                Deal[]
 
     @@index([workspaceId])
     @@index([phone])

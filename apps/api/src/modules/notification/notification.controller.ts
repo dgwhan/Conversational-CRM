@@ -39,7 +39,7 @@ export class NotificationController {
   async markAsRead(
     @Param('wsId') workspaceId: string,
     @Param('id') id: string,
-  ) {
+  ): Promise<any> {
     return this.notificationService.markAsRead(workspaceId, id);
   }
 

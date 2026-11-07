@@ -78,6 +78,10 @@ export interface CustomerProfile {
   fullName: string;
   phone: string;
   email: string;
+  idCard?: string;
+  school?: string;
+  address?: string;
+  dateOfBirth?: string;
   avatarUrl: string;
   profileUrl?: string;
   socialId: string;

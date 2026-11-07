@@ -30,6 +30,7 @@ export interface ActivityModalProps {
   defaultType?: ActivityType;
   defaultDate?: Date | null;
   defaultCustomerId?: string;
+  defaultContactId?: string;
   defaultCustomerName?: string;
   initialActivity?: ActivityItem | null;
   onSuccess?: (activity: ActivityItem) => void;
@@ -52,6 +53,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   defaultType = 'CALL',
   defaultDate,
   defaultCustomerId,
+  defaultContactId,
   defaultCustomerName,
   initialActivity,
   onSuccess,
@@ -156,6 +158,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       const payload: any = {
         workspaceId,
         customerId: customerId || undefined,
+        contactId: defaultContactId || undefined,
+        metadata: { customerName },
         type: activeTab,
         title: title.trim(),
         description: description.trim() || undefined,

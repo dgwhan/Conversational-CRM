@@ -25,6 +25,7 @@ import {
 } from './index.js';
 import { LeadIntentScoreSection } from './score/LeadIntentScoreSection.js';
 import { ActivityTimelineSection } from '../../../activities/components/ActivityTimelineSection.js';
+import { DealsHistorySection } from '../../../deals/index.js';
 
 export interface CustomerProfileColumnProps {
   messages?: any[];
@@ -41,7 +42,7 @@ export interface CustomerProfileColumnProps {
   onAddNote: (content: string) => void;
   onRemoveNote: (noteId: string) => void;
   onUpdateProducts?: (courses: string[], estimatedValue: number) => void;
-  onUpdateContactInfo?: (info: { phone?: string; email?: string; fullName?: string }) => void;
+  onUpdateContactInfo?: (info: { phone?: string; email?: string; fullName?: string; idCard?: string; school?: string; address?: string; dateOfBirth?: string }) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -164,6 +165,10 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
         <ContactInfoSection
           phone={customer.phone}
           email={customer.email}
+          idCard={customer.idCard}
+          school={customer.school}
+          dateOfBirth={customer.dateOfBirth}
+          address={customer.address}
           channelAccountName={customer.channelAccountName}
           contactId={customer.contactId}
           copiedField={copiedField}
@@ -201,9 +206,22 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           onNavigateToKanban={onNavigateToKanban}
         />
 
+        {/* CƠ HỘI TUYỂN SINH & NIÊN KHÓA (Deals / Opportunities) - Chuẩn CRM $1 - N$ */}
+        <DealsHistorySection
+          customerId={customer.id}
+          contactId={customer.contactId}
+          contactId={customer.contactId}
+          customerName={customer.fullName}
+          pipelineStages={config.pipelineStages}
+          catalog={config.productCatalog}
+          staffList={staffList}
+          onNavigateToKanban={onNavigateToKanban}
+        />
+
         {/* DÒNG THỜI GIAN HOẠT ĐỘNG & NHẬT KÝ TƯƠNG TÁC (Activity Timeline & Task Management) */}
         <ActivityTimelineSection
           customerId={customer.id}
+          contactId={customer.contactId}
           customerName={customer.fullName}
           workspaceId={undefined}
           onNavigateToCalendar={onNavigateToCalendar}

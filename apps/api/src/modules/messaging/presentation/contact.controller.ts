@@ -111,7 +111,7 @@ export class ContactController {
         @Query('phone') phone?: string,
         @Query('contactId') contactId?: string,
         @Query('customerId') customerId?: string,
-    ) {
+    ): Promise<any> {
         const id = contactId || customerId || phone || identifier || '';
         return this.mergeService.getMergeHistory(id);
     }
@@ -120,7 +120,7 @@ export class ContactController {
      * Lấy lịch sử các lần gộp của một Contact / Customer / SĐT
      */
     @Get(':id/merge-history')
-    async getMergeHistory(@Param('id') contactId: string, @Query('phone') phone?: string) {
+    async getMergeHistory(@Param('id') contactId: string, @Query('phone') phone?: string): Promise<any> {
         return this.mergeService.getMergeHistory(phone || contactId);
     }
 

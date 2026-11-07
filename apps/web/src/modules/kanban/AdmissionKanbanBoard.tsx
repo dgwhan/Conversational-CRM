@@ -261,6 +261,11 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                 ? cust.tags.map((t: string) => t.trim().toLowerCase() === 'facebook lead' ? 'Lead' : t)
                 : (existing?.tags || ['Lead']),
               conversationId: latestConv?.id || existing?.conversationId,
+              dealId: cust.deals?.[0]?.id || existing?.dealId,
+              dealTitle: cust.deals?.[0]?.title || existing?.dealTitle,
+              intake: cust.deals?.[0]?.intake || cust.metadata?.intake || existing?.intake,
+              school: cust.school || existing?.school,
+              idCard: cust.idCard || existing?.idCard,
             };
           });
         });
@@ -332,6 +337,11 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                   ? cust.tags.map((t: string) => t.trim().toLowerCase() === 'facebook lead' ? 'Lead' : t)
                   : (existing?.tags || ['Lead']),
                 conversationId: latestConv?.id || existing?.conversationId,
+              dealId: cust.deals?.[0]?.id || existing?.dealId,
+              dealTitle: cust.deals?.[0]?.title || existing?.dealTitle,
+              intake: cust.deals?.[0]?.intake || cust.metadata?.intake || existing?.intake,
+              school: cust.school || existing?.school,
+              idCard: cust.idCard || existing?.idCard,
               };
             });
           });
@@ -480,6 +490,15 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
         updatedBy: staffId ? 'Tư vấn viên' : 'Hệ thống CRM',
       }).catch((err) => {
         console.warn('Could not update customer in DB from Kanban:', err);
+      });
+    }
+
+    // Cập nhật Cơ hội tuyển sinh tương ứng (Chuẩn CRM Deal)
+    if (candidate.dealId) {
+      apiClient.updateDeal(candidate.dealId, {
+        stage: nextStage,
+      }).catch((err) => {
+        console.warn('Could not update deal stage from Kanban:', err);
       });
     }
 
@@ -833,6 +852,13 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                             {candidate.channel === 'ZALO_PERSONAL' && 'Zalo Cá nhân'}
                             {candidate.channel === 'TIKTOK' && 'TikTok'}
                             {candidate.channel === 'MANUAL' && 'Trực tiếp'}
+                          </span>
+                          {candidate.intake && (
+                            <span className="card-intake-badge px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {candidate.intake}
+                            </span>
+                          )}
+                          <span style={{ display: 'none' }}>
                           </span>
 
                           <span className="card-time-ago">
