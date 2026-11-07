@@ -24,6 +24,7 @@ import {
   InternalNotesSection,
 } from './index.js';
 import { LeadIntentScoreSection } from './score/LeadIntentScoreSection.js';
+import { ActivityTimelineSection } from '../../../activities/components/ActivityTimelineSection.js';
 
 export interface CustomerProfileColumnProps {
   messages?: any[];
@@ -34,6 +35,7 @@ export interface CustomerProfileColumnProps {
   onUpdateLeadStatus: (status: LeadStatus) => void;
   onUpdateLeadStage?: (stage: LeadStage) => void;
   onNavigateToKanban?: () => void;
+  onNavigateToCalendar?: () => void;
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
   onAddNote: (content: string) => void;
@@ -53,6 +55,7 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
   onUpdateLeadStatus,
   onUpdateLeadStage,
   onNavigateToKanban,
+  onNavigateToCalendar,
   onAddTag,
   onRemoveTag,
   onAddNote,
@@ -196,6 +199,14 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           onUpdateLeadStage={onUpdateLeadStage}
           onAddTag={onAddTag}
           onNavigateToKanban={onNavigateToKanban}
+        />
+
+        {/* DÒNG THỜI GIAN HOẠT ĐỘNG & NHẬT KÝ TƯƠNG TÁC (Activity Timeline & Task Management) */}
+        <ActivityTimelineSection
+          customerId={customer.id}
+          customerName={customer.fullName}
+          workspaceId={undefined}
+          onNavigateToCalendar={onNavigateToCalendar}
         />
 
         {/* F. NHÃN PHÂN LOẠI (Tags) */}

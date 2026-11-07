@@ -6,6 +6,7 @@ import {
   FileSpreadsheet,
   LayoutGrid,
   Sliders,
+  Calendar,
   X,
   PanelLeftClose,
   PanelLeftOpen,
@@ -16,7 +17,7 @@ import { useUserRole } from '../modules/auth/UserRoleContext.js';
 import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.js';
 import { notify } from '../components/feedback/toastEmitter.js';
 
-export type ActiveNavTab = 'inbox' | 'kanban' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
+export type ActiveNavTab = 'inbox' | 'kanban' | 'calendar' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
 
 export interface SidebarProps {
   currentTab: ActiveNavTab;
@@ -72,6 +73,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         .replace(/\s*(CUSC|PolarisX)/gi, '')
         .trim() || 'Phễu Tuyển Sinh & Đào Tạo',
       icon: <LayoutGrid size={18} />,
+    },
+    {
+      id: 'calendar' as ActiveNavTab,
+      label: 'Lịch biểu & Nhiệm vụ',
+      icon: <Calendar size={18} />,
     },
     {
       id: 'workspace-settings' as ActiveNavTab,

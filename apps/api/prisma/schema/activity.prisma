@@ -1,0 +1,60 @@
+enum ActivityType {
+    CALL
+    MEETING
+    TASK
+    NOTE
+    SYSTEM
+
+    @@map("activity_type")
+}
+
+model Activity {
+    id                String        @id @default(uuid()) @db.Uuid
+    workspaceId       String        @map("workspace_id") @db.Uuid
+    customerId        String?       @map("customer_id") @db.Uuid
+    contactId         String?       @map("contact_id") @db.Uuid
+    creatorId         String?       @map("creator_id") @db.Uuid
+    assignedMemberId  String?       @map("assigned_member_id") @db.Uuid
+    
+    type              ActivityType  @default(TASK)
+    title             String        @db.VarChar(255)
+    description       String?       @db.Text
+    
+    // Thuộc tính dành riêng cho Call Logs
+    callResult        String?       @map("call_result") @db.VarChar(255)
+    callDuration      Int?          @default(0) @map("call_duration") // Đơn vị: giây
+    
+    // Thuộc tính dành riêng cho Meetings / Lịch hẹn
+    meetingType       String?       @default("OFFLINE") @map("meeting_type") @db.VarChar(100) // OFFLINE, GOOGLE_MEET, ZOOM
+    meetingLocation   String?       @map("meeting_location") @db.VarChar(500)
+    meetingJoinUrl    String?       @map("meeting_join_url") @db.Text
+    
+    // Quản lý Trạng thái & Mức độ ưu tiên
+    status            String        @default("PENDING") @db.VarChar(50) // PENDING, COMPLETED, CANCELLED
+    priority          String        @default("MEDIUM") @db.VarChar(50) // LOW, MEDIUM, HIGH, URGENT
+    
+    // Đơn vị/Nhân sự phụ trách hiển thị dạng văn bản (VD: "Phòng Đào tạo", "Tư vấn viên Nam")
+    assignedTo        String?       @map("assigned_to") @db.VarChar(255)
+    
+    // Thời hạn & Nhắc nhở
+    scheduledAt       DateTime?     @map("scheduled_at") @db.Timestamptz(3)
+    dueAt             DateTime?     @map("due_at") @db.Timestamptz(3)
+    completedAt       DateTime?     @map("completed_at") @db.Timestamptz(3)
+    reminderAt        DateTime?     @map("reminder_at") @db.Timestamptz(3)
+    isReminderSent    Boolean       @default(false) @map("is_reminder_sent")
+    
+    metadata          Json?         @db.JsonB
+    createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    customer          Customer?     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+    assignedMember    WorkspaceMember? @relation(fields: [assignedMemberId], references: [id], onDelete: SetNull)
+
+    @@index([workspaceId, type, status])
+    @@index([customerId])
+    @@index([assignedMemberId])
+    @@index([scheduledAt])
+    @@index([dueAt])
+    @@map("activities")
+}

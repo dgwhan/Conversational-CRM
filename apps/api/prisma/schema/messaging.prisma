@@ -69,6 +69,7 @@ model Customer {
     conversations        Conversation[]
     identities           ChannelIdentity[]
     mergeLogsTarget      CustomerMergeLog[] @relation("MergeTargetCustomer")
+    activities           Activity[]
 
     @@index([workspaceId])
     @@index([phone])

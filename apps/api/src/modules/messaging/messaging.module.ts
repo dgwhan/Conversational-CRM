@@ -4,6 +4,7 @@ import { RealtimeModule } from '../realtime/realtime.module.js';
 import { AuditModule } from '../audit/audit.module.js';
 import { WorkspaceConfigModule } from '../workspace-config/workspace-config.module.js';
 import { ChannelConnectionModule } from '../channel-connection/channel-connection.module.js';
+import { ActivityModule } from '../activities/activity.module.js';
 import { WorkingHoursService } from './application/working-hours.service.js';
 import { ChannelAdapterRegistry, CHANNEL_ADAPTERS } from './application/channel-adapter.registry.js';
 import { ReceiveInboundMessage } from './application/receive-inbound-message.usecase.js';
@@ -75,6 +76,7 @@ const adaptersProvider: Provider = {
         AuditModule,
         WorkspaceConfigModule,
         forwardRef(() => ChannelConnectionModule),
+        forwardRef(() => ActivityModule),
     ],
     controllers: [WebhookController, MessageImportController, CustomerController, ContactController],
     providers: [

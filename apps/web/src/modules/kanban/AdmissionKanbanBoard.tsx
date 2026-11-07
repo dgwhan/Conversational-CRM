@@ -32,11 +32,13 @@ import {
 
 interface AdmissionKanbanBoardProps {
   onOpenChat?: (conversationId?: string) => void;
+  onNavigateToCalendar?: () => void;
   onNavigateToSettings?: () => void;
 }
 
 export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
   onOpenChat,
+  onNavigateToCalendar,
   onNavigateToSettings,
 }) => {
   const { staffPresences, onPipelineChange, onNewMessage } = useRealtime();

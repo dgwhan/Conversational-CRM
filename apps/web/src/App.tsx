@@ -15,6 +15,7 @@ import { AppSkeleton } from './components/ui/AppSkeleton.js';
 
 const UnifiedInboxPage = lazy(() => import('./modules/inbox/pages/UnifiedInboxPage.js').then((m) => ({ default: m.UnifiedInboxPage })));
 const AdmissionKanbanBoard = lazy(() => import('./modules/kanban/AdmissionKanbanBoard.js').then((m) => ({ default: m.AdmissionKanbanBoard })));
+const CalendarTasksPage = lazy(() => import('./modules/calendar/pages/CalendarTasksPage.js').then((m) => ({ default: m.CalendarTasksPage })));
 const ReportsDashboardPage = lazy(() => import('./modules/reports/pages/ReportsDashboardPage.js').then((m) => ({ default: m.ReportsDashboardPage })));
 const WorkspaceSettingsPage = lazy(() => import('./modules/workspace/pages/WorkspaceSettingsPage.js').then((m) => ({ default: m.WorkspaceSettingsPage })));
 const OnboardingWizardPage = lazy(() => import('./modules/onboarding/pages/OnboardingWizardPage.js').then((m) => ({ default: m.OnboardingWizardPage })));
@@ -48,7 +49,7 @@ function CRMMainContent() {
   const getInitialTab = (): ActiveNavTab => {
     if (typeof window !== 'undefined' && window.location.hash) {
       const hash = window.location.hash.replace('#', '') as ActiveNavTab;
-      const validTabs: ActiveNavTab[] = ['reports', 'inbox', 'kanban', 'onboarding', 'import', 'workspace-settings'];
+      const validTabs: ActiveNavTab[] = ['reports', 'inbox', 'kanban', 'calendar', 'onboarding', 'import', 'workspace-settings'];
       if (validTabs.includes(hash)) {
         return hash;
       }
@@ -130,12 +131,20 @@ function CRMMainContent() {
           <UnifiedInboxPage
             onNavigateToKanban={() => setActiveTab('kanban')}
             initialConversationId={activeChatConvId}
+            onNavigateToCalendar={() => setActiveTab('calendar')}
           />
         )}
         {activeTab === 'kanban' && (
           <AdmissionKanbanBoard
             onOpenChat={handleOpenChatFromKanban}
+            onNavigateToCalendar={() => setActiveTab('calendar')}
             onNavigateToSettings={() => setActiveTab('workspace-settings')}
+          />
+        )}
+        {activeTab === 'calendar' && (
+          <CalendarTasksPage
+            onOpenChat={handleOpenChatFromKanban}
+            onNavigateToKanban={() => setActiveTab('kanban')}
           />
         )}
         {activeTab === 'reports' && <ReportsDashboardPage />}

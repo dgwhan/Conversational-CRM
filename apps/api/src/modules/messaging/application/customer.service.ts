@@ -7,6 +7,19 @@ import { CustomerTagService } from './customer-tag.service.js';
 import { standardizeVietnamesePhoneNumber } from '../../customers/domain/phone-standardizer.js';
 import { matchesUnaccent } from '../../customers/domain/unaccent.js';
 import { deduplicateTags } from '../domain/tag-mapping/index.js';
+import { ActivityService } from '../../activities/activity.service.js';
+
+export function isTestAppointmentStage(stage?: string | null): boolean {
+    if (!stage) return false;
+    const lower = stage.toLowerCase();
+    return (
+        lower.includes('test') ||
+        lower.includes('hẹn') ||
+        lower.includes('trial') ||
+        lower === 'stage_trial_appointment' ||
+        lower === 'trial_appointment'
+    );
+}
 
 export interface GetCustomersParams {
     rawWsId?: string;
@@ -48,6 +61,7 @@ export class CustomerService {
         @Optional() private readonly realtime?: RealtimeService,
         @Optional() private readonly mergeService?: ContactMergeService,
         @Optional() tagService?: CustomerTagService,
+        @Optional() private readonly activityService?: ActivityService,
     ) {
         this.tagService = tagService || new CustomerTagService(prisma);
     }
@@ -480,6 +494,20 @@ export class CustomerService {
                 if (body.conversationId || firstConv?.id) payload.conversationId = body.conversationId || firstConv?.id;
 
                 this.realtime?.broadcastPipelineChange(payload);
+
+                // Tự động kích hoạt tạo Task cho phòng Đào tạo xếp phòng máy khi Lead rơi vào trạng thái "Hẹn Test đầu vào"
+                if (body.leadStage && isTestAppointmentStage(body.leadStage) && !isTestAppointmentStage(existing.leadStage)) {
+                    if (this.activityService) {
+                        this.activityService.autoCreateTestTask(
+                            headerWsId || existing.workspaceId,
+                            existing.id,
+                            updated.fullName,
+                            body.notes,
+                        ).catch((taskErr) => {
+                            this.logger.warn(`Không thể tự động tạo Task phòng máy: ${taskErr.message}`);
+                        });
+                    }
+                }
             } catch { }
         }
 

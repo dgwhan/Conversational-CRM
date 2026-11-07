@@ -15,6 +15,7 @@ import {
 import { CustomerService, UpdateCustomerDto } from '../application/customer.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { ContactMergeService } from '../application/contact-merge.service.js';
+import { ActivityService } from '../../activities/activity.service.js';
 
 /**
  * Controller managing workspace customers, recruitment leads, and pipeline stages.
@@ -28,11 +29,12 @@ export class CustomerController {
         customerServiceOrPrisma: CustomerService,
         @Optional() realtime?: RealtimeService,
         @Optional() mergeService?: ContactMergeService,
+        @Optional() activityService?: ActivityService,
     ) {
         if (customerServiceOrPrisma && typeof (customerServiceOrPrisma as any).getCustomers === 'function') {
             this.customerService = customerServiceOrPrisma;
         } else {
-            this.customerService = new CustomerService(customerServiceOrPrisma as any, realtime, mergeService);
+            this.customerService = new CustomerService(customerServiceOrPrisma as any, realtime, mergeService, undefined, activityService);
         }
     }
 

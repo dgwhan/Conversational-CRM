@@ -3,6 +3,7 @@ import { createChannelApi } from './channels.js';
 import { createCustomerApi } from './customers.js';
 import { createWorkspaceApi } from './workspaces.js';
 import { createContactApi } from './contacts.js';
+import { createActivityApi } from './activities.js';
 
 export * from './types.js';
 export * from './core.js';
@@ -10,18 +11,21 @@ export * from './channels.js';
 export * from './customers.js';
 export * from './workspaces.js';
 export * from './contacts.js';
+export * from './activities.js';
 
 export class ApiClient extends BaseApiClient {
   private channels = createChannelApi(this);
   private customers = createCustomerApi(this);
   private workspaces = createWorkspaceApi(this);
   private contacts = createContactApi(this);
+  private activities = createActivityApi(this);
 
   // Sub-modules
   readonly channelApi = this.channels;
   readonly customerApi = this.customers;
   readonly workspaceApi = this.workspaces;
   readonly contactApi = this.contacts;
+  readonly activityApi = this.activities;
 
   // Channel & OAuth APIs
   getAuthorizeUrl = this.channels.getAuthorizeUrl;
@@ -45,6 +49,16 @@ export class ApiClient extends BaseApiClient {
   updateCustomer = this.customers.updateCustomer;
   assignConversation = this.customers.assignConversation;
   deleteCustomerTag = this.customers.deleteCustomerTag;
+
+  // Activity Timeline, Appointments & Task Management APIs
+  getActivities = this.activities.getActivities;
+  getCalendarEvents = this.activities.getCalendarEvents;
+  getActivityById = this.activities.getActivityById;
+  createActivity = this.activities.createActivity;
+  updateActivity = this.activities.updateActivity;
+  deleteActivity = this.activities.deleteActivity;
+  getDueReminders = this.activities.getDueReminders;
+  triggerAutoTestTask = this.activities.triggerAutoTestTask;
 
   // Workspace, Hotline & Notification APIs
   getMyWorkspaces = this.workspaces.getMyWorkspaces;
@@ -70,4 +84,3 @@ export class ApiClient extends BaseApiClient {
 
 export const apiClient = new ApiClient();
 export default apiClient;
-

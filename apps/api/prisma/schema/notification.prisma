@@ -4,6 +4,8 @@ enum NotificationType {
     NEW_LEAD
     SYSTEM_WARNING
     CONVERSATION_ALERT
+    TASK_REMINDER
+    ACTIVITY_LOG
 
     @@map("notification_type")
 }

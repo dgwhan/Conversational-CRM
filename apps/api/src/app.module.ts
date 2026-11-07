@@ -23,6 +23,7 @@ import { WorkspaceConfigModule } from './modules/workspace-config/workspace-conf
 import { ReportsModule } from './modules/reports/reports.module.js';
 import { NotificationModule } from './modules/notification/notification.module.js';
 import { NlpModule } from './modules/nlp/nlp.module.js';
+import { ActivityModule } from './modules/activities/activity.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NlpModule } from './modules/nlp/nlp.module.js';
     ReportsModule,
     NotificationModule,
     NlpModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [

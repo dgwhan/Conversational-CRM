@@ -26,12 +26,14 @@ export {
 
 export interface UnifiedInboxPageProps {
   onNavigateToKanban?: () => void;
+  onNavigateToCalendar?: () => void;
   initialConversationId?: string | null;
 }
 
 export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
   onNavigateToKanban,
   initialConversationId,
+  onNavigateToCalendar,
 }) => {
   const { onNewMessage, onPipelineChange, staffPresences, setUnreadCount } = useRealtime();
   const { staffName, staffId, ownerId, isOwner, staffEmail } = useUserRole();
@@ -134,6 +136,7 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
     staffId,
     staffName,
     initialConversationId,
+  onNavigateToCalendar,
     onNewMessage,
     onPipelineChange,
     setUnreadCount,
@@ -228,6 +231,7 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
             onUpdateLeadStage={handleUpdateLeadStage}
             onUpdateContactInfo={handleUpdateContactInfo}
             onNavigateToKanban={onNavigateToKanban}
+            onNavigateToCalendar={onNavigateToCalendar}
             onAddTag={handleAddTag}
             onRemoveTag={handleRemoveTag}
             onAddNote={handleAddNote}
