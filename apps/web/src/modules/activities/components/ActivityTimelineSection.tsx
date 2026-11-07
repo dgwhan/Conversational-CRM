@@ -8,11 +8,9 @@ import {
   Video,
   CheckCircle2,
   Circle,
-  Plus,
   Trash2,
   Sparkles,
   Bot,
-  ChevronRight,
   ExternalLink,
 } from 'lucide-react';
 import {
@@ -37,7 +35,7 @@ export const ActivityTimelineSection: React.FC<ActivityTimelineSectionProps> = (
   onNavigateToCalendar,
 }) => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
   const [filterType, setFilterType] = useState<'ALL' | ActivityType>('ALL');
 
   // Modal states

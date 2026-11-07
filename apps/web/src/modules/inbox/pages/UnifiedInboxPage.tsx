@@ -32,8 +32,8 @@ export interface UnifiedInboxPageProps {
 
 export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
   onNavigateToKanban,
-  initialConversationId,
   onNavigateToCalendar,
+  initialConversationId,
 }) => {
   const { onNewMessage, onPipelineChange, staffPresences, setUnreadCount } = useRealtime();
   const { staffName, staffId, ownerId, isOwner, staffEmail } = useUserRole();
@@ -136,7 +136,6 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
     staffId,
     staffName,
     initialConversationId,
-  onNavigateToCalendar,
     onNewMessage,
     onPipelineChange,
     setUnreadCount,

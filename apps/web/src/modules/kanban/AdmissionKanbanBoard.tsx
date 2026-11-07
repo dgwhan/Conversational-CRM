@@ -38,7 +38,7 @@ interface AdmissionKanbanBoardProps {
 
 export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
   onOpenChat,
-  onNavigateToCalendar,
+  onNavigateToCalendar: _onNavigateToCalendar,
   onNavigateToSettings,
 }) => {
   const { staffPresences, onPipelineChange, onNewMessage } = useRealtime();
@@ -684,7 +684,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               onChange={setSearchQuery}
               placeholder="Tìm theo tên (không dấu), SĐT, email..."
               size="sm"
-              className="w-full min-w-[260px]"
+              className="w-full min-w-0"
             />
           </div>
 

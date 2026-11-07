@@ -588,3 +588,169 @@
     font-size: 20px !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   5. MODERN MOBILE UX & HIGH PERFORMANCE ACCELERATION (IPHONE 15 PRO MAX 430x873)
+   Kh?c ph?c tri?t d? hi?n tu?ng dè ch?ng container, nút b?m và n?i dung trên mobile.
+   -------------------------------------------------------------------------- */
+
+/* T?i uu c?m ?ng: Lo?i b? d? tr? 300ms và highlight xám m?c d?nh trên Webkit mobile */
+button,
+a,
+input,
+select,
+textarea,
+.btn,
+.crm-btn,
+.navbar-mobile-toggle,
+.mobile-profile-avatar-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Micro-interactions: Ph?n h?i xúc giác mu?t mà 60/120fps */
+@media (prefers-reduced-motion: no-preference) {
+  .btn,
+  .crm-btn,
+  .navbar-mobile-toggle,
+  .mobile-profile-avatar-btn,
+  .crm-tab-btn {
+    transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s ease, background-color 0.15s ease !important;
+    will-change: transform;
+  }
+
+  .btn:active:not(:disabled),
+  .crm-btn:active:not(:disabled),
+  .navbar-mobile-toggle:active,
+  .mobile-profile-avatar-btn:active {
+    transform: scale(0.97) !important;
+  }
+}
+
+/* Container & Layout can ch?nh chu?n xác trên màn hình Mobile */
+@media screen and (max-width: 768px) {
+  .crm-content-area:not(.pancake-fullscreen) {
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .crm-page-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Tiêu d? trang trên Mobile */
+  .crm-page-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .crm-page-title {
+    font-size: 16.5px !important;
+    line-height: 1.3 !important;
+  }
+
+  .crm-page-description {
+    font-size: 12px !important;
+  }
+
+  /* Thanh tab chuy?n d?i nhanh */
+  .crm-tab-bar {
+    gap: 4px !important;
+    margin-bottom: 14px !important;
+    padding-bottom: 2px !important;
+  }
+
+  .crm-tab-btn {
+    padding: 7px 12px !important;
+    font-size: 12.5px !important;
+  }
+
+  /* B?ng bi?u và Lu?i d? li?u cu?n ngang d?c l?p không làm v? trang */
+  .table-container,
+  .crm-table-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--color-border, #e2e8f0) !important;
+  }
+
+  .crm-table th,
+  .crm-table td {
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+
+  /* Thanh công c? tìm ki?m và b? l?c Kanban & Reports */
+  .kanban-toolbar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+    margin-bottom: 12px !important;
+  }
+
+  .toolbar-left-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .kanban-search-box {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .kanban-search-box input {
+    width: 100% !important;
+    height: 38px !important;
+    font-size: 13px !important;
+  }
+
+  .kanban-filter-select {
+    width: 100% !important;
+    height: 36px !important;
+    font-size: 12px !important;
+  }
+
+  .toolbar-right-group {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .kanban-add-btn,
+  .kanban-config-btn {
+    width: 100% !important;
+    height: 38px !important;
+    justify-content: center !important;
+    font-size: 12.5px !important;
+    border-radius: 8px !important;
+  }
+
+  /* Ð?m b?o dropdown popovers không b? che khu?t ho?c tràn l? màn hình */
+  .ws-dropdown-menu,
+  .staff-presence-dropdown,
+  .notification-center-dropdown {
+    position: fixed !important;
+    top: 56px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22) !important;
+  }
+}

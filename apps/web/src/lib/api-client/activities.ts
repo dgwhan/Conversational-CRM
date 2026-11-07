@@ -281,6 +281,7 @@ export function createActivityApi(client: BaseApiClient) {
             scheduledAt: payload.scheduledAt !== undefined ? (payload.scheduledAt ? new Date(payload.scheduledAt).toISOString() : null) : local[idx].scheduledAt,
             dueAt: payload.dueAt !== undefined ? (payload.dueAt ? new Date(payload.dueAt).toISOString() : null) : local[idx].dueAt,
             completedAt: payload.completedAt !== undefined ? (payload.completedAt ? new Date(payload.completedAt).toISOString() : null) : (payload.status === 'COMPLETED' ? new Date().toISOString() : local[idx].completedAt),
+            reminderAt: payload.reminderAt !== undefined ? (payload.reminderAt ? new Date(payload.reminderAt).toISOString() : null) : local[idx].reminderAt,
             updatedAt: new Date().toISOString(),
           };
           local[idx] = updated;

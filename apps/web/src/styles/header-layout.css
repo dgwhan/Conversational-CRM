@@ -1,252 +1,161 @@
 /* ==========================================================================
-   CUSC RECRUITMENT CRM - DEDICATED HEADER & NAVBAR RESPONSIVE STYLESHEET
-   Tách biệt HeaderLayout thành layout độc lập, hỗ trợ đa độ phân giải:
-   Desktop XL (>1440px), Desktop (1024-1440px), Tablet (768-1024px), Mobile (<768px).
+   CUSC RECRUITMENT CRM - MODERN HEADER & NAVBAR RESPONSIVE STYLESHEET
+   Phong cách Modern SaaS Glassmorphism, tinh tế, mượt mà.
+   Tối ưu hiển thị tuyệt đối trên Desktop, Tablet và Mobile (iPhone 15 Pro Max 430x873).
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. MAIN NAVBAR CONTAINER (DESKTOP DEFAULT)
+   1. MAIN NAVBAR CONTAINER
    -------------------------------------------------------------------------- */
 .crm-navbar {
   position: sticky;
   top: 0;
   z-index: 100;
   width: 100%;
-  height: 56px;
-  min-height: 56px;
+  height: 54px;
+  min-height: 54px;
   flex-shrink: 0;
-  background: var(--color-surface, #ffffff);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03);
   padding: 0 20px;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.crm-navbar-container {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-/* Trên Desktop (>= 768px): crm-navbar-top-row dùng display: contents để các con tham gia trực tiếp flex của navbar */
-@media screen and (min-width: 768px) {
-  .crm-navbar-top-row {
-    display: contents !important;
-  }
-
-  .crm-navbar-left {
-    order: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    flex-shrink: 1;
-  }
-
-  .crm-navbar-center {
-    order: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    flex-shrink: 0;
-  }
-
-  .crm-navbar-right,
-  .crm-navbar-actions {
-    order: 3;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
+  width: 100%;
+  height: 100%;
+  gap: 12px;
 }
 
 /* --------------------------------------------------------------------------
-   2. LEFT SECTION: BREADCRUMB & MOBILE HAMBURGER TOGGLE
+   2. LEFT SECTION: HAMBURGER & TAB TITLE
    -------------------------------------------------------------------------- */
-.crm-breadcrumb {
+.crm-navbar-left {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 10px;
   min-width: 0;
-  white-space: nowrap;
+  flex-shrink: 1;
 }
 
 .navbar-mobile-toggle {
   display: none;
-  background: transparent;
+  background: #ffffff;
   border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  padding: 6px;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   color: var(--color-text-main, #0f172a);
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  margin-right: 6px;
   flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .navbar-mobile-toggle:hover {
-  background: var(--color-surface-hover, #f1f5f9);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
   color: var(--color-primary, #2563eb);
 }
 
-.crumb-root,
-.crumb-module {
-  color: var(--color-text-muted, #64748b);
-  font-weight: 500;
+.navbar-mobile-toggle:active {
+  transform: scale(0.96);
 }
 
-.crumb-separator {
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-.crumb-current {
-  color: var(--color-text-main, #0f172a);
-  font-size: 14px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 450px;
-}
-
-/* --------------------------------------------------------------------------
-   3. CENTER / ACTION SECTION: QUICK NAVIGATION TABS
-   -------------------------------------------------------------------------- */
-.navbar-quick-tabs {
+.crm-header-title-box {
   display: flex;
   align-items: center;
-  background: var(--color-surface-subtle, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 20px;
-  padding: 3px;
-  gap: 3px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  min-width: 0;
 }
 
-.navbar-quick-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.navbar-tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text-muted, #64748b);
-  padding: 5px 12px;
-  border-radius: 16px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.navbar-tab-btn:hover {
-  color: var(--color-text-main, #0f172a);
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.navbar-tab-btn.active {
-  background: #ffffff;
-  color: var(--color-primary, #2563eb);
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-.navbar-unread-dot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--gradient-danger, #ef4444);
-  color: #ffffff;
-  font-size: 10px;
+.crm-header-current-tab {
+  font-size: 14.5px;
   font-weight: 700;
-  line-height: 1;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
 }
 
 /* --------------------------------------------------------------------------
-   4. RIGHT SECTION: UTILITY WIDGETS
+   3. RIGHT SECTION: UTILITY ACTIONS & WIDGETS
    -------------------------------------------------------------------------- */
-/* Role Switcher Locked State */
-.role-switcher-container.role-switcher-locked {
-  display: inline-flex;
+.crm-navbar-right,
+.crm-navbar-actions {
+  display: flex;
   align-items: center;
-  background: var(--color-surface-subtle, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 20px;
-  padding: 2px 4px;
-  cursor: default;
-  user-select: none;
-}
-
-.role-switcher-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: default;
-}
-
-.role-switcher-badge.active-owner {
-  background: #ffffff;
-  color: #0284c7;
-  border: 1px solid #bae6fd;
-  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08);
-}
-
-.role-switcher-badge.active-agent {
-  background: #ffffff;
-  color: #ea580c;
-  border: 1px solid #fed7aa;
-  box-shadow: 0 1px 2px rgba(234, 88, 12, 0.08);
-}
-
-.role-lock-icon {
-  color: #94a3b8;
+  gap: 8px;
   flex-shrink: 0;
-  margin-left: 2px;
 }
 
-/* User Profile Pill */
+.crm-header-action-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Hiển thị phân định giữa Desktop và Mobile */
+.desktop-only {
+  display: inline-flex !important;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+/* User Profile Pill trên Desktop */
 .crm-user-profile-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 10px;
-  background: var(--color-surface-subtle, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
+  padding: 3px 10px 3px 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 9999px;
   font-size: 13px;
   height: 32px;
   box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
 }
 
-.crm-user-profile-icon {
-  color: var(--color-text-muted, #64748b);
+.crm-user-profile-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.crm-avatar-mini {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
 .crm-user-profile-name {
-  font-weight: 500;
-  color: var(--color-text-main, #0f172a);
-  max-width: 120px;
+  font-weight: 600;
+  color: #1e293b;
+  max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -260,267 +169,416 @@
   background: transparent;
   cursor: pointer;
   color: #ef4444;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  transition: background 0.15s ease;
-}
-
-.crm-user-logout-btn:hover {
-  background: #fef2f2;
-}
-
-/* API Status Pill */
-.crm-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: var(--color-surface-subtle, #f8fafc);
-  border: 1px solid var(--color-border, #e2e8f0);
-  padding: 5px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  color: var(--color-text-muted, #64748b);
-  cursor: pointer;
-  height: 32px;
-  box-sizing: border-box;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
   transition: all 0.15s ease;
 }
 
-.crm-status-pill:hover {
-  border-color: #cbd5e1;
-  background-color: #f1f5f9;
-}
-
-.crm-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  flex-shrink: 0;
-}
-
-.crm-status-dot.online {
-  background-color: var(--color-success, #10b981);
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}
-
-.crm-status-text {
-  font-size: 11px;
-}
-
-.crm-status-text code {
-  font-family: monospace;
-  font-weight: 600;
-  color: var(--color-text-main, #0f172a);
-}
-
-/* Popover cấu hình URL API Backend */
-.crm-config-popover {
-  position: absolute;
-  top: 50px;
-  right: 20px;
-  width: 320px;
-  background-color: #ffffff;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: var(--radius-md, 8px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  padding: 16px;
-  z-index: 200;
+.crm-user-logout-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 /* --------------------------------------------------------------------------
-   5. RESPONSIVE BREAKPOINTS
+   4. MOBILE PROFILE QUICK SHEET / POPOVER
    -------------------------------------------------------------------------- */
+.mobile-user-profile-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
 
-/* LAPTOP & MEDIUM DESKTOP (1024px to 1320px) */
-@media screen and (max-width: 1320px) and (min-width: 1024px) {
-  .crm-navbar {
-    padding: 0 14px;
-    gap: 10px;
+.mobile-profile-avatar-btn {
+  width: 33px;
+  height: 33px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+
+.mobile-profile-avatar-btn:active {
+  transform: scale(0.94);
+}
+
+.mobile-avatar-text {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mobile-avatar-badge-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #10b981;
+  border: 1.5px solid #ffffff;
+}
+
+/* Popover card container */
+.mobile-user-popover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 60px 14px 14px 14px;
+  animation: mobileFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mobileFadeIn {
+  from {
+    opacity: 0;
   }
-
-  .crumb-root,
-  .crumb-separator:nth-of-type(1) {
-    display: none !important;
-  }
-
-  .crm-status-text code {
-    display: none;
-  }
-
-  .crm-status-text::after {
-    content: "API";
-  }
-
-  .crm-user-profile-name {
-    max-width: 85px;
+  to {
+    opacity: 1;
   }
 }
 
-/* TABLET (768px to 1023px) */
-@media screen and (max-width: 1023px) and (min-width: 768px) {
+.mobile-user-popover-card {
+  width: 100%;
+  max-width: 320px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.18), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: mobileSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes mobileSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.popover-user-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.popover-avatar-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
+}
+
+.popover-user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.popover-user-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popover-user-role {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.popover-user-role .role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 9999px;
+}
+
+.popover-user-role .role-badge.owner {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.popover-user-role .role-badge.agent {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.popover-user-email {
+  font-size: 11.5px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.popover-section-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-row-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mobile-lang-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.lang-pill-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lang-pill-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.popover-footer-action {
+  padding-top: 6px;
+}
+
+.popover-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.popover-logout-btn:active {
+  background: #fee2e2;
+  transform: scale(0.98);
+}
+
+/* --------------------------------------------------------------------------
+   5. RESPONSIVE BREAKPOINTS: DESKTOP, TABLET, MOBILE (430px iPhone 15 Pro Max)
+   -------------------------------------------------------------------------- */
+
+/* TABLET (768px - 1024px) */
+@media screen and (max-width: 1024px) and (min-width: 768px) {
   .crm-navbar {
-    padding: 0 12px;
-    gap: 8px;
+    padding: 0 14px;
   }
 
   .navbar-mobile-toggle {
     display: inline-flex !important;
   }
 
-  .crumb-root,
-  .crumb-module,
-  .crumb-separator {
-    display: none !important;
-  }
-
-  .crumb-current {
-    max-width: 160px;
-    font-size: 13px;
-  }
-
-  .crm-status-pill {
-    display: none !important;
-  }
-
-  .role-switcher-btn span,
-  .role-switcher-badge .role-text {
-    display: none !important;
-  }
-
-  .role-switcher-btn {
-    padding: 4px 8px !important;
-  }
-
-  .role-switcher-badge {
-    padding: 3px 6px !important;
+  .crm-header-current-tab {
+    max-width: 200px;
   }
 
   .crm-user-profile-name {
-    display: none !important;
-  }
-
-  .crm-user-profile-pill {
-    padding: 4px 6px;
-    gap: 4px;
+    max-width: 90px;
   }
 }
 
-/* MOBILE PHONES (< 768px) */
+/* MOBILE PHONES (<= 767px, bao gồm iPhone 15 Pro Max 430px x 873px) */
 @media screen and (max-width: 767px) {
   .crm-navbar {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    padding: 8px 12px !important;
-    min-height: auto !important;
-    gap: 8px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 10px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
 
-  /* Row 1: Left (Hamburger + Title) & Right (Utilities) */
-  .crm-navbar-top-row {
+  .crm-navbar-container {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
     width: 100% !important;
-    min-height: 38px !important;
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
+  /* Ẩn / hiện theo breakpoint */
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: inline-flex !important;
+  }
+
+  /* Bên trái: Nút hamburger và Tên tab */
   .crm-navbar-left {
-    display: flex !important;
-    align-items: center !important;
-    flex: 1 !important;
+    gap: 8px !important;
+    flex: 1 1 auto !important;
     min-width: 0 !important;
   }
 
   .navbar-mobile-toggle {
     display: inline-flex !important;
+    width: 34px !important;
+    height: 34px !important;
   }
 
-  .crumb-root,
-  .crumb-module,
-  .crumb-separator {
-    display: none !important;
-  }
-
-  .crumb-current {
+  .crm-header-current-tab {
     font-size: 13.5px !important;
     font-weight: 700 !important;
-    max-width: calc(100vw - 220px) !important;
+    max-width: 130px !important;
   }
 
+  /* Bên phải: Cụm nút chức năng cực kỳ gọn gàng */
   .crm-navbar-right,
   .crm-navbar-actions {
-    display: flex !important;
-    align-items: center !important;
-    gap: 5px !important;
+    gap: 6px !important;
     flex-shrink: 0 !important;
   }
 
-  .crm-status-pill {
+  /* Thu gọn Workspace Switcher trên màn hình mobile */
+  .ws-item-wrap .ws-switcher-btn {
+    height: 32px !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+  }
+
+  .ws-item-wrap .ws-switcher-name {
+    max-width: 68px !important;
+    font-size: 11.5px !important;
+  }
+
+  .ws-item-wrap .ws-chevron {
     display: none !important;
   }
 
-  /* Role Switcher compact */
-  .role-switcher-container {
-    padding: 1px !important;
+  /* Định vị dropdown popup của Workspace Switcher trên mobile */
+  .ws-dropdown-menu {
+    position: fixed !important;
+    top: 56px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.2) !important;
   }
 
-  .role-switcher-btn {
-    padding: 3px 6px !important;
-    font-size: 11px !important;
+  /* Định vị dropdown popup của Realtime Staff Presence trên mobile */
+  .staff-presence-dropdown {
+    position: fixed !important;
+    top: 56px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 35px rgba(15, 23, 42, 0.2) !important;
   }
 
-  .role-switcher-btn span,
-  .role-switcher-badge .role-text {
+  /* Định vị dropdown Notification Center trên mobile */
+  .notification-center-dropdown,
+  .notif-item-wrap > div > div.absolute,
+  div[ref="containerRef"] > div.absolute {
+    position: fixed !important;
+    top: 56px !important;
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 14px !important;
+  }
+
+  /* Nút compact presence trên mobile */
+  .presence-item-wrap .staff-presence-button {
+    height: 32px !important;
+    padding: 0 7px !important;
+    gap: 4px !important;
+  }
+
+  .presence-item-wrap .presence-chevron {
+    display: none !important;
+  }
+}
+
+/* ĐIỆN THOẠI SIÊU NHỎ (<= 390px) */
+@media screen and (max-width: 390px) {
+  .crm-header-current-tab {
+    max-width: 95px !important;
+    font-size: 13px !important;
+  }
+
+  .ws-item-wrap .ws-switcher-name {
     display: none !important;
   }
 
-  .role-switcher-badge {
-    padding: 2px 6px !important;
-    font-size: 11px !important;
-  }
-
-  /* User profile compact */
-  .crm-user-profile-name {
-    display: none !important;
-  }
-
-  .crm-user-profile-pill {
-    padding: 2px 6px !important;
-    height: 28px !important;
-    gap: 2px !important;
-  }
-
-  .logout-text {
-    display: none !important;
-  }
-
-  .crm-user-logout-btn {
-    padding: 2px !important;
-  }
-
-  /* Row 2: Quick Tabs Scrollable Strip */
-  .crm-navbar-center {
-    width: 100% !important;
-    display: flex !important;
-    justify-content: flex-start !important;
-  }
-
-  .navbar-quick-tabs {
-    width: 100% !important;
-    padding: 2px !important;
-    gap: 3px !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    white-space: nowrap !important;
-    box-sizing: border-box !important;
-  }
-
-  .navbar-tab-btn {
-    padding: 4px 10px !important;
-    font-size: 11px !important;
-    flex-shrink: 0 !important;
+  .ws-item-wrap .ws-switcher-btn {
+    padding: 0 6px !important;
   }
 }

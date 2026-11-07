@@ -3,13 +3,9 @@ import {
   Phone,
   Calendar,
   CheckSquare,
-  Clock,
   MapPin,
   Video,
   User,
-  AlertCircle,
-  X,
-  Plus,
   Send,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal.js';
@@ -17,7 +13,6 @@ import {
   apiClient,
   type ActivityItem,
   type ActivityType,
-  type ActivityStatus,
   type ActivityPriority,
   type MeetingType,
 } from '../../../lib/api-client/index.js';
