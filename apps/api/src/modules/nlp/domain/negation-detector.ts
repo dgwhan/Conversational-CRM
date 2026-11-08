@@ -22,6 +22,7 @@ export const NEGATION_MARKERS = [
   'ngung',
   'thoi',
   'khoi',
+  'rut',
   'chua tung',
   'khong he',
   'chua muon',

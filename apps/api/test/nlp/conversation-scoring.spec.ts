@@ -296,6 +296,127 @@ describe('Conversation Scoring & Classification Engine', () => {
       expect(result.isExcluded).toBe(true);
       expect(result.tier).toBe('IRRELEVANT');
     });
+
+    it('35. Tầng application: nạp luật có cache có hạn (TTL) và hỗ trợ xóa cache invalidate', async () => {
+      let callCount = 0;
+      const mockRulesService = {
+        getRules: async () => {
+          callCount++;
+          return standardRules;
+        },
+      } as unknown as KeywordRulesService;
+
+      const classificationService = new ConversationClassificationService(mockRulesService);
+
+      // Gọi lần 1: Nạp từ service (callCount = 1)
+      const rules1 = await classificationService.getCachedRules('ws-cache-test');
+      expect(rules1).toEqual(standardRules);
+      expect(callCount).toBe(1);
+
+      // Gọi lần 2: Đọc từ cache có hạn (callCount vẫn là 1)
+      const rules2 = await classificationService.getCachedRules('ws-cache-test');
+      expect(rules2).toEqual(standardRules);
+      expect(callCount).toBe(1);
+
+      // Invalidate cache: Lần gọi tiếp theo sẽ nạp lại từ service (callCount = 2)
+      classificationService.invalidateCache('ws-cache-test');
+      const rules3 = await classificationService.getCachedRules('ws-cache-test');
+      expect(rules3).toEqual(standardRules);
+      expect(callCount).toBe(2);
+    });
+
+    it('36. Tầng application: phát sự kiện ConversationClassified khi phân loại thành công', async () => {
+      const mockRulesService = {
+        getRules: async () => standardRules,
+      } as unknown as KeywordRulesService;
+
+      const classificationService = new ConversationClassificationService(mockRulesService);
+      const receivedEvents: any[] = [];
+
+      classificationService.onClassified((event) => {
+        receivedEvents.push(event);
+      });
+
+      await classificationService.classifyConversation({
+        conversationId: 'conv-event-1',
+        customerId: 'cust-1',
+        workspaceId: 'ws-1',
+        messages: ['em muốn đăng ký và học phí thế nào'],
+      });
+
+      expect(receivedEvents).toHaveLength(1);
+      const ev = receivedEvents[0];
+      expect(ev.conversationId).toBe('conv-event-1');
+      expect(ev.customerId).toBe('cust-1');
+      expect(ev.workspaceId).toBe('ws-1');
+      expect(ev.result.tier).toBe('HOT');
+      expect(ev.result.score).toBe(8); // 5 (đăng ký) + 3 (học phí)
+      expect(ev.classifiedAt).toBeInstanceOf(Date);
+    });
+
+    it('37. Lead im lặng 14 ngày giảm dần độ quan tâm: Điểm 8 (HOT) trừ 3 điểm còn 5 điểm -> hạ xuống WARM', () => {
+      // Khách nhắn có đăng ký (5đ) + học phí (3đ) = 8 điểm (đạt HOT)
+      const messages = ['Em muốn đăng ký dịch vụ và hỏi học phí'];
+
+      // Trường hợp 1: Mới nhắn hôm qua (daysInactive = 1) -> Giữ nguyên 8 điểm (HOT)
+      const freshResult = scoreConversation(messages, standardRules, {}, [], 1);
+      expect(freshResult.score).toBe(8);
+      expect(freshResult.tier).toBe('HOT');
+
+      // Trường hợp 2: Im lặng đúng 14 ngày -> Trừ 3 điểm còn 5 điểm -> Chuyển thành WARM
+      const staleResult = scoreConversation(messages, standardRules, {}, [], 14);
+      expect(staleResult.score).toBe(5);
+      expect(staleResult.tier).toBe('WARM');
+      expect(staleResult.reasonsFormatted).toContain('im lặng 14 ngày -3');
+
+      // Trường hợp 3: Im lặng 21 ngày -> Trừ thêm bậc thang 5 điểm còn 3 điểm -> Chuyển thành COLD
+      const veryStaleResult = scoreConversation(messages, standardRules, {}, [], 21);
+      expect(veryStaleResult.score).toBe(3);
+      expect(veryStaleResult.tier).toBe('COLD');
+      expect(veryStaleResult.reasonsFormatted).toContain('im lặng 21 ngày -5');
+    });
+
+    it('38. Số ngày im lặng và mức điểm trừ cấu hình được linh hoạt theo Workspace', () => {
+      const messages = ['Đăng ký tư vấn khóa học']; // 5 (đk) + 2 (tv) = 7 điểm (WARM)
+
+      // Cấu hình workspace A: Im lặng 7 ngày đã bắt đầu trừ 4 điểm
+      const customConfigA = {
+        inactivityDecayDays: 7,
+        inactivityDecayPoints: 4,
+      };
+
+      const res7Days = scoreConversation(messages, standardRules, customConfigA, [], 7);
+      expect(res7Days.score).toBe(3); // 7 - 4 = 3 (COLD)
+      expect(res7Days.tier).toBe('COLD');
+
+      // Cấu hình workspace B: Im lặng 30 ngày mới trừ điểm
+      const customConfigB = {
+        inactivityDecayDays: 30,
+        inactivityDecayPoints: 2,
+      };
+
+      const res14DaysWorkspaceB = scoreConversation(messages, standardRules, customConfigB, [], 14);
+      expect(res14DaysWorkspaceB.score).toBe(7); // Chưa đến 30 ngày -> giữ nguyên 7 điểm
+      expect(res14DaysWorkspaceB.tier).toBe('WARM');
+    });
+
+    it('39. Cổng Ambiguity Gateway (Heuristic 0đ chi phí): Phân giải câu hỏi thăm dò quy trình / báo giá', async () => {
+      const mockRulesService = {
+        getRules: async () => standardRules,
+      } as unknown as KeywordRulesService;
+
+      const classificationService = new ConversationClassificationService(mockRulesService);
+
+      // Khách hỏi câu thăm dò không chứa từ khóa trực tiếp: "cho em hỏi thủ tục sao ad"
+      const res = await classificationService.classifyConversation({
+        conversationId: 'conv-ambiguous-1',
+        messages: ['Cho em hỏi thủ tục quy trình thế nào ad'],
+      });
+
+      // Heuristic nhận diện intent HOI_QUY_TRINH_THU_TUC và phân vào WARM
+      expect(res.tier).toBe('WARM');
+      expect(res.reasonsFormatted).toContain('Heuristic');
+    });
   });
 });
 

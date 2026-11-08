@@ -1,27 +1,35 @@
-/**
- * Domain Logic: Chấm điểm & Phân loại Hội thoại Tuyển sinh (Pure Function)
- * Tuân thủ Clean Architecture: Hàm thuần không phụ thuộc I/O hay CSDL.
- */
+
 
 import { normalize } from '../text-normalizer.js';
 import { extractEntities, type CatalogProductItem, type ExtractedEntitiesResult } from '../entity-extractor.js';
 import { isKeywordNegated } from './negation-detector.js';
 import type { KeywordRuleItem } from '../keyword-scoring.js';
+import {
+  CONVERSATION_TIERS,
+  SCORING_RULE_GROUPS,
+  SCORING_REASONS,
+  DEFAULT_SCORING_THRESHOLDS_CONFIG,
+  type ConversationTier,
+} from './scoring.constants.js';
 
-export type ConversationTier = 'HOT' | 'WARM' | 'COLD' | 'IRRELEVANT';
+export { CONVERSATION_TIERS, SCORING_RULE_GROUPS, SCORING_REASONS, type ConversationTier };
 
 export interface ScoringThresholdConfig {
-  hotMinScore: number;       // Mặc định: 8 (Nóng từ 8 điểm trở lên)
-  warmMinScore: number;      // Mặc định: 4 (Ấm từ 4 đến 7 điểm)
-  coldMinScore: number;      // Mặc định: 1 (Lạnh từ 1 đến 3 điểm)
-  phoneBonusScore?: number;  // Mặc định: 5 (Cộng điểm thưởng khi phát hiện SĐT)
+  hotMinScore: number;            // Nóng từ hotMinScore điểm trở lên
+  warmMinScore: number;           // Ấm từ warmMinScore điểm
+  coldMinScore: number;           // Lạnh từ coldMinScore điểm
+  phoneBonusScore?: number;       // Điểm thưởng khi phát hiện SĐT hợp lệ
+  inactivityDecayDays?: number;   // Số ngày khách im lặng bắt đầu trừ điểm (mặc định: 14)
+  inactivityDecayPoints?: number; // Số điểm trừ khi vượt ngưỡng im lặng (mặc định: 3)
 }
 
 export const DEFAULT_SCORING_THRESHOLDS: ScoringThresholdConfig = {
-  hotMinScore: 8,
-  warmMinScore: 4,
-  coldMinScore: 1,
-  phoneBonusScore: 5,
+  hotMinScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.HOT_MIN_SCORE,
+  warmMinScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.WARM_MIN_SCORE,
+  coldMinScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.COLD_MIN_SCORE,
+  phoneBonusScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.PHONE_BONUS_SCORE,
+  inactivityDecayDays: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_DAYS,
+  inactivityDecayPoints: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_POINTS,
 };
 
 export interface MatchedReasonItem {
@@ -36,7 +44,7 @@ export interface ConversationScoreResult {
   score: number;
   tier: ConversationTier;
   reasons: MatchedReasonItem[];
-  reasonsFormatted: string; // Định dạng cho Sales: "học phí +3, đăng ký +5, có SĐT +5"
+  reasonsFormatted: string;
   entities: ExtractedEntitiesResult;
   isExcluded: boolean;
 }
@@ -44,38 +52,36 @@ export interface ConversationScoreResult {
 export type ConversationMessageInput =
   | string
   | {
-      id?: string;
-      content?: string | null;
-      senderRole?: 'CUSTOMER' | 'STAFF' | 'BOT' | string;
-    };
+    id?: string;
+    content?: string | null;
+    senderRole?: 'CUSTOMER' | 'STAFF' | 'BOT' | string;
+  };
 
 /**
- * Hàm thuần chấm điểm toàn bộ hội thoại: scoreConversation(messages, rules, thresholdConfig)
+ * Hàm thuần chấm điểm toàn bộ hội thoại:
+ * scoreConversation(messages, rules, thresholdConfig, catalog, daysInactive)
  *
  * Tiêu chí cốt lõi:
- * 1. Cộng dồn điểm theo toàn bộ hội thoại.
- * 2. Mỗi luật chỉ tính một lần duy nhất (Deduplication).
- * 3. Xử lý câu phủ định ("không đăng ký đâu" -> không tính điểm đăng ký).
- * 4. Phát hiện SĐT hợp lệ CUS-03 -> tự động cộng điểm "có SĐT +5".
- * 5. Phân hạng nhiệt độ theo cấu hình:
- *    - Nóng: >= hotMinScore (8)
- *    - Ấm: >= warmMinScore (4..7)
- *    - Lạnh: >= coldMinScore (1..3)
- *    - Không liên quan: 0 hoặc bị loại trừ
- * 6. Trả về chuỗi giải trình lý do minh bạch cho Sales (VD: "học phí +3, đăng ký +5, có SĐT +5").
+ * 1. Độc lập với domain ngành nghề (Multi-domain).
+ * 2. Cộng dồn điểm theo toàn bộ hội thoại, khử trùng lặp từ khóa (Deduplication).
+ * 3. Xử lý câu phủ định ngữ cảnh (Negation Detection).
+ * 4. Thưởng điểm thực thể liên hệ (SĐT).
+ * 5. Điểm giảm dần khi khách im lặng lâu (Inactivity Time Decay, cấu hình số ngày).
+ * 6. Phân hạng nhiệt độ (HOT, WARM, COLD, IRRELEVANT) qua constants.
  */
 export function scoreConversation(
   messages: ConversationMessageInput[],
   rules: KeywordRuleItem[] = [],
   thresholdConfig: Partial<ScoringThresholdConfig> = {},
-  catalog: CatalogProductItem[] = []
+  catalog: CatalogProductItem[] = [],
+  daysInactive?: number
 ): ConversationScoreResult {
   const config: ScoringThresholdConfig = {
     ...DEFAULT_SCORING_THRESHOLDS,
     ...thresholdConfig,
   };
 
-  const phoneBonus = config.phoneBonusScore ?? 5;
+  const phoneBonus = config.phoneBonusScore ?? DEFAULT_SCORING_THRESHOLDS_CONFIG.PHONE_BONUS_SCORE;
 
   // 1. Chuẩn hóa danh sách chuỗi tin nhắn đầu vào
   const messageTexts: string[] = [];
@@ -84,7 +90,6 @@ export function scoreConversation(
     if (typeof msg === 'string') {
       if (msg.trim()) messageTexts.push(msg.trim());
     } else if (typeof msg === 'object' && msg.content) {
-      // Chỉ tính tin nhắn từ phía khách hàng nếu có phân quyền senderRole
       if (msg.senderRole && msg.senderRole !== 'CUSTOMER' && msg.senderRole !== 'user') {
         continue;
       }
@@ -111,7 +116,6 @@ export function scoreConversation(
     if (!normMsg) continue;
 
     for (const rule of activeRules) {
-      // Tiêu chí: Mỗi luật chỉ tính một lần duy nhất trong cả cuộc hội thoại
       if (appliedRuleIds.has(rule.id) || appliedKeywords.has(rule.keyword.toLowerCase())) {
         continue;
       }
@@ -119,17 +123,13 @@ export function scoreConversation(
       const normKeyword = normalize(rule.keyword);
       if (!normKeyword) continue;
 
-      // Kiểm tra sự xuất hiện của từ khóa theo ranh giới từ
       const regex = new RegExp(`\\b${normKeyword}\\b`, 'i');
       if (regex.test(normMsg)) {
-        // Kiểm tra xem từ khóa có bị phủ định trong ngữ cảnh câu không
         const negated = isKeywordNegated(normMsg, normKeyword);
         if (negated) {
-          // Nếu bị phủ định (VD: "không đăng ký đâu"), KHÔNG tính điểm cho luật này
           continue;
         }
 
-        // Ghi nhận luật đã áp dụng
         appliedRuleIds.add(rule.id);
         appliedKeywords.add(rule.keyword.toLowerCase());
 
@@ -141,19 +141,42 @@ export function scoreConversation(
           sourceMessageIndex: msgIdx,
         });
 
-        if (rule.group === 'LOAI_TRU' || rule.weight <= -50) {
+        if (
+          rule.group === SCORING_RULE_GROUPS.EXCLUSION ||
+          rule.weight <= DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_THRESHOLD_WEIGHT
+        ) {
           isExcluded = true;
         }
       }
     }
   }
 
-  // 3. Thưởng điểm Số Điện Thoại hợp lệ chuẩn CUS-03
+  // 3. Thưởng điểm Số Điện Thoại hợp lệ
   if (entities.phoneNumber) {
     matchedReasons.push({
-      keyword: 'có SĐT',
+      keyword: SCORING_REASONS.PHONE_DETECTED,
       points: phoneBonus,
-      group: 'THUC_THE',
+      group: SCORING_RULE_GROUPS.ENTITY,
+    });
+  }
+
+  // 3.1. Suy giảm điểm khi khách im lặng lâu (Inactivity Decay - Cấu hình được số ngày)
+  const decayThresholdDays = config.inactivityDecayDays ?? DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_DAYS;
+  const decayBasePoints = config.inactivityDecayPoints ?? DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_POINTS;
+
+  if (
+    typeof daysInactive === 'number' &&
+    daysInactive >= decayThresholdDays &&
+    decayBasePoints > 0 &&
+    !isExcluded
+  ) {
+    const extraWeeks = Math.floor((daysInactive - decayThresholdDays) / 7);
+    const totalDecay = decayBasePoints + extraWeeks * 2;
+
+    matchedReasons.push({
+      keyword: SCORING_REASONS.formatInactivityReason(daysInactive),
+      points: -totalDecay,
+      group: SCORING_RULE_GROUPS.TIME_DECAY,
     });
   }
 
@@ -163,28 +186,30 @@ export function scoreConversation(
     totalScore += reason.points;
   }
 
-  // Nếu bị đánh dấu loại trừ hoặc điểm < 0, chuẩn hóa điểm
-  if (isExcluded && totalScore > 0) {
-    totalScore = -100;
+  if (!isExcluded && totalScore < 0) {
+    totalScore = 0;
   }
 
-  // 5. Xác định Phân hạng nhiệt độ (Tier) dựa theo ngưỡng điểm động
-  let tier: ConversationTier = 'IRRELEVANT';
+  if (isExcluded && totalScore > 0) {
+    totalScore = DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_PENALTY_SCORE;
+  }
+
+  // 5. Xác định Phân hạng nhiệt độ (Tier) dựa theo ngưỡng cấu hình qua constants
+  let tier: ConversationTier = CONVERSATION_TIERS.IRRELEVANT;
 
   if (isExcluded || totalScore <= 0) {
-    tier = 'IRRELEVANT';
+    tier = CONVERSATION_TIERS.IRRELEVANT;
   } else if (totalScore >= config.hotMinScore) {
-    tier = 'HOT';
+    tier = CONVERSATION_TIERS.HOT;
   } else if (totalScore >= config.warmMinScore) {
-    tier = 'WARM';
+    tier = CONVERSATION_TIERS.WARM;
   } else if (totalScore >= config.coldMinScore) {
-    tier = 'COLD';
+    tier = CONVERSATION_TIERS.COLD;
   } else {
-    tier = 'IRRELEVANT';
+    tier = CONVERSATION_TIERS.IRRELEVANT;
   }
 
-  // 6. Định dạng chuỗi giải trình lý do minh bạch cho Sales
-  // Ví dụ yêu cầu nghiệm thu: "học phí +3, đăng ký +5, có SĐT +5"
+  // 6. Định dạng chuỗi giải trình lý do minh bạch
   const formattedParts = matchedReasons.map((r) => {
     const sign = r.points >= 0 ? `+${r.points}` : `${r.points}`;
     return `${r.keyword} ${sign}`;
@@ -200,4 +225,3 @@ export function scoreConversation(
     isExcluded,
   };
 }
-

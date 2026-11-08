@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { KeywordRulesService } from '../keyword-rules.service.js';
 import {
   scoreConversation,
@@ -7,9 +7,11 @@ import {
   type ScoringThresholdConfig,
   DEFAULT_SCORING_THRESHOLDS,
 } from '../domain/conversation-scoring.js';
+import { DEFAULT_SCORING_THRESHOLDS_CONFIG } from '../domain/scoring.constants.js';
 import { ConversationClassifiedEvent } from '../domain/events/conversation-classified.event.js';
 import type { CatalogProductItem } from '../entity-extractor.js';
 import type { KeywordRuleItem } from '../keyword-scoring.js';
+import { LlmAmbiguityGatewayService } from './llm-ambiguity-gateway.service.js';
 
 interface CacheEntry<T> {
   data: T;
@@ -27,8 +29,8 @@ interface CacheEntry<T> {
 export class ConversationClassificationService {
   private readonly logger = new Logger(ConversationClassificationService.name);
 
-  // Bộ nhớ đệm TTL (Mặc định 5 phút = 300.000 ms)
-  private readonly CACHE_TTL_MS = 5 * 60 * 1000;
+  // Bộ nhớ đệm TTL từ magic constants (Mặc định 5 phút = 300.000 ms)
+  private readonly CACHE_TTL_MS = DEFAULT_SCORING_THRESHOLDS_CONFIG.CACHE_TTL_MS;
   private readonly rulesCache = new Map<string, CacheEntry<KeywordRuleItem[]>>();
   private readonly thresholdCache = new Map<string, CacheEntry<ScoringThresholdConfig>>();
 
@@ -37,8 +39,14 @@ export class ConversationClassificationService {
 
   // Danh sách các handler đăng ký nhận sự kiện ConversationClassified
   private readonly eventListeners: Array<(event: ConversationClassifiedEvent) => void | Promise<void>> = [];
+  private readonly ambiguityGateway: LlmAmbiguityGatewayService;
 
-  constructor(private readonly keywordRulesService: KeywordRulesService) {}
+  constructor(
+    private readonly keywordRulesService: KeywordRulesService,
+    @Optional() ambiguityGateway?: LlmAmbiguityGatewayService
+  ) {
+    this.ambiguityGateway = ambiguityGateway ?? new LlmAmbiguityGatewayService();
+  }
 
   /**
    * Đăng ký lắng nghe sự kiện ConversationClassified (Event-Driven decoupled)
@@ -126,8 +134,9 @@ export class ConversationClassificationService {
    * Luồng xử lý chính:
    * 1. Nạp luật từ cache
    * 2. Nạp ngưỡng từ cấu hình
-   * 3. Gọi hàm thuần scoreConversation
-   * 4. Phát sự kiện ConversationClassified
+   * 3. Gọi hàm thuần scoreConversation (hỗ trợ suy giảm điểm daysInactive)
+   * 4. Giải quyết tin mơ hồ qua AmbiguityGateway (Heuristic / LLM) nếu có
+   * 5. Phát sự kiện ConversationClassified
    */
   async classifyConversation(params: {
     conversationId: string;
@@ -135,8 +144,18 @@ export class ConversationClassificationService {
     customerId?: string;
     workspaceId?: string;
     catalog?: CatalogProductItem[];
+    daysInactive?: number;
+    resolveAmbiguity?: boolean;
   }): Promise<ConversationScoreResult> {
-    const { conversationId, messages, customerId, workspaceId, catalog = [] } = params;
+    const {
+      conversationId,
+      messages,
+      customerId,
+      workspaceId,
+      catalog = [],
+      daysInactive,
+      resolveAmbiguity = true,
+    } = params;
 
     // 1. Nạp luật với Cache có hạn
     const rules = await this.getCachedRules(workspaceId);
@@ -144,10 +163,32 @@ export class ConversationClassificationService {
     // 2. Nạp cấu hình ngưỡng điểm
     const thresholds = await this.getThresholdConfig(workspaceId);
 
-    // 3. Gọi hàm thuần domain scoreConversation (không side-effects)
-    const result = scoreConversation(messages, rules, thresholds, catalog);
+    // 3. Gọi hàm thuần domain scoreConversation (không side-effects, hỗ trợ time decay)
+    let result = scoreConversation(messages, rules, thresholds, catalog, daysInactive);
 
-    // 4. Phát sự kiện ConversationClassified
+    // 4. Giải quyết tin mơ hồ qua Cổng Ambiguity Gateway nếu có cấu hình
+    if (this.ambiguityGateway && resolveAmbiguity) {
+      if (this.ambiguityGateway.isAmbiguous(result, messages, thresholds, daysInactive)) {
+        const ambiguityRes = await this.ambiguityGateway.resolveAmbiguity(
+          messages,
+          result,
+          thresholds,
+          daysInactive
+        );
+        if (ambiguityRes.isAmbiguous && ambiguityRes.adjustedTier) {
+          result = {
+            ...result,
+            tier: ambiguityRes.adjustedTier,
+            score: ambiguityRes.adjustedScore ?? result.score,
+            reasonsFormatted: result.reasonsFormatted
+              ? `${result.reasonsFormatted}, ${ambiguityRes.reason}`
+              : ambiguityRes.reason,
+          };
+        }
+      }
+    }
+
+    // 5. Phát sự kiện ConversationClassified
     const event = new ConversationClassifiedEvent(
       conversationId,
       customerId,
@@ -176,4 +217,3 @@ export class ConversationClassificationService {
     }
   }
 }
-

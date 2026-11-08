@@ -100,15 +100,15 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
 
       {/* Trạng thái rỗng  */}
       {!isLoading && filteredWorkspaces.length === 0 && (
-        <div className="bg-white border border-dashed border-slate-300 rounded-xl py-12 px-6 text-center flex flex-col items-center gap-3 shadow-2xs">
-          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
-            <Building2 size={20} />
+        <div className="py-14 px-6 text-center flex flex-col items-center gap-3">
+          <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
+            <Building2 size={22} />
           </div>
           <div>
-            <h3 className="text-xs font-bold m-0 mb-1 text-slate-900">
+            <h3 className="text-sm font-bold m-0 mb-1 text-slate-900">
               {searchQuery ? 'Không tìm thấy không gian làm việc phù hợp' : 'Chưa có không gian làm việc nào'}
             </h3>
-            <p className="text-[11px] text-slate-500 m-0 max-w-md">
+            <p className="text-xs text-slate-500 m-0 max-w-md">
               {searchQuery
                 ? `Không có kết quả nào khớp với "${searchQuery}". Vui lòng thử từ khóa khác.`
                 : 'Hãy tạo không gian làm việc đầu tiên để bắt đầu kết nối kênh và quản lý đội ngũ tư vấn.'}
@@ -118,7 +118,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
             <button
               type="button"
               onClick={onCreateNewWorkspace}
-              className="h-8 px-3 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              className="h-8 px-3 text-xs font-semibold rounded-none bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 cursor-pointer mt-1"
             >
               <Plus size={14} />
               <span>Tạo không gian làm việc</span>

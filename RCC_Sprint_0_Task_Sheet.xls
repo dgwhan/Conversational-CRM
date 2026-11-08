@@ -1,0 +1,1267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+  <Style ss:ID="Header">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center" ss:WrapText="1"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
+   <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="CategoryBanner">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="2" ss:Color="#0284C7"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#BAE6FD"/>
+   </Borders>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="12" ss:Color="#0369A1" ss:Bold="1"/>
+   <Interior ss:Color="#E0F2FE" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="TitleStyle">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="15" ss:Color="#0F172A" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="SubTitleStyle">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="10" ss:Color="#64748B" ss:Italic="1"/>
+  </Style>
+  <Style ss:ID="DataCell">
+   <Alignment ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="10"/>
+  </Style>
+  <Style ss:ID="DataCellCenter">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="10"/>
+  </Style>
+  <Style ss:ID="CodeBadge">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#1E293B" ss:Bold="1"/>
+   <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="StatusDone">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#047857" ss:Bold="1"/>
+   <Interior ss:Color="#D1FAE5" ss:Pattern="Solid"/>
+  </Style>
+  <Style ss:ID="StatusPending">
+   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#E2E8F0"/>
+   </Borders>
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#B45309" ss:Bold="1"/>
+   <Interior ss:Color="#FEF3C7" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Bảng Ký hiệu &amp; Giải thích">
+  <Table ss:DefaultRowHeight="22">
+   <Column ss:Width="80"/>
+   <Column ss:Width="220"/>
+   <Column ss:Width="380"/>
+   <Column ss:Width="250"/>
+   <Row ss:Height="30">
+    <Cell ss:MergeAcross="3" ss:StyleID="TitleStyle"><Data ss:Type="String">BẢNG DANH MỤC KÝ HIỆU PHÂN HỆ HỆ THỐNG CUSC-CRM</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:MergeAcross="3" ss:StyleID="SubTitleStyle"><Data ss:Type="String">Quy ước mã viết tắt các module và phạm vi nghiệp vụ tương ứng</Data></Cell>
+   </Row>
+   <Row ss:Height="8"></Row>
+   <Row ss:Height="26">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Ký hiệu</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Tên Phân hệ (Module)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Giải thích chức năng &amp; Nghiệp vụ</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Phạm vi ứng dụng</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Nền tảng &amp; Hạ tầng (Platform)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Thiết lập khung ứng dụng Monorepo, NestJS backend framework, Docker Compose, cơ sở dữ liệu PostgreSQL qua Prisma ORM, quản lý biến môi trường và tài liệu kiến trúc.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Hạ tầng cốt lõi cho toàn bộ hệ thống</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Xác thực &amp; Phân quyền (Identity &amp; Access)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Quản lý tài khoản người dùng, đăng ký, đăng nhập, phân quyền theo vai trò (Admin / Agent / Manager), đổi mật khẩu, cơ chế chống vượt quyền (Broken Access Control) và ghi nhật ký truy cập (Access Log).</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Bảo mật và tài khoản người dùng</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Nhắn tin &amp; Hội thoại Đa kênh (Messaging)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Tiếp nhận và gửi tin nhắn tập trung đa nền tảng: Tích hợp Webhook kết nối Facebook Fanpage (Messenger), Zalo cá nhân, TikTok Shop, bộ khử trùng tin nhắn, xử lý hàng đợi Worker và ghi nhận người gửi (Attribution).</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Tiếp nhận và xử lý tương tác trực tiếp với khách hàng</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Quản lý Khách hàng (Customer)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Hồ sơ khách hàng tập trung: Tự động tạo/tìm khách hàng khi có tin nhắn mới, chuẩn hóa định dạng số điện thoại Việt Nam, gộp dữ liệu trùng lặp theo số điện thoại, API quản lý và cơ chế ẩn danh/xóa dữ liệu.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Cơ sở dữ liệu thông tin học viên &amp; phụ huynh</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Phân loại &amp; Chấm điểm Lead (Classification &amp; NLP)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Xử lý ngôn ngữ tự nhiên (NLP): Chuẩn hóa văn bản tiếng Việt, trích xuất thông tin trọng tâm, từ điển ngành đào tạo CUSC, hàm tính điểm quan tâm (Scoring), phân loại dịch vụ/sự kiện và kết nối cổng LLM xử lý tin nhắn mơ hồ.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Đánh giá mức độ tiềm năng tự động bằng AI/Luật</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Quản lý Lead Tuyển sinh (Lead Pipeline)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Mô hình dữ liệu Lead, máy trạng thái chu trình tư vấn (State Machine), quy tắc phân công tư vấn viên phụ trách, ghi chú nội bộ, checklist hồ sơ, phát hiện lead nguội/không phản hồi và xuất danh sách.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Quy trình tư vấn và chuyển đổi từ tương tác thành học viên</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Thông báo &amp; Cảnh báo (Notifications)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Cổng gửi thông báo đa kênh, tích hợp Telegram Bot cảnh báo tức thì, gửi email dự phòng, quét vi phạm thời gian cam kết phản hồi (SLA) và báo động ngay khi có Lead Nóng mới.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Đôn đốc và nhắc nhở tư vấn viên kịp thời</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Giao diện Ứng dụng Web (Frontend)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Giao diện trực quan cho người dùng: Cổng đăng nhập &amp; bảo vệ đường dẫn (Route Protection), Hộp thư đa kênh (Inbox), màn hình danh sách Lead, chi tiết Lead, màn hình quản lý nhân sự và Bảng tổng quan (Dashboard).</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Màn hình làm việc trực tiếp của tư vấn viên và quản lý</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Quản lý Vụ việc (Case Management)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Theo dõi và giải quyết các trường hợp/vụ việc hỗ trợ cụ thể: Mô hình trạng thái vụ việc, nhận diện nhu cầu cần can thiệp đặc biệt, giao diện API và cảnh báo SLA vụ việc.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Hỗ trợ giải quyết khiếu nại hoặc trường hợp đặc biệt</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">RPT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Báo cáo &amp; Thống kê (Reports &amp; Analytics)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Truy vấn số liệu tổng hợp, đo lường tốc độ phản hồi tin nhắn của nhân viên tư vấn, tỷ lệ chuyển đổi thành học viên thực tế và cơ chế tự động đồng bộ báo cáo sang Google Sheets / Excel.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Phục vụ ban lãnh đạo đo lường hiệu quả tuyển sinh</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Kiểm thử &amp; Đảm bảo Chất lượng (Quality &amp; Testing)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Bộ kiểm thử kiến trúc, test quy trình nghiệp vụ đầu cuối (End-to-end), kiểm tra an toàn bảo mật Webhook, bảo vệ dữ liệu cá nhân theo quy định, kịch bản sao lưu &amp; phục hồi dữ liệu và test tải nhẹ.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Đảm bảo hệ thống vận hành ổn định, an toàn và tin cậy</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Tích hợp Ngoại vi &amp; Tính năng Mở rộng (External)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Xin cấp quyền chính thức từ Meta (Facebook App Review), đăng ký Zalo Official Account (OA), chuẩn hóa giao diện đa ngôn ngữ, hiệu ứng Skeleton Loading khi tải dữ liệu và chuẩn bị môi trường chạy thật.</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Mở rộng tính năng và hoàn tất thủ tục nền tảng bên thứ ba</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <FreezePanes/>
+   <FrozenNoSplit/>
+   <SplitHorizontal>4</SplitHorizontal>
+   <TopRowBottomPane>4</TopRowBottomPane>
+   <ActivePane>2</ActivePane>
+  </WorksheetOptions>
+ </Worksheet>
+ <Worksheet ss:Name="Task Sheet">
+  <Table ss:DefaultRowHeight="20">
+   <Column ss:Width="45"/>
+   <Column ss:Width="80"/>
+   <Column ss:Width="90"/>
+   <Column ss:Width="320"/>
+   <Column ss:Width="110"/>
+   <Column ss:Width="140"/>
+   <Column ss:Width="110"/>
+   <Column ss:Width="110"/>
+   <Row ss:Height="30">
+    <Cell ss:MergeAcross="7" ss:StyleID="TitleStyle"><Data ss:Type="String">DANH MỤC CÔNG VIỆC DỰ ÁN CUSC RECRUITMENT CRM</Data></Cell>
+   </Row>
+   <Row ss:Height="20">
+    <Cell ss:MergeAcross="7" ss:StyleID="SubTitleStyle"><Data ss:Type="String">Đã lược bỏ Bug/Subtask - Nhóm theo phân hệ với dải phân cách trực quan</Data></Cell>
+   </Row>
+   <Row ss:Height="8"></Row>
+   <Row ss:Height="26">
+    <Cell ss:StyleID="Header"><Data ss:Type="String">STT</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Mã Jira</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Ký hiệu</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Tên Công việc (Task Summary)</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Trạng thái</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Người thực hiện</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Ngày bắt đầu</Data></Cell>
+    <Cell ss:StyleID="Header"><Data ss:Type="String">Hạn hoàn thành</Data></Cell>
+   </Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [PLT] - NỀN TẢNG &amp; HẠ TẦNG (PLATFORM)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">1</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-13</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-01 Initialize monorepo</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">2</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-14</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-02 NestJS Framework</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">3</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-15</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-03 Docker Compose</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">4</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-16</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-04 Configuration management</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">5</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-17</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-05 Prisma and PostgreSQL</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">6</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-18</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">PLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">PLT-06 Architectural documentation</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [IAM] - XÁC THỰC &amp; PHÂN QUYỀN (IDENTITY &amp; ACCESS)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">7</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-19</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM-01 Employee model and roles</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">8</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-20</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM-02 Login</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">9</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-21</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM-03 Role-based authorization</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">10</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-22</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM-04 Register</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">11</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-23</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM-05 Change password and sign out</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">12</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-110</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">IAM</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAM - Tích hợp cơ chế chống Broken Access Control</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [MSG] - NHẮN TIN &amp; HỘI THOẠI ĐA KÊNH (MESSAGING)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">13</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-25</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-01 Message data model</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">14</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-26</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-02 Kiểu sự kiện và interface adapter</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">15</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-27</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-03 Webhook controller chung</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">16</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-28</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-04 Khử trùng</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">17</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-29</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-05 Worker processes new messages</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">18</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-30</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-06 Nhập tay và import CSV</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">19</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-31</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-07 Adapter Facebook Messenger</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">20</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-32</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-08 Adapter Zalo Personally</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">21</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-33</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-09 Message sent</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">22</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-34</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-10 Adapter TikTok</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">23</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-35</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">MSG-11 A message is not a document.</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">24</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-121</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">MSG</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Message Sender Attribution</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [CUS] - QUẢN LÝ KHÁCH HÀNG (CUSTOMER)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">25</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-36</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-01 Customer model</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">26</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-37</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-02 Find or create a customer when a message arrives</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">27</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-38</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-03 Standardizing Vietnamese phone numbers</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">28</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-39</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-04 Group customers by phone number</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">29</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-40</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-05 Customer API</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">30</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-41</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CUS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CUS-06 Delete or anonymize upon request</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [CLS] - PHÂN LOẠI &amp; CHẤM ĐIỂM LEAD (CLASSIFICATION &amp; NLP)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">31</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-42</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-01 Text normalization</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">32</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-43</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-2 Extract information</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">33</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-44</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-03 Legal dictionary and weighting</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">34</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-45</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-04 Conversation scoring function</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">35</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-46</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-05 Classification threshold</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">36</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-47</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-06 Service and event categorization</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">37</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-49</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-08 Score decay over time</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">38</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-50</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-09 Offline evaluation suite</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">39</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-51</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CLS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLS-10 Cổng LLM cho tin mơ hồ</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [LEAD] - QUẢN LÝ LEAD TUYỂN SINH (LEAD PIPELINE)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">40</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-52</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-01 Lead model</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">41</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-53</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-02 Create or update a lead</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">42</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-54</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-03 Level of effectiveness</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">43</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-55</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-04 Consultative state machine</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">44</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-56</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-05 Assigning a person in charge</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">45</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-57</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-06 Ownership rules</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">46</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-58</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-07 Notes and history</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">47</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-59</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-08 Document checklist</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">48</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-60</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-09 Lead query</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">49</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-61</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-10 Detected an unresponsive lead</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">50</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-62</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-11 Lead remains silent while awaiting the file</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">51</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-63</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">LEAD</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">LED-12 Export list</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Ng Phú Cường</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [NTF] - THÔNG BÁO &amp; CẢNH BÁO (NOTIFICATIONS)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">52</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-64</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-01 Notification submission portal</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">53</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-65</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-02 Telegram bot</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">54</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-66</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-03 Backup email</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">55</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-67</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-04 SLA scanning job</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">56</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-68</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-05 Anti-spam warning</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">57</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-69</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-06 Content and working hours</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">58</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-70</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">NTF</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">NTF-07 Báo lead Nóng mới</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [WEB] - GIAO DIỆN ỨNG DỤNG WEB (FRONTEND)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">59</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-72</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-02 Login and route protection</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">60</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-73</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-03 List Lead</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">61</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-74</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-01 Application framework</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">62</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-75</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-04 Lead details</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">63</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-76</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-05 Quick actions on leads</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">64</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-77</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-06 Inbox</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">65</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-78</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-07 Customer Page</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">66</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-79</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-08 Classification Law Management</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">67</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-80</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-09 Personnel management</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">68</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-81</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-10 Dashboard</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">69</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-82</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">WEB</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">WEB-11 CSV import screen</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [CAS] - QUẢN LÝ VỤ VIỆC (CASE MANAGEMENT)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">70</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-83</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CAS-01 Finalize the case definition</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">71</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-84</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CAS-02 Case and state model</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">72</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-85</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CAS-03 Identifying the need for support</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">73</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-86</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CAS-04 API and case interface</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">74</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-87</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">CAS</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CAS-05 SLA and case alerts</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [RPT] - BÁO CÁO &amp; THỐNG KÊ (REPORTS &amp; ANALYTICS)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">75</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-88</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">RPT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">RPT-01 Aggregate query</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">76</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-89</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">RPT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">RPT-02 Response time</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">77</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-90</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">RPT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">RPT-03 Conversion rate</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">78</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-91</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">RPT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">RPT-04 Sync to Google Sheets</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [QLT] - KIỂM THỬ &amp; ĐẢM BẢO CHẤT LƯỢNG (QUALITY &amp; TESTING)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">79</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-92</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-01 Architecture test</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">80</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-93</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-02 Test framework</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">81</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-94</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-03 End-to-end testing for the main pipeline</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">82</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-95</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-04 Webhook security</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">83</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-96</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-05 Personal data protection</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">84</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-97</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-06 Backup and restore</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">85</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-98</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-07 Deployment</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">86</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-99</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-08 Monitor</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">87</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-100</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-09 Operating documentation</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">88</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-101</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">QLT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">QLT-10 Light-load test</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [EXT] - TÍCH HỢP NGOẠI VI &amp; TÍNH NĂNG MỞ RỘNG (EXTERNAL)</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">89</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-102</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-01 Request Facebook permissions</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">90</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-103</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-02 Register for a Zalo OA</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">91</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-104</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-03 Test TikTok capabilities</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">92</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-105</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-04 Collect sample data</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">93</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-106</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-05 Finalize requirements with the unit</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">94</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-107</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT-06 Prepare the actual environment</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Chưa gán</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">95</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-108</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT- Chuẩn hóa hỗ trợ đa ngôn ngữ</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">96</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-109</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">EXT</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">EXT - Skeleton loading</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row ss:Height="6"></Row>
+   <Row ss:Height="26">
+    <Cell ss:MergeAcross="7" ss:StyleID="CategoryBanner"><Data ss:Type="String">  ▶ PHÂN HỆ [KHAC] - KHAC</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">97</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-24</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">KHAC</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">IAm-06 Access log</Data></Cell>
+    <Cell ss:StyleID="StatusDone"><Data ss:Type="String">Done (Xong)</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="Number">98</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">RCC-48</Data></Cell>
+    <Cell ss:StyleID="CodeBadge"><Data ss:Type="String">KHAC</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">CLs-07 Reason for classification</Data></Cell>
+    <Cell ss:StyleID="StatusPending"><Data ss:Type="String">Đang xử lý</Data></Cell>
+    <Cell ss:StyleID="DataCell"><Data ss:Type="String">Dương Ngọc Hân</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">20/Oct/26 4:59 AM</Data></Cell>
+    <Cell ss:StyleID="DataCellCenter"><Data ss:Type="String">17/Nov/26 4:59 AM</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <Selected/>
+   <FreezePanes/>
+   <FrozenNoSplit/>
+   <SplitHorizontal>4</SplitHorizontal>
+   <TopRowBottomPane>4</TopRowBottomPane>
+   <ActivePane>2</ActivePane>
+  </WorksheetOptions>
+ </Worksheet>
+</Workbook>

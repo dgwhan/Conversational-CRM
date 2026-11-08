@@ -1,4 +1,5 @@
 import type { ConversationScoreResult } from '../conversation-scoring.js';
+import { DOMAIN_EVENT_NAMES } from '../scoring.constants.js';
 
 /**
  * Domain Event: ConversationClassified
@@ -7,7 +8,7 @@ import type { ConversationScoreResult } from '../conversation-scoring.js';
  * mà không làm vi phạm nguyên tắc đảo ngược phụ thuộc (Inversion of Control).
  */
 export class ConversationClassifiedEvent {
-  public static readonly EVENT_NAME = 'conversation.classified';
+  public static readonly EVENT_NAME = DOMAIN_EVENT_NAMES.CONVERSATION_CLASSIFIED;
 
   constructor(
     public readonly conversationId: string,

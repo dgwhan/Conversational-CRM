@@ -1,0 +1,101 @@
+id,messages,days_inactive,ground_truth_tier,notes
+CONV-001,"Tôi muốn ký hợp đồng dịch vụ ngay trong tuần này | Sđt của tôi: 0912345678",0,HOT,Ký hợp đồng + SĐT
+CONV-002,"Cho mình đặt cọc giữ chỗ căn hộ 2 phòng ngủ | Mình gửi cccd và sđt 0988777666",1,HOT,Đặt cọc giữ chỗ + CCCD + SĐT
+CONV-003,"Bên em chuẩn bị hồ sơ và muốn đăng ký mua gói doanh nghiệp | Sđt 0903111222",2,HOT,Hồ sơ + Đăng ký + SĐT
+CONV-004,"Báo giá và chi phí gói cao cấp bao nhiêu? Mình muốn đăng ký luôn | Số zalo mình 0939123456",0,HOT,Chi phí + Đăng ký + SĐT
+CONV-005,"Cho mình hỏi thủ tục thanh toán để đăng ký giữ chỗ | Sđt 0944555666",1,HOT,Thủ tục + Đăng ký giữ chỗ + SĐT
+CONV-006,"Tôi muốn đăng ký sử dụng dịch vụ và gửi cccd xác thực",0,HOT,Đăng ký + CCCD
+CONV-007,"Em gửi hồ sơ công ty và cccd để giữ chỗ ưu đãi | Alo em qua số 0977888999",3,HOT,Hồ sơ + Giữ chỗ + SĐT
+CONV-008,"Mình đăng ký gói giải pháp CRM cho 20 nhân viên | Số điện thoại 0918273645",0,HOT,Đăng ký + SĐT
+CONV-009,"Tư vấn và đăng ký cho mình gói dịch vụ trọn gói | SĐT 0909888777",2,HOT,Tư vấn + Đăng ký + SĐT
+CONV-010,"Em muốn đặt cọc chốt đơn sản phẩm này | Sđt em 0901234567",1,HOT,Đặt cọc + SĐT
+CONV-011,"Chi phí bao nhiêu và mình muốn giữ chỗ suất khuyến mãi sớm | Sđt 0987654321",0,HOT,Chi phí + Giữ chỗ + SĐT
+CONV-012,"Em muốn hoàn tất hồ sơ và đăng ký ngay trong hôm nay | Số em 0911222333",0,HOT,Hồ sơ + Đăng ký + SĐT
+CONV-013,"Cho mình giữ chỗ sản phẩm và gửi số tài khoản thanh toán | 0933444555",2,HOT,Giữ chỗ + Phí + SĐT
+CONV-014,"Công ty mình cần tư vấn và đăng ký phần mềm gấp | Sđt liên hệ: 0966777888",1,HOT,Tư vấn + Đăng ký + SĐT
+CONV-015,"Mình muốn đăng ký gói tài khoản cho 5 chi nhánh | Sđt 0907123987",0,HOT,Đăng ký + SĐT
+CONV-016,"Lịch hẹn tư vấn và đăng ký trực tiếp | Sđt em 0945678123",1,HOT,Lịch hẹn + Đăng ký + SĐT
+CONV-017,"Em nộp cccd và muốn đăng ký hợp đồng tháng này | Alo em 0919283746",0,HOT,CCCD + Đăng ký + SĐT
+CONV-018,"Tôi muốn giữ chỗ sản phẩm và hỏi lịch bàn giao cụ thể | Sđt 0981928374",2,HOT,Giữ chỗ + Lịch + SĐT
+CONV-019,"Đăng ký tư vấn gói phần mềm quản lý | Sđt mình 0938475610",0,HOT,Đăng ký + Tư vấn + SĐT
+CONV-020,"Em gửi hồ sơ đăng ký tham gia đối tác | Sđt 0902345678",1,HOT,Hồ sơ + Đăng ký + SĐT
+CONV-021,"Mình muốn đăng ký mua gói bản quyền năm | Sđt 0914253647",0,HOT,Đăng ký + SĐT
+CONV-022,"Cho mình giữ chỗ ưu đãi trước ngày 15 | Số điện thoại 0976543210",3,HOT,Giữ chỗ + SĐT
+CONV-023,"Tôi muốn đăng ký sử dụng giải pháp này | Sđt 0989012345",0,HOT,Đăng ký + SĐT
+CONV-024,"Báo giá và đăng ký dịch vụ bảo trì | Số zalo 0908112233",2,HOT,Báo giá + Đăng ký + SĐT
+CONV-025,"Đăng ký giữ chỗ suất mua đợt đầu | Số em 0922334455",1,HOT,Đăng ký + Giữ chỗ + SĐT
+CONV-026,"Báo giá gói phần mềm trọn gói là bao nhiêu vậy shop?",0,WARM,Hỏi báo giá (3đ WARM)
+CONV-027,"Cho mình hỏi bảng giá và lịch triển khai dịch vụ",2,WARM,Bảng giá + Lịch (6đ WARM)
+CONV-028,"Lịch hẹn tư vấn bên mình có làm việc ngoài giờ không ạ?",1,WARM,Hỏi lịch hẹn (3đ WARM)
+CONV-029,"Giải pháp quản lý kho hàng chi phí thế nào ad?",3,WARM,Chi phí (3đ WARM)
+CONV-030,"Mình muốn đăng ký dùng thử dịch vụ",0,WARM,Đăng ký không kèm SĐT (5đ WARM)
+CONV-031,"Chương trình triển khai bao lâu và chi phí thanh toán thế nào?",0,WARM,Chi phí (3đ WARM)
+CONV-032,"Tư vấn giúp mình lộ trình triển khai và lịch họp",1,WARM,Tư vấn + Lịch (5đ WARM)
+CONV-033,"Cho mình hỏi lịch ra mắt phiên bản mới",2,WARM,Lịch (3đ WARM)
+CONV-034,"Phí dịch vụ hàng tháng là bao nhiêu ad?",0,WARM,Phí dịch vụ (3đ WARM)
+CONV-035,"Bên mình có hỗ trợ triển khai vào cuối tuần không?",1,WARM,Lịch hẹn (3đ WARM)
+CONV-036,"Báo giá gói bảo hành mở rộng",3,WARM,Báo giá (3đ WARM)
+CONV-037,"Cho em hỏi thủ tục quy trình hợp tác doanh nghiệp",0,WARM,Thủ tục quy trình (Heuristic WARM)
+CONV-038,"Bên mình còn nhận hồ sơ đối tác kinh doanh không ạ?",0,WARM,Còn nhận hồ sơ (Heuristic WARM)
+CONV-039,"Chi phí dịch vụ có chương trình ưu đãi gì không?",2,WARM,Chi phí (3đ WARM)
+CONV-040,"Mình muốn tìm hiểu quy trình thanh toán và thời gian bàn giao",1,WARM,Quy trình bàn giao (WARM)
+CONV-041,"Chi phí và điều kiện nộp hồ sơ xét duyệt",0,WARM,Chi phí + Hồ sơ (6đ WARM)
+CONV-042,"Dịch vụ chăm sóc khách hàng chi phí bao nhiêu?",4,WARM,Chi phí (3đ WARM)
+CONV-043,"Mình muốn hỏi lịch demo sản phẩm",2,WARM,Lịch demo (3đ WARM)
+CONV-044,"Giá cả toàn bộ hợp đồng là bao nhiêu?",0,WARM,Giá cả (3đ WARM)
+CONV-045,"Cho mình hỏi quy trình nộp cccd và thủ tục xác thực",0,WARM,CCCD + Thủ tục (3đ WARM)
+CONV-046,"Em muốn xin bảng giá các gói giải pháp",3,WARM,Bảng giá (3đ WARM)
+CONV-047,"Lịch bảo trì hệ thống thường diễn ra khi nào?",1,WARM,Lịch bảo trì (3đ WARM)
+CONV-048,"Tôi muốn đăng ký mua gói phần mềm | Sđt 0912345678",14,WARM,Đăng ký + SĐT (10đ) im lặng 14 ngày trừ 3đ còn 7đ (Hạ xuống WARM)
+CONV-049,"Cho mình giữ chỗ sản phẩm này | Sđt 0988777666",15,WARM,Giữ chỗ + SĐT (10đ) im lặng 15 ngày trừ 3đ còn 7đ (Hạ xuống WARM)
+CONV-050,"Em muốn đăng ký dịch vụ ngay đợt này | Số em 0903111222",14,WARM,Đăng ký + SĐT (10đ) im lặng 14 ngày trừ 3đ còn 7đ (Hạ xuống WARM)
+CONV-051,"Nhờ ad tư vấn giúp mình",0,COLD,Tư vấn chung (2đ COLD)
+CONV-052,"Cho mình xin địa chỉ văn phòng công ty ở Cần Thơ",1,COLD,Hỏi địa chỉ (0đ COLD)
+CONV-053,"Công ty mình mở cửa làm việc mấy giờ vậy ạ?",0,COLD,Hỏi giờ mở cửa (0đ COLD)
+CONV-054,"Xin chào bộ phận hỗ trợ khách hàng",0,COLD,Chào hỏi (0đ COLD)
+CONV-055,"Mình muốn hỏi thăm về các chương trình khuyến mãi",2,COLD,Hỏi thăm chung (0đ COLD)
+CONV-056,"Cho em hỏi xíu ad ơi",0,COLD,Câu hỏi mở (Heuristic COLD)
+CONV-057,"Bên mình có chi nhánh đại diện nào ở miền Tây không?",1,COLD,Hỏi chi nhánh (0đ COLD)
+CONV-058,"Minh muon tim hieu thong tin dich vu",0,COLD,Tìm hiểu chung (0đ COLD)
+CONV-059,"Ad trực page phản hồi tin nhắn giúp mình với",2,COLD,Gọi phản hồi (0đ COLD)
+CONV-060,"Sản phẩm có cấp giấy chứng nhận không ạ?",0,COLD,Hỏi chứng nhận (0đ COLD)
+CONV-061,"Cho mình hỏi điều kiện giấy tờ hợp đồng",0,COLD,Hỏi thăm dò giấy tờ (COLD)
+CONV-062,"Tôi muốn đăng ký mua dịch vụ | Sđt 0901234567",21,COLD,Đăng ký + SĐT (10đ) im lặng 21 ngày trừ 5đ còn 5đ
+CONV-063,"Chi phí gói dịch vụ này bao nhiêu ad",14,COLD,Chi phí (3đ) im lặng 14 ngày trừ 3đ còn 0đ (Hạ xuống COLD)
+CONV-064,"Mình muốn hỏi lịch tư vấn trực tuyến",14,COLD,Lịch (3đ) im lặng 14 ngày trừ 3đ còn 0đ (Hạ xuống COLD)
+CONV-065,"Tư vấn giúp mình gói giải pháp",14,COLD,Tư vấn (2đ) im lặng 14 ngày trừ 3đ còn 0đ (Hạ xuống COLD)
+CONV-066,"Em muốn đăng ký dịch vụ",14,COLD,Đăng ký (5đ) im lặng 14 ngày trừ 3đ còn 2đ (Hạ xuống COLD)
+CONV-067,"Báo giá dịch vụ bao nhiêu",20,COLD,Báo giá im lặng 20 ngày hạ về COLD
+CONV-068,"Cho em hỏi thủ tục cccd làm thẻ hội viên",16,COLD,CCCD (3đ) im lặng 16 ngày trừ 3đ còn 0đ (Hạ về COLD)
+CONV-069,"Lịch làm việc cuối tuần thế nào",14,COLD,Lịch im lặng 14 ngày về COLD
+CONV-070,"Tư vấn giúp mình tính năng này",21,COLD,Tư vấn im lặng 21 ngày về COLD
+CONV-071,"Cho mình hỏi thông tin bảo hành sản phẩm thế nào",0,COLD,Hỏi thông tin chung (0đ COLD)
+CONV-072,"Có hỗ trợ bãi đỗ xe ô tô không shop",0,COLD,Hỏi tiện ích phụ (0đ COLD)
+CONV-073,"Chi phí gói tài khoản này bao nhiêu",15,COLD,Chi phí im lặng 15 ngày hạ về COLD
+CONV-074,"Lịch hỗ trợ kỹ thuật ban đêm",14,COLD,Lịch im lặng 14 ngày về COLD
+CONV-075,"Tư vấn dịch vụ kế toán",18,COLD,Tư vấn im lặng 18 ngày về COLD
+CONV-076,"Bên công ty có tuyển dụng nhân viên kinh doanh không?",0,IRRELEVANT,Từ khóa tuyển dụng (Loại trừ)
+CONV-077,"Em gửi CV ứng tuyển vị trí chuyên viên tư vấn khách hàng",0,IRRELEVANT,Ứng tuyển việc làm (Loại trừ)
+CONV-078,"Chào bạn, bên mình cung cấp dịch vụ chạy quảng cáo Facebook giá rẻ",0,IRRELEVANT,Spam quảng cáo (Loại trừ)
+CONV-079,"Dạ em cảm ơn, em không đăng ký đâu ạ",0,IRRELEVANT,Phủ định: không đăng ký đâu
+CONV-080,"Mình chưa muốn mua đâu ạ, cảm ơn bạn",0,IRRELEVANT,Phủ định: chưa muốn mua
+CONV-081,"Đừng tư vấn nữa nhé ad, mình chọn đối tác khác rồi",0,IRRELEVANT,Phủ định: đừng tư vấn nữa
+CONV-082,"Dạ ko cần tư vấn đâu bạn ơi",0,IRRELEVANT,Phủ định: ko cần tư vấn đâu
+CONV-083,"Cho mình hủy đăng ký giữ chỗ nhé",0,IRRELEVANT,Phủ định: hủy đăng ký
+CONV-084,"Mình ko có nhu cầu sử dụng nha shop",0,IRRELEVANT,Phủ định: ko có nhu cầu
+CONV-085,"Mua chi nữa bạn ơi, bận lắm",0,IRRELEVANT,Phủ định: chi nữa
+CONV-086,"Nhầm số rồi bạn ơi",0,IRRELEVANT,Tin nhắn nhầm lẫn
+CONV-087,"Bên anh có tuyển thực tập sinh IT không",0,IRRELEVANT,Tuyển thực tập sinh
+CONV-088,"Chào ad, em chào bán phần mềm quản lý kho",0,IRRELEVANT,Spam chào bán
+CONV-089,"Em muốn ứng tuyển làm cộng tác viên bán hàng",0,IRRELEVANT,Ứng tuyển CTV
+CONV-090,"Bên em cung cấp dịch vụ gửi tin nhắn ZNS giá rẻ",0,IRRELEVANT,Spam quảng cáo
+CONV-091,"Không mua nha, cảm ơn",0,IRRELEVANT,Phủ định ngắn gọn
+CONV-092,"Em xin rút hồ sơ đăng ký",0,IRRELEVANT,Phủ định: rút hồ sơ đăng ký
+CONV-093,"Bên mình tuyển dụng nhân viên kỹ thuật không ad",0,IRRELEVANT,Hỏi tuyển dụng
+CONV-094,"Thôi mình không dùng nữa đâu ạ",0,IRRELEVANT,Từ chối dùng
+CONV-095,"Chào công ty, em chào bán sim số đẹp phong thủy",0,IRRELEVANT,Spam sim số đẹp
+CONV-096,"Mình không có nhu cầu tư vấn giải pháp này",0,IRRELEVANT,Phủ định: không có nhu cầu
+CONV-097,"Alo nhầm máy rồi nha bạn",0,IRRELEVANT,Nhầm máy
+CONV-098,"Mình không đăng ký nữa nhé, đã chọn đơn vị khác",0,IRRELEVANT,Hủy đăng ký chọn bên khác
+CONV-099,"Hỏi cho biết thôi chứ chưa mua đâu",0,IRRELEVANT,Phủ định: chưa mua đâu
+CONV-100,"Công ty có tuyển CTV phát triển thị trường không?",0,IRRELEVANT,Hỏi tuyển CTV
