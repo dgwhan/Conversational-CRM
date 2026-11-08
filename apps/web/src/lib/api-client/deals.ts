@@ -49,7 +49,7 @@ export interface CreateDealPayload {
   workspaceId?: string;
   customerId?: string;
   contactId?: string;
-  assignedMemberId?: string;
+  assignedMemberId?: string | null;
   title: string;
   stage?: string;
   pipelineId?: string;

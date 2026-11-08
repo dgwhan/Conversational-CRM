@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Briefcase,
   Plus,
-  Calendar,
   DollarSign,
   User,
   Clock,
@@ -39,7 +38,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   pipelineStages,
   catalog,
   staffList = [],
-  onNavigateToKanban,
+  onNavigateToKanban: _onNavigateToKanban,
   onDealUpdated,
 }) => {
   const [deals, setDeals] = useState<DealItem[]>([]);
@@ -56,7 +55,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
     try {
       setIsLoading(true);
       const res = await apiClient.getDealsByCustomer(targetId);
-      const list = res?.data || [];
+      const list = Array.isArray(res) ? res : (res as any)?.data || [];
       setDeals(list);
       if (onDealUpdated) onDealUpdated(list);
     } catch (err: any) {
@@ -88,10 +87,12 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
     if (dealId) {
       await apiClient.updateDeal(dealId, payload as UpdateDealPayload);
     } else {
+      const createData = payload as CreateDealPayload;
       await apiClient.createDeal({
-        ...payload,
+        ...createData,
         customerId,
         contactId,
+        title: createData.title || 'Cơ hội tuyển sinh',
       });
     }
     await loadDeals();
@@ -118,11 +119,6 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
     } catch (err: any) {
       notify.error(err?.message || 'Không thể cập nhật giai đoạn.');
     }
-  };
-
-  const getStageTitle = (stageKey: string) => {
-    const s = pipelineStages.find((item) => item.id === stageKey);
-    return s ? s.title : stageKey;
   };
 
   const getStatusBadge = (status: 'OPEN' | 'WON' | 'LOST') => {
@@ -271,7 +267,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                     >
                       {pipelineStages.map((s) => (
                         <option key={s.id} value={s.id}>
-                          {s.title}
+                          {s.name}
                         </option>
                       ))}
                     </select>

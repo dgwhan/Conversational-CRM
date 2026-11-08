@@ -206,10 +206,9 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           onNavigateToKanban={onNavigateToKanban}
         />
 
-        {/* CƠ HỘI TUYỂN SINH & NIÊN KHÓA (Deals / Opportunities) - Chuẩn CRM $1 - N$ */}
+        {/* CƠ HỘI TUYỂN SINH & NIÊN KHÓA (Deals / Opportunities) - Chuẩn CRM 1 - N */}
         <DealsHistorySection
           customerId={customer.id}
-          contactId={customer.contactId}
           contactId={customer.contactId}
           customerName={customer.fullName}
           pipelineStages={config.pipelineStages}

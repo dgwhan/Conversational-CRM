@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type {
   ConversationItem,
   ChatMessage,
@@ -8,7 +8,6 @@ import type {
 } from '../types.js';
 import { mergeDuplicateConversations, deduplicateMessages } from '../utils/conversationUtils.js';
 import { apiClient } from '../../../lib/api-client/index.js';
-import { notify } from '../../../components/feedback/toastEmitter.js';
 
 interface UseInboxConversationsProps {
   activeWorkspaceId?: string | null;
@@ -761,7 +760,6 @@ export const useInboxConversations = ({
     if (!currentConv?.id || currentConv.channel !== 'FACEBOOK' || currentConv.unreadCount <= 0) return;
 
     const convId = currentConv.id;
-    let active = true;
 
     // Cập nhật trạng thái đã xem ngay trên UI
     setConversations((prev) =>
@@ -780,10 +778,6 @@ export const useInboxConversations = ({
           error instanceof Error ? error.message : error,
         );
       });
-
-    return () => {
-      active = false;
-    };
   }, [currentConv?.id, currentConv?.channel, currentConv?.unreadCount]);
 
   const handleSelectConversation = (id: string) => {

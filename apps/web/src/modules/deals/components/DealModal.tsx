@@ -12,7 +12,6 @@ import {
   BookOpen,
   Plus,
   Send,
-  Layers,
 } from 'lucide-react';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import type { DealItem, CreateDealPayload, UpdateDealPayload } from '../../../lib/api-client/deals.js';
@@ -260,7 +259,7 @@ export const DealModal: React.FC<DealModalProps> = ({
               >
                 {pipelineStages.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.title}
+                    {s.name}
                   </option>
                 ))}
               </select>
