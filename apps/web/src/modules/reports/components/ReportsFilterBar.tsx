@@ -7,6 +7,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import type { TimeRangeFilter } from '../reports.types.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 interface ReportsFilterBarProps {
   selectedRange: TimeRangeFilter;
@@ -31,15 +32,17 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
   domain: _domain,
   workspaceName: _workspaceName,
 }) => {
+  const { t } = useTranslation();
+
   const timeRanges: { id: TimeRangeFilter; label: string }[] = [
-    { id: 'today', label: 'Hôm nay' },
-    { id: 'yesterday', label: 'Hôm qua' },
-    { id: '7days', label: '7 Ngày' },
-    { id: '30days', label: '30 Ngày' },
-    { id: 'thisMonth', label: 'Tháng này' },
-    { id: 'quarter', label: 'Quý này' },
-    { id: 'year', label: 'Năm nay' },
-    { id: 'all', label: 'Toàn bộ' },
+    { id: 'today', label: t('reports.periods.today', 'Hôm nay') },
+    { id: 'yesterday', label: t('reports.periods.yesterday', 'Hôm qua') },
+    { id: '7days', label: t('reports.periods.days7', '7 Ngày') },
+    { id: '30days', label: t('reports.periods.days30', '30 Ngày') },
+    { id: 'thisMonth', label: t('reports.periods.thisMonth', 'Tháng này') },
+    { id: 'quarter', label: t('reports.periods.quarter', 'Quý này') },
+    { id: 'year', label: t('reports.periods.year', 'Năm nay') },
+    { id: 'all', label: t('reports.periods.all', 'Toàn bộ') },
   ];
 
   const handlePrint = () => {
@@ -48,11 +51,11 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
 
   return (
     <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 mb-3.5">
-      {/* 1. Flat Segmented Control: Chu kỳ thời gian (Tô xanh khi selected như Sidebar) */}
+      {/* 1. Flat Segmented Control: Chu kỳ thời gian */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0 scrollbar-none">
         <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5 shrink-0 mr-0.5">
           <Calendar size={14} className="text-slate-400" />
-          <span>Chu kỳ:</span>
+          <span>{t('reports.periodLabel', 'Chu kỳ:')}</span>
         </span>
         <div className="inline-flex items-center p-0.5 bg-slate-200/70 rounded-lg border border-slate-200/80 shrink-0">
           {timeRanges.map((r) => {
@@ -75,7 +78,7 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
         </div>
       </div>
 
-      {/* 2. Cụm bộ lọc kênh & Thao tác đồng bộ chuẩn SaaS phẳng (Flat Section) */}
+      {/* 2. Cụm bộ lọc kênh & Thao tác đồng bộ */}
       <div className="flex flex-wrap items-center gap-2 shrink-0">
         {/* Dropdown Kênh tiếp nhận */}
         <div className="relative inline-flex items-center">
@@ -85,12 +88,12 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
             value={selectedChannel}
             onChange={(e) => onChannelChange(e.target.value)}
           >
-            <option value="ALL">Tất cả kênh tiếp nhận</option>
-            <option value="FACEBOOK">Facebook Messenger</option>
-            <option value="ZALO">Zalo OA / Cá nhân</option>
-            <option value="TIKTOK">TikTok Lead Gen</option>
-            <option value="MANUAL">Nhập tay / Hotline</option>
-            <option value="WEBSITE">Website / Form</option>
+            <option value="ALL">{t('reports.channels.all', 'Tất cả kênh tiếp nhận')}</option>
+            <option value="FACEBOOK">{t('reports.channels.facebook', 'Facebook Messenger')}</option>
+            <option value="ZALO">{t('reports.channels.zalo', 'Zalo OA / Cá nhân')}</option>
+            <option value="TIKTOK">{t('reports.channels.tiktok', 'TikTok Lead Gen')}</option>
+            <option value="MANUAL">{t('reports.channels.manual', 'Nhập tay / Hotline')}</option>
+            <option value="WEBSITE">{t('reports.channels.website', 'Website / Form')}</option>
           </select>
           <div className="absolute right-2.5 pointer-events-none text-slate-400 text-[11px]">▼</div>
         </div>
@@ -101,21 +104,21 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
           onClick={onRefresh}
           disabled={isLoading}
           className="h-8 px-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-          title="Tải lại dữ liệu mới nhất"
+          title={t('reports.refreshTitle', 'Tải lại dữ liệu mới nhất')}
         >
           <RotateCw size={13} className={isLoading ? 'animate-spin text-blue-600' : 'text-slate-500'} />
-          <span>Làm mới</span>
+          <span>{t('reports.refreshBtn', 'Làm mới')}</span>
         </button>
 
-        {/* Nút Xuất Excel/CSV đồng bộ chuẩn hệ thống */}
+        {/* Nút Xuất Excel/CSV */}
         <button
           type="button"
           onClick={onExportCsv}
           className="h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer"
-          title="Xuất bảng số liệu ra file Excel / CSV"
+          title={t('reports.exportTitle', 'Xuất bảng số liệu ra file Excel / CSV')}
         >
           <Download size={13} className="text-slate-500" />
-          <span>Xuất Excel/CSV</span>
+          <span>{t('reports.exportBtn', 'Xuất Excel/CSV')}</span>
         </button>
 
         {/* Nút In */}
@@ -123,7 +126,7 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
           type="button"
           onClick={handlePrint}
           className="h-8 w-8 inline-flex items-center justify-center text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg shadow-2xs transition-colors cursor-pointer"
-          title="In hoặc lưu PDF"
+          title={t('reports.printTitle', 'In hoặc lưu PDF')}
         >
           <Printer size={13} />
         </button>

@@ -14,6 +14,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import type { OverviewMetrics } from '../reports.types.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 interface MetricCardsGridProps {
   metrics: OverviewMetrics;
@@ -31,8 +32,10 @@ export const MetricCardsGrid: React.FC<MetricCardsGridProps> = ({
   terminology,
   domain,
 }) => {
+  const { t, locale } = useTranslation();
+
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -40,37 +43,37 @@ export const MetricCardsGrid: React.FC<MetricCardsGridProps> = ({
   };
 
   const formatResponseTime = (mins: number) => {
-    if (!mins || mins <= 0) return 'Chưa có';
-    if (mins >= 60) return `${(mins / 60).toFixed(1)} giờ`;
-    return `${Math.round(mins)} phút`;
+    if (!mins || mins <= 0) return locale === 'en' ? 'N/A' : 'Chưa có';
+    if (mins >= 60) return `${(mins / 60).toFixed(1)} ${locale === 'en' ? 'hours' : 'giờ'}`;
+    return `${Math.round(mins)} ${locale === 'en' ? 'mins' : 'phút'}`;
   };
 
   const getWonConfig = () => {
     switch (domain) {
       case 'REAL_ESTATE':
         return {
-          title: 'Chốt cọc thành công',
+          title: locale === 'en' ? 'Closed Deposits' : 'Chốt cọc thành công',
           icon: <Building2 size={16} className="text-emerald-600" />,
         };
       case 'BEAUTY_SPA':
         return {
-          title: 'Chốt liệu trình',
+          title: locale === 'en' ? 'Closed Packages' : 'Chốt liệu trình',
           icon: <Sparkles size={16} className="text-emerald-600" />,
         };
       case 'RETAIL':
         return {
-          title: 'Đơn hàng thành công',
+          title: locale === 'en' ? 'Completed Orders' : 'Đơn hàng thành công',
           icon: <ShoppingBag size={16} className="text-emerald-600" />,
         };
       case 'B2B_SAAS':
         return {
-          title: 'Hợp đồng ký kết',
+          title: locale === 'en' ? 'Signed Contracts' : 'Hợp đồng ký kết',
           icon: <CheckCircle2 size={16} className="text-emerald-600" />,
         };
       case 'EDUCATION':
       default:
         return {
-          title: 'Nhập học thành công',
+          title: locale === 'en' ? 'Enrolled Students' : 'Nhập học thành công',
           icon: <GraduationCap size={16} className="text-emerald-600" />,
         };
     }
@@ -88,50 +91,50 @@ export const MetricCardsGrid: React.FC<MetricCardsGridProps> = ({
 
   const cards = [
     {
-      title: `Tổng ${cleanEntityLabel}`,
-      fullTitle: `Tổng ${rawEntityLabel}`,
-      value: metrics.totalLeads.toLocaleString('vi-VN'),
-      subtext: `${metrics.newLeadsGrowth >= 0 ? '+' : ''}${metrics.newLeadsGrowth}% so với kỳ trước`,
+      title: `${t('reports.metrics.totalPrefix', 'Tổng')} ${cleanEntityLabel}`,
+      fullTitle: `${t('reports.metrics.totalPrefix', 'Tổng')} ${rawEntityLabel}`,
+      value: metrics.totalLeads.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN'),
+      subtext: `${metrics.newLeadsGrowth >= 0 ? '+' : ''}${metrics.newLeadsGrowth}% ${t('reports.metrics.comparedToPrevious', 'so với kỳ trước')}`,
       isPositive: metrics.newLeadsGrowth >= 0,
       icon: <Users size={16} className="text-blue-600" />,
     },
     {
       title: wonConfig.title,
       fullTitle: wonConfig.title,
-      value: wonCount.toLocaleString('vi-VN'),
-      subtext: `Tỷ lệ chuyển đổi: ${metrics.conversionRate}%`,
+      value: wonCount.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN'),
+      subtext: `${t('reports.metrics.conversionRatePrefix', 'Tỷ lệ chuyển đổi:')} ${metrics.conversionRate}%`,
       isPositive: true,
       icon: wonConfig.icon,
     },
     {
-      title: 'Doanh thu thực thu',
-      fullTitle: 'Doanh thu thực thu (Đã thanh toán)',
+      title: t('reports.metrics.actualRevenue', 'Doanh thu thực thu'),
+      fullTitle: t('reports.metrics.actualRevenueFull', 'Doanh thu thực thu (Đã thanh toán)'),
       value: formatCurrency(collectedValue),
-      subtext: 'Đã hoàn tất thanh toán / ghi nhận',
+      subtext: t('reports.metrics.actualRevenueSub', 'Đã hoàn tất thanh toán / ghi nhận'),
       isPositive: true,
       icon: <DollarSign size={16} className="text-amber-600" />,
     },
     {
-      title: `Phễu ${cleanValueLabel}`,
-      fullTitle: `Phễu ${rawValueLabel}`,
+      title: `${t('reports.metrics.pipelineValuePrefix', 'Phễu')} ${cleanValueLabel}`,
+      fullTitle: `${t('reports.metrics.pipelineValuePrefix', 'Phễu')} ${rawValueLabel}`,
       value: formatCurrency(estimatedValue),
-      subtext: 'Quy mô tiềm năng đang chăm sóc',
+      subtext: t('reports.metrics.pipelineValueSub', 'Quy mô tiềm năng đang chăm sóc'),
       isPositive: true,
       icon: <TrendingUp size={16} className="text-purple-600" />,
     },
     {
-      title: 'Tốc độ phản hồi',
-      fullTitle: 'Tốc độ phản hồi khách hàng đầu tiên',
+      title: t('reports.metrics.responseTime', 'Tốc độ phản hồi'),
+      fullTitle: t('reports.metrics.responseTimeFull', 'Tốc độ phản hồi khách hàng đầu tiên'),
       value: formatResponseTime(metrics.avgResponseTimeMinutes),
-      subtext: metrics.avgResponseTimeMinutes > 0 ? 'Thời gian phản hồi khách đầu tiên' : 'Chưa ghi nhận tin nhắn phản hồi',
+      subtext: metrics.avgResponseTimeMinutes > 0 ? t('reports.metrics.responseTimeSub', 'Thời gian phản hồi khách đầu tiên') : t('reports.metrics.noResponseYet', 'Chưa ghi nhận tin nhắn phản hồi'),
       isPositive: true,
       icon: <Clock size={16} className="text-teal-600" />,
     },
     {
-      title: 'Tỷ lệ rơi rụng',
-      fullTitle: 'Tỷ lệ rơi rụng / Thất bại',
+      title: t('reports.metrics.dropOffRate', 'Tỷ lệ rơi rụng'),
+      fullTitle: t('reports.metrics.dropOffRateFull', 'Tỷ lệ rơi rụng / Thất bại'),
       value: `${metrics.dropOffRate}%`,
-      subtext: 'Không phù hợp / Hủy nhu cầu',
+      subtext: t('reports.metrics.dropOffSub', 'Không phù hợp / Hủy nhu cầu'),
       isPositive: metrics.dropOffRate < 20,
       icon: <UserX size={16} className="text-rose-600" />,
     },

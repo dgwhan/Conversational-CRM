@@ -31,6 +31,7 @@ import { useActivityReminders, playChimeSound } from '../../activities/hooks/use
 import { ActivityModal } from '../../activities/components/ActivityModal.js';
 import { formatLocalDate, isSameLocalDate } from '../utils/dateTimeUtils.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 type ViewMode = 'MONTH' | 'WEEK' | 'AGENDA';
 
@@ -44,6 +45,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
   onNavigateToKanban,
 }) => {
   const { activeWorkspaceId } = useWorkspaceConfig();
+  const { t, locale } = useTranslation();
   const { todayTasksCount: _todayTasksCount, requestBrowserPermission } = useActivityReminders(activeWorkspaceId || undefined);
 
   // View & Date states
@@ -334,7 +336,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
               }`}
             >
               <CalendarIcon size={13} />
-              <span>Tháng</span>
+              <span>{t('calendar.viewMonth', 'Tháng')}</span>
             </button>
             <button
               type="button"
@@ -346,7 +348,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
               }`}
             >
               <CalendarDays size={13} />
-              <span>Tuần</span>
+              <span>{t('calendar.viewWeek', 'Tuần')}</span>
             </button>
             <button
               type="button"
@@ -358,7 +360,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
               }`}
             >
               <ListTodo size={13} />
-              <span className="hidden xs:inline">Danh sách</span>
+              <span className="hidden xs:inline">{t('calendar.viewAgenda', 'Danh sách')}</span>
               <span className="xs:hidden">DS</span>
             </button>
           </div>
@@ -398,7 +400,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
               className="h-8 flex items-center gap-1 px-2.5 sm:px-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               <Plus size={15} />
-              <span className="hidden sm:inline">Tạo lịch / nhiệm vụ</span>
+              <span className="hidden sm:inline">{t('calendar.addActivityBtn', 'Tạo lịch / nhiệm vụ')}</span>
               <span className="sm:hidden">Tạo mới</span>
             </button>
           </div>
@@ -413,10 +415,10 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
             <Filter size={12} /> Lọc:
           </span>
           {[
-            { id: 'ALL', label: 'Tất cả' },
-            { id: 'CALL', label: 'Cuộc gọi' },
-            { id: 'MEETING', label: 'Lịch hẹn' },
-            { id: 'TASK', label: 'Nhiệm vụ' },
+            { id: 'ALL', label: t('calendar.typeAll', 'Tất cả') },
+            { id: 'CALL', label: t('calendar.typeCall', 'Cuộc gọi') },
+            { id: 'MEETING', label: t('calendar.typeAppointment', 'Lịch hẹn') },
+            { id: 'TASK', label: t('calendar.typeTask', 'Nhiệm vụ') },
           ].map((f) => (
             <button
               key={f.id}
@@ -436,9 +438,9 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
 
           {/* Bộ lọc trạng thái */}
           {[
-            { id: 'ALL', label: 'Mọi trạng thái' },
-            { id: 'PENDING', label: 'Chưa hoàn thành' },
-            { id: 'COMPLETED', label: 'Đã hoàn thành' },
+            { id: 'ALL', label: t('calendar.statusAll', 'Mọi trạng thái') },
+            { id: 'PENDING', label: t('calendar.statusPending', 'Chưa hoàn thành') },
+            { id: 'COMPLETED', label: t('calendar.statusCompleted', 'Đã hoàn thành') },
           ].map((s) => (
             <button
               key={s.id}
@@ -461,7 +463,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
           <input
             type="text"
             className="w-full pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Tìm theo tiêu đề, ứng viên..."
+            placeholder={t('calendar.searchPlaceholder', 'Tìm theo tiêu đề, ứng viên...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -477,13 +479,13 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
             <div className="flex-1 flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
               {/* Tiêu đề 7 thứ trong tuần (Mobile rút gọn T2-CN, Desktop đầy đủ) */}
               <div className="grid grid-cols-7 bg-slate-100/80 border-b border-slate-200 text-center py-2 text-[11px] sm:text-xs font-semibold text-slate-600">
-                <span><span className="sm:hidden">T2</span><span className="hidden sm:inline">Thứ 2</span></span>
-                <span><span className="sm:hidden">T3</span><span className="hidden sm:inline">Thứ 3</span></span>
-                <span><span className="sm:hidden">T4</span><span className="hidden sm:inline">Thứ 4</span></span>
-                <span><span className="sm:hidden">T5</span><span className="hidden sm:inline">Thứ 5</span></span>
-                <span><span className="sm:hidden">T6</span><span className="hidden sm:inline">Thứ 6</span></span>
-                <span className="text-blue-600"><span className="sm:hidden">T7</span><span className="hidden sm:inline">Thứ 7</span></span>
-                <span className="text-rose-600"><span className="sm:hidden">CN</span><span className="hidden sm:inline">Chủ Nhật</span></span>
+                <span><span className="sm:hidden">{locale === 'en' ? 'M' : 'T2'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Mon' : 'Thứ 2'}</span></span>
+                <span><span className="sm:hidden">{locale === 'en' ? 'T' : 'T3'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Tue' : 'Thứ 3'}</span></span>
+                <span><span className="sm:hidden">{locale === 'en' ? 'W' : 'T4'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Wed' : 'Thứ 4'}</span></span>
+                <span><span className="sm:hidden">{locale === 'en' ? 'T' : 'T5'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Thu' : 'Thứ 5'}</span></span>
+                <span><span className="sm:hidden">{locale === 'en' ? 'F' : 'T6'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Fri' : 'Thứ 6'}</span></span>
+                <span className="text-blue-600"><span className="sm:hidden">{locale === 'en' ? 'S' : 'T7'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Sat' : 'Thứ 7'}</span></span>
+                <span className="text-rose-600"><span className="sm:hidden">{locale === 'en' ? 'S' : 'CN'}</span><span className="hidden sm:inline">{locale === 'en' ? 'Sun' : 'Chủ Nhật'}</span></span>
               </div>
 
               {/* Lưới ô ngày: Căn chỉnh thoáng đãng, chống đè chữ lên số */}
@@ -615,7 +617,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
                     <div>
                       <span className="text-[11px] text-slate-400 font-medium block">
-                        {['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'][idx]}
+                        {(locale === 'en' ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] : ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'])[idx]}
                       </span>
                       <span className={`text-base font-bold ${day.isToday ? 'text-blue-600' : 'text-slate-800'}`}>
                         {day.date.getDate()} Thg {day.date.getMonth() + 1}
@@ -639,9 +641,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
 
                   <div className="flex-1 space-y-2 overflow-y-auto">
                     {day.items.length === 0 ? (
-                      <div className="text-center py-6 text-slate-300 text-xs italic">
-                        Không có lịch
-                      </div>
+                      <div className="text-center py-6 text-slate-300 text-xs italic">{t('calendar.noActivitiesYet', 'Không có lịch')}</div>
                     ) : (
                       day.items.map((item) => (
                         <div

@@ -12,6 +12,7 @@ import {
   requestPasswordRecoveryOtp,
   verifyPasswordRecoveryOtp,
 } from '../../api/password-recovery.api.js';
+import { useTranslation } from '../../../../i18n/index.js';
 import {
   OTP_LENGTH,
   RESEND_COOLDOWN_SECONDS,
@@ -30,6 +31,7 @@ export function PasswordRecoveryVerifyStep({
   onSuccess,
   onBackToRequest,
 }: PasswordRecoveryVerifyStepProps) {
+  const { t } = useTranslation();
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,8 +134,8 @@ export function PasswordRecoveryVerifyStep({
   return (
     <section className="animate-in fade-in duration-300">
       <PageHeading
-        title="Xác minh email"
-        description={`Mã xác minh đã được gửi đến ${email}. Nhập mã gồm 6 chữ số để xác minh email.`}
+        title={t('auth.recovery.verifyTitle', 'Xác minh email')}
+        description={`${t('auth.recovery.verifyDescPrefix', 'Mã xác minh đã được gửi đến')} ${email}. ${t('auth.recovery.verifyDescSuffix', 'Nhập mã gồm 6 chữ số để xác minh email.')}`}
       />
       <form
         className="mt-6 flex flex-col gap-6"
@@ -141,7 +143,7 @@ export function PasswordRecoveryVerifyStep({
         onSubmit={handleVerify}>
         <fieldset className="min-w-0 border-0 p-0">
           <legend className="mb-2 font-sans text-label font-medium text-text-primary">
-            Mã xác minh
+            {t('auth.recovery.otpLegend', 'Mã xác minh')}
           </legend>
           <div
             className="grid grid-cols-6 gap-2 sm:gap-3"
@@ -185,7 +187,7 @@ export function PasswordRecoveryVerifyStep({
           fullWidth
           loading={isSubmitting}
           type="submit">
-          {isSubmitting ? 'Đang xác minh mã…' : 'Xác minh mã'}
+          {isSubmitting ? t('auth.recovery.verifying', 'Đang xác minh mã…') : t('auth.recovery.verifyBtn', 'Xác minh mã')}
         </Button>
 
         <div className="flex flex-col items-center gap-2 text-center">
@@ -194,22 +196,22 @@ export function PasswordRecoveryVerifyStep({
             disabled={resendSeconds > 0 || isSubmitting}
             onClick={() => void handleResend()}
             type="button">
-            Gửi lại mã
+            {t('auth.recovery.resendCode', 'Gửi lại mã')}
           </button>
           <p
             className="font-sans text-caption text-text-secondary"
             aria-live="polite"
           >
             {resendSeconds > 0
-              ? `Có thể gửi lại sau ${formattedCountdown}`
-              : 'Bạn có thể yêu cầu gửi lại mã.'}
+              ? `${t('auth.recovery.resendIn', 'Có thể gửi lại sau')} ${formattedCountdown}`
+              : t('auth.recovery.canResend', 'Bạn có thể yêu cầu gửi lại mã.')}
           </p>
           <button
             className="mt-2 font-sans text-body text-brand-primary hover:underline"
             disabled={isSubmitting}
             onClick={onBackToRequest}
             type="button">
-            Quay lại bước trước
+            {t('auth.recovery.backToPrevious', 'Quay lại bước trước')}
           </button>
         </div>
       </form>

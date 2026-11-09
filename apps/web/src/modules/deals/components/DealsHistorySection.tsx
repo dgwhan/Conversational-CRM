@@ -19,6 +19,7 @@ import type { PipelineStageConfig, ProductItemConfig } from '../../workspace/wor
 import type { AssignedStaff } from '../../inbox/types.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { DealModal } from './DealModal.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 export interface DealsHistorySectionProps {
   customerId?: string;
@@ -41,6 +42,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   onNavigateToKanban: _onNavigateToKanban,
   onDealUpdated,
 }) => {
+  const { t } = useTranslation();
   const [deals, setDeals] = useState<DealItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,20 +94,20 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
         ...createData,
         customerId,
         contactId,
-        title: createData.title || 'Cơ hội tuyển sinh',
+        title: createData.title || t('deals.sectionTitle', 'Cơ hội tuyển sinh'),
       });
     }
     await loadDeals();
   };
 
   const handleDeleteDeal = async (dealId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa cơ hội tuyển sinh này không?')) return;
+    if (!window.confirm(t('deals.deleteDealConfirm', 'Bạn có chắc chắn muốn xóa cơ hội này?'))) return;
     try {
       await apiClient.deleteDeal(dealId);
-      notify.success('Đã xóa cơ hội tuyển sinh.');
+      notify.success(t('deals.deleteDealSuccess', 'Đã xóa cơ hội tuyển sinh.'));
       await loadDeals();
     } catch (err: any) {
-      notify.error(err?.message || 'Không thể xóa cơ hội tuyển sinh.');
+      notify.error(err?.message || 'Không thể xóa cơ hội.');
     } finally {
       setActiveMenuDealId(null);
     }
@@ -114,7 +116,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   const handleQuickChangeStage = async (dealId: string, newStage: string) => {
     try {
       await apiClient.updateDeal(dealId, { stage: newStage });
-      notify.success('Đã chuyển giai đoạn cơ hội!');
+      notify.success(t('kanban.updateSuccess', 'Đã chuyển giai đoạn cơ hội!'));
       await loadDeals();
     } catch (err: any) {
       notify.error(err?.message || 'Không thể cập nhật giai đoạn.');
@@ -127,14 +129,14 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
             <CheckCircle2 size={11} />
-            <span>Thành công</span>
+            <span>{t('deals.statusWon', 'Thành công')}</span>
           </span>
         );
       case 'LOST':
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">
             <XCircle size={11} />
-            <span>Thất bại</span>
+            <span>{t('deals.statusLost', 'Thất bại')}</span>
           </span>
         );
       case 'OPEN':
@@ -142,7 +144,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">
             <Clock size={11} />
-            <span>Đang xử lý</span>
+            <span>{t('deals.statusOpen', 'Đang xử lý')}</span>
           </span>
         );
     }
@@ -161,7 +163,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
             <Briefcase size={12} />
           </div>
           <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-            Cơ Hội Tuyển Sinh ({deals.length})
+            {t('deals.sectionTitle', 'Cơ Hội Tuyển Sinh')} ({deals.length})
           </span>
           {isCollapsed ? (
             <ChevronDown size={14} className="text-slate-400" />
@@ -174,10 +176,10 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
           type="button"
           onClick={handleOpenCreateModal}
           className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
-          title="Tạo cơ hội / đợt tuyển sinh mới"
+          title={t('deals.addIntakeTitle', 'Tạo cơ hội / đợt tuyển sinh mới')}
         >
           <Plus size={12} />
-          <span>Thêm đợt</span>
+          <span>{t('deals.addIntakeBtn', 'Thêm đợt')}</span>
         </button>
       </div>
 
@@ -185,17 +187,17 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
       {!isCollapsed && (
         <div className="space-y-2.5">
           {isLoading && deals.length === 0 ? (
-            <div className="text-center py-4 text-xs text-slate-400">Đang tải cơ hội...</div>
+            <div className="text-center py-4 text-xs text-slate-400">{t('deals.loadingDeals', 'Đang tải cơ hội...')}</div>
           ) : deals.length === 0 ? (
             <div className="text-center py-4 px-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/50">
-              <p className="text-xs text-slate-500 m-0 mb-2">Chưa có cơ hội / đợt tuyển sinh nào</p>
+              <p className="text-xs text-slate-500 m-0 mb-2">{t('deals.noDealsYet', 'Chưa có cơ hội / đợt tuyển sinh nào')}</p>
               <button
                 type="button"
                 onClick={handleOpenCreateModal}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600 text-white text-[11px] font-medium hover:bg-blue-700 transition-colors cursor-pointer"
               >
                 <Plus size={11} />
-                <span>Tạo cơ hội đầu tiên</span>
+                <span>{t('deals.createFirstDealBtn', 'Tạo cơ hội đầu tiên')}</span>
               </button>
             </div>
           ) : (
@@ -241,7 +243,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                               className="w-full px-2.5 py-1 text-left flex items-center gap-1.5 text-slate-700 hover:bg-slate-50 cursor-pointer"
                             >
                               <Edit2 size={12} className="text-blue-500" />
-                              <span>Chỉnh sửa</span>
+                              <span>{t('deals.editAction', 'Chỉnh sửa')}</span>
                             </button>
                             <button
                               type="button"
@@ -249,7 +251,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                               className="w-full px-2.5 py-1 text-left flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 cursor-pointer"
                             >
                               <Trash2 size={12} />
-                              <span>Xóa</span>
+                              <span>{t('deals.deleteAction', 'Xóa')}</span>
                             </button>
                           </div>
                         )}
@@ -259,7 +261,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
 
                   {/* Stage Dropdown */}
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                    <span className="text-slate-500 text-[11px]">Giai đoạn:</span>
+                    <span className="text-slate-500 text-[11px]">{t('deals.stageLabel', 'Giai đoạn:')}</span>
                     <select
                       value={deal.stage}
                       onChange={(e) => handleQuickChangeStage(deal.id, e.target.value)}
@@ -297,7 +299,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                       {deal.assignedStaffName && (
                         <span
                           className="flex items-center gap-1 text-slate-500 truncate max-w-[120px]"
-                          title={`Phụ trách: ${deal.assignedStaffName}`}
+                          title={`${t('deals.assignedStaffLabel', 'Phụ trách')}: ${deal.assignedStaffName}`}
                         >
                           <User size={11} className="text-slate-400" />
                           <span className="truncate">{deal.assignedStaffName}</span>

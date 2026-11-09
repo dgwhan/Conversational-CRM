@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { LogOut, Menu, ShieldCheck, Globe } from 'lucide-react';
 import type { ActiveNavTab } from '../app/Sidebar.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
@@ -18,21 +18,10 @@ export interface HeaderLayoutProps {
   extraActions?: React.ReactNode;
 }
 
-const TAB_NAME_MAP: Record<ActiveNavTab, string> = {
-  reports: 'Báo cáo & Thống kê',
-  inbox: 'Hộp thư Hội thoại',
-  kanban: 'Phễu Tuyển sinh',
-  calendar: 'Lịch biểu & Nhiệm vụ',
-  'workspace-settings': 'Quản lý Cấu hình',
-  onboarding: 'Kết nối Kênh',
-  import: 'Nhập Dữ liệu',
-};
-
 /**
- * Layout Header chuyên biệt cho toàn bộ ứng dụng CUSC Conversational CRM.
+ * Layout Header chuyên biệt cho toàn bộ ứng dụng Conversational CRM.
  * Thiết kế theo phong cách Modern SaaS Glassmorphism hiện đại, tinh tế.
- * Tối ưu responsive hoàn hảo cho Desktop, Tablet và Mobile (đặc biệt iPhone 15 Pro Max 430x873).
- * Loại bỏ triệt để hiện tượng đè chồng nút chức năng và nội dung trên màn hình nhỏ.
+ * Tối ưu responsive hoàn hảo cho Desktop, Tablet và Mobile.
  */
 export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
   currentTab,
@@ -45,6 +34,16 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
   const { t, locale, setLocale } = useTranslation();
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
   const mobileUserMenuRef = useRef<HTMLDivElement>(null);
+
+  const tabNameMap = useMemo<Record<ActiveNavTab, string>>(() => ({
+    reports: t('header.reportsTab', 'Báo cáo & Thống kê'),
+    inbox: t('header.inboxTab', 'Hộp thư Hội thoại'),
+    kanban: t('header.kanbanTab', 'Phễu Tuyển sinh'),
+    calendar: t('header.calendarTab', 'Lịch biểu & Nhiệm vụ'),
+    'workspace-settings': t('header.workspaceSettingsTab', 'Quản lý Cấu hình'),
+    onboarding: t('header.onboardingTab', 'Kết nối Kênh'),
+    import: t('header.importTab', 'Nhập Dữ liệu'),
+  }), [t]);
 
   // Đóng Mobile User Menu khi click ra ngoài
   useEffect(() => {
@@ -64,8 +63,8 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
     };
   }, [isMobileUserMenuOpen]);
 
-  const currentTabLabel = title || TAB_NAME_MAP[currentTab] || t('nav.liveInbox');
-  const userRoleText = isOwner ? 'Chủ doanh nghiệp' : 'Tư vấn viên';
+  const currentTabLabel = title || tabNameMap[currentTab] || t('nav.liveInbox');
+  const userRoleText = isOwner ? t('header.ownerRole', 'Chủ doanh nghiệp') : t('header.agentRole', 'Tư vấn viên');
   const userInitial = (staffName || (isOwner ? 'O' : 'A')).trim().charAt(0).toUpperCase();
 
   return (
@@ -78,14 +77,14 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
               type="button"
               className="navbar-mobile-toggle"
               onClick={onToggleMobileMenu}
-              title="Mở thanh điều hướng"
-              aria-label="Toggle navigation menu"
+              title={t('header.openNavigation', 'Mở thanh điều hướng')}
+              aria-label={t('header.toggleNav', 'Toggle navigation menu')}
             >
               <Menu size={18} />
             </button>
           )}
 
-          {/* Tiêu đề trang / Tab hiện tại - Giúp định hướng nhanh */}
+          {/* Tiêu đề trang / Tab hiện tại */}
           <div className="crm-header-title-box">
             <span className="crm-header-current-tab" title={currentTabLabel}>
               {currentTabLabel}
@@ -113,7 +112,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
             <StaffPresenceSelector compact={true} />
           </div>
 
-          {/* Chuyển đổi ngôn ngữ Tiếng Việt / English - Chỉ hiện trực tiếp trên Desktop */}
+          {/* Chuyển đổi ngôn ngữ Tiếng Việt / English */}
           <div className="crm-header-action-item lang-item-wrap desktop-only">
             <LanguageSwitcher />
           </div>
@@ -133,10 +132,10 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
               type="button"
               className="crm-user-logout-btn"
               onClick={logout}
-              title="Đăng xuất khỏi hệ thống"
+              title={t('header.logoutDesc', 'Đăng xuất khỏi hệ thống')}
             >
               <LogOut size={13} />
-              <span className="logout-text">Thoát</span>
+              <span className="logout-text">{t('header.logout', 'Thoát')}</span>
             </button>
           </div>
 
@@ -147,15 +146,15 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
             </div>
           )}
 
-          {/* Nút Avatar Profile trên Mobile - Gom User Info + Ngôn ngữ + Đăng xuất tránh tràn màn hình 430px */}
+          {/* Nút Avatar Profile trên Mobile */}
           <div className="mobile-user-profile-wrapper mobile-only" ref={mobileUserMenuRef}>
             <button
               type="button"
               className={`mobile-profile-avatar-btn ${isMobileUserMenuOpen ? 'active' : ''}`}
               onClick={() => setIsMobileUserMenuOpen((prev) => !prev)}
-              title="Xem thông tin tài khoản và cài đặt nhanh"
+              title={t('header.profileAndSettings', 'Xem thông tin tài khoản và cài đặt nhanh')}
               aria-expanded={isMobileUserMenuOpen}
-              aria-label="Tài khoản và cài đặt"
+              aria-label={t('header.profileAndSettings', 'Tài khoản và cài đặt')}
             >
               <span className="mobile-avatar-text">{userInitial}</span>
               <span className="mobile-avatar-badge-dot" />
@@ -195,7 +194,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
                   <div className="popover-section-row">
                     <span className="section-row-label">
                       <Globe size={14} className="text-slate-500" />
-                      <span>Ngôn ngữ hiển thị</span>
+                      <span>{t('header.displayLanguage', 'Ngôn ngữ hiển thị')}</span>
                     </span>
                     <div className="mobile-lang-pills">
                       <button
@@ -226,7 +225,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
                       }}
                     >
                       <LogOut size={15} />
-                      <span>Đăng xuất khỏi hệ thống</span>
+                      <span>{t('header.logoutDesc', 'Đăng xuất khỏi hệ thống')}</span>
                     </button>
                   </div>
                 </div>

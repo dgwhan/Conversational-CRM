@@ -8,6 +8,7 @@ import { TextField } from '../../../components/ui/TextField.js';
 import { AuthApiError, login } from '../api/auth.api.js';
 import type { LoginResponse } from '../types/auth.types.js';
 import { AUTH_MESSAGES } from '../validation/auth.validation.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 const REMEMBERED_IDENTIFIER_KEY = 'polarisx.rememberedIdentifier';
 
@@ -92,17 +93,17 @@ export function LoginForm({
       {!hideHeading && (
         <PageHeading
           title="Chào mừng trở lại"
-          description="Đăng nhập để tiếp tục sử dụng hệ thống Conversational CRM."
+          description={t('auth.loginSubtitle', 'Đăng nhập để tiếp tục sử dụng hệ thống Conversational CRM.')}
         />
       )}
 
       <form className="flex flex-col gap-6" noValidate onSubmit={handleSubmit}>
         <TextField
-          label="Email hoặc Số điện thoại"
+          label={t('auth.identifierLabel', 'Email hoặc Số điện thoại')}
           name="identifier"
           type="text"
           autoComplete="username"
-          placeholder="Nhập email hoặc số điện thoại"
+          placeholder={t('auth.identifierPlaceholder', 'Nhập email hoặc số điện thoại')}
           value={identifier}
           onChange={(event) => {
             setIdentifier(event.target.value);
@@ -167,12 +168,12 @@ export function LoginForm({
         )}
 
         <Button fullWidth type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang đăng nhập…' : 'Đăng nhập'}
+          {isSubmitting ? t('auth.loggingIn', 'Đang đăng nhập…') : t('auth.loginBtn', 'Đăng nhập')}
         </Button>
 
         {onSwitchToSignUp && (
           <div className="text-center font-sans text-body text-text-secondary">
-            <span>Chưa có tài khoản?</span>{' '}
+            <span>{t('auth.dontHaveAccount', 'Chưa có tài khoản?')}</span>{' '}
             <button
               type="button"
               onClick={onSwitchToSignUp}

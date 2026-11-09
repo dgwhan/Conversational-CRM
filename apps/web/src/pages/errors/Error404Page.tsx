@@ -1,6 +1,7 @@
 import React from 'react';
 import { Home, ArrowLeft, Search, FileQuestion } from 'lucide-react';
 import { Button } from '../../components/ui/Button.js';
+import { useTranslation } from '../../i18n/index.js';
 
 interface Error404PageProps {
   onGoHome?: () => void;
@@ -25,7 +26,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
           <FileQuestion size={40} className="text-primary" />
         </div>
 
-        <h1 className="error-title">Không Tìm Thấy Trang Yêu Cầu</h1>
+        <h1 className="error-title">{t('errors.page404Title', 'Không Tìm Thấy Trang Yêu Cầu')}</h1>
 
         <p className="error-desc">
           Đường dẫn <code>{path}</code> không tồn tại trên hệ thống Conversational CRM, đã bị thay đổi địa chỉ hoặc đã bị xóa.
@@ -35,12 +36,12 @@ export const Error404Page: React.FC<Error404PageProps> = ({
         <div className="error-diagnostic-box">
           <div className="diagnostic-header">
             <Search size={15} />
-            <span>Gợi ý khắc phục:</span>
+            <span>{t('errors.diagnosticTitle', 'Gợi ý khắc phục:')}</span>
           </div>
           <ul className="diagnostic-list">
-            <li>Kiểm tra lại tính chính xác của đường dẫn URL trên thanh địa chỉ trình duyệt.</li>
+            <li>{t('errors.suggestUrlCheck', 'Kiểm tra lại tính chính xác của đường dẫn URL trên thanh địa chỉ trình duyệt.')}</li>
             <li>Nếu bạn đang tìm tính năng Import tin nhắn, vui lòng truy cập menu <strong>Tin nhắn Tư vấn (MSG-06)</strong>.</li>
-            <li>Liên hệ quản trị viên hệ thống nếu bạn cho rằng đây là một sự cố định tuyến.</li>
+            <li>{t('errors.suggestContactAdmin', 'Liên hệ quản trị viên hệ thống nếu sự cố vẫn tiếp diễn.')}</li>
           </ul>
         </div>
 

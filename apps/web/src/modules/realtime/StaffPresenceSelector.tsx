@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useRealtime } from './RealtimeContext.js';
 import type { StaffPresenceStatus } from '../inbox/types.js';
 import { ChevronDown, Wifi, WifiOff, Volume2, VolumeX, BellRing } from 'lucide-react';
+import { useTranslation } from '../../i18n/index.js';
 
 export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact = false }) => {
   const {
@@ -12,6 +13,7 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
     setSoundActive,
     simulateIncomingMessage,
   } = useRealtime();
+  const { t } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
   const [showSimulateMenu, setShowSimulateMenu] = useState(false);
@@ -20,29 +22,29 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
   const statusConfig: Record<
     StaffPresenceStatus,
     { label: string; desc: string; color: string; bg: string; dotClass: string }
-  > = {
+  > = useMemo(() => ({
     ONLINE: {
-      label: 'Trực tuyến',
-      desc: 'Sẵn sàng tiếp nhận tư vấn',
+      label: t('presence.onlineLabel', 'Trực tuyến'),
+      desc: t('presence.onlineDesc', 'Sẵn sàng tiếp nhận tư vấn'),
       color: '#10b981',
       bg: '#ecfdf5',
       dotClass: 'presence-dot-online',
     },
     AWAY: {
-      label: 'Vắng mặt',
-      desc: 'Tạm rời bàn làm việc / Nghỉ trưa',
+      label: t('presence.awayLabel', 'Vắng mặt'),
+      desc: t('presence.awayDesc', 'Tạm rời bàn làm việc / Nghỉ trưa'),
       color: '#f59e0b',
       bg: '#fffbeb',
       dotClass: 'presence-dot-away',
     },
     BUSY: {
-      label: 'Đang bận',
-      desc: 'Đang gọi tư vấn tuyển sinh / Họp',
+      label: t('presence.busyLabel', 'Đang bận'),
+      desc: t('presence.busyDesc', 'Đang gọi tư vấn tuyển sinh / Họp'),
       color: '#ef4444',
       bg: '#fef2f2',
       dotClass: 'presence-dot-busy',
     },
-  };
+  }), [t]);
 
   const current = statusConfig[myPresence];
 
@@ -65,14 +67,12 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
 
   return (
     <div className="staff-presence-wrapper" ref={containerRef}>
-
-
       {/* Nút chính hiển thị trạng thái nhân viên */}
       <button
         type="button"
         className="staff-presence-button"
         onClick={() => setIsOpen(!isOpen)}
-        title="Bấm để đổi trạng thái trực tuyến của bạn"
+        title={t('presence.onlineDesc', 'Bấm để đổi trạng thái trực tuyến của bạn')}
       >
         <span
           className="presence-status-dot"
@@ -90,13 +90,13 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
       {isOpen && (
         <div className="staff-presence-dropdown">
           <div className="presence-dropdown-header">
-            <span className="dropdown-title">Trạng thái nhân viên</span>
+            <span className="dropdown-title">{t('common.status', 'Trạng thái nhân viên')}</span>
             <span
               className={`connection-pill ${connectionStatus.toLowerCase()}`}
               title={
                 connectionStatus === 'CONNECTED'
-                  ? 'Máy chủ SSE thời gian thực đang kết nối'
-                  : 'Đang thử kết nối lại với SSE Server'
+                  ? t('presence.connected', 'Máy chủ SSE thời gian thực đang kết nối')
+                  : t('presence.reconnecting', 'Đang thử kết nối lại với SSE Server')
               }
             >
               {connectionStatus === 'CONNECTED' ? <Wifi size={11} /> : <WifiOff size={11} />}
@@ -137,7 +137,7 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
               style={{ marginBottom: '6px' }}
             >
               {soundActive ? <Volume2 size={13} /> : <VolumeX size={13} />}
-              <span>{soundActive ? 'Chuông thông báo: Đang bật' : 'Chuông thông báo: Đang tắt'}</span>
+              <span>{soundActive ? t('presence.soundOn', 'Chuông thông báo: Đang bật') : t('presence.soundOff', 'Chuông thông báo: Đang tắt')}</span>
             </button>
             <button
               type="button"
@@ -145,7 +145,7 @@ export const StaffPresenceSelector: React.FC<{ compact?: boolean }> = ({ compact
               onClick={() => setShowSimulateMenu(!showSimulateMenu)}
             >
               <BellRing size={13} />
-              <span>Thử bắn tin nhắn Realtime...</span>
+              <span>{t('presence.simulateMsg', 'Thử bắn tin nhắn Realtime...')}</span>
             </button>
 
             {showSimulateMenu && (

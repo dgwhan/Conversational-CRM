@@ -15,31 +15,33 @@ import type { NotificationItem, NotificationSeverity } from '../../lib/api-clien
 import { useRealtime } from '../realtime/RealtimeContext.js';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
 import type { ActiveNavTab } from '../../app/Sidebar.js';
+import { useTranslation } from '../../i18n/index.js';
 
 interface NotificationCenterProps {
   onNavigateTab?: (tab: ActiveNavTab) => void;
 }
 
-function getRelativeTimeString(dateStr: string): string {
+function getRelativeTimeString(dateStr: string, locale: string, t: (k: string, fb?: string) => string): string {
   try {
     const diff = Date.now() - new Date(dateStr).getTime();
     const minutes = Math.floor(diff / (1000 * 60));
-    if (minutes < 1) return 'Vừa xong';
-    if (minutes < 60) return `${minutes} phút trước`;
+    if (minutes < 1) return t('common.justNow', 'Vừa xong');
+    if (minutes < 60) return `${minutes} ${t('common.minutesAgo', 'phút trước')}`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} giờ trước`;
+    if (hours < 24) return `${hours} ${t('common.hoursAgo', 'giờ trước')}`;
     const days = Math.floor(hours / 24);
-    if (days === 1) return 'Hôm qua';
-    if (days < 30) return `${days} ngày trước`;
-    return new Date(dateStr).toLocaleDateString('vi-VN');
+    if (days === 1) return t('common.yesterday', 'Hôm qua');
+    if (days < 30) return `${days} ${t('common.daysAgo', 'ngày trước')}`;
+    return new Date(dateStr).toLocaleDateString(locale === 'en' ? 'en-US' : 'vi-VN');
   } catch {
-    return 'Vừa xong';
+    return t('common.justNow', 'Vừa xong');
   }
 }
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNavigateTab }) => {
   const { onNotification } = useRealtime();
   const { activeWorkspaceId } = useWorkspaceConfig();
+  const { t, locale } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -74,79 +76,69 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
 
   // Lắng nghe sự kiện realtime notification:new
   useEffect(() => {
-    const unsubscribe = onNotification((newNotif: NotificationItem) => {
-      setNotifications((prev) => {
-        // Tránh trùng lặp
-        if (prev.some((n) => n.id === newNotif.id)) return prev;
-        return [newNotif, ...prev];
-      });
-      setUnreadCount((prev) => prev + 1);
+    const unsub = onNotification((newItem) => {
+      setNotifications((prev) => [newItem, ...prev.filter((n) => n.id !== newItem.id)]);
+      setUnreadCount((c) => c + 1);
     });
-
-    return () => unsubscribe();
+    return unsub;
   }, [onNotification]);
 
   // Đóng popover khi nhấp ra ngoài
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('mousedown', handleOutsideClick);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
   }, [isOpen]);
 
-  // Đánh dấu 1 thông báo là đã đọc
-  const handleMarkAsRead = async (item: NotificationItem, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (item.isRead) return;
-
-    try {
-      await apiClient.markNotificationRead(effectiveWsId, item.id);
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n)),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-    } catch (err) {
-      console.warn('Lỗi markNotificationRead:', err);
-    }
-  };
-
-  // Đánh dấu tất cả là đã đọc
   const handleMarkAllAsRead = async () => {
+    if (!effectiveWsId || unreadCount === 0) return;
     try {
       await apiClient.markAllNotificationsRead(effectiveWsId);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch (err) {
-      console.warn('Lỗi markAllNotificationsRead:', err);
+      console.warn('Không thể đánh dấu đọc tất cả:', err);
     }
   };
 
-  // Xóa thông báo
   const handleDeleteNotification = async (item: NotificationItem, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!effectiveWsId) return;
     try {
       await apiClient.deleteNotification(effectiveWsId, item.id);
       setNotifications((prev) => prev.filter((n) => n.id !== item.id));
       if (!item.isRead) {
-        setUnreadCount((prev) => Math.max(0, prev - 1));
+        setUnreadCount((c) => Math.max(0, c - 1));
       }
     } catch (err) {
-      console.warn('Lỗi deleteNotification:', err);
+      console.warn('Không thể xóa thông báo:', err);
     }
   };
 
-  // Chuyển hướng khi click vào thông báo
-  const handleItemClick = (item: NotificationItem) => {
-    handleMarkAsRead(item);
-    setIsOpen(false);
+  const handleItemClick = async (item: NotificationItem) => {
+    if (!item.isRead && effectiveWsId) {
+      try {
+        await apiClient.markNotificationRead(effectiveWsId, item.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      } catch (err) {
+        console.warn('Lỗi đánh dấu đã đọc:', err);
+      }
+    }
 
     if (item.actionUrl) {
-      if (item.actionUrl.includes('channels') || item.actionUrl.includes('onboarding')) {
+      setIsOpen(false);
+      if (item.actionUrl.includes('onboarding')) {
         if (onNavigateTab) {
           onNavigateTab('onboarding');
         } else {
@@ -171,21 +163,21 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
           icon: <ShieldAlert size={16} className="text-red-500" />,
           bg: 'bg-red-50/50 border-l-2 border-l-red-500',
           badgeClass: 'bg-red-100 text-red-700 border border-red-200',
-          label: 'Nguy cấp',
+          label: locale === 'en' ? 'Critical' : 'Nguy cấp',
         };
       case 'URGENT':
         return {
           icon: <AlertCircle size={16} className="text-orange-500" />,
           bg: 'bg-orange-50/50 border-l-2 border-l-orange-500',
           badgeClass: 'bg-orange-100 text-orange-700 border border-orange-200',
-          label: 'Khẩn cấp',
+          label: locale === 'en' ? 'Urgent' : 'Khẩn cấp',
         };
       case 'WARNING':
         return {
           icon: <AlertTriangle size={16} className="text-amber-500" />,
           bg: 'bg-amber-50/50 border-l-2 border-l-amber-500',
           badgeClass: 'bg-amber-100 text-amber-700 border border-amber-200',
-          label: 'Cảnh báo',
+          label: t('common.warning', 'Cảnh báo'),
         };
       case 'INFO':
       default:
@@ -193,7 +185,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
           icon: <Info size={16} className="text-blue-500" />,
           bg: 'bg-blue-50/40 border-l-2 border-l-blue-500',
           badgeClass: 'bg-blue-100 text-blue-700 border border-blue-200',
-          label: 'Thông tin',
+          label: t('common.info', 'Thông tin'),
         };
     }
   };
@@ -203,7 +195,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
 
   return (
     <div className="relative inline-flex items-center" ref={containerRef}>
-      {/* Icon Chuông thông báo trên Header: Bỏ viền, số đếm đặt ở góc trên bên phải */}
+      {/* Icon Chuông thông báo trên Header */}
       <button
         type="button"
         className={`relative w-8 h-8 rounded-lg transition-colors flex items-center justify-center cursor-pointer ${
@@ -215,8 +207,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
           setIsOpen(!isOpen);
           if (!isOpen) fetchNotifications();
         }}
-        title="Thông báo"
-        aria-label="Thông báo"
+        title={t('notifications.centerTitle', 'Thông báo')}
+        aria-label={t('notifications.centerTitle', 'Thông báo')}
       >
         <Bell size={17} className={unreadCount > 0 ? 'text-slate-700' : 'text-slate-500'} />
         {unreadCount > 0 && (
@@ -226,7 +218,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
         )}
       </button>
 
-      {/* Popover / Dropdown Hộp thông báo chuẩn Light Theme CRM */}
+      {/* Popover / Dropdown Hộp thông báo */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] bg-white border border-slate-200/80 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col max-h-[580px] animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
@@ -238,15 +230,15 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="font-semibold text-slate-800 text-xs">
-                    Thông báo Workspace
+                    {t('notifications.centerTitle', 'Thông báo Workspace')}
                   </h3>
                   {unreadCount > 0 && (
                     <span className="px-1.5 py-0.2 text-[11px] font-semibold bg-red-100 text-red-600 rounded-full">
-                      {unreadCount} mới
+                      {unreadCount} {locale === 'en' ? 'new' : 'mới'}
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500 truncate">Kênh liên kết & hội thoại</p>
+                <p className="text-[11px] text-slate-500 truncate">{locale === 'en' ? 'Channels & conversations' : 'Kênh liên kết & hội thoại'}</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -255,17 +247,17 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                   type="button"
                   onClick={handleMarkAllAsRead}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium hover:underline flex items-center gap-1 px-1.5 py-1 rounded hover:bg-blue-50 transition-colors"
-                  title="Đánh dấu tất cả là đã đọc"
+                  title={t('notifications.markAllRead', 'Đánh dấu tất cả là đã đọc')}
                 >
                   <CheckCheck size={13} />
-                  <span>Đọc tất cả</span>
+                  <span>{t('notifications.markAllRead', 'Đọc tất cả')}</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/60 transition-colors"
-                title="Đóng"
+                title={t('common.close', 'Đóng')}
               >
                 <X size={15} />
               </button>
@@ -283,7 +275,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/60'
               }`}
             >
-              Tất cả ({notifications.length})
+              {t('notifications.all', 'Tất cả')} ({notifications.length})
             </button>
             <button
               type="button"
@@ -294,7 +286,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100/60'
               }`}
             >
-              Chưa đọc ({unreadCount})
+              {t('notifications.unread', 'Chưa đọc')} ({unreadCount})
             </button>
           </div>
 
@@ -303,7 +295,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
             {isLoading && notifications.length === 0 ? (
               <div className="p-8 text-center text-xs text-slate-500">
                 <div className="inline-block animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
-                <div>Đang tải thông báo...</div>
+                <div>{t('notifications.loadingList', 'Đang tải thông báo...')}</div>
               </div>
             ) : filteredNotifications.length === 0 ? (
               <div className="py-10 px-6 text-center">
@@ -311,10 +303,12 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                   <Bell size={22} />
                 </div>
                 <p className="text-xs font-semibold text-slate-700">
-                  Không có thông báo nào
+                  {t('notifications.emptyList', 'Không có thông báo nào')}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-[240px] mx-auto leading-relaxed">
-                  Mọi cập nhật về trạng thái kênh và khách hàng sẽ xuất hiện tại đây.
+                  {locale === 'en'
+                    ? 'All channel and applicant updates will appear here.'
+                    : 'Mọi cập nhật về trạng thái kênh và khách hàng sẽ xuất hiện tại đây.'}
                 </p>
               </div>
             ) : (
@@ -356,10 +350,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                       </p>
 
                       <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400">
-                        <span>{getRelativeTimeString(item.createdAt)}</span>
+                        <span>{getRelativeTimeString(item.createdAt, locale, t)}</span>
                         {item.actionUrl && (
                           <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium hover:underline">
-                            <span>Chi tiết</span>
+                            <span>{locale === 'en' ? 'Details' : 'Chi tiết'}</span>
                             <ExternalLink size={10} />
                           </span>
                         )}
@@ -369,13 +363,13 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
                     {/* Unread dot / Actions */}
                     <div className="absolute right-3 top-3 flex items-center gap-1">
                       {!item.isRead && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title="Chưa đọc" />
+                        <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" title={t('notifications.unread', 'Chưa đọc')} />
                       )}
                       <button
                         type="button"
                         onClick={(e) => handleDeleteNotification(item, e)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 rounded transition-opacity"
-                        title="Xóa thông báo"
+                        title={t('common.delete', 'Xóa thông báo')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -385,15 +379,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onNaviga
               })
             )}
           </div>
-
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-center">
-              <span className="text-[11px] text-slate-400">
-                Hiển thị {filteredNotifications.length} thông báo gần nhất
-              </span>
-            </div>
-          )}
         </div>
       )}
     </div>

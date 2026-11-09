@@ -5,6 +5,7 @@ import { SignUpForm } from '../components/SignUpForm.js';
 import { AUTH_TAB, type AuthTab } from '../constants/auth.constants.js';
 import type { LoginResponse } from '../types/auth.types.js';
 import { PasswordRecoveryFlow } from '../components/PasswordRecoveryFlow.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 export type AuthPageProps = {
   onLoginSuccess?: (session: LoginResponse) => void;
@@ -17,6 +18,7 @@ export function AuthPage({
   onLoginSuccess,
   defaultTab = AUTH_TAB.LOGIN,
 }: AuthPageProps = {}) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<AuthTab>(defaultTab);
   const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -64,7 +66,7 @@ export function AuthPage({
                 }
               }}
               className={`relative z-10 flex-1 pb-3 text-center font-sans text-body font-medium transition-colors duration-200 cursor-pointer rounded-t-md hover:bg-slate-50/60 ${isLoginActive ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-text-primary'}`}>
-              Đăng nhập
+              {t('auth.loginTab', 'Đăng nhập')}
             </button>
 
             <button id="auth-tab-signup" type="button" role="tab" aria-selected={isSignUpActive} aria-controls="auth-panel-signup" tabIndex={isSignUpActive ? 0 : -1}
@@ -77,7 +79,7 @@ export function AuthPage({
                 }
               }}
               className={`relative z-10 flex-1 pb-3 text-center font-sans text-body font-medium transition-colors duration-200 cursor-pointer rounded-t-md hover:bg-slate-50/60 ${isSignUpActive ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-text-primary'}`}>
-              Đăng ký
+              {t('auth.signUpTab', 'Đăng ký')}
             </button>
 
             {/* Sliding Tab Indicator */}

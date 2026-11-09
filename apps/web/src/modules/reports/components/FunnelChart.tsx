@@ -3,6 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
 import type { FunnelStageReport } from '../reports.types.js';
 import '../chartSetup.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 interface FunnelChartProps {
   stages: FunnelStageReport[];
@@ -15,7 +16,8 @@ export const FunnelChart: React.FC<FunnelChartProps> = ({
   pipelineName,
   entityName,
 }) => {
-  const displayEntity = entityName || 'khách hàng';
+  const { t, locale } = useTranslation();
+  const displayEntity = entityName || (locale === 'en' ? 'leads' : 'khách hàng');
   const labels = stages.map((s) => s.label);
   const dataCounts = stages.map((s) => s.count);
   const backgroundColors = stages.map((s) => s.color || '#0284c7');
@@ -24,7 +26,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = ({
     labels,
     datasets: [
       {
-        label: `Số lượng ${displayEntity}`,
+        label: locale === 'en' ? `Number of ${displayEntity}` : `Số lượng ${displayEntity}`,
         data: dataCounts,
         backgroundColor: backgroundColors,
         borderRadius: 8,
@@ -53,7 +55,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = ({
             const count = context.raw as number;
             const total = dataCounts.reduce((acc, curr) => acc + curr, 0);
             const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
-            return ` ${displayEntity}: ${count} (${pct}% tổng phễu)`;
+            return ` ${displayEntity}: ${count} (${pct}% ${locale === 'en' ? 'of total funnel' : 'tổng phễu'})`;
           },
         },
       },
@@ -86,7 +88,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = ({
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            {pipelineName || 'Phễu Chuyển Đổi'}
+            {pipelineName || t('reports.funnelTitle', 'Phễu Chuyển Đổi')}
           </h3>
         </div>
       </div>
@@ -95,7 +97,7 @@ export const FunnelChart: React.FC<FunnelChartProps> = ({
           <Bar data={data} options={options} />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-            Chưa có dữ liệu giai đoạn phễu
+            {t('reports.emptyFunnelData', 'Chưa có dữ liệu giai đoạn phễu')}
           </div>
         )}
       </div>

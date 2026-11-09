@@ -3,6 +3,7 @@ import { Bar } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
 import type { CourseReport, ProductReport } from '../reports.types.js';
 import '../chartSetup.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 interface CoursePopularityChartProps {
   courses?: CourseReport[];
@@ -17,8 +18,9 @@ export const CoursePopularityChart: React.FC<CoursePopularityChartProps> = ({
   productLabel,
   entityName,
 }) => {
-  const displayLabel = productLabel || 'Sản Phẩm / Dịch Vụ';
-  const displayEntity = entityName || 'khách hàng';
+  const { t, locale } = useTranslation();
+  const displayLabel = productLabel || (locale === 'en' ? 'Products & Services' : 'Sản Phẩm / Dịch Vụ');
+  const displayEntity = entityName || (locale === 'en' ? 'leads' : 'khách hàng');
   const itemList = products || courses || [];
   const topItems = itemList.slice(0, 6);
   const labels = topItems.map((c) => c.productName || c.courseName || '');
@@ -37,7 +39,7 @@ export const CoursePopularityChart: React.FC<CoursePopularityChartProps> = ({
     labels,
     datasets: [
       {
-        label: `Số lượng ${displayEntity} quan tâm`,
+        label: locale === 'en' ? `Number of interested ${displayEntity}` : `Số lượng ${displayEntity} quan tâm`,
         data: counts,
         backgroundColor: colors.slice(0, labels.length),
         borderRadius: 6,
@@ -62,7 +64,7 @@ export const CoursePopularityChart: React.FC<CoursePopularityChartProps> = ({
         callbacks: {
           label: (context) => {
             const count = context.raw as number;
-            return ` ${displayEntity} quan tâm: ${count}`;
+            return ` ${displayEntity} ${locale === 'en' ? 'interested' : 'quan tâm'}: ${count}`;
           },
         },
       },
@@ -97,7 +99,7 @@ export const CoursePopularityChart: React.FC<CoursePopularityChartProps> = ({
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800">
-            {displayLabel} Thu Hút Nhất
+            {displayLabel} {t('reports.topProductsTitle', 'Thu Hút Nhất')}
           </h3>
         </div>
       </div>
@@ -106,7 +108,7 @@ export const CoursePopularityChart: React.FC<CoursePopularityChartProps> = ({
           <Bar data={data} options={options} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm py-12">
-            <p className="font-medium text-slate-500">Chưa có dữ liệu {displayLabel.toLowerCase()} trong kỳ</p>
+            <p className="font-medium text-slate-500">{t('reports.emptyProductData', 'Chưa có dữ liệu trong kỳ')}</p>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Building2, ChevronDown, Check, Layers, RefreshCw } from 'lucide-react';
 import { useWorkspaceConfig } from './WorkspaceConfigContext.js';
+import { useTranslation } from '../../i18n/index.js';
 import './WorkspaceSwitcher.css';
 
 export const WorkspaceSwitcher: React.FC = () => {
@@ -12,6 +13,7 @@ export const WorkspaceSwitcher: React.FC = () => {
     fetchMyWorkspaces,
     isLoading,
   } = useWorkspaceConfig();
+  const { t } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export const WorkspaceSwitcher: React.FC = () => {
         type="button"
         className={`ws-switcher-btn ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        title="Bấm để chuyển đổi Không gian làm việc (Workspace)"
+        title={t('workspaceSwitcher.buttonTitle', 'Bấm để chuyển đổi Không gian làm việc (Workspace)')}
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
@@ -68,13 +70,13 @@ export const WorkspaceSwitcher: React.FC = () => {
           <div className="ws-dropdown-header">
             <div className="ws-header-title">
               <Layers size={14} />
-              <span>Không Gian Làm Việc ({myWorkspaces.length})</span>
+              <span>{t('workspaceSwitcher.headerTitle', 'Không Gian Làm Việc')} ({myWorkspaces.length})</span>
             </div>
             <button
               type="button"
               className="ws-refresh-btn"
               onClick={handleRefresh}
-              title="Tải lại danh sách Workspace"
+              title={t('workspaceSwitcher.refreshTitle', 'Tải lại danh sách Workspace')}
             >
               <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
             </button>
@@ -82,7 +84,7 @@ export const WorkspaceSwitcher: React.FC = () => {
 
           <div className="ws-list">
             {myWorkspaces.length === 0 ? (
-              <div className="ws-empty-hint">Không có workspace nào khả dụng</div>
+              <div className="ws-empty-hint">{t('workspaceSwitcher.emptyHint', 'Không có workspace nào khả dụng')}</div>
             ) : (
               myWorkspaces.map((ws) => {
                 const isActive = ws.id === activeWorkspaceId;
@@ -102,9 +104,9 @@ export const WorkspaceSwitcher: React.FC = () => {
                           {ws.name}
                         </div>
                         <div className="ws-item-sub">
-                          <span className="ws-role-tag">{ws.isOwner ? 'Chủ sở hữu' : 'Thành viên'}</span>
+                          <span className="ws-role-tag">{ws.isOwner ? t('workspaceSwitcher.ownerRole', 'Chủ sở hữu') : t('workspaceSwitcher.memberRole', 'Thành viên')}</span>
                           {ws.ownerName && ws.ownerName !== 'Chính bạn' && (
-                            <span className="ws-owner-text" title={`Chủ sở hữu: ${ws.ownerName}`}>
+                            <span className="ws-owner-text" title={`${t('workspaceSwitcher.ownerRole', 'Chủ sở hữu')}: ${ws.ownerName}`}>
                               • {ws.ownerName}
                             </span>
                           )}
@@ -113,7 +115,7 @@ export const WorkspaceSwitcher: React.FC = () => {
                     </div>
 
                     {isActive && (
-                      <div className="ws-item-check" title="Đang kích hoạt">
+                      <div className="ws-item-check" title={t('workspaceSwitcher.activeStatus', 'Đang kích hoạt')}>
                         <Check size={15} />
                       </div>
                     )}

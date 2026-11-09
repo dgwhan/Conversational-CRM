@@ -76,12 +76,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'calendar' as ActiveNavTab,
-      label: 'Lịch biểu & Nhiệm vụ',
+      label: t('nav.calendarTasks', 'Lịch biểu & Nhiệm vụ'),
       icon: <Calendar size={18} />,
     },
     {
       id: 'workspace-settings' as ActiveNavTab,
-      label: 'Quản lý cấu hình',
+      label: t('nav.workspaceSettings', 'Quản lý cấu hình'),
       icon: <Sliders size={18} />,
       restricted: isAgent,
     },
@@ -109,8 +109,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           className="crm-sidebar-toggle-btn"
           onClick={toggleCollapse}
-          title={isCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
-          aria-label={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+          title={isCollapsed ? t('sidebar.expandNav', 'Mở rộng thanh điều hướng') : t('sidebar.collapseNav', 'Thu gọn thanh điều hướng')}
+          aria-label={isCollapsed ? t('sidebar.openSidebar', 'Mở rộng sidebar') : t('sidebar.closeSidebar', 'Thu gọn sidebar')}
         >
           {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
@@ -121,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="navbar-mobile-toggle"
             onClick={onCloseMobile}
             style={{ marginLeft: 'auto', display: isMobileOpen ? 'inline-flex' : undefined }}
-            title="Đóng menu"
+            title={t('sidebar.closeMenu', 'Đóng menu')}
           >
             <X size={18} />
           </button>
@@ -143,8 +143,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   e.preventDefault();
                   if (item.restricted) {
                     notify.warning(
-                      'Bạn đang ở vai trò Tư vấn viên (Agent). Tính năng này chỉ dành cho Chủ doanh nghiệp (Owner).',
-                      'Hạn chế Quyền hạn'
+                      t('sidebar.restrictedAgentMsg', 'Bạn đang ở vai trò Tư vấn viên (Agent). Tính năng này chỉ dành cho Chủ doanh nghiệp (Owner).'),
+                      t('sidebar.restrictedTitle', 'Hạn chế Quyền hạn')
                     );
                     return;
                   }
@@ -157,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {item.id === 'inbox' && Boolean(unreadCount > 0) && (
                     <span
                       className="sidebar-unread-dot"
-                      title={`${unreadCount} tin nhắn mới chưa đọc`}
+                      title={`${unreadCount} ${t('sidebar.unreadDotTitle', 'tin nhắn mới chưa đọc')}`}
                     />
                   )}
                 </span>

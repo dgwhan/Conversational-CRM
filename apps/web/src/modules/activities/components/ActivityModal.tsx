@@ -17,6 +17,7 @@ import {
   type MeetingType,
 } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
+import { useTranslation } from '../../../i18n/index.js';
 import {
   formatLocalDate,
   formatLocalTime,
@@ -36,14 +37,14 @@ export interface ActivityModalProps {
   onSuccess?: (activity: ActivityItem) => void;
 }
 
-const CALL_RESULTS_PRESETS = [
-  'Đã kết nối - Đồng ý học, hỏi thêm học bổng',
-  'Đã kết nối - Hẹn lên trung tâm làm bài test',
-  'Đã kết nối - Phụ huynh cân nhắc học phí',
-  'Thuê bao / Không nghe máy',
-  'Máy bận - Hẹn gọi lại sau',
-  'Sai số / Nhầm máy',
-  'Từ chối - Không có nhu cầu',
+const getCallResultsPresets = (t: (k: string, fb?: string) => string) => [
+  t('activities.callPresets.agreedEnroll', 'Đã kết nối - Đồng ý học, hỏi thêm học bổng'),
+  t('activities.callPresets.bookedEntranceTest', 'Đã kết nối - Hẹn lên trung tâm làm bài test'),
+  t('activities.callPresets.parentConsidering', 'Đã kết nối - Phụ huynh cân nhắc học phí'),
+  t('activities.callPresets.unreachable', 'Thuê bao / Không nghe máy'),
+  t('activities.callPresets.busyCallBackLater', 'Máy bận - Hẹn gọi lại sau'),
+  t('activities.callPresets.wrongNumber', 'Sai số / Nhầm máy'),
+  t('activities.callPresets.declinedNoNeed', 'Từ chối - Không có nhu cầu'),
 ];
 
 export const ActivityModal: React.FC<ActivityModalProps> = ({
@@ -58,6 +59,8 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   initialActivity,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
+  const callResultsPresets = getCallResultsPresets(t);
   const [activeTab, setActiveTab] = useState<ActivityType>(defaultType);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,7 +71,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const [customerName, setCustomerName] = useState(defaultCustomerName || '');
 
   // Call states
-  const [callResult, setCallResult] = useState(CALL_RESULTS_PRESETS[0]);
+  const [callResult, setCallResult] = useState(callResultsPresets[0]);
   const [callMinutes, setCallMinutes] = useState('3');
   const [callSeconds, setCallSeconds] = useState('30');
 
@@ -98,7 +101,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       setAssignedTo(initialActivity.assignedTo || 'Tư vấn viên');
 
       if (initialActivity.type === 'CALL') {
-        setCallResult(initialActivity.callResult || CALL_RESULTS_PRESETS[0]);
+        setCallResult(initialActivity.callResult || callResultsPresets[0]);
         const dur = initialActivity.callDuration || 0;
         setCallMinutes(String(Math.floor(dur / 60)));
         setCallSeconds(String(dur % 60));
@@ -144,7 +147,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      notify.warning('Vui lòng nhập tiêu đề hoạt động');
+      notify.warning(t('activities.titleRequiredWarn', 'Vui lòng nhập tiêu đề hoạt động'));
       return;
     }
 
@@ -188,16 +191,16 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
       let result: ActivityItem;
       if (initialActivity) {
         result = await apiClient.updateActivity(initialActivity.id, payload);
-        notify.success(`Đã cập nhật: "${result.title}"`);
+        notify.success(`${t('activities.updateSuccess', 'Đã cập nhật')}: "${result.title}"`);
       } else {
         result = await apiClient.createActivity(payload);
-        notify.success(`Đã tạo thành công: "${result.title}"`);
+        notify.success(`${t('activities.createSuccess', 'Đã tạo thành công')}: "${result.title}"`);
       }
 
       onSuccess?.(result);
       onClose();
     } catch (err) {
-      notify.error(`Lỗi khi lưu hoạt động: ${(err as Error).message}`);
+      notify.error(`${t('activities.saveError', 'Lỗi khi lưu hoạt động')}: ${(err as Error).message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,7 +210,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialActivity ? 'Chỉnh sửa Hoạt động & Nhiệm vụ' : 'Ghi nhận Hoạt động / Tạo Lịch hẹn'}
+      title={initialActivity ? t('activities.modalTitleEdit', 'Chỉnh sửa Hoạt động & Nhiệm vụ') : t('activities.modalTitleCreate', 'Ghi nhận Hoạt động / Tạo Lịch hẹn')}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
@@ -227,7 +230,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
               }}
             >
               <Phone size={14} />
-              <span>Ghi cuộc gọi</span>
+              <span>{t('activities.tabCall', 'Ghi cuộc gọi')}</span>
             </button>
 
             <button
@@ -243,7 +246,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
               }}
             >
               <Calendar size={14} />
-              <span>Đặt lịch hẹn</span>
+              <span>{t('activities.tabMeeting', 'Đặt lịch hẹn')}</span>
             </button>
 
             <button
@@ -259,7 +262,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
               }}
             >
               <CheckSquare size={14} />
-              <span>Nhiệm vụ / Nhắc việc</span>
+              <span>{t('activities.tabTask', 'Nhiệm vụ / Nhắc việc')}</span>
             </button>
           </div>
         )}
@@ -269,21 +272,21 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <div className="flex items-center gap-2 p-2 bg-blue-50/70 border border-blue-100 rounded-lg text-blue-900">
             <User size={14} className="text-blue-600 shrink-0" />
             <span className="font-semibold">{customerName}</span>
-            <span className="text-slate-500 text-[11px] ml-auto">Gắn vào hồ sơ ứng viên</span>
+            <span className="text-slate-500 text-[11px] ml-auto">{t('activities.linkedToCandidate', 'Gắn vào hồ sơ ứng viên')}</span>
           </div>
         )}
 
         {/* Tiêu đề */}
         <div>
           <label className="block font-medium text-slate-700 mb-1">
-            Tiêu đề <span className="text-rose-500">*</span>
+            {t('activities.titleLabel', 'Tiêu đề')} <span className="text-rose-500">*</span>
           </label>
           <input
             type="text"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ví dụ: Gọi lại tư vấn học bổng, Hẹn làm test đầu vào..."
+            placeholder={t('activities.titlePlaceholder', 'Ví dụ: Gọi lại tư vấn học bổng, Hẹn làm test đầu vào...')}
             required
           />
         </div>
@@ -292,13 +295,13 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         {activeTab === 'CALL' && (
           <div className="space-y-3 bg-amber-50/40 p-3 rounded-lg border border-amber-100">
             <div>
-              <label className="block font-medium text-slate-700 mb-1">Kết quả cuộc gọi</label>
+              <label className="block font-medium text-slate-700 mb-1">{t('activities.callResultLabel', 'Kết quả cuộc gọi')}</label>
               <select
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 value={callResult}
                 onChange={(e) => setCallResult(e.target.value)}
               >
-                {CALL_RESULTS_PRESETS.map((res, i) => (
+                {callResultsPresets.map((res, i) => (
                   <option key={i} value={res}>
                     {res}
                   </option>
@@ -308,7 +311,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Thời lượng cuộc gọi</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.callDurationLabel', 'Thời lượng cuộc gọi')}</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -318,7 +321,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                     value={callMinutes}
                     onChange={(e) => setCallMinutes(e.target.value)}
                   />
-                  <span>phút</span>
+                  <span>{t('activities.minutes', 'phút')}</span>
                   <input
                     type="number"
                     min="0"
@@ -327,12 +330,12 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                     value={callSeconds}
                     onChange={(e) => setCallSeconds(e.target.value)}
                   />
-                  <span>giây</span>
+                  <span>{t('activities.seconds', 'giây')}</span>
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Thời điểm gọi</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.callTimeLabel', 'Thời điểm gọi')}</label>
                 <div className="flex gap-2">
                   <input
                     type="date"
@@ -356,7 +359,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         {activeTab === 'MEETING' && (
           <div className="space-y-3 bg-blue-50/40 p-3 rounded-lg border border-blue-100">
             <div>
-              <label className="block font-medium text-slate-700 mb-1">Hình thức cuộc hẹn</label>
+              <label className="block font-medium text-slate-700 mb-1">{t('activities.meetingTypeLabel', 'Hình thức cuộc hẹn')}</label>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
@@ -368,7 +371,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                   onClick={() => setMeetingType('OFFLINE')}
                 >
                   <MapPin size={13} />
-                  <span>Trực tiếp</span>
+                  <span>{t('activities.meetingOffline', 'Trực tiếp')}</span>
                 </button>
                 <button
                   type="button"
@@ -383,7 +386,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                   }}
                 >
                   <Video size={13} />
-                  <span>Google Meet</span>
+                  <span>{t('activities.meetingGoogleMeet', 'Google Meet')}</span>
                 </button>
                 <button
                   type="button"
@@ -398,25 +401,25 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                   }}
                 >
                   <Video size={13} />
-                  <span>Zoom Meeting</span>
+                  <span>{t('activities.meetingZoom', 'Zoom Meeting')}</span>
                 </button>
               </div>
             </div>
 
             {meetingType === 'OFFLINE' ? (
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Địa điểm hẹn</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.meetingLocationLabel', 'Địa điểm hẹn')}</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
                   value={meetingLocation}
                   onChange={(e) => setMeetingLocation(e.target.value)}
-                  placeholder="Ví dụ: Phòng Lab 03, Tầng 2 Trung tâm CUSC"
+                  placeholder={t('activities.meetingLocationPlaceholder', 'Ví dụ: Phòng Lab 03, Tầng 2 Trung tâm CUSC')}
                 />
               </div>
             ) : (
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Link phòng họp trực tuyến</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.meetingLinkLabel', 'Link phòng họp trực tuyến')}</label>
                 <input
                   type="url"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
@@ -429,7 +432,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Ngày hẹn</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.meetingDateLabel', 'Ngày hẹn')}</label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
@@ -439,7 +442,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Giờ hẹn</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.meetingTimeLabel', 'Giờ hẹn')}</label>
                 <input
                   type="time"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
@@ -457,37 +460,37 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
           <div className="space-y-3 bg-emerald-50/40 p-3 rounded-lg border border-emerald-100">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Phân công thực hiện</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.assignedToLabel', 'Phân công thực hiện')}</label>
                 <select
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
                 >
-                  <option value="Tư vấn viên">Tư vấn viên phụ trách</option>
-                  <option value="Phòng Đào tạo">Phòng Đào tạo (Xếp máy/Coi thi)</option>
-                  <option value="Ban Giám đốc Tuyển sinh">Ban Giám đốc Tuyển sinh</option>
-                  <option value="Bộ phận Kế toán">Bộ phận Kế toán (Thu học phí)</option>
+                  <option value="Tư vấn viên">{t('activities.counselorRole', 'Tư vấn viên phụ trách')}</option>
+                  <option value="Phòng Đào tạo">{t('activities.academicRole', 'Phòng Đào tạo (Xếp máy/Coi thi)')}</option>
+                  <option value="Ban Giám đốc Tuyển sinh">{t('activities.directorRole', 'Ban Giám đốc Tuyển sinh')}</option>
+                  <option value="Bộ phận Kế toán">{t('activities.accountingRole', 'Bộ phận Kế toán (Thu học phí)')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Mức độ ưu tiên</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.priorityLabel', 'Mức độ ưu tiên')}</label>
                 <select
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as ActivityPriority)}
                 >
-                  <option value="LOW">Thấp (Có thể hoãn)</option>
-                  <option value="MEDIUM">Bình thường</option>
-                  <option value="HIGH">Quan trọng / Ưu tiên</option>
-                  <option value="URGENT">Khẩn cấp (Hôm nay)</option>
+                  <option value="LOW">{t('deals.priorityLow', 'Thấp (Có thể hoãn)')}</option>
+                  <option value="MEDIUM">{t('deals.priorityMedium', 'Bình thường')}</option>
+                  <option value="HIGH">{t('deals.priorityHigh', 'Quan trọng / Ưu tiên')}</option>
+                  <option value="URGENT">{t('deals.priorityUrgent', 'Khẩn cấp (Hôm nay)')}</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Hạn chót hoàn thành</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.dueDateLabel', 'Hạn chót hoàn thành')}</label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
@@ -497,7 +500,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 />
               </div>
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Thời gian</label>
+                <label className="block font-medium text-slate-700 mb-1">{t('activities.dueTimeLabel', 'Thời gian')}</label>
                 <input
                   type="time"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
@@ -517,7 +520,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="reminderCheckbox" className="text-slate-700 cursor-pointer select-none">
-                Kích hoạt chuông thông báo & nhắc nhở trước 15 phút
+                {t('activities.reminderLabel', 'Kích hoạt chuông thông báo & nhắc nhở trước 15 phút')}
               </label>
             </div>
           </div>
@@ -526,14 +529,14 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
         {/* Nội dung ghi chú / chi tiết */}
         <div>
           <label className="block font-medium text-slate-700 mb-1">
-            Nội dung chi tiết / Kết quả tư vấn
+            {t('activities.notesLabel', 'Nội dung chi tiết / Kết quả tư vấn')}
           </label>
           <textarea
             rows={3}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ghi chú thêm thông tin phụ huynh, câu hỏi về học bổng hoặc yêu cầu chuẩn bị..."
+            placeholder={t('activities.notesPlaceholder', 'Ghi chú thêm thông tin phụ huynh, câu hỏi về học bổng hoặc yêu cầu chuẩn bị...')}
           />
         </div>
 
@@ -545,7 +548,7 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             onClick={onClose}
             disabled={isSubmitting}
           >
-            Hủy
+            {t('common.cancel', 'Hủy')}
           </button>
           <button
             type="submit"
@@ -553,11 +556,11 @@ export const ActivityModal: React.FC<ActivityModalProps> = ({
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              <span>Đang lưu...</span>
+              <span>{t('activities.savingBtn', 'Đang lưu...')}</span>
             ) : (
               <>
                 <Send size={13} />
-                <span>{initialActivity ? 'Lưu thay đổi' : 'Xác nhận tạo'}</span>
+                <span>{initialActivity ? t('activities.saveChangesBtn', 'Lưu thay đổi') : t('activities.confirmCreateBtn', 'Xác nhận tạo')}</span>
               </>
             )}
           </button>

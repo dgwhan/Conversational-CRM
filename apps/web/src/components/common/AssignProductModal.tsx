@@ -3,6 +3,7 @@ import { matchesUnaccent } from '../../lib/unaccent.js';
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Check, Plus, Package, DollarSign } from 'lucide-react';
 import type { ProductItemConfig } from '../../modules/workspace/workspaceConfig.types.js';
+import { useTranslation } from '../../i18n/index.js';
 
 export interface AssignProductModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
   initialValue = 0,
   onSave,
 }) => {
+  const { t, locale } = useTranslation();
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [estimatedValue, setEstimatedValue] = useState<number>(initialValue);
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,7 +73,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
 
   // Format tiền tệ VNĐ
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
   // Tính tổng giá trị mặc định từ các sản phẩm được chọn trong catalog
@@ -243,7 +245,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                <option value="ALL">Tất cả nhóm</option>
+                <option value="ALL">{t('assignProduct.allCategories', 'Tất cả nhóm')}</option>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -266,9 +268,9 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                 justifyContent: 'space-between',
               }}
             >
-              <span>DANH MỤC CẤU HÌNH DOANH NGHIỆP ({filteredCatalog.length})</span>
+              <span>{t('assignProduct.catalogTitle', 'DANH MỤC CẤU HÌNH DOANH NGHIỆP')} ({filteredCatalog.length})</span>
               <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                Đã chọn: <strong style={{ color: '#0284c7' }}>{selected.length}</strong>
+                {t('assignProduct.selectedCount', 'Đã chọn:')} <strong style={{ color: '#0284c7' }}>{selected.length}</strong>
               </span>
             </div>
 
@@ -422,7 +424,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
               }}
             >
               <Plus size={14} />
-              <span>Thêm nhanh</span>
+              <span>{t('assignProduct.addCustomBtn', 'Thêm nhanh')}</span>
             </button>
           </form>
 
@@ -588,7 +590,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
             }}
           >
             <Check size={16} />
-            <span>Xác nhận Gán</span>
+            <span>{t('assignProduct.saveBtn', 'Xác nhận Gán')}</span>
           </button>
         </div>
       </div>

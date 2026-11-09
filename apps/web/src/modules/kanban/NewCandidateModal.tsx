@@ -6,6 +6,7 @@ import { notify } from '../../components/feedback/toastEmitter.js';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
 import { useUserRole } from '../auth/UserRoleContext.js';
 import { useRealtime } from '../realtime/RealtimeContext.js';
+import { useTranslation } from '../../i18n/index.js';
 
 interface NewCandidateModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   const { config } = useWorkspaceConfig();
   const { staffName } = useUserRole();
   const { staffPresences } = useRealtime();
+  const { t, locale } = useTranslation();
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -57,17 +60,18 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      notify.warning(`Vui lòng nhập họ và tên ${config.terminology.entityName.toLowerCase()}.`);
+      notify.warning(t('kanban.newCandidateModal.nameRequired', `Vui lòng nhập họ và tên.`));
       return;
     }
 
-    const staffList = Object.values(staffPresences);
-    const selectedStaffObj = staffList.find((s) => s.staffId === assignedStaff);
+    const selectedStaffObj = Object.values(staffPresences).find(
+      (s) => s.staffId === assignedStaff
+    );
     const assignedName = selectedStaffObj
       ? selectedStaffObj.name
       : staffName
-      ? `${staffName} (Bạn)`
-      : 'Bạn';
+      ? staffName
+      : (locale === 'en' ? 'You' : 'Bạn');
     const assignedAvatar = selectedStaffObj
       ? selectedStaffObj.avatar
       : staffName
@@ -77,18 +81,18 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
     const newCandidate: KanbanCandidate = {
       id: `cand-${Date.now()}`,
       fullName: fullName.trim(),
-      phone: phone.trim() || 'Chưa có SĐT',
-      email: email.trim() || 'Chưa có Email',
+      phone: phone.trim() || t('kanban.noPhone', 'Chưa có SĐT'),
+      email: email.trim() || t('kanban.noEmail', 'Chưa có Email'),
       avatarUrl: `https://images.unsplash.com/photo-${1535713875002 + Math.floor(Math.random() * 1000)}?w=120&auto=format&fit=crop&q=80`,
       channel,
       channelAccountName:
         channel === 'FACEBOOK'
-          ? 'Fanpage Tiếp Nhận'
+          ? 'Fanpage'
           : channel === 'ZALO'
-          ? 'Zalo OA Doanh Nghiệp'
+          ? 'Zalo OA'
           : channel === 'ZALO_PERSONAL'
-          ? 'Zalo Cá Nhân Tư Vấn'
-          : 'Tiếp nhận trực tiếp',
+          ? 'Zalo Personal'
+          : 'Direct Hotline',
       stage,
       estimatedTuition: Number(estimatedTuition) || 20000000,
       priority: 'HIGH',
@@ -97,13 +101,13 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
       assignedStaffName: assignedName,
       assignedStaffAvatar: assignedAvatar,
       assignedStaffPresence: 'ONLINE',
-      lastActivityAt: 'Vừa xong',
+      lastActivityAt: t('common.justNow', 'Vừa xong'),
       notesCount: notes.trim() ? 1 : 0,
-      tags: ['Thêm thủ công', 'Ưu tiên chăm sóc'],
+      tags: [locale === 'en' ? 'Manual Lead' : 'Thêm thủ công', locale === 'en' ? 'Priority' : 'Ưu tiên chăm sóc'],
     };
 
     onAddCandidate(newCandidate);
-    notify.success(`Đã thêm "${newCandidate.fullName}" vào ${config.terminology.pipelineName.toLowerCase()}!`);
+    notify.success(t('kanban.newCandidateModal.addSuccess', `Đã thêm thành công vào phễu!`));
     onClose();
   };
 
@@ -114,7 +118,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
           <div className="modal-title-row">
             <UserPlus size={18} className="modal-title-icon" />
             <h3 className="modal-title">
-              Thêm {config.terminology.entityName} vào {config.terminology.pipelineName}
+              {t('kanban.addEntityPrefix', 'Thêm')} {config.terminology.entityName}
             </h3>
           </div>
           <button type="button" className="modal-close-btn" onClick={onClose}>
@@ -125,11 +129,11 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
         <form onSubmit={handleSubmit} className="crm-modal-body">
           <div className="form-group-row">
             <div className="form-group">
-              <label className="form-label">Họ và tên {config.terminology.entityName} *</label>
+              <label className="form-label">{t('kanban.newCandidateModal.nameLabel', 'Họ và tên')} *</label>
               <input
                 type="text"
                 className="crm-form-input"
-                placeholder={`VD: Nguyễn Văn A (${config.terminology.entityName})`}
+                placeholder={t('kanban.newCandidateModal.namePlaceholder', 'VD: Nguyễn Văn A')}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 autoFocus
@@ -137,7 +141,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Kênh tiếp nhận</label>
+              <label className="form-label">{t('kanban.newCandidateModal.channelLabel', 'Kênh tiếp nhận')}</label>
               <select
                 className="crm-form-select"
                 value={channel}
@@ -145,30 +149,30 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
               >
                 <option value="FACEBOOK">Facebook Messenger / Fanpage</option>
                 <option value="ZALO">Zalo Official Account (OA)</option>
-                <option value="ZALO_PERSONAL">Zalo Cá nhân của tư vấn viên</option>
+                <option value="ZALO_PERSONAL">Zalo Personal</option>
                 <option value="TIKTOK">TikTok Channel</option>
-                <option value="MANUAL">Trực tiếp / Hotline</option>
+                <option value="MANUAL">Direct / Hotline</option>
               </select>
             </div>
           </div>
 
           <div className="form-group-row">
             <div className="form-group">
-              <label className="form-label">Số điện thoại liên hệ</label>
+              <label className="form-label">{t('kanban.newCandidateModal.phoneLabel', 'Số điện thoại liên hệ')}</label>
               <input
                 type="tel"
                 className="crm-form-input"
-                placeholder="VD: 0912.345.678"
+                placeholder={t('kanban.newCandidateModal.phonePlaceholder', 'VD: 0912.345.678')}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Email liên hệ</label>
+              <label className="form-label">{t('kanban.newCandidateModal.emailLabel', 'Email liên hệ')}</label>
               <input
                 type="email"
                 className="crm-form-input"
-                placeholder="VD: customer@gmail.com"
+                placeholder={t('kanban.newCandidateModal.emailPlaceholder', 'VD: customer@gmail.com')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -177,7 +181,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
 
           <div className="form-group-row">
             <div className="form-group">
-              <label className="form-label">Giai đoạn ban đầu</label>
+              <label className="form-label">{t('kanban.newCandidateModal.initialStageLabel', 'Giai đoạn ban đầu')}</label>
               <select
                 className="crm-form-select"
                 value={stage}
@@ -191,7 +195,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Nhân viên phụ trách</label>
+              <label className="form-label">{t('kanban.newCandidateModal.assignedStaffLabel', 'Nhân viên phụ trách')}</label>
               <select
                 className="crm-form-select"
                 value={assignedStaff}
@@ -205,7 +209,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
                   ))
                 ) : (
                   <option value="staff-me">
-                    {staffName ? `${staffName} (Bạn) - Online` : 'Bạn - Online'}
+                    {staffName ? `${staffName} (${locale === 'en' ? 'You' : 'Bạn'}) - Online` : `${locale === 'en' ? 'You' : 'Bạn'} - Online`}
                   </option>
                 )}
               </select>
@@ -214,7 +218,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
 
           <div className="form-group-row">
             <div className="form-group">
-              <label className="form-label">{config.terminology.productLabel} quan tâm</label>
+              <label className="form-label">{config.terminology.productLabel}</label>
               <select
                 className="crm-form-select"
                 value={course}
@@ -222,7 +226,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
               >
                 {config.productCatalog.map((prod) => (
                   <option key={prod.id} value={prod.name}>
-                    {prod.name} ({new Intl.NumberFormat('vi-VN').format(prod.defaultPrice)} đ)
+                    {prod.name} ({new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN').format(prod.defaultPrice)} đ)
                   </option>
                 ))}
               </select>
@@ -240,11 +244,11 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Ghi chú ban đầu (Nhu cầu trao đổi)</label>
+            <label className="form-label">{t('kanban.newCandidateModal.notesLabel', 'Ghi chú ban đầu')}</label>
             <textarea
               className="crm-form-textarea"
               rows={2}
-              placeholder="VD: Cần tư vấn chi tiết chính sách, đã trao đổi qua tin nhắn..."
+              placeholder={t('kanban.newCandidateModal.notesPlaceholder', 'Nhu cầu hoặc lưu ý đặc biệt...')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -253,13 +257,13 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
           {config.criteria.length > 0 && (
             <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-                Tiêu chí đánh giá & phân loại ({config.criteria.length})
+                {locale === 'en' ? 'Evaluation Criteria' : 'Tiêu chí đánh giá & phân loại'} ({config.criteria.length})
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
                 {config.criteria.map((crit) => (
                   <div key={crit.id} style={{ fontSize: '12px', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span style={{ fontWeight: 600 }}>• {crit.name}:</span>
-                    <span style={{ color: '#64748b' }}>{crit.type} {crit.isRequired ? '(Bắt buộc)' : ''}</span>
+                    <span style={{ color: '#64748b' }}>{crit.type} {crit.isRequired ? `(${locale === 'en' ? 'Required' : 'Bắt buộc'})` : ''}</span>
                   </div>
                 ))}
               </div>
@@ -268,11 +272,11 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
 
           <div className="crm-modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Hủy bỏ
+              {t('common.cancel', 'Hủy bỏ')}
             </button>
             <button type="submit" className="btn btn-primary">
               <UserPlus size={15} />
-              <span>Thêm vào phễu</span>
+              <span>{t('kanban.newCandidateModal.saveBtn', 'Thêm vào phễu')}</span>
             </button>
           </div>
         </form>

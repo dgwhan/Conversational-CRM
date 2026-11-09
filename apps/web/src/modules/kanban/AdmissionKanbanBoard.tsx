@@ -6,6 +6,7 @@ import { NewCandidateModal } from './NewCandidateModal.js';
 import { useRealtime } from '../realtime/RealtimeContext.js';
 import { useUserRole } from '../auth/UserRoleContext.js';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
+import { useTranslation } from '../../i18n/index.js';
 import { SearchInput } from '../../components/ui/SearchInput.js';
 import { matchesSmartSearch } from '../../lib/unaccent.js';
 import { notify } from '../../components/feedback/toastEmitter.js';
@@ -44,6 +45,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
   const { staffPresences, onPipelineChange, onNewMessage } = useRealtime();
   const { isOwner, isAgent, staffId } = useUserRole();
   const { config, activeWorkspaceId, activeWorkspace } = useWorkspaceConfig();
+  const { t, locale } = useTranslation();
 
   const [candidates, setCandidates] = useState<KanbanCandidate[]>(INITIAL_KANBAN_CANDIDATES);
 
@@ -389,7 +391,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
 
   // Format tiền tệ VNĐ
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', { style: 'currency', currency: 'VND' }).format(val);
   };
 
   // Copy số điện thoại
@@ -608,7 +610,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
 
         <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0 self-start sm:self-auto">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Dữ liệu thời gian thực</span>
+          <span>{locale === 'en' ? 'Realtime Live' : 'Dữ liệu thời gian thực'}</span>
         </div>
       </div>
 
@@ -617,8 +619,8 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
         {/* Card 1: Tổng khách hàng */}
         <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
-            <span className="text-xs font-medium text-slate-500 truncate" title={`Tổng ${config.terminology.entityName}`}>
-              Tổng {config.terminology.entityName.split('/')[0].trim()}
+            <span className="text-xs font-medium text-slate-500 truncate" title={`${t('kanban.statTotalPrefix', 'Tổng')} ${config.terminology.entityName}`}>
+              {t('kanban.statTotalPrefix', 'Tổng')} {config.terminology.entityName.split('/')[0].trim()}
             </span>
             <div className="w-7 h-7 rounded-lg border border-slate-200/80 bg-slate-50/80 flex items-center justify-center shrink-0">
               <Users size={16} className="text-blue-600" />
@@ -676,8 +678,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
         <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
             <span className="text-xs font-medium text-slate-500 truncate">
-              Chốt thành công
-            </span>
+              {t('kanban.statWonPrefix', 'Chốt thành công')}</span>
             <div className="w-7 h-7 rounded-lg border border-slate-200/80 bg-slate-50/80 flex items-center justify-center shrink-0">
               <Award size={16} className="text-emerald-600" />
             </div>
@@ -687,7 +688,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               {wonCount}
             </span>
             <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
-              Tỷ lệ chốt: {conversionRate}%
+              {t('kanban.statConversionRate', 'Tỷ lệ chốt')}: {conversionRate}%
             </span>
           </div>
         </div>
@@ -701,7 +702,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
             <SearchInput
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Tìm theo tên (không dấu), SĐT, email..."
+              placeholder={t('kanban.searchPlaceholder', 'Tìm theo tên (không dấu), SĐT, email...')}
               size="sm"
               className="w-full min-w-0"
             />
@@ -715,7 +716,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               value={channelFilter}
               onChange={(e) => setChannelFilter(e.target.value as 'ALL' | ChannelType)}
             >
-              <option value="ALL">Tất cả nguồn kênh</option>
+              <option value="ALL">{t('kanban.allChannels', 'Tất cả nguồn kênh')}</option>
               <option value="FACEBOOK">Facebook Messenger</option>
               <option value="ZALO">Zalo OA</option>
               <option value="ZALO_PERSONAL">Zalo Cá nhân (Tư vấn)</option>
@@ -732,7 +733,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               value={staffFilter}
               onChange={(e) => setStaffFilter(e.target.value)}
             >
-              <option value="ALL">Tất cả nhân viên tư vấn</option>
+              <option value="ALL">{t('kanban.allStaff', 'Tất cả nhân viên tư vấn')}</option>
               {Object.values(staffPresences).map((staff) => (
                 <option key={staff.staffId} value={staff.staffId}>
                   {staff.name}
@@ -749,7 +750,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
             >
-              <option value="ALL">Tất cả {config.terminology.productLabel.toLowerCase()}</option>
+              <option value="ALL">{t('kanban.allProductsPrefix', 'Tất cả')} {config.terminology.productLabel.toLowerCase()}</option>
               {config.productCatalog.map((prod) => (
                 <option key={prod.id} value={prod.name}>
                   {prod.name}
@@ -769,7 +770,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               title="Tùy biến các giai đoạn phễu và danh mục sản phẩm cho Workspace"
             >
               <Sliders size={13} />
-              <span>Cấu hình Phễu</span>
+              <span>{t('kanban.configPipelineBtn', 'Cấu hình Phễu')}</span>
             </button>
           )}
 
@@ -779,7 +780,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
             onClick={() => setIsModalOpen(true)}
           >
             <UserPlus size={14} />
-            <span>Thêm {config.terminology.entityName.split('/')[0].trim()}</span>
+            <span>{t('kanban.addEntityPrefix', 'Thêm')} {config.terminology.entityName.split('/')[0].trim()}</span>
           </button>
         </div>
       </div>
@@ -827,7 +828,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               <div className="kanban-cards-scroll">
                 {colCandidates.length === 0 ? (
                   <div className="kanban-empty-dropzone">
-                    <span>Kéo thẻ vào đây</span>
+                    <span>{t('kanban.dragDropTarget', 'Kéo thẻ vào đây')}</span>
                   </div>
                 ) : (
                   colCandidates.map((candidate) => {
@@ -883,7 +884,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                                 type="button"
                                 className="card-copy-btn"
                                 onClick={(e) => handleCopyPhone(e, candidate.phone, candidate.id)}
-                                title="Sao chép SĐT"
+                                title={t('kanban.copyPhoneTitle', 'Sao chép SĐT')}
                               >
                                 {copiedId === candidate.id ? (
                                   <Check size={11} color="#16a34a" />
@@ -991,7 +992,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                               <span className={`staff-dot ${staffPresence.toLowerCase()}`} />
                             </div>
                             <span className="staff-name">
-                              {candidate.assignedStaffName || 'Chưa gán'}
+                              {candidate.assignedStaffName || t('common.unassigned', 'Chưa gán')}
                             </span>
                           </div>
 
@@ -1001,7 +1002,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                                 type="button"
                                 className="card-chat-btn"
                                 onClick={() => onOpenChat(candidate.conversationId)}
-                                title="Mở trực tiếp cuộc trò chuyện"
+                                title={t('kanban.openChatTitle', 'Mở trực tiếp cuộc trò chuyện')}
                               >
                                 <MessageSquare size={13} />
                                 <span>Chat</span>

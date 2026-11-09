@@ -7,6 +7,7 @@ import { PageHeading } from '../../../../components/ui/PageHeading.js';
 import { PasswordField } from '../../../../components/ui/PasswordField.js';
 import { resetPassword } from '../../api/password-recovery.api.js';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator.js';
+import { useTranslation } from '../../../../i18n/index.js';
 import {
   calculatePasswordStrength,
   getResetErrorMessage,
@@ -26,6 +27,7 @@ export function PasswordRecoveryResetStep({
   onSuccess,
   onBackToRequest,
 }: PasswordRecoveryResetStepProps) {
+  const { t } = useTranslation();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [hasBlurredNewPassword, setHasBlurredNewPassword] = useState(false);
@@ -66,8 +68,8 @@ export function PasswordRecoveryResetStep({
   return (
     <section className="animate-in fade-in duration-300">
       <PageHeading
-        title="Tạo mật khẩu mới"
-        description="Tạo mật khẩu mới an toàn để tiếp tục sử dụng hệ thống."
+        title={t('auth.recovery.resetTitle', 'Tạo mật khẩu mới')}
+        description={t('auth.recovery.resetDesc', 'Tạo mật khẩu mới an toàn để tiếp tục sử dụng hệ thống.')}
       />
 
       <form className="mt-6 flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
@@ -77,11 +79,11 @@ export function PasswordRecoveryResetStep({
             autoComplete="new-password"
             disabled={isSubmitting}
             errorMessage={displayedPasswordError}
-            label="Mật khẩu mới"
+            label={t('auth.recovery.newPasswordLabel', 'Mật khẩu mới')}
             headerRight={
               newPassword.length > 0 ? (
                 <span className="font-sans text-caption font-medium text-text-secondary">
-                  Độ mạnh mật khẩu:{' '}
+                  {t('auth.recovery.passwordStrength', 'Độ mạnh mật khẩu:')}{' '}
                   <span className={`font-semibold ${strength.colorClass}`}>
                     {strength.label}
                   </span>
@@ -94,7 +96,7 @@ export function PasswordRecoveryResetStep({
               setNewPassword(value);
               setError('');
             }}
-            placeholder="Nhập mật khẩu mới"
+            placeholder={t('auth.recovery.newPasswordPlaceholder', 'Nhập mật khẩu mới')}
             value={newPassword}
           />
 
@@ -110,15 +112,15 @@ export function PasswordRecoveryResetStep({
             autoComplete="new-password"
             disabled={isSubmitting}
             errorMessage={displayedConfirmError}
-            successMessage={isMatching ? 'Mật khẩu trùng khớp' : undefined}
-            label="Xác nhận mật khẩu mới"
+            successMessage={isMatching ? t('auth.recovery.passwordMatched', 'Mật khẩu trùng khớp') : undefined}
+            label={t('auth.recovery.confirmNewPasswordLabel', 'Xác nhận mật khẩu mới')}
             name="confirmPassword"
             onBlur={() => setHasBlurredConfirmPassword(true)}
             onChange={(value) => {
               setConfirmPassword(value);
               setError('');
             }}
-            placeholder="Nhập lại mật khẩu mới"
+            placeholder={t('auth.recovery.confirmNewPasswordPlaceholder', 'Nhập lại mật khẩu mới')}
             value={confirmPassword}
           />
         </div>
@@ -137,7 +139,7 @@ export function PasswordRecoveryResetStep({
                   onClick={onBackToRequest}
                   type="button"
                 >
-                  Gửi lại mã xác minh mới
+                  {t('auth.recovery.resendNewCode', 'Gửi lại mã xác minh mới')}
                 </button>
               )}
             </div>
@@ -151,7 +153,7 @@ export function PasswordRecoveryResetStep({
             loading={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? 'Đang cập nhật…' : 'Đặt lại mật khẩu'}
+            {isSubmitting ? t('auth.recovery.updating', 'Đang cập nhật…') : t('auth.recovery.resetBtn', 'Đặt lại mật khẩu')}
           </Button>
         </div>
 
@@ -162,7 +164,7 @@ export function PasswordRecoveryResetStep({
             onClick={onBackToRequest}
             type="button"
           >
-            Quay lại bước trước
+            {t('auth.recovery.backToPrevious', 'Quay lại bước trước')}
           </button>
         </div>
       </form>

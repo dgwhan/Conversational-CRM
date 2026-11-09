@@ -5,6 +5,7 @@ import { PageHeading } from '../../../../components/ui/PageHeading.js';
 import { TextField } from '../../../../components/ui/TextField.js';
 import { requestPasswordRecoveryOtp } from '../../api/password-recovery.api.js';
 import { getRequestErrorMessage, validateEmail } from './recovery.constants.js';
+import { useTranslation } from '../../../../i18n/index.js';
 
 type PasswordRecoveryRequestStepProps = {
   initialEmail?: string;
@@ -17,6 +18,7 @@ export function PasswordRecoveryRequestStep({
   onSuccess,
   onBackToLogin,
 }: PasswordRecoveryRequestStepProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState(initialEmail);
   const [emailError, setEmailError] = useState('');
   const [error, setError] = useState('');
@@ -45,8 +47,8 @@ export function PasswordRecoveryRequestStep({
   return (
     <section className="animate-in fade-in duration-300">
       <PageHeading
-        title="Quên mật khẩu?"
-        description="Nhập địa chỉ email của bạn. Hệ thống sẽ gửi mã xác minh."
+        title={t('auth.recovery.forgotTitle', 'Quên mật khẩu?')}
+        description={t('auth.recovery.forgotDesc', 'Nhập địa chỉ email của bạn. Hệ thống sẽ gửi mã xác minh.')}
       />
       <form
         className="mt-6 flex flex-col gap-6"
@@ -66,7 +68,7 @@ export function PasswordRecoveryRequestStep({
             if (emailError) setEmailError(validateEmail(event.target.value));
             setError('');
           }}
-          placeholder="Nhập địa chỉ email của bạn"
+          placeholder={t('auth.recovery.emailPlaceholder', 'Nhập địa chỉ email của bạn')}
           required
           type="email"
           value={email}
@@ -79,7 +81,7 @@ export function PasswordRecoveryRequestStep({
         )}
 
         <Button disabled={isSubmitting} fullWidth type="submit">
-          {isSubmitting ? 'Đang gửi mã…' : 'Gửi mã xác minh'}
+          {isSubmitting ? t('auth.recovery.sendingCode', 'Đang gửi mã…') : t('auth.recovery.sendCodeBtn', 'Gửi mã xác minh')}
         </Button>
 
         <button
@@ -87,7 +89,7 @@ export function PasswordRecoveryRequestStep({
           onClick={onBackToLogin}
           type="button"
         >
-          Quay lại đăng nhập
+          {t('auth.recovery.backToLogin', 'Quay lại đăng nhập')}
         </button>
       </form>
     </section>

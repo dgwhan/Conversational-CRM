@@ -17,6 +17,7 @@ import { notify } from '../../../components/feedback/toastEmitter.js';
 import type { DealItem, CreateDealPayload, UpdateDealPayload } from '../../../lib/api-client/deals.js';
 import type { PipelineStageConfig, ProductItemConfig } from '../../workspace/workspaceConfig.types.js';
 import type { AssignedStaff } from '../../inbox/types.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 export interface DealModalProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export const DealModal: React.FC<DealModalProps> = ({
   staffList = [],
   onSave,
 }) => {
+  const { t } = useTranslation();
   const isEditing = Boolean(dealToEdit);
 
   const [title, setTitle] = useState('');
@@ -60,39 +62,39 @@ export const DealModal: React.FC<DealModalProps> = ({
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mặc định stage đầu tiên
-  const defaultStage = useMemo(() => {
-    return pipelineStages[0]?.id || 'STAGE_NEW';
-  }, [pipelineStages]);
-
+  // Điền dữ liệu khi mở form (Create mới hoặc Chỉnh sửa)
   useEffect(() => {
     if (isOpen) {
       if (dealToEdit) {
         setTitle(dealToEdit.title || '');
         setIntake(dealToEdit.intake || '');
         setSelectedCourses(dealToEdit.courses || []);
-        setStage(dealToEdit.stage || defaultStage);
+        setStage(dealToEdit.stage || pipelineStages[0]?.id || '');
         setStatus(dealToEdit.status || 'OPEN');
         setPriority(dealToEdit.priority || 'MEDIUM');
         setExpectedRevenue(dealToEdit.expectedRevenue || 0);
-        setActualRevenue(dealToEdit.actualRevenue ?? undefined);
+        setActualRevenue(dealToEdit.actualRevenue);
         setAssignedStaffName(dealToEdit.assignedStaffName || '');
         setExpectedCloseDate(
-          dealToEdit.expectedCloseDate ? dealToEdit.expectedCloseDate.substring(0, 10) : ''
+          dealToEdit.expectedCloseDate
+            ? new Date(dealToEdit.expectedCloseDate).toISOString().split('T')[0]
+            : ''
         );
         setLostReason(dealToEdit.lostReason || '');
         setNotes(dealToEdit.notes || '');
       } else {
-        const currentYear = new Date().getFullYear();
-        setTitle(`Đăng ký tuyển sinh đợt ${currentYear}`);
-        setIntake(`K${currentYear}`);
-        setSelectedCourses([]);
-        setStage(defaultStage);
+        // Mặc định tạo mới
+        const defaultCourse = catalog[0]?.name;
+        const defaultPrice = catalog[0]?.defaultPrice || 0;
+        setTitle(defaultCourse ? `${defaultCourse} - ${customerName}` : `Cơ hội tuyển sinh - ${customerName}`);
+        setIntake('');
+        setSelectedCourses(defaultCourse ? [defaultCourse] : []);
+        setStage(pipelineStages[0]?.id || '');
         setStatus('OPEN');
         setPriority('MEDIUM');
-        setExpectedRevenue(0);
+        setExpectedRevenue(defaultPrice);
         setActualRevenue(undefined);
-        setAssignedStaffName('');
+        setAssignedStaffName(staffList[0]?.name || '');
         setExpectedCloseDate('');
         setLostReason('');
         setNotes('');
@@ -100,26 +102,27 @@ export const DealModal: React.FC<DealModalProps> = ({
       setCustomCourseInput('');
       setIsSubmitting(false);
     }
-  }, [isOpen, dealToEdit, defaultStage]);
+  }, [isOpen, dealToEdit, customerName, pipelineStages, catalog, staffList]);
 
-  // Tự động tính học phí khi chọn khóa học từ catalog
+  // Tự động tính tổng học phí dự kiến khi chọn/bỏ chọn khóa học từ Catalog
   const handleToggleCourse = (courseName: string) => {
-    let next: string[];
+    let newSelected: string[];
     if (selectedCourses.includes(courseName)) {
-      next = selectedCourses.filter((c) => c !== courseName);
+      newSelected = selectedCourses.filter((c) => c !== courseName);
     } else {
-      next = [...selectedCourses, courseName];
+      newSelected = [...selectedCourses, courseName];
     }
-    setSelectedCourses(next);
+    setSelectedCourses(newSelected);
 
-    // Tính lại học phí nếu chưa nhập tay khác biệt
-    const sum = next.reduce((acc, cName) => {
-      const match = catalog.find((item) => item.name === cName || item.id === cName);
-      return acc + (match?.defaultPrice || 0);
-    }, 0);
-    if (sum > 0) {
-      setExpectedRevenue(sum);
-    }
+    // Tính lại expectedRevenue
+    let sum = 0;
+    newSelected.forEach((cName) => {
+      const found = catalog.find((cat) => cat.name === cName);
+      if (found && found.defaultPrice) {
+        sum += found.defaultPrice;
+      }
+    });
+    setExpectedRevenue(sum);
   };
 
   const handleAddCustomCourse = () => {
@@ -134,38 +137,32 @@ export const DealModal: React.FC<DealModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      notify.error('Vui lòng nhập tên đợt tuyển sinh / cơ hội!');
+      notify.warning(t('deals.titlePlaceholder', 'Vui lòng nhập tên cơ hội tuyển sinh'));
       return;
     }
 
-    setIsSubmitting(true);
     try {
+      setIsSubmitting(true);
       const payload: CreateDealPayload | UpdateDealPayload = {
         title: title.trim(),
-        intake: intake.trim() || undefined,
         courses: selectedCourses,
-        stage: stage || defaultStage,
+        intake: intake.trim() || undefined,
+        stage: stage || pipelineStages[0]?.id || 'STAGE_NEW',
         status,
         priority,
         expectedRevenue: Number(expectedRevenue) || 0,
-        actualRevenue: actualRevenue !== undefined ? Number(actualRevenue) : undefined,
+        actualRevenue: status === 'WON' ? (actualRevenue !== undefined ? Number(actualRevenue) : Number(expectedRevenue)) : actualRevenue,
         assignedStaffName: assignedStaffName.trim() || undefined,
         expectedCloseDate: expectedCloseDate ? new Date(expectedCloseDate).toISOString() : undefined,
         lostReason: status === 'LOST' ? lostReason.trim() : undefined,
         notes: notes.trim() || undefined,
-        customerId,
-        contactId,
       };
 
       await onSave(payload, dealToEdit?.id);
-      notify.success(
-        isEditing
-          ? 'Đã cập nhật cơ hội tuyển sinh!'
-          : 'Đã tạo cơ hội tuyển sinh mới thành công!'
-      );
+      notify.success(t('deals.saveDealSuccess', 'Đã lưu thông tin cơ hội thành công!'));
       onClose();
     } catch (err: any) {
-      notify.error(err?.message || 'Có lỗi xảy ra khi lưu cơ hội tuyển sinh.');
+      notify.error(err?.message || 'Không thể lưu cơ hội.');
     } finally {
       setIsSubmitting(false);
     }
@@ -175,30 +172,27 @@ export const DealModal: React.FC<DealModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 transform transition-all"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ==================================================== */}
-        {/* 1. HEADER MODAL - Phân tầng rõ rệt (Distinct Header) */}
+        {/* 1. HEADER MODAL                                      */}
         {/* ==================================================== */}
-        <div className="px-6 py-4.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-blue-100/90 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
-              <Briefcase size={20} className="text-blue-600" />
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
+              <Briefcase size={18} />
             </div>
-            <div className="min-w-0">
-              <h3 className="text-base font-bold text-slate-900 m-0 tracking-tight">
-                {isEditing ? 'Chỉnh Sửa Cơ Hội Tuyển Sinh' : 'Thêm Cơ Hội Tuyển Sinh Mới'}
-              </h3>
-              <p className="text-xs text-slate-500 m-0 mt-0.5 truncate">
-                Ứng viên:{' '}
-                <span className="font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                  {customerName}
-                </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-800">
+                {isEditing ? t('deals.dealModalEditTitle', 'Cập nhật Cơ hội') : t('deals.dealModalCreateTitle', 'Tạo Cơ hội / Khóa học mới')}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {customerName} • {isEditing ? t('common.edit', 'Chỉnh sửa thông tin') : t('deals.createFirstDealBtn', 'Ghi nhận khóa học mới')}
               </p>
             </div>
           </div>
@@ -206,43 +200,43 @@ export const DealModal: React.FC<DealModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 transition-colors cursor-pointer shrink-0"
-            title="Đóng cửa sổ"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+            title={t('common.close', 'Đóng')}
           >
             <X size={18} />
           </button>
         </div>
 
         {/* ==================================================== */}
-        {/* 2. BODY FORM - Khu vực nhập liệu cuộn độc lập       */}
+        {/* 2. BODY FORM (Cuộn linh hoạt trên mobile/desktop)     */}
         {/* ==================================================== */}
         <form
           id="deal-modal-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto p-6 space-y-4 text-xs bg-white custom-scrollbar"
+          className="p-6 overflow-y-auto space-y-4 text-xs"
         >
-          {/* Nhóm 1: Tên Cơ Hội & Niên Khóa */}
+          {/* Nhóm 1: Tên cơ hội & Niên khóa */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2 space-y-1">
               <label className="block font-semibold text-slate-700">
-                Tên Cơ Hội / Đợt Tuyển Sinh <span className="text-rose-500">*</span>
+                {t('deals.titleLabel', 'Tên cơ hội / Nhu cầu tư vấn')} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="VD: Đăng ký Khóa Aptech 2026..."
+                placeholder={t('deals.titlePlaceholder', 'VD: Đăng ký Khóa Aptech 2026...')}
                 className="w-full h-8 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div className="space-y-1">
-              <label className="block font-semibold text-slate-700">Niên Khóa / Đợt</label>
+              <label className="block font-semibold text-slate-700">{t('deals.intakeLabel', 'Niên Khóa / Đợt')}</label>
               <input
                 type="text"
                 value={intake}
                 onChange={(e) => setIntake(e.target.value)}
-                placeholder="VD: K2026, Đợt 1..."
+                placeholder={t('deals.intakePlaceholder', 'VD: K2026, Đợt 1...')}
                 className="w-full h-8 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -251,7 +245,7 @@ export const DealModal: React.FC<DealModalProps> = ({
           {/* Nhóm 2: Giai đoạn phễu & Trạng thái chốt */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="block font-semibold text-slate-700">Giai Đoạn Phễu Tuyển Sinh</label>
+              <label className="block font-semibold text-slate-700">{t('deals.stageLabel', 'Giai Đoạn Phễu Tuyển Sinh')}</label>
               <select
                 value={stage}
                 onChange={(e) => setStage(e.target.value)}
@@ -266,7 +260,7 @@ export const DealModal: React.FC<DealModalProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="block font-semibold text-slate-700">Trạng Thái Kết Quả</label>
+              <label className="block font-semibold text-slate-700">{t('deals.statusLabel', 'Trạng Thái Kết Quả')}</label>
               <div className="grid grid-cols-3 gap-1">
                 <button
                   type="button"
@@ -278,7 +272,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                   }`}
                 >
                   <Clock size={12} />
-                  <span>Đang xử lý</span>
+                  <span>{t('deals.statusOpen', 'Đang xử lý')}</span>
                 </button>
                 <button
                   type="button"
@@ -290,7 +284,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                   }`}
                 >
                   <CheckCircle2 size={12} />
-                  <span>Thành công</span>
+                  <span>{t('deals.statusWon', 'Thành công')}</span>
                 </button>
                 <button
                   type="button"
@@ -302,7 +296,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                   }`}
                 >
                   <XCircle size={12} />
-                  <span>Thất bại</span>
+                  <span>{t('deals.statusLost', 'Thất bại')}</span>
                 </button>
               </div>
             </div>
@@ -311,7 +305,7 @@ export const DealModal: React.FC<DealModalProps> = ({
           {/* Nếu LOST: Hiển thị lý do thất bại */}
           {status === 'LOST' && (
             <div className="space-y-1 p-3 rounded-lg bg-rose-50/70 border border-rose-200 animate-in fade-in">
-              <label className="block font-semibold text-rose-800">Lý do thất bại / Hủy hồ sơ</label>
+              <label className="block font-semibold text-rose-800">{t('deals.lostReasonLabel', 'Lý do thất bại / Hủy hồ sơ')}</label>
               <input
                 type="text"
                 value={lostReason}
@@ -327,10 +321,10 @@ export const DealModal: React.FC<DealModalProps> = ({
             <div className="flex items-center justify-between">
               <label className="font-semibold text-slate-700 flex items-center gap-1.5">
                 <BookOpen size={13} className="text-blue-500" />
-                <span>Khóa Học / Chương Trình Quan Tâm</span>
+                <span>{t('deals.coursesLabel', 'Khóa Học / Chương Trình Quan Tâm')}</span>
               </label>
               <span className="text-[11px] font-medium text-slate-500">
-                Đã chọn: <strong className="text-blue-600">{selectedCourses.length}</strong> khóa
+                Đã chọn: <strong className="text-blue-600">{selectedCourses.length}</strong>
               </span>
             </div>
 
@@ -369,7 +363,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                     handleAddCustomCourse();
                   }
                 }}
-                placeholder="Nhập tên khóa học khác nếu không có trong danh mục..."
+                placeholder={t('deals.coursesPlaceholder', 'Nhập tên khóa học khác nếu không có trong danh mục...')}
                 className="flex-1 h-7.5 px-2.5 rounded-md border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500"
               />
               <button
@@ -388,7 +382,7 @@ export const DealModal: React.FC<DealModalProps> = ({
             <div className="space-y-1">
               <label className="block font-semibold text-slate-700 flex items-center gap-1">
                 <DollarSign size={13} className="text-emerald-500" />
-                <span>Học Phí Dự Kiến (VNĐ)</span>
+                <span>{t('deals.expectedRevenueLabel', 'Học Phí Dự Kiến (VNĐ)')}</span>
               </label>
               <input
                 type="number"
@@ -403,7 +397,7 @@ export const DealModal: React.FC<DealModalProps> = ({
             <div className="space-y-1">
               <label className="block font-semibold text-slate-700 flex items-center gap-1">
                 <CheckCircle2 size={13} className="text-emerald-600" />
-                <span>Học Phí Thực Thu (VNĐ)</span>
+                <span>{t('deals.actualRevenueLabel', 'Học Phí Thực Thu (VNĐ)')}</span>
               </label>
               <input
                 type="number"
@@ -424,7 +418,7 @@ export const DealModal: React.FC<DealModalProps> = ({
             <div className="space-y-1">
               <label className="block font-semibold text-slate-700 flex items-center gap-1">
                 <User size={13} className="text-indigo-500" />
-                <span>Tư Vấn Viên Phụ Trách</span>
+                <span>{t('deals.assignedStaffLabel', 'Tư Vấn Viên Phụ Trách')}</span>
               </label>
               {staffList && staffList.length > 0 ? (
                 <select
@@ -432,7 +426,7 @@ export const DealModal: React.FC<DealModalProps> = ({
                   onChange={(e) => setAssignedStaffName(e.target.value)}
                   className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="">-- Chưa chỉ định --</option>
+                  <option value="">-- {t('common.unassigned', 'Chưa chỉ định')} --</option>
                   {staffList.map((st) => (
                     <option key={st.id} value={st.name}>
                       {st.name} ({st.role})
@@ -453,17 +447,17 @@ export const DealModal: React.FC<DealModalProps> = ({
             <div className="space-y-1">
               <label className="block font-semibold text-slate-700 flex items-center gap-1">
                 <Tag size={13} className="text-amber-500" />
-                <span>Mức Độ Ưu Tiên</span>
+                <span>{t('deals.priorityLabel', 'Mức Độ Ưu Tiên')}</span>
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
                 className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
               >
-                <option value="LOW">Thấp (LOW)</option>
-                <option value="MEDIUM">Bình thường (MEDIUM)</option>
-                <option value="HIGH">Cao (HIGH)</option>
-                <option value="URGENT">Khẩn cấp (URGENT)</option>
+                <option value="LOW">{t('deals.priorityLow', 'Thấp (LOW)')}</option>
+                <option value="MEDIUM">{t('deals.priorityMedium', 'Bình thường (MEDIUM)')}</option>
+                <option value="HIGH">{t('deals.priorityHigh', 'Cao (HIGH)')}</option>
+                <option value="URGENT">{t('deals.priorityUrgent', 'Khẩn cấp (URGENT)')}</option>
               </select>
             </div>
           </div>
@@ -472,7 +466,7 @@ export const DealModal: React.FC<DealModalProps> = ({
           <div className="space-y-1">
             <label className="block font-semibold text-slate-700 flex items-center gap-1">
               <Calendar size={13} className="text-blue-500" />
-              <span>Hạn Chốt Dự Kiến</span>
+              <span>{t('deals.closeDateLabel', 'Hạn Chốt Dự Kiến')}</span>
             </label>
             <input
               type="date"
@@ -484,12 +478,12 @@ export const DealModal: React.FC<DealModalProps> = ({
 
           {/* Nhóm 7: Ghi chú tuyển sinh */}
           <div className="space-y-1">
-            <label className="block font-semibold text-slate-700">Ghi Chú Đợt Tuyển Sinh</label>
+            <label className="block font-semibold text-slate-700">{t('deals.notesLabel', 'Ghi Chú Đợt Tuyển Sinh')}</label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="VD: Ứng viên xin học bổng 20%, chờ điểm thi tốt nghiệp THPT..."
+              placeholder={t('deals.notesPlaceholder', 'VD: Ứng viên xin học bổng 20%, chờ điểm thi tốt nghiệp THPT...')}
               className="w-full p-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500"
             />
           </div>
@@ -505,7 +499,7 @@ export const DealModal: React.FC<DealModalProps> = ({
             disabled={isSubmitting}
             className="h-8.5 px-4 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 font-medium cursor-pointer transition-colors text-xs disabled:opacity-50"
           >
-            Hủy
+            {t('common.cancel', 'Hủy')}
           </button>
           <button
             type="submit"
@@ -514,11 +508,11 @@ export const DealModal: React.FC<DealModalProps> = ({
             className="h-8.5 px-5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer transition-colors shadow-xs flex items-center gap-1.5 text-xs disabled:opacity-50"
           >
             {isSubmitting ? (
-              <span>Đang lưu...</span>
+              <span>{t('common.loading', 'Đang lưu...')}</span>
             ) : (
               <>
                 <Send size={12} />
-                <span>{isEditing ? 'Cập Nhật Cơ Hội' : 'Tạo Cơ Hội'}</span>
+                <span>{isEditing ? t('deals.dealModalEditTitle', 'Cập Nhật Cơ Hội') : t('deals.saveDealBtn', 'Tạo Cơ Hội')}</span>
               </>
             )}
           </button>

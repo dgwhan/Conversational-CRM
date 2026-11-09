@@ -13,6 +13,7 @@ import { useWorkspaceConfig } from '../WorkspaceConfigContext.js';
 import { useUserRole } from '../../auth/UserRoleContext.js';
 import type { PipelineStageConfig, BusinessDomain, WorkspaceConfig, WorkingHoursConfig } from '../workspaceConfig.types.js';
 import { CLIENT_INDUSTRY_PRESETS } from '../workspacePresets.js';
+import { useTranslation } from '../../../i18n/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { EmptyState, Modal, Tabs, type TabItem } from '../../../components/ui/index.js';
 
@@ -81,6 +82,7 @@ function generateDefaultProfiles(activeConfig: WorkspaceConfig): ConfigProfileIt
 }
 
 export const WorkspaceSettingsPage: React.FC = () => {
+  const { t } = useTranslation();
   const {
     config,
     isLoading,
@@ -560,30 +562,30 @@ export const WorkspaceSettingsPage: React.FC = () => {
   const tabItems: TabItem<SettingsTabId>[] = [
     {
       id: 'stages',
-      label: 'Giai đoạn phễu',
+      label: t('workspaceSettings.tabs.stages', 'Giai đoạn phễu'),
       count: currentProfile.config.pipelineStages.length,
     },
     {
       id: 'catalog',
-      label: currentProfile.config.terminology.productLabel || 'Sản phẩm & Dịch vụ',
+      label: currentProfile.config.terminology.productLabel || t('workspaceSettings.tabs.catalog', 'Sản phẩm & Dịch vụ'),
       count: currentProfile.config.productCatalog.length,
     },
     {
       id: 'terminology',
-      label: 'Thuật ngữ hệ thống',
+      label: t('workspaceSettings.tabs.terminology', 'Thuật ngữ hệ thống'),
     },
     {
       id: 'criteria',
-      label: 'Tiêu chí phân loại',
+      label: t('workspaceSettings.tabs.criteria', 'Tiêu chí phân loại'),
       count: currentProfile.config.criteria.length,
     },
     {
       id: 'workingHours',
-      label: 'Giờ làm việc & Tự động trả lời',
+      label: t('workspaceSettings.tabs.workingHours', 'Giờ làm việc & Tự động trả lời'),
     },
     {
       id: 'alerts',
-      label: 'Cảnh báo phản hồi',
+      label: t('workspaceSettings.tabs.alerts', 'Cảnh báo phản hồi'),
     },
   ];
 

@@ -3,6 +3,7 @@ import { Line } from 'react-chartjs-2';
 import type { ChartData, ChartOptions } from 'chart.js';
 import type { TrendDataPoint } from '../reports.types.js';
 import '../chartSetup.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 interface LeadTrendChartProps {
   trends: TrendDataPoint[];
@@ -15,10 +16,11 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
   entityName,
   wonLabel,
 }) => {
+  const { t, locale } = useTranslation();
   const [viewMode, setViewMode] = useState<'volume' | 'revenue'>('volume');
 
-  const displayEntity = entityName || 'Hồ sơ';
-  const displayWon = wonLabel || 'Chốt thành công';
+  const displayEntity = entityName || (locale === 'en' ? 'Leads' : 'Hồ sơ');
+  const displayWon = wonLabel || (locale === 'en' ? 'Won Deals' : 'Chốt thành công');
 
   const labels = trends.map((t) => t.date);
   const leadsData = trends.map((t) => t.newLeads);
@@ -26,7 +28,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
   const revenueData = trends.map((t) => t.revenue);
 
   const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', {
       style: 'currency',
       currency: 'VND',
       maximumFractionDigits: 0,
@@ -37,7 +39,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
     labels,
     datasets: [
       {
-        label: `${displayEntity} mới tiếp nhận`,
+        label: `${displayEntity} ${locale === 'en' ? 'new leads' : 'mới tiếp nhận'}`,
         data: leadsData,
         borderColor: '#0284c7',
         backgroundColor: 'rgba(2, 132, 199, 0.08)',
@@ -71,14 +73,14 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
     labels,
     datasets: [
       {
-        label: 'Doanh thu ghi nhận',
+        label: t('reports.trendRevenue', 'Doanh thu'),
         data: revenueData,
-        borderColor: '#d97706',
-        backgroundColor: 'rgba(217, 119, 6, 0.12)',
+        borderColor: '#7c3aed',
+        backgroundColor: 'rgba(124, 58, 237, 0.08)',
         fill: true,
         tension: 0.35,
         borderWidth: 2.5,
-        pointBackgroundColor: '#d97706',
+        pointBackgroundColor: '#7c3aed',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
         pointRadius: 4,
@@ -138,9 +140,9 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
           callback: (value) => {
             if (viewMode === 'revenue') {
               const num = Number(value);
-              if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)} Tỷ`;
-              if (num >= 1000000) return `${(num / 1000000).toFixed(0)} Tr`;
-              return num.toLocaleString('vi-VN');
+              if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)} ${locale === 'en' ? 'B' : 'Tỷ'}`;
+              if (num >= 1000000) return `${(num / 1000000).toFixed(0)} ${locale === 'en' ? 'M' : 'Tr'}`;
+              return num.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN');
             }
             return value;
           },
@@ -154,7 +156,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800">
-            Biểu Đồ Xu Hướng Tăng Trưởng
+            {t('reports.leadTrendTitle', 'Biểu Đồ Xu Hướng Tăng Trưởng')}
           </h3>
         </div>
 
@@ -168,7 +170,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Số Lượng {displayEntity}
+            {t('reports.trendVolume', 'Số Lượng')} {displayEntity}
           </button>
           <button
             type="button"
@@ -179,7 +181,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Doanh Thu (VNĐ)
+            {t('reports.trendRevenue', 'Doanh Thu')}
           </button>
         </div>
       </div>
@@ -192,7 +194,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
           />
         ) : (
           <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-            Chưa có dữ liệu xu hướng
+            {t('reports.emptyProductData', 'Chưa có dữ liệu xu hướng')}
           </div>
         )}
       </div>

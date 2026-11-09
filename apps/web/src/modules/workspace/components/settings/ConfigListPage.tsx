@@ -13,6 +13,7 @@ import {
 import { SearchInput } from '../../../../components/ui/SearchInput.js';
 import { matchesUnaccent } from '../../../../lib/unaccent.js';
 import { getDomainLabel } from '../../workspaceConfig.types.js';
+import { useTranslation } from '../../../../i18n/index.js';
 import type { ConfigProfileItem } from './types.js';
 
 export interface ConfigListPageProps {
@@ -36,6 +37,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredProfiles = profiles.filter((p) => {
@@ -56,10 +58,10 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
         <div>
           <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 m-0">
-            Quản lý cấu hình
+            {t('workspaceSettings.configManagementTitle', 'Quản lý cấu hình')}
           </h1>
           <p className="text-xs text-slate-500 m-0 mt-0.5 leading-relaxed">
-            Danh sách các bộ thiết lập quy trình phễu, thuật ngữ và danh mục sản phẩm cho doanh nghiệp.
+            {t('workspaceSettings.configManagementDesc', 'Danh sách các bộ thiết lập quy trình phễu, thuật ngữ và danh mục sản phẩm cho doanh nghiệp.')}
           </p>
         </div>
 
@@ -71,7 +73,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
             className="h-8 px-3 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
           >
             <Plus size={14} />
-            <span>Thêm thiết lập</span>
+            <span>{t('workspaceSettings.addNewConfig', 'Thêm thiết lập')}</span>
           </button>
         )}
       </div>
@@ -81,7 +83,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Tìm kiếm thiết lập theo tên, mô hình kinh doanh hoặc thuật ngữ..."
+          placeholder={t('workspaceSettings.searchPlaceholder', 'Tìm kiếm thiết lập theo tên, mô hình kinh doanh hoặc thuật ngữ...')}
           size="sm"
           className="w-full"
         />
@@ -90,10 +92,10 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
       {/* 3. Thanh tiêu đề phụ: Số lượng thiết lập */}
       <div className="flex items-center justify-between px-1">
         <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-          Tất cả thiết lập
+          {t('workspaceSettings.allConfigs', 'Tất cả thiết lập')}
         </span>
         <span className="text-[11px] text-slate-500 font-medium">
-          {filteredProfiles.length} thiết lập
+          {filteredProfiles.length} {t('workspaceSettings.configsCount', 'thiết lập')}
         </span>
       </div>
 

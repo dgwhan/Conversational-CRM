@@ -14,6 +14,7 @@ import {
   LogIn,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button.js';
+import { useTranslation } from '../../i18n/index.js';
 
 export interface HttpErrorPageProps {
   statusCode: number;
@@ -32,6 +33,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
   onRetry = () => window.location.reload(),
   onGoHome = () => (window.location.href = '/'),
 }) => {
+  const { t } = useTranslation();
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   // Cấu hình nội dung và gợi ý chuyên biệt cho từng mã HTTP
@@ -41,40 +43,40 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
         return {
           code: '400',
           badgeText: 'Bad Request',
-          title: 'Yêu Cầu Không Hợp Lệ (400)',
-          desc: 'Máy chủ không thể xử lý yêu cầu do dữ liệu gửi lên bị sai cấu trúc, thiếu tham số bắt buộc hoặc vi phạm kiểm thực Zod.',
+          title: t('errors.code400Title', 'Yêu Cầu Không Hợp Lệ (400)'),
+          desc: t('errors.code400Desc', 'Máy chủ không thể xử lý yêu cầu do dữ liệu gửi lên bị sai cấu trúc, thiếu tham số bắt buộc hoặc vi phạm kiểm thực Zod.'),
           icon: <AlertCircle size={36} className="text-warning" />,
-          advice: 'Vui lòng kiểm tra lại cấu trúc trường dữ liệu (Kênh, Người gửi, Thời gian) hoặc tham số URL.',
+          advice: t('errors.code400Advice', 'Vui lòng kiểm tra lại cấu trúc trường dữ liệu (Kênh, Người gửi, Thời gian) hoặc tham số URL.'),
           variantClass: 'theme-warning',
         };
       case 401:
         return {
           code: '401',
           badgeText: 'Unauthorized',
-          title: 'Chưa Xác Thực Danh Tính (401)',
-          desc: 'Phiên làm việc của bạn đã hết hạn hoặc bạn chưa cung cấp mã truy cập (Access Token / Chữ ký Webhook) hợp lệ.',
+          title: t('errors.code401Title', 'Chưa Xác Thực Danh Tính (401)'),
+          desc: t('errors.code401Desc', 'Phiên làm việc của bạn đã hết hạn hoặc bạn chưa cung cấp mã truy cập (Access Token / Chữ ký Webhook) hợp lệ.'),
           icon: <Lock size={36} className="text-danger" />,
-          advice: 'Vui lòng đăng nhập lại tài khoản CRM hoặc kiểm tra chữ ký HMAC trong trường hợp gọi Webhook.',
+          advice: t('errors.code401Advice', 'Vui lòng đăng nhập lại tài khoản CRM hoặc kiểm tra chữ ký HMAC trong trường hợp gọi Webhook.'),
           variantClass: 'theme-danger',
         };
       case 403:
         return {
           code: '403',
           badgeText: 'Forbidden',
-          title: 'Từ Chối Quyền Truy Cập (403)',
-          desc: 'Bạn không có quyền hạn (Vai trò nhân viên / Role) để truy cập hoặc thực thi hành động này trên hệ thống.',
+          title: t('errors.code403Title', 'Từ Chối Quyền Truy Cập (403)'),
+          desc: t('errors.code403Desc', 'Bạn không có quyền hạn (Vai trò nhân viên / Role) để truy cập hoặc thực thi hành động này trên hệ thống.'),
           icon: <ShieldAlert size={36} className="text-danger" />,
-          advice: 'Liên hệ quản trị viên (ADMIN) để được cấp quyền quản lý tính năng tương ứng.',
+          advice: t('errors.code403Advice', 'Liên hệ quản trị viên (ADMIN) để được cấp quyền quản lý tính năng tương ứng.'),
           variantClass: 'theme-danger',
         };
       case 429:
         return {
           code: '429',
           badgeText: 'Too Many Requests',
-          title: 'Quá Nhiều Yêu Cầu Cùng Lúc (429)',
-          desc: 'Hệ thống phát hiện tần suất gửi request quá nhanh từ thiết bị của bạn và đã tạm thời kích hoạt giới hạn tốc độ (Rate Limiting).',
+          title: t('errors.code429Title', 'Quá Nhiều Yêu Cầu Cùng Lúc (429)'),
+          desc: t('errors.code429Desc', 'Hệ thống phát hiện tần suất gửi request quá nhanh từ thiết bị của bạn và đã tạm thời kích hoạt giới hạn tốc độ (Rate Limiting).'),
           icon: <Clock size={36} className="text-warning" />,
-          advice: 'Vui lòng tạm ngưng thao tác trong 30 giây rồi thử lại để tránh làm nghẽn máy chủ.',
+          advice: t('errors.code429Advice', 'Vui lòng tạm ngưng thao tác trong 30 giây rồi thử lại để tránh làm nghẽn máy chủ.'),
           variantClass: 'theme-warning',
         };
       case 502:
@@ -82,20 +84,20 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
         return {
           code: String(statusCode),
           badgeText: statusCode === 502 ? 'Bad Gateway' : 'Gateway Timeout',
-          title: `Cổng Kết Nối Quá Giới Hạn (${statusCode})`,
-          desc: 'Máy chủ Gateway hoặc Reverse Proxy không nhận được phản hồi kịp thời từ dịch vụ Backend API hoặc Database.',
+          title: `${t('errors.code502Title', 'Cổng Kết Nối Quá Giới Hạn')} (${statusCode})`,
+          desc: t('errors.code502Desc', 'Máy chủ Gateway hoặc Reverse Proxy không nhận được phản hồi kịp thời từ dịch vụ Backend API hoặc Database.'),
           icon: <WifiOff size={36} className="text-danger" />,
-          advice: 'Kiểm tra xem dịch vụ API tại cổng 3000 hoặc cơ sở dữ liệu PostgreSQL có đang bị treo không.',
+          advice: t('errors.code502Advice', 'Kiểm tra xem dịch vụ API tại cổng 3000 hoặc cơ sở dữ liệu PostgreSQL có đang bị treo không.'),
           variantClass: 'theme-danger',
         };
       case 503:
         return {
           code: '503',
           badgeText: 'Service Unavailable',
-          title: 'Dịch Vụ Tạm Thời Gián Đoạn (503)',
-          desc: 'Hệ thống đang trong quá trình bảo trì, khởi động lại hoặc các dịch vụ hàng đợi Redis / BullMQ đang quá tải.',
+          title: t('errors.code503Title', 'Dịch Vụ Tạm Thời Gián Đoạn (503)'),
+          desc: t('errors.code503Desc', 'Hệ thống đang trong quá trình bảo trì, khởi động lại hoặc các dịch vụ hàng đợi Redis / BullMQ đang quá tải.'),
           icon: <ServerCrash size={36} className="text-danger" />,
-          advice: 'Vui lòng thử lại sau ít phút hoặc liên hệ đội ngũ DevOps để kiểm tra hạ tầng.',
+          advice: t('errors.code503Advice', 'Vui lòng thử lại sau ít phút hoặc liên hệ đội ngũ DevOps để kiểm tra hạ tầng.'),
           variantClass: 'theme-danger',
         };
       case 500:
@@ -103,10 +105,10 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
         return {
           code: String(statusCode || 500),
           badgeText: 'Internal Server Error',
-          title: 'Sự Cố Máy Chủ Nội Bộ (500)',
-          desc: 'Backend NestJS đã gặp một lỗi ngoại lệ chưa được xử lý trong quá trình ghi dữ liệu hoặc kết nối PostgreSQL.',
+          title: t('errors.code500Title', 'Sự Cố Máy Chủ Nội Bộ (500)'),
+          desc: t('errors.code500Desc', 'Backend NestJS đã gặp một lỗi ngoại lệ chưa được xử lý trong quá trình ghi dữ liệu hoặc kết nối PostgreSQL.'),
           icon: <ServerCrash size={36} className="text-danger" />,
-          advice: 'Thông tin lỗi chi tiết đã được ghi nhận vào nhật ký hệ thống (System Logs).',
+          advice: t('errors.code500Advice', 'Thông tin lỗi chi tiết đã được ghi nhận vào nhật ký hệ thống (System Logs).'),
           variantClass: 'theme-danger',
         };
     }
@@ -135,14 +137,14 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
           {errorLocation && (
             <div className="diagnostic-item">
               <span className="diagnostic-label">
-                <MapPin size={14} /> Nơi phát sinh lỗi:
+                <MapPin size={14} /> {t('errors.locationLabel', 'Nơi phát sinh lỗi:')}
               </span>
               <code className="diagnostic-code">{errorLocation}</code>
             </div>
           )}
 
           <div className="diagnostic-item">
-            <span className="diagnostic-label">Khuyến nghị khắc phục:</span>
+            <span className="diagnostic-label">{t('errors.adviceLabel', 'Khuyến nghị khắc phục:')}</span>
             <span className="diagnostic-text">{config.advice}</span>
           </div>
 
@@ -153,7 +155,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
                 className="technical-details-toggle"
                 onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
               >
-                <span>{showTechnicalDetails ? 'Ẩn chi tiết phản hồi từ Server' : 'Xem chi tiết phản hồi từ Server (Debug)'}</span>
+                <span>{showTechnicalDetails ? t('errors.serverDebugHide', 'Ẩn chi tiết phản hồi từ Server') : t('errors.serverDebugShow', 'Xem chi tiết phản hồi từ Server (Debug)')}</span>
                 {showTechnicalDetails ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               </button>
 
@@ -176,7 +178,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
             icon={<RefreshCw size={16} />}
             onClick={onRetry}
           >
-            Thử Lại
+            {t('errors.retryBtn', 'Thử Lại')}
           </Button>
 
           {statusCode === 401 && (
@@ -186,7 +188,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
               icon={<LogIn size={16} />}
               onClick={() => (window.location.href = '/login')}
             >
-              Đăng Nhập Lại
+              {t('errors.reloginBtn', 'Đăng Nhập Lại')}
             </Button>
           )}
 
@@ -196,7 +198,7 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
             icon={<Home size={16} />}
             onClick={onGoHome}
           >
-            Về Trang Chủ CRM
+            {t('errors.backHomeBtn', 'Về Trang Chủ CRM')}
           </Button>
         </div>
       </div>

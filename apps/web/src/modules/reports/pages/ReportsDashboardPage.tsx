@@ -3,6 +3,7 @@ import { BarChart3 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { useWorkspaceConfig } from '../../workspace/WorkspaceConfigContext.js';
+import { useTranslation } from '../../../i18n/index.js';
 import { MetricCardsGrid } from '../components/MetricCardsGrid.js';
 import { FunnelChart } from '../components/FunnelChart.js';
 import { LeadTrendChart } from '../components/LeadTrendChart.js';
@@ -22,6 +23,7 @@ import type {
 
 export const ReportsDashboardPage: React.FC = () => {
   const { config, activeWorkspaceId, activeWorkspace } = useWorkspaceConfig();
+  const { t, locale } = useTranslation();
   const [selectedRange, setSelectedRange] = useState<TimeRangeFilter>('30days');
   const [selectedChannel, setSelectedChannel] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -528,7 +530,7 @@ export const ReportsDashboardPage: React.FC = () => {
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white rounded-xl border border-slate-200">
           <BarChart3 size={40} className="animate-pulse text-blue-500 mb-3" />
-          <p className="text-sm font-medium">Đang tính toán và tải số liệu báo cáo biểu đồ...</p>
+          <p className="text-sm font-medium">{t('common.loading', 'Đang tính toán và tải số liệu báo cáo biểu đồ...')}</p>
         </div>
       )}
     </div>

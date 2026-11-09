@@ -11,6 +11,7 @@ import { TextField } from '../../../components/ui/TextField.js';
 import { AuthApiError, register } from '../api/auth.api.js';
 import type { RegisterResponse } from '../types/auth.types.js';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator.js';
+import { useTranslation } from '../../../i18n/index.js';
 import {
   calculatePasswordStrength,
   validateConfirmPassword,
@@ -115,13 +116,13 @@ export function SignUpForm({
     <div className="flex flex-col gap-6">
       {!hideHeading && (
         <PageHeading
-          title="Tạo tài khoản mới"
-          description="Đăng ký tài khoản để bắt đầu sử dụng và quản lý hệ thống Conversational CRM."
+          title={t('auth.signUpTitle', 'Tạo tài khoản mới')}
+          description={t('auth.signUpSubtitle', 'Đăng ký tài khoản để bắt đầu sử dụng và quản lý hệ thống Conversational CRM.')}
         />
       )}
 
       <form className="flex flex-col gap-6" onSubmit={handleSubmit} noValidate>
-        <TextField label="Họ và tên" name="fullName" autoComplete="name" placeholder="Nhập họ và tên của bạn" leadingIcon={<UserIcon />}
+        <TextField label={t('auth.fullNameLabel', 'Họ và tên')} name="fullName" autoComplete="name" placeholder={t('auth.fullNamePlaceholder', 'Nhập họ và tên của bạn')} leadingIcon={<UserIcon />}
           value={fullName}
           onChange={(event) => {
             const val = event.target.value;
@@ -151,7 +152,7 @@ export function SignUpForm({
           disabled={isSubmitting}
         />
 
-        <TextField label="Số điện thoại" name="phoneNumber" type="tel" autoComplete="tel" placeholder="Nhập số điện thoại của bạn" leadingIcon={<PhoneIcon />}
+        <TextField label={t('auth.phoneLabel', 'Số điện thoại')} name="phoneNumber" type="tel" autoComplete="tel" placeholder={t('auth.phonePlaceholder', 'Nhập số điện thoại của bạn')} leadingIcon={<PhoneIcon />}
           value={phoneNumber}
           onChange={(event) => {
             const val = event.target.value;
@@ -167,7 +168,7 @@ export function SignUpForm({
         />
 
         <div className="flex flex-col gap-2">
-          <PasswordField label="Mật khẩu" name="password" autoComplete="new-password" value={password} onChange={(value) => {
+          <PasswordField label={t('auth.passwordLabel', 'Mật khẩu')} name="password" autoComplete="new-password" value={password} onChange={(value) => {
             setPassword(value);
             if (error) setError('');
           }}
@@ -181,7 +182,7 @@ export function SignUpForm({
           )}
         </div>
 
-        <PasswordField label="Xác nhận mật khẩu" name="confirmPassword" autoComplete="new-password"
+        <PasswordField label={t('auth.confirmPasswordLabel', 'Xác nhận mật khẩu')} name="confirmPassword" autoComplete="new-password"
           value={confirmPassword}
           onChange={(value) => {
             setConfirmPassword(value);
@@ -200,11 +201,11 @@ export function SignUpForm({
         )}
 
         <Button fullWidth type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang tạo tài khoản…' : 'Đăng ký tài khoản'}
+          {isSubmitting ? t('auth.signingUp', 'Đang tạo tài khoản…') : t('auth.signUpBtn', 'Đăng ký tài khoản')}
         </Button>
 
         <div className="text-center font-sans text-body text-text-secondary">
-          <span>Đã có tài khoản?</span>{' '}
+          <span>{t('auth.alreadyHaveAccount', 'Đã có tài khoản?')}</span>{' '}
           <button type="button" onClick={onSwitchToLogin} className="font-medium text-brand-primary hover:underline cursor-pointer">
             Đăng nhập ngay
           </button>
