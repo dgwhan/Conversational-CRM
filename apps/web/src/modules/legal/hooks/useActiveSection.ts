@@ -9,8 +9,6 @@ export function useActiveSection(sectionIds: string[], offset: number = 100): st
   useEffect(() => {
     if (typeof window === 'undefined' || sectionIds.length === 0) return;
 
-    const observers: IntersectionObserver[] = [];
-
     // Tạo IntersectionObserver cho từng section với rootMargin bù trừ chiều cao navbar
     const observerCallback: IntersectionObserverCallback = (entries) => {
       entries.forEach((entry) => {

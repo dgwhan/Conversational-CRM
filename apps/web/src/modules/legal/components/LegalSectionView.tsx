@@ -69,6 +69,15 @@ export const LegalSectionView: React.FC<LegalSectionViewProps> = ({ section }) =
         </ul>
       )}
 
+      {/* Paragraphs After List/Table */}
+      {section.paragraphsAfter && section.paragraphsAfter.length > 0 && (
+        <div className="space-y-3 mb-4 text-slate-600 dark:text-slate-300 leading-relaxed text-sm sm:text-base">
+          {section.paragraphsAfter.map((p, idx) => (
+            <p key={idx}>{p}</p>
+          ))}
+        </div>
+      )}
+
       {/* Data Table */}
       {section.table && (
         <div className="my-6 overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md shadow-sm">

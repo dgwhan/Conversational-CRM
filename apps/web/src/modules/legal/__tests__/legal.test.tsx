@@ -1,4 +1,4 @@
-import React from 'react';
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PRIVACY_POLICY_DATA } from '../data/privacy.js';

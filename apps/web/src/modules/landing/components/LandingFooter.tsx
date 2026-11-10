@@ -8,7 +8,6 @@ import {
   Shield,
   Heart,
   Globe,
-  ExternalLink,
 } from 'lucide-react';
 
 export const LandingFooter: React.FC = () => {

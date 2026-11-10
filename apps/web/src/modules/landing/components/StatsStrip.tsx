@@ -9,7 +9,7 @@ const statIcons = [
   <ShieldCheck key="4" size={20} className="text-purple-600 dark:text-purple-400" />,
 ];
 
-export const StatsStrip: React.FC<{ isDark?: boolean }> = ({ isDark = false }) => {
+export const StatsStrip: React.FC<{ isDark?: boolean }> = () => {
   return (
     <section className="relative py-12 border-y border-slate-200/70 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

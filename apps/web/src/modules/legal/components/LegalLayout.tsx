@@ -24,7 +24,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ document }) => {
   useEffect(() => {
     if (location.hash) {
       const targetId = location.hash.replace('#', '');
-      const el = document.getElementById(targetId);
+      const el = window.document.getElementById(targetId);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
         return;

@@ -15,6 +15,7 @@ export interface LegalSection {
   title: string;
   paragraphs?: string[];
   list?: string[];
+  paragraphsAfter?: string[];
   table?: LegalTable;
   note?: string;
 }
