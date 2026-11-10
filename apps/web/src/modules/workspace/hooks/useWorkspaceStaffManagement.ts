@@ -7,6 +7,7 @@ import { apiClient } from '../../../lib/api-client/index.js';
 export interface UseWorkspaceStaffManagementProps {
   effectiveOwnerId: string;
   staffId?: string;
+  isAuthenticated?: boolean;
   isCurrentWorkspaceOwner: boolean;
   activeWorkspaceId: string;
   configWorkspaceId: string;
@@ -16,6 +17,7 @@ export interface UseWorkspaceStaffManagementProps {
 export const useWorkspaceStaffManagement = ({
   effectiveOwnerId,
   staffId,
+  isAuthenticated = false,
   isCurrentWorkspaceOwner,
   activeWorkspaceId,
   configWorkspaceId,
@@ -25,9 +27,17 @@ export const useWorkspaceStaffManagement = ({
 
   const fetchStaffList = useCallback(
     async (targetWsId?: string): Promise<ManagedStaffItem[]> => {
+      // TUYỆT ĐỐI KHÔNG quét hoặc gọi API nhân sự nếu chưa đăng nhập hoặc callerId rỗng
+      if (!isAuthenticated || (!effectiveOwnerId && !staffId)) {
+        return [];
+      }
       const wsToFetch = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+      if (!wsToFetch) {
+        return [];
+      }
       try {
         const data = await apiClient.get<ManagedStaffItem[]>('/workspaces/current/staff', {
+          skipToast: true,
           headers: {
             'x-owner-id': effectiveOwnerId,
             'x-staff-id': staffId || '',
@@ -44,14 +54,14 @@ export const useWorkspaceStaffManagement = ({
       }
       return [];
     },
-    [effectiveOwnerId, staffId, isCurrentWorkspaceOwner, activeWorkspaceId, configWorkspaceId]
+    [isAuthenticated, effectiveOwnerId, staffId, isCurrentWorkspaceOwner, activeWorkspaceId, configWorkspaceId]
   );
 
   useEffect(() => {
-    if (isCurrentWorkspaceOwner) {
+    if (isAuthenticated && isCurrentWorkspaceOwner && (effectiveOwnerId || staffId)) {
       fetchStaffList();
     }
-  }, [isCurrentWorkspaceOwner, fetchStaffList]);
+  }, [isAuthenticated, isCurrentWorkspaceOwner, effectiveOwnerId, staffId, fetchStaffList]);
 
   const createStaffMember = async (
     data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },

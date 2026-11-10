@@ -173,11 +173,13 @@ export class BaseApiClient {
     let currentStaffId = '';
     if (typeof window !== 'undefined') {
       try {
-        userRole = localStorage.getItem('polarisx_crm_user_role') || '';
         const savedSession = localStorage.getItem('polarisx_crm_auth_session');
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
-          currentStaffId = parsed?.user?.id || parsed?.staff?.id || '';
+          if (parsed && (parsed.accessToken || token)) {
+            currentStaffId = parsed?.user?.id || parsed?.staff?.id || '';
+            userRole = localStorage.getItem('polarisx_crm_user_role') || '';
+          }
         }
       } catch {}
     }

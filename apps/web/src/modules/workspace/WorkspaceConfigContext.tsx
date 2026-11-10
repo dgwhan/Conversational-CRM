@@ -86,11 +86,13 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Đồng bộ cấu hình từ Backend API theo workspaceId
   const syncFromBackend = useCallback(async (targetWsId?: string) => {
+    if (!isAuthenticated) return;
     const wsToFetch = targetWsId || config.workspaceId || '';
     if (!wsToFetch) return;
 
     try {
       const data = await apiClient.get<WorkspaceConfig>(`/workspaces/${wsToFetch}/config`, {
+        skipToast: true,
         headers: {
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
@@ -104,7 +106,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
     } catch (err) {
       console.error('Lỗi đồng bộ cấu hình từ Backend:', err);
     }
-  }, [effectiveOwnerId, staffId, config.workspaceId]);
+  }, [isAuthenticated, effectiveOwnerId, staffId, config.workspaceId]);
 
   // Hook 1: Quản lý Multi-Workspace & Switcher
   const workspaceManager = useWorkspaceManager({
@@ -124,6 +126,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
   const staffManager = useWorkspaceStaffManagement({
     effectiveOwnerId,
     staffId,
+    isAuthenticated,
     isCurrentWorkspaceOwner: workspaceManager.isCurrentWorkspaceOwner,
     activeWorkspaceId: workspaceManager.activeWorkspaceId,
     configWorkspaceId: config.workspaceId,

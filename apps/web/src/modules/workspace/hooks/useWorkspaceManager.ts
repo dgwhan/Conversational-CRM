@@ -45,7 +45,7 @@ export const useWorkspaceManager = ({
   // Tìm workspace hiện tại trong danh sách
   const activeWorkspace = myWorkspaces.find((w) => w.id === activeWorkspaceId) || null;
   // Quyền OWNER trong workspace hiện tại
-  const isCurrentWorkspaceOwner = activeWorkspace ? activeWorkspace.isOwner : isOwner;
+  const isCurrentWorkspaceOwner = Boolean(isAuthenticated && (activeWorkspace ? activeWorkspace.isOwner : isOwner));
 
   // Lấy danh sách Workspaces của user từ Backend
   const fetchMyWorkspaces = useCallback(async (): Promise<WorkspaceItem[]> => {

@@ -1,6 +1,6 @@
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vite';
 
 const apiProxy = {
   '/api': {
@@ -38,8 +38,31 @@ export default defineConfig({
     port: 5173,
     proxy: apiProxy,
   },
-  // Security headers & proxy for production preview (pnpm preview / vite preview).
-  // HSTS must be set at the TLS termination layer (nginx/Caddy) — not here.
+  build: {
+    target: 'es2022',
+    cssCodeSplit: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (
+            id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/react-router-dom')
+          ) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/motion')) {
+            return 'vendor-motion';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+        },
+      },
+    },
+  },
   preview: {
     port: 4173,
     proxy: apiProxy,
@@ -49,6 +72,7 @@ export default defineConfig({
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   },
-})
+});

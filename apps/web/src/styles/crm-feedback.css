@@ -157,6 +157,187 @@
   color: var(--color-text-main);
 }
 
+/* --------------------------------------------------------------------------
+   DARK MODE & RESPONSIVE TOAST NOTIFICATIONS (MOBILE OPTIMIZATION)
+   -------------------------------------------------------------------------- */
+
+html.dark .crm-toast-item,
+[data-theme="dark"] .crm-toast-item {
+  background-color: rgba(15, 23, 42, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+html.dark .toast-title,
+[data-theme="dark"] .toast-title {
+  color: #f8fafc;
+}
+
+html.dark .toast-message,
+[data-theme="dark"] .toast-message {
+  color: #94a3b8;
+}
+
+html.dark .toast-location-tag,
+[data-theme="dark"] .toast-location-tag {
+  background-color: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+html.dark .toast-close-btn:hover,
+[data-theme="dark"] .toast-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* Tablet & Mobile: compact pill layout, prevent covering screen */
+@media screen and (max-width: 640px) {
+  .crm-toast-container {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    margin: 0 auto;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Limit max visible toasts on mobile so they do not dominate screen real estate */
+  .crm-toast-item:nth-child(n + 3) {
+    display: none !important;
+  }
+
+  .crm-toast-item {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15), 0 2px 6px -1px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.96);
+    border-left-width: 3.5px;
+    animation: toastSlideDownMobile 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes toastSlideDownMobile {
+    from {
+      opacity: 0;
+      transform: translateY(-14px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .toast-main {
+    padding: 9px 12px;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .toast-icon-wrapper {
+    margin-top: 1px;
+  }
+
+  .toast-icon-wrapper svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .toast-title {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 2px;
+  }
+
+  .toast-message {
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: #475569;
+    /* Limit message height on mobile to max 3 lines to conserve screen space */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .toast-location-tag {
+    margin-top: 5px;
+    padding: 2px 6px;
+    font-size: 10.5px;
+    gap: 3px;
+  }
+
+  .toast-location-tag svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .toast-details-container {
+    margin-top: 4px;
+  }
+
+  .toast-details-toggle {
+    font-size: 10.5px;
+  }
+
+  .toast-details-box {
+    margin-top: 4px;
+    padding: 6px 8px;
+    font-size: 10px;
+    max-height: 85px;
+  }
+
+  .toast-close-btn {
+    padding: 2px;
+    margin-top: 1px;
+  }
+
+  .toast-close-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+}
+
+/* Small mobile devices (<= 380px) */
+@media screen and (max-width: 380px) {
+  .crm-toast-container {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    max-width: calc(100vw - 16px);
+    gap: 6px;
+  }
+
+  .toast-main {
+    padding: 7px 10px;
+    gap: 6px;
+  }
+
+  .toast-icon-wrapper svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .toast-title {
+    font-size: 12px;
+  }
+
+  .toast-message {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+
+  .toast-close-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
+
 /* ==========================================================================
    REACT ERROR BOUNDARY SCREEN
    ========================================================================== */

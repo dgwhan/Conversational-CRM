@@ -1,15 +1,33 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useLandingTheme } from '../hooks/useLandingInteractions.js';
 import { LandingNavbar } from '../components/LandingNavbar.js';
 import { HeroSection } from '../components/HeroSection.js';
 import { StatsStrip } from '../components/StatsStrip.js';
 import { BentoFeatures } from '../components/BentoFeatures.js';
-import { HowItWorksSection } from '../components/HowItWorksSection.js';
-import { LiveDemoInbox } from '../components/LiveDemoInbox.js';
-import { DashboardPreviewSection } from '../components/DashboardPreviewSection.js';
-import { TestimonialsSection } from '../components/TestimonialsSection.js';
-import { FinalCtaSection } from '../components/FinalCtaSection.js';
-import { LandingFooter } from '../components/LandingFooter.js';
+
+// Lazy-load below-the-fold sections for blazing fast FCP and LCP
+const HowItWorksSection = lazy(() =>
+  import('../components/HowItWorksSection.js').then((m) => ({ default: m.HowItWorksSection }))
+);
+const LiveDemoInbox = lazy(() =>
+  import('../components/LiveDemoInbox.js').then((m) => ({ default: m.LiveDemoInbox }))
+);
+const DashboardPreviewSection = lazy(() =>
+  import('../components/DashboardPreviewSection.js').then((m) => ({ default: m.DashboardPreviewSection }))
+);
+const TestimonialsSection = lazy(() =>
+  import('../components/TestimonialsSection.js').then((m) => ({ default: m.TestimonialsSection }))
+);
+const FinalCtaSection = lazy(() =>
+  import('../components/FinalCtaSection.js').then((m) => ({ default: m.FinalCtaSection }))
+);
+const LandingFooter = lazy(() =>
+  import('../components/LandingFooter.js').then((m) => ({ default: m.LandingFooter }))
+);
+
+const SectionPlaceholder: React.FC = () => (
+  <div className="w-full min-h-[160px] animate-pulse bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl my-8" />
+);
 
 export const LandingHomePage: React.FC = () => {
   const { isDark, toggleTheme } = useLandingTheme();
@@ -37,7 +55,7 @@ export const LandingHomePage: React.FC = () => {
 
       {/* Main Content Sections */}
       <main id="main-content">
-        {/* 2. Hero Section with 3D Tilt Mockup & Mascot Cusi */}
+        {/* 2. Hero Section (Above the fold, Critical Rendering Path) */}
         <HeroSection />
 
         {/* 3. Trusted Stats Strip */}
@@ -46,24 +64,32 @@ export const LandingHomePage: React.FC = () => {
         {/* 4. Bento Grid Features (8 cards) */}
         <BentoFeatures />
 
-        {/* 5. How It Works (4-step timeline with 2D characters) */}
-        <HowItWorksSection />
+        {/* 5-9. Below-the-fold Lazy Loaded Sections */}
+        <Suspense fallback={<SectionPlaceholder />}>
+          <HowItWorksSection />
+        </Suspense>
 
-        {/* 6. Live Interactive Inbox Demo */}
-        <LiveDemoInbox />
+        <Suspense fallback={<SectionPlaceholder />}>
+          <LiveDemoInbox />
+        </Suspense>
 
-        {/* 7. Dashboard & SVG KPI Charts Preview */}
-        <DashboardPreviewSection />
+        <Suspense fallback={<SectionPlaceholder />}>
+          <DashboardPreviewSection />
+        </Suspense>
 
-        {/* 8. Universities Testimonials Carousel */}
-        <TestimonialsSection />
+        <Suspense fallback={<SectionPlaceholder />}>
+          <TestimonialsSection />
+        </Suspense>
 
-        {/* 9. Final CTA with Confetti & Celebrating Mascot */}
-        <FinalCtaSection />
+        <Suspense fallback={<SectionPlaceholder />}>
+          <FinalCtaSection />
+        </Suspense>
       </main>
 
       {/* 10. Footer */}
-      <LandingFooter />
+      <Suspense fallback={<div className="h-20" />}>
+        <LandingFooter />
+      </Suspense>
     </div>
   );
 };

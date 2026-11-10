@@ -53,6 +53,8 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Role được nạp từ truy vấn context Workspace (WorkspaceConfigContext), mặc định rỗng khi chưa vào workspace
   const [role, setRoleState] = useState<UserRole>(() => {
     try {
+      const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!savedSession) return USER_ROLES.EMPTY;
       const saved = localStorage.getItem('polarisx_crm_user_role') || '';
       if (saved === USER_ROLES.OWNER || saved === USER_ROLES.STAFF) return saved as UserRole;
     } catch { }
@@ -104,6 +106,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [session?.accessToken]);
 
   const isRoleLocked = true;
+  const isAuthenticated = session !== null;
   const currentUser = session?.user || session?.staff;
   const userId = currentUser?.id || '';
   const userName = currentUser?.fullName || '';
@@ -111,11 +114,10 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const staffId = userId;
   const staffName = userName;
   const staffEmail = userEmail;
-  const isOwner = role === USER_ROLES.OWNER;
-  const isStaff = role === USER_ROLES.STAFF;
+  const isOwner = Boolean(isAuthenticated && role === USER_ROLES.OWNER);
+  const isStaff = Boolean(isAuthenticated && role === USER_ROLES.STAFF);
   const isAgent = false;
   const ownerId = workspaceOwnerId || (isOwner ? userId : '');
-  const isAuthenticated = session !== null;
 
   // Cập nhật role từ truy vấn context Workspace
   const setRole = (newRole: UserRole, newOwnerId?: string) => {
