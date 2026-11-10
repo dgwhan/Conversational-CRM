@@ -22,7 +22,7 @@ export const LANDING_STATS: StatItem[] = [
     description: 'Xử lý mượt mà hội thoại từ Fanpage, Zalo OA & Zalo cá nhân',
   },
   {
-    value: '-65%',
+    value: '+65%',
     numericValue: 65,
     suffix: '%',
     label: 'Thời gian phản hồi',
