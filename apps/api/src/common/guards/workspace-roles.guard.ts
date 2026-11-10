@@ -6,12 +6,23 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, AppRole } from '../decorators/roles.decorator.js';
+import { extractUserFromAuthHeader } from '../../modules/workspace-config/application/workspace-resolver.js';
 
 @Injectable()
 export class WorkspaceRolesGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+
+    // 1. Tự động xác thực và nhận diện người dùng từ Access Token nếu có trong Authorization header
+    if (!request.user && request.headers?.authorization) {
+      const tokenUser = extractUserFromAuthHeader(request.headers.authorization);
+      if (tokenUser) {
+        request.user = tokenUser;
+      }
+    }
+
     const requiredRoles = this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -22,7 +33,6 @@ export class WorkspaceRolesGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
     // Lấy role từ JWT user context hoặc header 'x-user-role' (phục vụ mô phỏng / kiểm thử)
     const rawRole =
       request.user?.role ||

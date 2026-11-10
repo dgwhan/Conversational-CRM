@@ -9,11 +9,13 @@ import {
   Body,
   Headers,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { WorkspaceConfigService } from '../../application/workspace-config/index.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
 import { WorkspaceRole } from '../../domain/index.js';
+import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
 import type {
   CreateWorkspaceRequestDto,
@@ -30,17 +32,19 @@ import type {
 @Controller('workspaces')
 @UseGuards(WorkspaceRolesGuard)
 export class WorkspacesController {
-  constructor(private readonly configService: WorkspaceConfigService) {}
+  constructor(private readonly configService: WorkspaceConfigService) { }
 
   /**
    * Lấy danh sách tất cả Workspace mà tài khoản hiện tại sở hữu hoặc là thành viên
    */
   @Get('my-workspaces')
   async getMyWorkspaces(
+    @Req() req: any,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceItemResponseDto[]> {
-    return this.configService.getMyWorkspaces(staffId, ownerId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.getMyWorkspaces(callerId);
   }
 
   /**
@@ -50,11 +54,13 @@ export class WorkspacesController {
   @Post()
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async createWorkspace(
+    @Req() req: any,
     @Body() body: CreateWorkspaceRequestDto,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceItemResponseDto> {
-    return this.configService.createWorkspace(body, staffId, ownerId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.createWorkspace(body, callerId);
   }
 
   /**
@@ -63,12 +69,13 @@ export class WorkspacesController {
   @Patch(':id')
   @Roles(WorkspaceRole.OWNER)
   async updateWorkspace(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Body() body: UpdateWorkspaceRequestDto,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceItemResponseDto> {
-    const callerId = ownerId || staffId;
+    const callerId = resolveCallerId(req, ownerId, staffId);
     return this.configService.updateWorkspace(workspaceId, body, callerId);
   }
 
@@ -78,11 +85,12 @@ export class WorkspacesController {
   @Delete(':id')
   @Roles(WorkspaceRole.OWNER)
   async deleteWorkspace(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<DeleteWorkspaceResponseDto> {
-    const callerId = ownerId || staffId;
+    const callerId = resolveCallerId(req, ownerId, staffId);
     return this.configService.deleteWorkspace(workspaceId, callerId);
   }
 
@@ -91,11 +99,13 @@ export class WorkspacesController {
    */
   @Get(':id/config')
   async getWorkspaceConfig(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.getConfig(workspaceId, ownerId, staffId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.getConfig(workspaceId, callerId);
   }
 
   /**
@@ -104,12 +114,14 @@ export class WorkspacesController {
   @Put(':id/config')
   @Roles(WorkspaceRole.OWNER)
   async updateWorkspaceConfig(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Body() body: UpdateWorkspaceConfigRequestDto,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.updateConfig(workspaceId, body, ownerId, staffId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.updateConfig(workspaceId, body, callerId);
   }
 
   /**
@@ -126,12 +138,14 @@ export class WorkspacesController {
   @Post(':id/hotlines')
   @Roles(WorkspaceRole.OWNER)
   async createHotline(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Body() body: CreateHotlineRequestDto,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceHotlineResponseDto> {
-    return this.configService.createHotline(workspaceId, body, staffId, ownerId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.createHotline(workspaceId, body, callerId);
   }
 
   /**
@@ -140,13 +154,15 @@ export class WorkspacesController {
   @Patch(':id/hotlines/:hotlineId')
   @Roles(WorkspaceRole.OWNER)
   async updateHotline(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Param('hotlineId') hotlineId: string,
     @Body() body: UpdateHotlineRequestDto,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceHotlineResponseDto> {
-    return this.configService.updateHotline(workspaceId, hotlineId, body, staffId, ownerId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.updateHotline(workspaceId, hotlineId, body, callerId);
   }
 
   /**
@@ -155,11 +171,13 @@ export class WorkspacesController {
   @Delete(':id/hotlines/:hotlineId')
   @Roles(WorkspaceRole.OWNER)
   async deleteHotline(
+    @Req() req: any,
     @Param('id') workspaceId: string,
     @Param('hotlineId') hotlineId: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<DeleteHotlineResponseDto> {
-    return this.configService.deleteHotline(workspaceId, hotlineId, staffId, ownerId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.configService.deleteHotline(workspaceId, hotlineId, callerId);
   }
 }

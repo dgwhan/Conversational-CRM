@@ -7,9 +7,11 @@ import {
   Body,
   UseGuards,
   Headers,
+  Req,
 } from '@nestjs/common';
 import { StaffManagementService } from '../../application/staff-management/index.js';
 import { WorkspaceRole } from '../../domain/index.js';
+import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type {
   CreateStaffRequestDto,
   StaffItemResponseDto,
@@ -20,7 +22,7 @@ import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.g
 @Controller('workspaces/current/staff')
 @UseGuards(WorkspaceRolesGuard)
 export class StaffManagementController {
-  constructor(private readonly staffService: StaffManagementService) {}
+  constructor(private readonly staffService: StaffManagementService) { }
 
   /**
    * 1. XEM: Lấy danh sách nhân viên thuộc Workspace (Cả Owner và Staff đều có quyền xem)
@@ -28,11 +30,13 @@ export class StaffManagementController {
   @Get()
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async getStaffList(
+    @Req() req: any,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<StaffItemResponseDto[]> {
-    return this.staffService.getStaffList(ownerId || staffId || '', workspaceId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.staffService.getStaffList(callerId, workspaceId);
   }
 
   /**
@@ -41,12 +45,14 @@ export class StaffManagementController {
   @Post()
   @Roles(WorkspaceRole.OWNER)
   async createStaff(
+    @Req() req: any,
     @Body() dto: CreateStaffRequestDto,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<StaffItemResponseDto> {
-    return this.staffService.createStaff(ownerId || staffId || '', dto, workspaceId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.staffService.createStaff(callerId, dto, workspaceId);
   }
 
   /**
@@ -55,11 +61,13 @@ export class StaffManagementController {
   @Delete(':id')
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async deleteStaff(
+    @Req() req: any,
     @Param('id') targetStaffId: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<{ success: boolean; message: string }> {
-    return this.staffService.removeStaff(ownerId || staffId || '', targetStaffId, workspaceId);
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    return this.staffService.removeStaff(callerId, targetStaffId, workspaceId);
   }
 }

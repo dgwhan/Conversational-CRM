@@ -135,12 +135,10 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const login = (newSession: LoginResponse) => {
-    const newUser = newSession.user || newSession.staff;
-    const currentActiveUser = session?.user || session?.staff;
-    if (currentActiveUser && currentActiveUser.id !== newUser?.id) {
-      clearAccountCache();
-    }
+    // Luôn dọn sạch cache tài khoản & workspace active cũ để tránh rò rỉ workspace giữa các tài khoản
+    clearAccountCache();
 
+    const newUser = newSession.user || newSession.staff;
     apiClient.setAccessToken(newSession.accessToken);
     setSession(newSession);
 
@@ -174,7 +172,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     notify.info('Đã đăng xuất khỏi hệ thống.', 'Phiên làm việc');
   };
 
-  const toggleRole = () => {};
+  const toggleRole = () => { };
 
   return (
     <UserRoleContext.Provider

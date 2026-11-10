@@ -89,9 +89,20 @@ export const useWorkspaceManager = ({
         }
 
         return normalized;
+      } else {
+        // Tài khoản hiện tại chưa sở hữu hoặc không thuộc Workspace nào -> Dọn sạch workspace active cũ
+        setMyWorkspaces([]);
+        setActiveWorkspaceId('');
+        apiClient.setActiveWorkspaceId('');
+        localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+        return [];
       }
     } catch (err) {
       console.warn('Could not fetch workspaces:', err);
+      setMyWorkspaces([]);
+      setActiveWorkspaceId('');
+      apiClient.setActiveWorkspaceId('');
+      localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
     }
     return [];
   }, [isAuthenticated, staffId, effectiveOwnerId, staffName]);
