@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import '../App.css';
 import { Sidebar, type ActiveNavTab } from '../app/Sidebar.js';
 import { HeaderLayout } from './HeaderLayout.js';
+import { getTabFromPathname } from '../config/routes.js';
 
 export interface MainLayoutProps {
-  children: React.ReactNode;
-  currentTab: ActiveNavTab;
-  onTabChange: (tab: ActiveNavTab) => void;
+  children?: React.ReactNode;
+  currentTab?: ActiveNavTab;
+  onTabChange?: (tab: ActiveNavTab) => void;
   onApiUrlChange?: (newUrl: string) => void;
   headerTitle?: string;
   headerExtraActions?: React.ReactNode;
@@ -14,7 +16,9 @@ export interface MainLayoutProps {
 
 /**
  * Layout chính của CRM (Sidebar + HeaderLayout + Content Viewport).
- * Tách biệt hoàn toàn Header và Sidebar thành các lớp layout chuyên biệt.
+ * Hỗ trợ cả hai chế độ:
+ * 1. React Router Outlet (Route-based)
+ * 2. Children props (Component-based)
  */
 export const MainLayout: React.FC<MainLayoutProps> = ({
   children,
@@ -25,6 +29,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   headerExtraActions,
 }) => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Xác định tab hiện tại từ props hoặc tự động nhận diện từ URL route
+  const effectiveTab = currentTab || getTabFromPathname(location.pathname);
 
   return (
     <div className="crm-app-container">
@@ -36,9 +44,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
       {/* 1. Thanh Menu Điều Hướng Bên Trái (Sidebar) */}
       <Sidebar
-        currentTab={currentTab}
+        currentTab={effectiveTab}
         onTabChange={(tab) => {
-          onTabChange(tab);
+          onTabChange?.(tab);
           setIsMobileSidebarOpen(false);
         }}
         isMobileOpen={isMobileSidebarOpen}
@@ -48,7 +56,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       {/* 2. Khung Viewport Chính: Gồm HeaderLayout và Main Content */}
       <div className="crm-main-viewport">
         <HeaderLayout
-          currentTab={currentTab}
+          currentTab={effectiveTab}
           onTabChange={onTabChange}
           onApiUrlChange={onApiUrlChange}
           onToggleMobileMenu={() => setIsMobileSidebarOpen((prev) => !prev)}
@@ -58,12 +66,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
         <main
           className={`crm-content-area ${
-            currentTab === 'inbox'
+            effectiveTab === 'inbox'
               ? 'pancake-fullscreen !p-0 !overflow-hidden flex flex-col flex-1 h-full min-h-0'
               : ''
           }`}
         >
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
     </div>

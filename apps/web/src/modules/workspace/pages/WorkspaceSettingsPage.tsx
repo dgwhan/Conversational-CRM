@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useWorkspaceConfig } from '../WorkspaceConfigContext.js';
 import type { BusinessDomain, WorkingHoursConfig, WorkspaceTerminology } from '../workspaceConfig.types.js';
 import { useTranslation } from '../../../i18n/index.js';
@@ -32,10 +33,19 @@ export const WorkspaceSettingsPage: React.FC = () => {
     addCriteria,
     deleteCriteria,
     activeWorkspace,
+    activeWorkspaceId,
+    switchWorkspace,
     isCurrentWorkspaceOwner,
   } = useWorkspaceConfig();
 
   const [activeTab, setActiveTab] = useState<SettingsTabId>('stages');
+  const { id } = useParams<{ id: string }>();
+
+  useEffect(() => {
+    if (id && id !== activeWorkspaceId) {
+      switchWorkspace(id);
+    }
+  }, [id, activeWorkspaceId, switchWorkspace]);
 
   const tabItems: TabItem<SettingsTabId>[] = [
     {

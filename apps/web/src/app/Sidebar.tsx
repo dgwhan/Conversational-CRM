@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
   BarChart3,
@@ -16,12 +17,13 @@ import { useRealtime } from '../modules/realtime/RealtimeContext.js';
 import { useUserRole } from '../modules/auth/UserRoleContext.js';
 import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.js';
 import { notify } from '../components/feedback/toastEmitter.js';
+import { TAB_TO_ROUTE_MAP, getTabFromPathname } from '../config/routes.js';
 
 export type ActiveNavTab = 'inbox' | 'kanban' | 'calendar' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
 
 export interface SidebarProps {
-  currentTab: ActiveNavTab;
-  onTabChange: (tab: ActiveNavTab) => void;
+  currentTab?: ActiveNavTab;
+  onTabChange?: (tab: ActiveNavTab) => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -34,8 +36,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { unreadCount } = useRealtime();
-  const { config } = useWorkspaceConfig();
+  const { config, activeWorkspaceId } = useWorkspaceConfig();
   const { isAgent } = useUserRole();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Xác định tab đang active từ props hoặc từ URL pathname hiện tại
+  const effectiveTab = currentTab || getTabFromPathname(location.pathname);
 
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     try {
@@ -98,6 +105,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  const handleItemClick = (e: React.MouseEvent, item: (typeof mainNavItems)[0]) => {
+    e.preventDefault();
+    if (item.restricted) {
+      notify.warning(
+        t('sidebar.restrictedAgentMsg', 'Bạn đang ở vai trò Tư vấn viên (Agent). Tính năng này chỉ dành cho Chủ doanh nghiệp (Owner).'),
+        t('sidebar.restrictedTitle', 'Hạn chế Quyền hạn')
+      );
+      return;
+    }
+
+    // Điều hướng theo React Router
+    const targetRoute = TAB_TO_ROUTE_MAP[item.id]?.(activeWorkspaceId) || '/reports';
+    navigate(targetRoute);
+
+    // Báo callback nếu component cha lắng nghe
+    onTabChange?.(item.id);
+    onCloseMobile?.();
+  };
+
   return (
     <aside className={`crm-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header */}
@@ -132,24 +158,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="crm-sidebar-menu">
         <nav className="crm-nav-list">
           {mainNavItems.map((item) => {
-            const isActive = currentTab === item.id;
+            const isActive = effectiveTab === item.id;
+            const targetHref = TAB_TO_ROUTE_MAP[item.id]?.(activeWorkspaceId) || '#';
+
             return (
               <a
                 key={item.id}
-                href={`#${item.id}`}
+                href={targetHref}
                 className={`crm-nav-item ${isActive ? 'active' : ''} ${item.restricted ? 'nav-restricted' : ''}`}
                 title={isCollapsed ? item.label : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (item.restricted) {
-                    notify.warning(
-                      t('sidebar.restrictedAgentMsg', 'Bạn đang ở vai trò Tư vấn viên (Agent). Tính năng này chỉ dành cho Chủ doanh nghiệp (Owner).'),
-                      t('sidebar.restrictedTitle', 'Hạn chế Quyền hạn')
-                    );
-                    return;
-                  }
-                  onTabChange(item.id);
-                }}
+                onClick={(e) => handleItemClick(e, item)}
                 style={item.restricted ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
               >
                 <span className="crm-nav-icon">

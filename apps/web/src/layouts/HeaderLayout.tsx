@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, ShieldCheck, Globe } from 'lucide-react';
 import type { ActiveNavTab } from '../app/Sidebar.js';
 import { LanguageSwitcher } from '../i18n/LanguageSwitcher.js';
@@ -7,10 +8,11 @@ import { StaffPresenceSelector } from '../modules/realtime/StaffPresenceSelector
 import { NotificationCenter } from '../modules/notification/NotificationCenter.js';
 import { useUserRole } from '../modules/auth/index.js';
 import { WorkspaceSwitcher } from '../modules/workspace/WorkspaceSwitcher.js';
+import { getTabFromPathname, ROUTES } from '../config/routes.js';
 import '../styles/header-layout.css';
 
 export interface HeaderLayoutProps {
-  currentTab: ActiveNavTab;
+  currentTab?: ActiveNavTab;
   onTabChange?: (tab: ActiveNavTab) => void;
   onApiUrlChange?: (newUrl: string) => void;
   onToggleMobileMenu?: () => void;
@@ -34,6 +36,10 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
   const { t, locale, setLocale } = useTranslation();
   const [isMobileUserMenuOpen, setIsMobileUserMenuOpen] = useState(false);
   const mobileUserMenuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const effectiveTab = currentTab || getTabFromPathname(location.pathname);
 
   const tabNameMap = useMemo<Record<ActiveNavTab, string>>(() => ({
     reports: t('header.reportsTab', 'Báo cáo & Thống kê'),
@@ -63,7 +69,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
     };
   }, [isMobileUserMenuOpen]);
 
-  const currentTabLabel = title || tabNameMap[currentTab] || t('nav.liveInbox');
+  const currentTabLabel = title || tabNameMap[effectiveTab] || t('nav.liveInbox');
   const userRoleText = isOwner ? t('header.ownerRole', 'Chủ doanh nghiệp') : t('header.agentRole', 'Tư vấn viên');
   const userInitial = (staffName || (isOwner ? 'O' : 'A')).trim().charAt(0).toUpperCase();
 
@@ -131,7 +137,10 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
             <button
               type="button"
               className="crm-user-logout-btn"
-              onClick={logout}
+              onClick={() => {
+                logout();
+                navigate(ROUTES.LOGIN);
+              }}
               title={t('header.logoutDesc', 'Đăng xuất khỏi hệ thống')}
             >
               <LogOut size={13} />
@@ -222,6 +231,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
                       onClick={() => {
                         setIsMobileUserMenuOpen(false);
                         logout();
+                        navigate(ROUTES.LOGIN);
                       }}
                     >
                       <LogOut size={15} />
