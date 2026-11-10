@@ -77,6 +77,9 @@ export class ApiClient extends BaseApiClient {
   markNotificationRead = this.workspaces.markNotificationRead;
   markAllNotificationsRead = this.workspaces.markAllNotificationsRead;
   deleteNotification = this.workspaces.deleteNotification;
+  getWorkspaceInvitation = this.workspaces.getWorkspaceInvitation;
+  acceptWorkspaceInvitation = this.workspaces.acceptWorkspaceInvitation;
+  declineWorkspaceInvitation = this.workspaces.declineWorkspaceInvitation;
 
   // Contact & Merge/Unmerge APIs
   getContacts = this.contacts.getContacts;

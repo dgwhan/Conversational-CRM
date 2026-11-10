@@ -5,6 +5,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   Headers,
   Req,
@@ -25,49 +26,74 @@ export class StaffManagementController {
   constructor(private readonly staffService: StaffManagementService) { }
 
   /**
-   * 1. XEM: Lấy danh sách nhân viên thuộc Workspace (Cả Owner và Staff đều có quyền xem)
+   * Danh sách nhân viên thuộc Workspace
+   * Ưu tiên callerId từ JWT Token (req.user.id) và workspaceId từ Query param
    */
   @Get()
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async getStaffList(
     @Req() req: any,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
-    @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<StaffItemResponseDto[]> {
-    const callerId = resolveCallerId(req, ownerId, staffId);
-    return this.staffService.getStaffList(callerId, workspaceId);
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    const targetWsId = queryWsId || headerWsId;
+    return this.staffService.getStaffList(callerId, targetWsId);
   }
 
   /**
-   * 2. MỜI: Mời nhân viên đã có tài khoản trên IAM vào Workspace
+   * Mời nhân viên đã có tài khoản vào Workspace
    */
   @Post()
   @Roles(WorkspaceRole.OWNER)
   async createStaff(
     @Req() req: any,
     @Body() dto: CreateStaffRequestDto,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
-    @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<StaffItemResponseDto> {
-    const callerId = resolveCallerId(req, ownerId, staffId);
-    return this.staffService.createStaff(callerId, dto, workspaceId);
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    const targetWsId = queryWsId || headerWsId;
+    return this.staffService.createStaff(callerId, dto, targetWsId);
   }
 
   /**
-   * 3. XÓA: Xóa nhân viên khỏi Không gian làm việc hoặc Rời khỏi Không gian làm việc
+   * Xóa nhân viên khỏi Không gian làm việc hoặc Rời khỏi Không gian làm việc
    */
   @Delete(':id')
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async deleteStaff(
     @Req() req: any,
     @Param('id') targetStaffId: string,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
-    @Headers('x-workspace-id') workspaceId?: string,
   ): Promise<{ success: boolean; message: string }> {
-    const callerId = resolveCallerId(req, ownerId, staffId);
-    return this.staffService.removeStaff(callerId, targetStaffId, workspaceId);
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    const targetWsId = queryWsId || headerWsId;
+    return this.staffService.removeStaff(callerId, targetStaffId, targetWsId);
+  }
+
+  /**
+   * Chủ sở hữu hủy lời mời đã gửi (chưa được chấp nhận)
+   */
+  @Delete('invitations/:id')
+  @Roles(WorkspaceRole.OWNER)
+  async cancelInvitation(
+    @Req() req: any,
+    @Param('id') targetId: string,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    const targetWsId = queryWsId || headerWsId;
+    return this.staffService.cancelInvitation(callerId, targetId, targetWsId);
   }
 }

@@ -34,6 +34,7 @@ export interface WorkspaceItem {
 export interface WorkspaceConfigContextType {
   config: WorkspaceConfig;
   isLoading: boolean;
+  isWorkspaceListLoading: boolean;
   applyPreset: (domain: BusinessDomain, customName?: string) => Promise<void>;
   updateConfig: (patch: Partial<WorkspaceConfig>) => Promise<void>;
   addStage: (stage: Omit<PipelineStageConfig, 'id' | 'order'>) => Promise<void>;
@@ -46,11 +47,14 @@ export interface WorkspaceConfigContextType {
   addCriteria: (criteria: Omit<LeadQualificationCriteria, 'id'>) => Promise<void>;
   updateCriteria: (criteriaId: string, patch: Partial<LeadQualificationCriteria>) => Promise<void>;
   deleteCriteria: (criteriaId: string) => Promise<void>;
-  // Quản lý nhân sự Staff theo workspace (Xem, Mời, Xóa)
+  // Quản lý nhân sự Staff theo workspace (Xem, Mời, Xóa, Lời mời)
   staffMembers: ManagedStaffItem[];
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
   createStaffMember: (data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER }, targetWsId?: string) => Promise<void>;
   deleteStaffMember: (staffId: string, targetWsId?: string) => Promise<void>;
+  cancelInvitation?: (targetId: string, targetWsId?: string) => Promise<void>;
+  acceptInvitation?: (targetWsId: string) => Promise<any>;
+  declineInvitation?: (targetWsId: string) => Promise<any>;
   resetToDefault: () => void;
   // Multi-Workspace & Switcher
   myWorkspaces: WorkspaceItem[];

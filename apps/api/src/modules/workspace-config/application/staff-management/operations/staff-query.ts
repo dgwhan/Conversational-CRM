@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { WorkspaceMemberStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import { WorkspaceRole } from '../../../domain/index.js';
 import type { StaffItemResponse } from '../../../presentation/dto/index.js';
@@ -86,25 +87,45 @@ export async function getStaffList(
           updatedAt: true,
           memberships: {
             where: { workspaceId: targetWorkspace.id },
-            select: { role: true },
+            select: {
+              id: true,
+              role: true,
+              status: true,
+              invitedAt: true,
+              joinedAt: true,
+              invitedBy: {
+                select: { id: true, fullName: true, email: true },
+              },
+            },
           },
         },
         orderBy: [{ createdAt: 'desc' }],
       })
       : [];
 
-    // Map role theo membership trong workspace
+    //Người tạo Workspace mặc định là OWNER
     const mappedStaff = staffMembers.map((s: any) => {
-      let role: WorkspaceRole = WorkspaceRole.STAFF;
-      if (s.id === targetWorkspace.ownerId) {
-        role = WorkspaceRole.OWNER;
-      } else if (s.memberships && s.memberships[0]?.role) {
-        role = s.memberships[0].role as WorkspaceRole;
-      }
+      const isOwnerUser = s.id === targetWorkspace.ownerId;
+      const membership = s.memberships?.find((m: any) => m.workspaceId === targetWorkspace.id || m.id);
+
+      const role: WorkspaceRole = isOwnerUser ? WorkspaceRole.OWNER : (membership?.role || WorkspaceRole.STAFF);
+      const memberStatus: WorkspaceMemberStatus = isOwnerUser
+        ? WorkspaceMemberStatus.ACTIVE
+        : (membership?.status || WorkspaceMemberStatus.PENDING);
+      const memberId: string | undefined = membership?.id;
+      const invitedAt: Date | null = isOwnerUser ? null : (membership?.invitedAt ?? null);
+      const joinedAt: Date | null = membership?.joinedAt ?? (isOwnerUser ? targetWorkspace.createdAt : null);
+      const invitedBy = isOwnerUser ? null : (membership?.invitedBy ?? null);
+
       const { memberships: _memberships, ...rest } = s;
       return {
         ...rest,
         role,
+        memberStatus,
+        memberId,
+        invitedAt,
+        joinedAt,
+        invitedBy,
         ownerId: targetWorkspace.ownerId,
       };
     });

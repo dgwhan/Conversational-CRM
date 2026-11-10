@@ -1,11 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { WorkspaceItem, WorkspaceConfig, BusinessDomain } from '../workspaceConfig.types.js';
 import { CLIENT_INDUSTRY_PRESETS } from '../workspacePresets.js';
 import { USER_ROLES, type UserRole } from '../../auth/userRole.types.js';
 import { apiClient } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
+import { STORAGE_KEYS } from '../../../config/storage-keys.js';
+import { getWorkspaceConfigStorageKey } from '../workspace-config-storage.js';
 
-export const ACTIVE_WORKSPACE_KEY = 'polarisx_crm_active_workspace_id';
+export const ACTIVE_WORKSPACE_KEY = STORAGE_KEYS.ACTIVE_WORKSPACE;
 
 export interface UseWorkspaceManagerProps {
   staffId?: string;
@@ -33,6 +35,13 @@ export const useWorkspaceManager = ({
   onWorkspaceRoleChange,
 }: UseWorkspaceManagerProps) => {
   const [myWorkspaces, setMyWorkspaces] = useState<WorkspaceItem[]>([]);
+  const [workspaceLoadIdentity, setWorkspaceLoadIdentity] = useState('');
+  const [isWorkspaceListFetching, setIsWorkspaceListFetching] = useState(false);
+  const workspaceFetchSequence = useRef(0);
+  const workspaceIdentity = isAuthenticated ? (staffId || effectiveOwnerId || 'authenticated') : '';
+  const isWorkspaceListLoading = Boolean(
+    workspaceIdentity && (workspaceLoadIdentity !== workspaceIdentity || isWorkspaceListFetching),
+  );
 
   // Lấy workspace ID đang active từ localStorage hoặc khởi tạo
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string>(() => {
@@ -47,11 +56,26 @@ export const useWorkspaceManager = ({
   // Quyền OWNER trong workspace hiện tại
   const isCurrentWorkspaceOwner = Boolean(isAuthenticated && (activeWorkspace ? activeWorkspace.isOwner : isOwner));
 
+  const fetchStaffListRef = useRef(fetchStaffList);
+  const syncFromBackendRef = useRef(syncFromBackend);
+  fetchStaffListRef.current = fetchStaffList;
+  syncFromBackendRef.current = syncFromBackend;
+
   // Lấy danh sách Workspaces của user từ Backend
   const fetchMyWorkspaces = useCallback(async (): Promise<WorkspaceItem[]> => {
-    if (!isAuthenticated) return [];
+    const requestSequence = ++workspaceFetchSequence.current;
+    if (!isAuthenticated) {
+      setMyWorkspaces([]);
+      setActiveWorkspaceId('');
+      apiClient.setActiveWorkspaceId('');
+      setWorkspaceLoadIdentity('');
+      setIsWorkspaceListFetching(false);
+      return [];
+    }
+    setIsWorkspaceListFetching(true);
     try {
       const list = await apiClient.getMyWorkspaces(staffId, effectiveOwnerId);
+      if (requestSequence !== workspaceFetchSequence.current) return [];
       if (Array.isArray(list) && list.length > 0) {
         // Chuẩn hóa ownerName: Ưu tiên fullName thực tế, loại bỏ hoàn toàn 'Chính bạn'
         const normalized = list.map((ws) => ({
@@ -86,6 +110,7 @@ export const useWorkspaceManager = ({
               ...(selectedWs.domain ? { domain: selectedWs.domain as BusinessDomain } : {}),
             };
           });
+          await syncFromBackend(selectedId);
         }
 
         return normalized;
@@ -98,14 +123,20 @@ export const useWorkspaceManager = ({
         return [];
       }
     } catch (err) {
+      if (requestSequence !== workspaceFetchSequence.current) return [];
       console.warn('Could not fetch workspaces:', err);
       setMyWorkspaces([]);
       setActiveWorkspaceId('');
       apiClient.setActiveWorkspaceId('');
       localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+    } finally {
+      if (requestSequence === workspaceFetchSequence.current) {
+        setWorkspaceLoadIdentity(workspaceIdentity);
+        setIsWorkspaceListFetching(false);
+      }
     }
     return [];
-  }, [isAuthenticated, staffId, effectiveOwnerId, staffName]);
+  }, [isAuthenticated, staffId, effectiveOwnerId, staffName, syncFromBackend, workspaceIdentity]);
 
   useEffect(() => {
     fetchMyWorkspaces();
@@ -119,7 +150,7 @@ export const useWorkspaceManager = ({
   }, [activeWorkspace?.id, activeWorkspace?.role, activeWorkspace?.ownerId, onWorkspaceRoleChange]);
 
   // Chuyển đổi nhanh giữa các Workspace (Workspace Switcher)
-  const switchWorkspace = async (targetWsId: string) => {
+  const switchWorkspace = useCallback(async (targetWsId: string) => {
     if (targetWsId === activeWorkspaceId) return;
 
     const targetWs = myWorkspaces.find((w) => w.id === targetWsId);
@@ -129,7 +160,8 @@ export const useWorkspaceManager = ({
 
     // Đồng bộ cấu hình và tên workspace ngay lập tức
     if (targetWs) {
-      const cachedConfigStr = localStorage.getItem(`polarisx_crm_workspace_config_v1_ws_${targetWs.id}`);
+      const cacheKey = staffId ? getWorkspaceConfigStorageKey(staffId, targetWs.id) : '';
+      const cachedConfigStr = cacheKey ? localStorage.getItem(cacheKey) : null;
       if (cachedConfigStr) {
         try {
           const parsed = JSON.parse(cachedConfigStr);
@@ -169,8 +201,8 @@ export const useWorkspaceManager = ({
     setIsLoading(true);
     try {
       await Promise.all([
-        syncFromBackend(targetWsId),
-        fetchStaffList(targetWsId),
+        syncFromBackendRef.current(targetWsId),
+        fetchStaffListRef.current(targetWsId),
       ]);
       notify.success(
         `Đã chuyển sang không gian làm việc "${targetWs?.name || 'Workspace'}" (${targetWs?.isOwner ? 'Chủ sở hữu' : 'Thành viên'})!`,
@@ -181,7 +213,7 @@ export const useWorkspaceManager = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeWorkspaceId, myWorkspaces, staffId, setConfig, setIsLoading]);
 
   /**
    * Tạo một Không gian làm việc (Workspace) mới và chuyển sang workspace đó
@@ -299,6 +331,7 @@ export const useWorkspaceManager = ({
     setActiveWorkspaceId,
     activeWorkspace,
     isCurrentWorkspaceOwner,
+    isWorkspaceListLoading,
     fetchMyWorkspaces,
     switchWorkspace,
     createWorkspace,

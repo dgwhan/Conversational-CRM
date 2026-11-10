@@ -15,6 +15,12 @@ import {
 import { getStaffList } from './operations/staff-query.js';
 import { createStaff } from './operations/staff-invite.js';
 import { removeStaff } from './operations/staff-removal.js';
+import {
+  getInvitationDetails,
+  acceptInvitation,
+  declineInvitation,
+  cancelInvitation,
+} from './operations/invitations/index.js';
 
 export type { CreateStaffDto, StaffItemResponse } from '../../presentation/dto/index.js';
 
@@ -91,6 +97,44 @@ export class StaffManagementService {
     workspaceId?: string
   ): Promise<{ success: boolean; message: string }> {
     return removeStaff(this.prisma, ownerId, targetStaffId, workspaceId);
+  }
+
+  /**
+   * Lấy chi tiết lời mời tham gia workspace (Chống Broken Access Control)
+   */
+  getInvitationDetails(callerId: string, invitationOrWsId: string) {
+    return getInvitationDetails(this.prisma, callerId, invitationOrWsId);
+  }
+
+  /**
+   * Chấp nhận lời mời tham gia workspace (dành cho người được mời)
+   */
+  acceptInvitation(
+    callerId: string,
+    workspaceId: string
+  ): Promise<{ success: boolean; message: string; workspace: any }> {
+    return acceptInvitation(this.prisma, callerId, workspaceId);
+  }
+
+  /**
+   * Từ chối lời mời tham gia workspace
+   */
+  declineInvitation(
+    callerId: string,
+    workspaceId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return declineInvitation(this.prisma, callerId, workspaceId);
+  }
+
+  /**
+   * Hủy lời mời tham gia workspace (chỉ OWNER có quyền)
+   */
+  cancelInvitation(
+    ownerId: string,
+    targetStaffIdOrMemberId: string,
+    workspaceId?: string
+  ): Promise<{ success: boolean; message: string }> {
+    return cancelInvitation(this.prisma, ownerId, targetStaffIdOrMemberId, workspaceId);
   }
 }
 

@@ -11,6 +11,7 @@ import type {
 import { isUuid } from '../../../../../utils/uuid.util.js';
 import { SlugUtil } from '../../../../../utils/slug.util.js';
 import { resolveBusinessDomain, getIndustryPreset, WorkspaceRole } from '../../../domain/index.js';
+import { WorkspaceMemberStatus } from '@prisma/client';
 import { getUserDelegate } from '../../workspace-resolver.js';
 
 const logger = new Logger('WorkspaceCreation');
@@ -20,7 +21,7 @@ const logger = new Logger('WorkspaceCreation');
  * Người nào tạo thì người đó trực tiếp làm CHỦ SỞ HỮU
  */
 export async function createWorkspace(
-  prisma: PrismaService | undefined,
+  prisma: PrismaService,
   data: CreateWorkspaceRequestDto,
   staffId?: string,
   ownerId?: string
@@ -30,7 +31,7 @@ export async function createWorkspace(
   }
 
   // Xác định ID tài khoản người dùng thực hiện tạo Workspace (từ headers/token)
-  const creatorId = ownerId || staffId;
+  const creatorId = ownerId;
   if (!creatorId || !isUuid(creatorId)) {
     throw new BadRequestException('Không thể xác định tài khoản người tạo Không gian làm việc');
   }
@@ -77,12 +78,15 @@ export async function createWorkspace(
     },
   });
 
-  // Tự động gán quyền OWNER cho người tạo Không gian làm việc
+  // Tự động gán quyền OWNER chính thức cho người tạo Không gian làm việc
   await prisma.workspaceMember.create({
     data: {
       workspaceId: newWs.id,
       userId: creator.id,
       role: WorkspaceRole.OWNER,
+      status: WorkspaceMemberStatus.ACTIVE,
+      isActive: true,
+      joinedAt: new Date(),
     },
   });
 

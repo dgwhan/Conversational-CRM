@@ -5,6 +5,15 @@ enum WorkspaceMemberRole {
     @@map("workspace_member_role")
 }
 
+enum WorkspaceMemberStatus {
+    PENDING
+    ACTIVE
+    DECLINED
+    CANCELLED
+
+    @@map("workspace_member_status")
+}
+
 model Workspace {
     id          String              @id @default(uuid()) @db.Uuid
     name        String              @db.VarChar(255)
@@ -49,21 +58,28 @@ model WorkspaceConfiguration {
 }
 
 model WorkspaceMember {
-    id          String              @id @default(uuid()) @db.Uuid
-    workspaceId String              @map("workspace_id") @db.Uuid
-    userId      String              @map("user_id") @db.Uuid
-    role        WorkspaceMemberRole @default(STAFF)
-    isActive    Boolean             @default(true) @map("is_active")
-    createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-    updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+    id          String                @id @default(uuid()) @db.Uuid
+    workspaceId String                @map("workspace_id") @db.Uuid
+    userId      String                @map("user_id") @db.Uuid
+    role        WorkspaceMemberRole   @default(STAFF)
+    status      WorkspaceMemberStatus @default(PENDING) @map("status")
+    isActive    Boolean               @default(true) @map("is_active")
+    invitedById String?               @map("invited_by_id") @db.Uuid
+    invitedAt   DateTime              @default(now()) @map("invited_at") @db.Timestamptz(3)
+    joinedAt    DateTime?             @map("joined_at") @db.Timestamptz(3)
+    createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt   DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
 
     workspace             Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
     user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    invitedBy             User?          @relation("MemberInviter", fields: [invitedById], references: [id], onDelete: SetNull)
     assignedConversations Conversation[]
     activities            Activity[]
     assignedDeals         Deal[]
 
     @@unique([workspaceId, userId])
+    @@index([workspaceId, status])
+    @@index([userId, status])
     @@index([workspaceId])
     @@index([userId])
     @@map("workspace_members")

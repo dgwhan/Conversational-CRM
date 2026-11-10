@@ -1,8 +1,12 @@
 import { notify } from '../../components/feedback/toastEmitter.js';
 import { ApiError, type ApiRequestOptions } from './types.js';
+import { STORAGE_KEYS } from '../../config/storage-keys.js';
 
 export const DEFAULT_API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') || '/api';
+
+const AUTH_SESSION_KEY = STORAGE_KEYS.AUTH_SESSION;
+const ACTIVE_WORKSPACE_KEY = STORAGE_KEYS.ACTIVE_WORKSPACE;
 
 export class BaseApiClient {
   protected baseUrl: string = DEFAULT_API_BASE_URL;
@@ -10,12 +14,28 @@ export class BaseApiClient {
   protected accessToken: string | null = null;
   protected refreshPromise: Promise<string | null> | null = null;
   protected isLoggingOut: boolean = false;
+  private tokenRefreshedListeners: Array<(token: string, staff?: any) => void> = [];
+  private sessionExpiredListeners: Array<() => void> = [];
+
+  onTokenRefreshed(listener: (token: string, staff?: any) => void): () => void {
+    this.tokenRefreshedListeners.push(listener);
+    return () => {
+      this.tokenRefreshedListeners = this.tokenRefreshedListeners.filter((l) => l !== listener);
+    };
+  }
+
+  onSessionExpired(listener: () => void): () => void {
+    this.sessionExpiredListeners.push(listener);
+    return () => {
+      this.sessionExpiredListeners = this.sessionExpiredListeners.filter((l) => l !== listener);
+    };
+  }
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.activeWorkspaceId = localStorage.getItem('polarisx_crm_active_workspace_id') || '';
+      this.activeWorkspaceId = localStorage.getItem(ACTIVE_WORKSPACE_KEY) || '';
       try {
-        const saved = sessionStorage.getItem('polarisx_crm_auth_session') || localStorage.getItem('polarisx_crm_auth_session');
+        const saved = sessionStorage.getItem(AUTH_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed.accessToken === 'string') {
@@ -37,7 +57,7 @@ export class BaseApiClient {
     if (this.isLoggingOut) return null;
     if (!this.accessToken && typeof window !== 'undefined') {
       try {
-        const saved = sessionStorage.getItem('polarisx_crm_auth_session') || localStorage.getItem('polarisx_crm_auth_session');
+        const saved = sessionStorage.getItem(AUTH_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed.accessToken === 'string') {
@@ -119,31 +139,32 @@ export class BaseApiClient {
 
         // Cập nhật session storage đồng bộ
         try {
-          const saved = sessionStorage.getItem('polarisx_crm_auth_session') || localStorage.getItem('polarisx_crm_auth_session');
+          const saved = sessionStorage.getItem(AUTH_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY);
           const prev = saved ? JSON.parse(saved) : {};
           const updated = {
             ...prev,
             accessToken: newAccessToken,
             staff: data.staff ?? prev.staff,
           };
-          localStorage.setItem('polarisx_crm_auth_session', JSON.stringify(updated));
+          sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(updated));
+          localStorage.removeItem(AUTH_SESSION_KEY);
         } catch {}
 
-        // Phát sự kiện thông báo cho UI và các module cập nhật
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(
-            new CustomEvent('crm:token-refreshed', {
-              detail: { accessToken: newAccessToken, staff: data.staff },
-            }),
-          );
-        }
+        // Thông báo trực tiếp cho các listeners đăng ký trong bộ nhớ (không phát sự kiện toàn cục ra window)
+        this.tokenRefreshedListeners.forEach((listener) => {
+          try {
+            listener(newAccessToken, data.staff);
+          } catch {}
+        });
 
         return newAccessToken;
       } catch {
         this.accessToken = null;
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('crm:session-expired'));
-        }
+        this.sessionExpiredListeners.forEach((listener) => {
+          try {
+            listener();
+          } catch {}
+        });
         return null;
       } finally {
         this.refreshPromise = null;
@@ -169,16 +190,14 @@ export class BaseApiClient {
 
     // Tự động đính kèm Bearer token nếu đã có
     const token = this.getAccessToken();
-    let userRole = '';
     let currentStaffId = '';
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && AUTH_SESSION_KEY) {
       try {
-        const savedSession = localStorage.getItem('polarisx_crm_auth_session');
+        const savedSession = sessionStorage.getItem(AUTH_SESSION_KEY) || localStorage.getItem(AUTH_SESSION_KEY);
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (parsed && (parsed.accessToken || token)) {
             currentStaffId = parsed?.user?.id || parsed?.staff?.id || '';
-            userRole = localStorage.getItem('polarisx_crm_user_role') || '';
           }
         }
       } catch {}
@@ -187,7 +206,6 @@ export class BaseApiClient {
     const defaultHeaders: Record<string, string> = {
       'X-Requested-With': 'XMLHttpRequest',
       ...(this.activeWorkspaceId ? { 'x-workspace-id': this.activeWorkspaceId } : {}),
-      ...(userRole ? { 'x-user-role': userRole } : {}),
       ...(currentStaffId ? { 'x-staff-id': currentStaffId } : {}),
       ...(restOptions.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

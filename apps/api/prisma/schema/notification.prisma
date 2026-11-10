@@ -1,4 +1,5 @@
 enum NotificationType {
+    WORKSPACE_INVITATION
     CHANNEL_EXPIRING
     CHANNEL_EXPIRED
     NEW_LEAD
@@ -22,6 +23,7 @@ enum NotificationSeverity {
 model Notification {
     id          String               @id @default(uuid()) @db.Uuid
     workspaceId String               @map("workspace_id") @db.Uuid
+    userId      String?              @map("user_id") @db.Uuid
     type        NotificationType
     severity    NotificationSeverity
     title       String               @db.VarChar(255)
@@ -32,7 +34,9 @@ model Notification {
     createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
 
     workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    user        User?                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([workspaceId, isRead, createdAt])
+    @@index([userId, isRead])
     @@map("notifications")
 }

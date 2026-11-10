@@ -69,6 +69,16 @@ export const HttpErrorPage: React.FC<HttpErrorPageProps> = ({
           advice: t('errors.code403Advice', 'Liên hệ quản trị viên (ADMIN) để được cấp quyền quản lý tính năng tương ứng.'),
           variantClass: 'theme-danger',
         };
+      case 404:
+        return {
+          code: '404',
+          badgeText: 'Not Found',
+          title: t('errors.code404Title', 'Không Tìm Thấy Trang (404)'),
+          desc: t('errors.code404Desc', 'Không tìm thấy tài nguyên hoặc bạn không có quyền truy cập liên kết này.'),
+          icon: <AlertCircle size={36} className="text-warning" />,
+          advice: t('errors.code404Advice', 'Vui lòng kiểm tra lại đường dẫn URL hoặc quay về trang trước.'),
+          variantClass: 'theme-warning',
+        };
       case 429:
         return {
           code: '429',

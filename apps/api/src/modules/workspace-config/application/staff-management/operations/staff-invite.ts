@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { WorkspaceMemberStatus, NotificationType, NotificationSeverity } from '@prisma/client';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import {
   findUserByIdentifier,
@@ -100,17 +101,24 @@ export async function createStaff(
     });
 
     if (existingMember && existingMember.isActive) {
-      throw new BadRequestException(
-        USER_IDENTIFIER_CONFIG.MESSAGES.ALREADY_MEMBER(
-          existing.email || existing.phoneNumber
-        )
-      );
+      if (existingMember.status === WorkspaceMemberStatus.ACTIVE) {
+        throw new BadRequestException(
+          USER_IDENTIFIER_CONFIG.MESSAGES.ALREADY_MEMBER(
+            existing.email || existing.phoneNumber
+          )
+        );
+      }
+      if (existingMember.status === WorkspaceMemberStatus.PENDING) {
+        throw new BadRequestException(
+          `Người dùng "${existing.email || existing.phoneNumber}" đã được gửi lời mời và đang chờ chấp nhận.`
+        );
+      }
     }
 
     // Sử dụng chính xác vai trò do người mời chỉ định (bắt buộc)
     const finalRole: WorkspaceRole = dto.role;
 
-    await prisma.workspaceMember.upsert({
+    const member = await prisma.workspaceMember.upsert({
       where: {
         workspaceId_userId: {
           workspaceId: ownerWorkspace.id,
@@ -121,16 +129,51 @@ export async function createStaff(
         workspaceId: ownerWorkspace.id,
         userId: existing.id,
         role: finalRole,
+        status: WorkspaceMemberStatus.PENDING,
         isActive: true,
+        invitedById: currentUser.id,
+        invitedAt: new Date(),
       },
       update: {
         role: finalRole,
+        status: WorkspaceMemberStatus.PENDING,
         isActive: true,
+        invitedById: currentUser.id,
+        invitedAt: new Date(),
+        joinedAt: null,
       },
     });
 
+    // Tạo bản ghi Notification cho người được mời
+    try {
+      if (prisma.notification?.create) {
+        await prisma.notification.create({
+          data: {
+            workspaceId: ownerWorkspace.id,
+            userId: existing.id,
+            type: NotificationType.WORKSPACE_INVITATION,
+            severity: NotificationSeverity.INFO,
+            title: 'Lời mời tham gia Không gian làm việc',
+            content: `${currentUser.fullName || 'Chủ sở hữu'} đã mời bạn tham gia không gian làm việc "${ownerWorkspace.name}" với vai trò ${finalRole === WorkspaceRole.OWNER ? 'Chủ sở hữu' : 'Nhân viên tư vấn'}.`,
+            actionUrl: `/workspace/invited/${member.id}`,
+            metadata: {
+              workspaceId: ownerWorkspace.id,
+              workspaceName: ownerWorkspace.name,
+              invitedById: currentUser.id,
+              invitedByName: currentUser.fullName,
+              role: finalRole,
+              memberId: member.id,
+              invitationUrl: `/workspace/invited/${member.id}`,
+            },
+          },
+        });
+      }
+    } catch (notifErr) {
+      logger.warn(`Could not create invitation notification: ${(notifErr as Error).message}`);
+    }
+
     logger.log(
-      `Linked existing user "${existing.email || existing.phoneNumber}" to workspace ${ownerWorkspace.id} of owner ${resolvedOwner}`
+      `Invited user "${existing.email || existing.phoneNumber}" to workspace ${ownerWorkspace.id} of owner ${resolvedOwner}`
     );
 
     return {
@@ -139,6 +182,15 @@ export async function createStaff(
       fullName: existing.fullName,
       phoneNumber: existing.phoneNumber,
       status: existing.status,
+      memberStatus: member.status,
+      memberId: member.id,
+      invitedAt: member.invitedAt,
+      joinedAt: member.joinedAt,
+      invitedBy: {
+        id: currentUser.id,
+        fullName: currentUser.fullName,
+        email: currentUser.email,
+      },
       lockedAt: existing.lockedAt,
       createdAt: existing.createdAt,
       updatedAt: existing.updatedAt,

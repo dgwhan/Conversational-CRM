@@ -17,17 +17,16 @@ const logger = new Logger('WorkspaceUpdate');
  * Cập nhật thông tin cơ bản của Workspace (Tên, Ngành nghề/Domain)
  */
 export async function updateWorkspace(
-  prisma: PrismaService | undefined,
+  prisma: PrismaService,
   workspaceId: string,
   data: UpdateWorkspaceRequestDto,
-  callerIdOrStaffId?: string,
   ownerId?: string
 ): Promise<WorkspaceItemResponseDto> {
   if (!prisma) {
     throw new BadRequestException('Database service is unavailable');
   }
 
-  const callerId = ownerId || callerIdOrStaffId;
+  const callerId = ownerId;
   if (!callerId) {
     throw new BadRequestException('Không thể xác định tài khoản thao tác');
   }
@@ -44,16 +43,7 @@ export async function updateWorkspace(
     throw new NotFoundException('Không tìm thấy Không gian làm việc');
   }
 
-  const isOwner =
-    ws.ownerId === callerId ||
-    (await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: ws.id,
-        userId: callerId,
-        role: WorkspaceRole.OWNER,
-        isActive: true,
-      },
-    }));
+  const isOwner = ws.ownerId === callerId;
 
   if (!isOwner) {
     throw new ForbiddenException(
@@ -62,7 +52,9 @@ export async function updateWorkspace(
   }
 
   const updateName = data.name?.trim();
-  const updateData: { name?: string } = {};
+  const updateData: {
+    name?: string
+  } = {};
   if (updateName) {
     updateData.name = updateName;
   }
@@ -77,7 +69,10 @@ export async function updateWorkspace(
   });
 
   if (updated.configuration) {
-    const configPatch: { workspaceName?: string; domain?: string } = {};
+    const configPatch: {
+      workspaceName?:
+      string; domain?: string
+    } = {};
     if (updateName) {
       configPatch.workspaceName = updateName;
     }

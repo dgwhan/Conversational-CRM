@@ -10,10 +10,10 @@ import { WorkspaceRole } from '../../../domain/index.js';
 const logger = new Logger('WorkspaceDeletion');
 
 /**
- * Xóa Không gian làm việc (Chỉ Chủ sở hữu, không được xóa nếu là workspace duy nhất)
+ * Xóa Không gian làm việc 
  */
 export async function deleteWorkspace(
-  prisma: PrismaService | undefined,
+  prisma: PrismaService,
   workspaceId: string,
   callerIdOrStaffId?: string,
   ownerId?: string
@@ -35,16 +35,7 @@ export async function deleteWorkspace(
     throw new NotFoundException('Không tìm thấy Không gian làm việc');
   }
 
-  const isOwner =
-    ws.ownerId === callerId ||
-    (await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: ws.id,
-        userId: callerId,
-        role: WorkspaceRole.OWNER,
-        isActive: true,
-      },
-    }));
+  const isOwner = ws.ownerId === callerId;
 
   if (!isOwner) {
     throw new ForbiddenException('Chỉ Chủ sở hữu mới có quyền xóa Không gian làm việc này');

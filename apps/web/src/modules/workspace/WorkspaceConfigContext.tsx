@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type {
   WorkspaceConfig,
   BusinessDomain,
@@ -9,6 +9,7 @@ import { notify } from '../../components/feedback/toastEmitter.js';
 import { useUserRole } from '../auth/UserRoleContext.js';
 import { USER_ROLES } from '../auth/userRole.types.js';
 import { apiClient } from '../../lib/api-client/index.js';
+import { getWorkspaceConfigStorageKey } from './workspace-config-storage.js';
 import {
   useWorkspaceCatalog,
   useWorkspaceStaffManagement,
@@ -26,8 +27,8 @@ export type {
   ProductItemConfig,
   LeadQualificationCriteria,
 } from './workspaceConfig.types.js';
-
-const STORAGE_KEY = 'polarisx_crm_workspace_config_v1';
+export { USER_STATUS, WORKSPACE_MEMBER_STATUS } from './types/staff.types.js';
+export type { UserStatus, WorkspaceMemberStatus } from './types/staff.types.js';
 
 const defaultEducationPreset = CLIENT_INDUSTRY_PRESETS.EDUCATION;
 const initialDefaultConfig: WorkspaceConfig = {
@@ -52,33 +53,19 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   const effectiveOwnerId = ownerId || (isOwner ? staffId : '');
 
-  const [config, setConfig] = useState<WorkspaceConfig>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const ownerStorageKey = effectiveOwnerId ? `${STORAGE_KEY}_${effectiveOwnerId}` : STORAGE_KEY;
-        const stored = localStorage.getItem(ownerStorageKey) || localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && parsed.pipelineStages && parsed.pipelineStages.length >= 2) {
-            return parsed;
-          }
-        }
-      } catch (err) {
-        console.warn('Could not read cached workspace config:', err);
-      }
-    }
-    return initialDefaultConfig;
-  });
+  const [config, setConfig] = useState<WorkspaceConfig>(initialDefaultConfig);
+
+  useEffect(() => {
+    setConfig(initialDefaultConfig);
+  }, [staffId]);
 
   const saveConfig = (newConfig: WorkspaceConfig) => {
     setConfig(newConfig);
     try {
-      if (newConfig.workspaceId) {
-        localStorage.setItem(`${STORAGE_KEY}_ws_${newConfig.workspaceId}`, JSON.stringify(newConfig));
+      if (staffId && newConfig.workspaceId) {
+        const storageKey = getWorkspaceConfigStorageKey(staffId, newConfig.workspaceId);
+        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(newConfig));
       }
-      const ownerStorageKey = effectiveOwnerId ? `${STORAGE_KEY}_${effectiveOwnerId}` : STORAGE_KEY;
-      localStorage.setItem(ownerStorageKey, JSON.stringify(newConfig));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
     } catch (e) {
       console.warn('LocalStorage save failed:', e);
     }
@@ -86,12 +73,12 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Đồng bộ cấu hình từ Backend API theo workspaceId
   const syncFromBackend = useCallback(async (targetWsId?: string) => {
-    if (!isAuthenticated) return;
-    const wsToFetch = targetWsId || config.workspaceId || '';
+    if (!isAuthenticated || !targetWsId) return;
+    const wsToFetch = targetWsId;
     if (!wsToFetch) return;
 
     try {
-      const data = await apiClient.get<WorkspaceConfig>(`/workspaces/${wsToFetch}/config`, {
+      const data = await apiClient.get<WorkspaceConfig>(`/workspaces/${encodeURIComponent(wsToFetch)}/config`, {
         skipToast: true,
         headers: {
           'x-owner-id': effectiveOwnerId,
@@ -106,7 +93,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
     } catch (err) {
       console.error('Lỗi đồng bộ cấu hình từ Backend:', err);
     }
-  }, [isAuthenticated, effectiveOwnerId, staffId, config.workspaceId]);
+  }, [isAuthenticated, effectiveOwnerId, staffId]);
 
   // Hook 1: Quản lý Multi-Workspace & Switcher
   const workspaceManager = useWorkspaceManager({
@@ -152,8 +139,6 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
       },
     };
 
-    saveConfig(updated);
-
     try {
       const remoteConfig = await apiClient.put<WorkspaceConfig>('/workspaces/current/config', patch, {
         headers: {
@@ -164,9 +149,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
         },
       });
 
-      if (remoteConfig && remoteConfig.pipelineStages?.length >= 2) {
-        saveConfig(remoteConfig);
-      }
+      saveConfig(remoteConfig && remoteConfig.pipelineStages?.length >= 2 ? remoteConfig : updated);
       notify.success('Đã lưu cấu hình Workspace thành công vào cơ sở dữ liệu!');
     } catch (err) {
       console.error('Update config failed:', err);
@@ -226,8 +209,12 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
         fetchStaffList: staffManager.fetchStaffList,
         createStaffMember: staffManager.createStaffMember,
         deleteStaffMember: staffManager.deleteStaffMember,
+        cancelInvitation: staffManager.cancelInvitation,
+        acceptInvitation: staffManager.acceptInvitation,
+        declineInvitation: staffManager.declineInvitation,
         // Multi-Workspace & Switcher
         myWorkspaces: workspaceManager.myWorkspaces,
+        isWorkspaceListLoading: workspaceManager.isWorkspaceListLoading,
         activeWorkspaceId: workspaceManager.activeWorkspaceId,
         activeWorkspace: workspaceManager.activeWorkspace,
         isCurrentWorkspaceOwner: workspaceManager.isCurrentWorkspaceOwner,
@@ -246,6 +233,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 const defaultFallbackContext: WorkspaceConfigContextType = {
   config: initialDefaultConfig,
   isLoading: false,
+  isWorkspaceListLoading: false,
   applyPreset: async () => {},
   updateConfig: async () => {},
   addStage: async () => {},
@@ -263,6 +251,9 @@ const defaultFallbackContext: WorkspaceConfigContextType = {
   fetchStaffList: async () => [],
   createStaffMember: async () => {},
   deleteStaffMember: async () => {},
+  cancelInvitation: async () => {},
+  acceptInvitation: async () => {},
+  declineInvitation: async () => {},
   myWorkspaces: [],
   activeWorkspaceId: '',
   activeWorkspace: null,

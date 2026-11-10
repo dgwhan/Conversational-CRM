@@ -33,6 +33,7 @@ const apiProxy = {
 
 // https://vite.dev/config/
 export default defineConfig({
+  envDir: '../../',
   plugins: [tailwindcss(), react()],
   server: {
     port: 5173,

@@ -43,7 +43,7 @@ export class WorkspaceConfigService {
   private readonly hotline: WorkspaceHotlineService;
 
   constructor(
-    @Optional() private readonly prisma?: PrismaService,
+    private readonly prisma: PrismaService,
     @Optional() lifecycle?: WorkspaceLifecycleService,
     @Optional() hotline?: WorkspaceHotlineService,
   ) {

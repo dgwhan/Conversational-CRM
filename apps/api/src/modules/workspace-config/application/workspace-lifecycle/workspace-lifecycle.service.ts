@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import type {
   CreateWorkspaceRequestDto,
@@ -17,7 +17,7 @@ import { deleteWorkspace } from './operations/workspace-deletion.js';
 
 @Injectable()
 export class WorkspaceLifecycleService {
-  constructor(@Optional() private readonly prisma?: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) { }
 
   getUserDelegate() {
     return getUserDelegate(this.prisma);
@@ -49,19 +49,17 @@ export class WorkspaceLifecycleService {
   async updateWorkspace(
     workspaceId: string,
     data: UpdateWorkspaceRequestDto,
-    callerIdOrStaffId?: string,
     ownerId?: string
   ): Promise<WorkspaceItemResponseDto> {
-    const callerId = ownerId || callerIdOrStaffId;
+    const callerId = ownerId;
     return updateWorkspace(this.prisma, workspaceId, data, callerId);
   }
 
   async deleteWorkspace(
     workspaceId: string,
-    callerIdOrStaffId?: string,
     ownerId?: string
   ): Promise<{ success: boolean; message: string }> {
-    const callerId = ownerId || callerIdOrStaffId;
+    const callerId = ownerId;
     return deleteWorkspace(this.prisma, workspaceId, callerId);
   }
 
