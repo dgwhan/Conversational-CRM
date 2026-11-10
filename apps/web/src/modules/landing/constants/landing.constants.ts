@@ -97,7 +97,7 @@ export const TESTIMONIALS: TestimonialItem[] = [
   {
     id: 'test-2',
     quote:
-      'Hộp thư hợp nhất 3 cột phong cách Pancake cực kỳ trực quan và mượt mà. Đội ngũ tư vấn viên làm quen chỉ trong 1 buổi sáng là thành thạo.',
+      'Hộp thư hợp nhất 3 cột cực kỳ trực quan và mượt mà. Đội ngũ tư vấn viên làm quen chỉ trong 1 buổi sáng là thành thạo.',
     author: 'Trần Thị Mai Phương',
     role: 'Giám đốc Tuyển sinh Miền Nam',
     organization: 'Tổ hợp Giáo dục Polaris Edu',
