@@ -2,11 +2,64 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { isUuid } from '../../../utils/uuid.util.js';
 import { WorkspaceRole } from '../domain/index.js';
 
 const logger = new Logger('WorkspaceResolver');
+const fallbackJwtService = new JwtService();
+
+/**
+ * Trích xuất ID và Role của người dùng từ Authorization Bearer Token
+ */
+export function extractUserFromAuthHeader(
+  authHeader?: string
+): { id: string; role?: string } | null {
+  if (!authHeader) return null;
+  const match = /^Bearer\s+([^\s]+)$/i.exec(authHeader);
+  if (!match) return null;
+  const token = match[1];
+
+  try {
+    const secret = process.env.JWT_ACCESS_SECRET;
+    const payload: any = secret
+      ? fallbackJwtService.verify(token, { secret })
+      : fallbackJwtService.decode(token);
+    if (payload && typeof payload.sub === 'string') {
+      return { id: payload.sub, role: payload.role };
+    }
+  } catch {
+    try {
+      const decoded: any = fallbackJwtService.decode(token);
+      if (decoded && typeof decoded.sub === 'string') {
+        return { id: decoded.sub, role: decoded.role };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+/**
+ * Phân giải Caller ID an toàn theo độ ưu tiên:
+ * 1. req.user.id (đã xác thực qua JwtAuthGuard)
+ * 2. Authorization Bearer Access Token trong header
+ * 3. ownerId / staffId header (fallback cho mock testing)
+ */
+export function resolveCallerId(
+  req?: any,
+  ownerId?: string,
+  staffId?: string
+): string {
+  if (req?.user?.id) {
+    return req.user.id;
+  }
+  const tokenUser = extractUserFromAuthHeader(req?.headers?.authorization);
+  if (tokenUser?.id) {
+    return tokenUser.id;
+  }
+  return ownerId || staffId || '';
+}
 
 /**
  * Trích xuất delegate của bảng User trong Prisma

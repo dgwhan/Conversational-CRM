@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, CheckCircle2, FileText, Info, ShieldAlert, Sparkles } from 'lucide-react';
+import { Calendar, CheckCircle2, FileText, ShieldAlert, Sparkles } from 'lucide-react';
 import type { LegalDocument } from '../types/legal.types.js';
 import { MascotCusiLegal } from './MascotCusiLegal.js';
 
@@ -8,7 +8,6 @@ export interface LegalHeaderProps {
 }
 
 export const LegalHeader: React.FC<LegalHeaderProps> = ({ document }) => {
-  const isPrivacy = document.documentType === 'privacy';
 
   return (
     <header className="relative pt-28 pb-12 px-4 sm:px-6 lg:px-8 border-b border-slate-200/60 dark:border-slate-800/60 bg-gradient-to-b from-blue-50/40 via-transparent to-transparent dark:from-blue-950/20">
