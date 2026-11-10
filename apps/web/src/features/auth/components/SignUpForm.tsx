@@ -33,6 +33,7 @@ export function SignUpForm({
   onSwitchToLogin,
   hideHeading = false,
 }: SignUpFormProps) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');

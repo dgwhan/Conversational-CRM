@@ -23,7 +23,7 @@ import type {
 
 export const ReportsDashboardPage: React.FC = () => {
   const { config, activeWorkspaceId, activeWorkspace } = useWorkspaceConfig();
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
   const [selectedRange, setSelectedRange] = useState<TimeRangeFilter>('30days');
   const [selectedChannel, setSelectedChannel] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(false);

@@ -14,6 +14,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
   onGoBack = () => window.history.back(),
   path = window.location.pathname,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="crm-error-page-wrapper">
       <div className="crm-error-page-container">

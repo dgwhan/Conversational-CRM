@@ -1,6 +1,8 @@
 import { z } from 'zod';
+import { WorkspaceRole, WORKSPACE_ROLES } from './roles.js';
 
-export const STAFF_ROLES = ['OWNER', 'STAFF'] as const;
+export { WorkspaceRole, WORKSPACE_ROLES };
+export const STAFF_ROLES = WORKSPACE_ROLES;
 export const StaffRoleSchema = z.enum(STAFF_ROLES);
 
 export const LoginSchema = z.object({
@@ -15,12 +17,18 @@ export const ChangePasswordSchema = z.object({
   newPassword: z.string().min(10).max(128),
 });
 
-export const CreateStaffSchema = z.object({
-  email: z.string().email().toLowerCase(),
-  fullName: z.string().min(1).max(100),
-  role: StaffRoleSchema.default('STAFF'),
-  phoneNumber: z.string().trim().optional(),
-});
+export const CreateStaffSchema = z
+  .object({
+    identifier: z.string().trim().optional(),
+    email: z.string().email().toLowerCase().optional(),
+    phoneNumber: z.string().trim().optional(),
+    fullName: z.string().min(1).max(100).optional(),
+    role: StaffRoleSchema.default('STAFF'),
+  })
+  .refine(
+    (data) => Boolean(data.identifier?.trim() || data.email?.trim() || data.phoneNumber?.trim()),
+    { message: 'Vui lòng cung cấp email hoặc số điện thoại' }
+  );
 
 export const UpdateStaffSchema = z
   .object({

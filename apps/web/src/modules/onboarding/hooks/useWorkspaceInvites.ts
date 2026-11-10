@@ -13,7 +13,7 @@ export interface UseWorkspaceInvitesOptions {
   staffMembers: ManagedStaffItem[];
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
   createStaffMember: (
-    data: { email: string; fullName: string; phoneNumber?: string; password?: string; role?: 'STAFF' | 'OWNER' },
+    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: 'STAFF' | 'OWNER' },
     targetWsId?: string,
   ) => Promise<void>;
   deleteStaffMember: (staffId: string, targetWsId?: string) => Promise<void>;
@@ -65,12 +65,14 @@ export const useWorkspaceInvites = ({
 
   /**
    * Mời nhân viên mới vào Workspace theo vai trò chuẩn (OWNER hoặc STAFF)
+   * Chỉ cần nhập Email hoặc Số điện thoại
    */
-  const handleAddInvite = async (email: string, role: StaffRole) => {
-    const defaultName = email.split('@')[0];
+  const handleAddInvite = async (identifier: string, role: StaffRole) => {
+    const isEmail = identifier.includes('@');
     await createStaffMember({
-      email,
-      fullName: defaultName,
+      identifier,
+      email: isEmail ? identifier : undefined,
+      phoneNumber: !isEmail ? identifier : undefined,
       role: role === StaffRole.OWNER ? StaffRole.OWNER : StaffRole.STAFF,
     });
     await fetchStaffList(workspaceId);

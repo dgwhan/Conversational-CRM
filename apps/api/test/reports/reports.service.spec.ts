@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ReportsService } from '../../src/modules/reports/reports.service.js';
 import type { PrismaService } from '../../src/platform/database/prisma.service.js';
-import type { WorkspaceConfigService } from '../../src/modules/workspace-config/workspace-config.service.js';
+import type { WorkspaceConfigService } from '../../src/modules/workspace-config/index.js';
 
 describe('ReportsService', () => {
   let service: ReportsService;

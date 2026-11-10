@@ -2,7 +2,7 @@ import { Injectable, Logger, Optional, Inject, forwardRef } from '@nestjs/common
 import { ModuleRef } from '@nestjs/core';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
-import { WorkspaceConfigService } from '../../workspace-config/application/workspace-config.service.js';
+import { WorkspaceConfigService } from '../../workspace-config/application/workspace-config/index.js';
 import { MessageDispatcherService } from '../../channel-connection/application/message-dispatcher.service.js';
 import {
   WorkingHoursConfig,

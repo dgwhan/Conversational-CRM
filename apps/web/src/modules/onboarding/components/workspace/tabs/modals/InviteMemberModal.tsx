@@ -6,7 +6,7 @@ import { StaffRole } from '../../../../../../features/auth/constants/auth.consta
 export interface InviteMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInviteMember: (email: string, fullName: string, role: StaffRole, phoneNumber?: string) => Promise<void>;
+  onInviteMember: (identifier: string, role: StaffRole) => Promise<void>;
 }
 
 export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
@@ -14,24 +14,21 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   onClose,
   onInviteMember,
 }) => {
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteFullName, setInviteFullName] = useState('');
-  const [invitePhone, setInvitePhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [inviteRole, setInviteRole] = useState<StaffRole>(StaffRole.STAFF);
   const [isInviting, setIsInviting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim()) {
-      notify.warning('Vui lòng nhập email thành viên.');
+    const cleanId = identifier.trim();
+    if (!cleanId) {
+      notify.warning('Vui lòng nhập Email hoặc Số điện thoại thành viên.');
       return;
     }
     setIsInviting(true);
     try {
-      await onInviteMember(inviteEmail.trim(), inviteFullName.trim(), inviteRole, invitePhone.trim() || undefined);
-      setInviteEmail('');
-      setInviteFullName('');
-      setInvitePhone('');
+      await onInviteMember(cleanId, inviteRole);
+      setIdentifier('');
       onClose();
     } catch {
       // Error handled in parent/context
@@ -52,41 +49,15 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Email thành viên <span className="text-red-500">*</span>
+            Email hoặc Số điện thoại <span className="text-red-500">*</span>
           </label>
           <input
-            type="email"
+            type="text"
             required
-            value={inviteEmail}
-            onChange={(e) => setInviteEmail(e.target.value)}
-            placeholder="name@example.com"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="Nhập email (vd: name@example.com) hoặc SĐT (vd: 0912345678)"
             className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 shadow-xs box-border transition-all"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Họ và tên
-          </label>
-          <input
-            type="text"
-            value={inviteFullName}
-            onChange={(e) => setInviteFullName(e.target.value)}
-            placeholder="Nhập họ và tên..."
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 shadow-xs box-border transition-all"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Số điện thoại
-          </label>
-          <input
-            type="text"
-            value={invitePhone}
-            onChange={(e) => setInvitePhone(e.target.value)}
-            placeholder="VD: 0901.234.567"
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 shadow-xs box-border font-mono transition-all"
           />
         </div>
 
@@ -99,8 +70,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             onChange={(e) => setInviteRole(e.target.value as StaffRole)}
             className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
           >
-            <option value={StaffRole.STAFF}>Nhân viên tư vấn</option>
-            <option value={StaffRole.OWNER}>Chủ sở hữu</option>
+            <option value={StaffRole.STAFF}>Nhân viên tư vấn (STAFF)</option>
+            <option value={StaffRole.OWNER}>Chủ sở hữu / Quản lý (OWNER)</option>
           </select>
         </div>
 

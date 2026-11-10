@@ -10,9 +10,10 @@ import {
   Headers,
   UseGuards,
 } from '@nestjs/common';
-import { WorkspaceConfigService } from '../../application/workspace-config.service.js';
+import { WorkspaceConfigService } from '../../application/workspace-config/index.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
+import { WorkspaceRole } from '../../domain/index.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
 import type {
   CreateWorkspaceRequestDto,
@@ -44,9 +45,10 @@ export class WorkspacesController {
 
   /**
    * Tạo mới Không gian làm việc (Workspace) kèm thiết lập doanh nghiệp
+   * Người tạo trực tiếp làm Chủ sở hữu (Owner) của Workspace vừa tạo
    */
   @Post()
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async createWorkspace(
     @Body() body: CreateWorkspaceRequestDto,
     @Headers('x-staff-id') staffId?: string,
@@ -59,27 +61,29 @@ export class WorkspacesController {
    * Cập nhật thông tin Không gian làm việc (Tên, Ngành nghề)
    */
   @Patch(':id')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async updateWorkspace(
     @Param('id') workspaceId: string,
     @Body() body: UpdateWorkspaceRequestDto,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceItemResponseDto> {
-    return this.configService.updateWorkspace(workspaceId, body, staffId, ownerId);
+    const callerId = ownerId || staffId;
+    return this.configService.updateWorkspace(workspaceId, body, callerId);
   }
 
   /**
    * Xóa Không gian làm việc
    */
   @Delete(':id')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async deleteWorkspace(
     @Param('id') workspaceId: string,
     @Headers('x-staff-id') staffId?: string,
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<DeleteWorkspaceResponseDto> {
-    return this.configService.deleteWorkspace(workspaceId, staffId, ownerId);
+    const callerId = ownerId || staffId;
+    return this.configService.deleteWorkspace(workspaceId, callerId);
   }
 
   /**
@@ -98,7 +102,7 @@ export class WorkspacesController {
    * Cập nhật cấu hình của một Workspace cụ thể theo ID
    */
   @Put(':id/config')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async updateWorkspaceConfig(
     @Param('id') workspaceId: string,
     @Body() body: UpdateWorkspaceConfigRequestDto,
@@ -120,7 +124,7 @@ export class WorkspacesController {
    * Thêm số Hotline mới cho Không gian làm việc
    */
   @Post(':id/hotlines')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async createHotline(
     @Param('id') workspaceId: string,
     @Body() body: CreateHotlineRequestDto,
@@ -134,7 +138,7 @@ export class WorkspacesController {
    * Cập nhật thông tin hoặc trạng thái số Hotline
    */
   @Patch(':id/hotlines/:hotlineId')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async updateHotline(
     @Param('id') workspaceId: string,
     @Param('hotlineId') hotlineId: string,
@@ -149,7 +153,7 @@ export class WorkspacesController {
    * Xóa số Hotline khỏi Không gian làm việc
    */
   @Delete(':id/hotlines/:hotlineId')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async deleteHotline(
     @Param('id') workspaceId: string,
     @Param('hotlineId') hotlineId: string,

@@ -18,7 +18,7 @@ export interface TeamInviteStepProps {
   business: BusinessSetupData;
   pages: FanpageItem[];
   invites: StaffInvite[];
-  onAddInvite: (email: string, role: StaffRole) => Promise<void> | void;
+  onAddInvite: (identifier: string, role: StaffRole) => Promise<void> | void;
   onRemoveInvite: (id: string) => Promise<void> | void;
   onFinish: () => void;
   onBack: () => void;
@@ -37,7 +37,7 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
   onBack,
 }) => {
   const { t } = useTranslation();
-  const [emailInput, setEmailInput] = useState('');
+  const [identifierInput, setIdentifierInput] = useState('');
   const [roleInput, setRoleInput] = useState<StaffRole>(StaffRole.STAFF);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,20 +46,25 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = emailInput.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setErrorMsg(t('onboarding.step3.errors.invalidEmail'));
+    const cleanInput = identifierInput.trim();
+    if (!cleanInput) {
+      setErrorMsg('Vui lòng nhập email hoặc số điện thoại.');
       return;
     }
-    if (invites.some((inv) => inv.email.toLowerCase() === cleanEmail)) {
+    const isEmail = cleanInput.includes('@');
+    if (!isEmail && !/^(\+84|0)\d{8,10}$/.test(cleanInput.replace(/[\s.-]/g, ''))) {
+      setErrorMsg('Vui lòng nhập đúng định dạng email hoặc số điện thoại hợp lệ.');
+      return;
+    }
+    if (invites.some((inv) => inv.email.toLowerCase() === cleanInput.toLowerCase())) {
       setErrorMsg(t('onboarding.step3.errors.duplicateEmail'));
       return;
     }
     setErrorMsg(null);
     setIsSubmitting(true);
     try {
-      await onAddInvite(cleanEmail, roleInput);
-      setEmailInput('');
+      await onAddInvite(cleanInput, roleInput);
+      setIdentifierInput('');
       setErrorMsg(null);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Không thể mời thành viên này.');
@@ -111,11 +116,11 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
           <div className="invite-email-field">
             <Mail size={18} className="field-icon" />
             <input
-              type="email"
+              type="text"
               className="onboarding-input"
-              placeholder={t('onboarding.step3.emailPlaceholder')}
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="Nhập email hoặc số điện thoại..."
+              value={identifierInput}
+              onChange={(e) => setIdentifierInput(e.target.value)}
               disabled={isSubmitting}
             />
           </div>

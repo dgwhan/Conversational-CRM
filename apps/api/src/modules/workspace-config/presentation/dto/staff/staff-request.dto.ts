@@ -1,9 +1,12 @@
+import { WorkspaceRole } from "../../../domain/index.js";
+
 export interface CreateStaffRequestDto {
-  email: string;
-  fullName: string;
+  identifier?: string;
+  email?: string;
   phoneNumber?: string;
+  fullName?: string;
   password?: string;
-  role?: 'STAFF' | 'OWNER';
+  role: WorkspaceRole;
 }
 
 export interface UpdateStaffRequestDto {
@@ -11,7 +14,7 @@ export interface UpdateStaffRequestDto {
   email?: string;
   phoneNumber?: string;
   password?: string;
-  role?: 'STAFF' | 'OWNER';
+  role?: WorkspaceRole;
 }
 
 export interface ToggleStaffLockRequestDto {

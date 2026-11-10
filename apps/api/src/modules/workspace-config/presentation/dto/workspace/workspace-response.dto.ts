@@ -1,12 +1,14 @@
+import { WorkspaceRole } from "../../../domain/index.js";
+
 export interface WorkspaceItemResponseDto {
   id: string;
   name: string;
   slug: string;
-  role: 'OWNER' | 'STAFF';
+  role: WorkspaceRole;
   isOwner: boolean;
-  domain: string;
+  domain?: string;
   ownerId?: string;
-  ownerName: string;
+  ownerName?: string;
   createdAt: Date;
 }
 

@@ -31,7 +31,7 @@ const STORAGE_KEY = 'polarisx_crm_workspace_config_v1';
 
 const defaultEducationPreset = CLIENT_INDUSTRY_PRESETS.EDUCATION;
 const initialDefaultConfig: WorkspaceConfig = {
-  workspaceId: 'ws-default-001',
+  workspaceId: '',
   workspaceName: defaultEducationPreset.workspaceName,
   domain: defaultEducationPreset.domain,
   terminology: { ...defaultEducationPreset.terminology },
@@ -167,7 +167,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
       notify.success('Đã lưu cấu hình Workspace thành công vào cơ sở dữ liệu!');
     } catch (err) {
       console.error('Update config failed:', err);
-      notify.info(`Đã lưu cấu hình cục bộ (${(err as Error).message}).`);
+      notify.error(`Không thể lưu cấu hình lên máy chủ: ${(err as Error).message}`);
     } finally {
       setIsLoading(false);
     }
@@ -175,19 +175,25 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Áp dụng Preset mẫu theo ngành
   const applyPreset = async (domain: BusinessDomain, customName?: string) => {
+    if (!workspaceManager.isCurrentWorkspaceOwner) {
+      notify.warning('Chỉ Chủ sở hữu mới có quyền thay đổi mẫu ngành của Không gian làm việc.');
+      return;
+    }
     const preset = CLIENT_INDUSTRY_PRESETS[domain] || CLIENT_INDUSTRY_PRESETS.EDUCATION;
     const newConfig: WorkspaceConfig = {
-      workspaceId: workspaceManager.activeWorkspaceId || config.workspaceId || 'ws-default-001',
+      workspaceId: workspaceManager.activeWorkspaceId || config.workspaceId || '',
       workspaceName: customName || preset.workspaceName,
       domain,
       terminology: { ...preset.terminology },
       pipelineStages: preset.pipelineStages.map((s) => ({ ...s })),
       productCatalog: preset.productCatalog.map((p) => ({ ...p })),
       criteria: preset.criteria.map((c) => ({ ...c })),
+      unresponsiveAlertMinutes: config.unresponsiveAlertMinutes ?? 15,
+      workingHours: config.workingHours,
     };
 
     await updateConfig(newConfig);
-    notify.success(`Đã áp dụng mẫu thiết lập cho ngành: ${preset.workspaceName}!`, 'Áp Dụng Mẫu Ngành Nghề');
+    notify.success(`Đã áp dụng mẫu thiết lập cho ngành: ${preset.workspaceName}!`, 'Áp Dụng Mẫu Ngành');
   };
 
   // Hook 3: Quản lý Phễu, Sản phẩm và Tiêu chí đánh giá
@@ -196,10 +202,10 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
     updateConfig,
   });
 
-  const resetToDefault = () => {
+  const resetToDefault = async () => {
     if (!workspaceManager.isCurrentWorkspaceOwner) return;
-    saveConfig(initialDefaultConfig);
-    notify.success('Đã khôi phục cấu hình mặc định CRM.');
+    await applyPreset('EDUCATION');
+    notify.success('Đã khôi phục cấu hình CRM tiêu chuẩn.');
   };
 
   return (
@@ -216,8 +222,6 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
         staffMembers: staffManager.staffMembers,
         fetchStaffList: staffManager.fetchStaffList,
         createStaffMember: staffManager.createStaffMember,
-        updateStaffMember: staffManager.updateStaffMember,
-        toggleLockStaffMember: staffManager.toggleLockStaffMember,
         deleteStaffMember: staffManager.deleteStaffMember,
         // Multi-Workspace & Switcher
         myWorkspaces: workspaceManager.myWorkspaces,
@@ -255,11 +259,9 @@ const defaultFallbackContext: WorkspaceConfigContextType = {
   staffMembers: [],
   fetchStaffList: async () => [],
   createStaffMember: async () => {},
-  updateStaffMember: async () => {},
-  toggleLockStaffMember: async () => {},
   deleteStaffMember: async () => {},
   myWorkspaces: [],
-  activeWorkspaceId: 'ws-default-001',
+  activeWorkspaceId: '',
   activeWorkspace: null,
   isCurrentWorkspaceOwner: true,
   switchWorkspace: async () => {},

@@ -33,6 +33,7 @@ export function LoginForm({
   onSwitchToSignUp,
   hideHeading = false,
 }: LoginFormProps) {
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState(readRememberedIdentifier);
   const [password, setPassword] = useState('');
   const [rememberIdentifier, setRememberIdentifier] = useState(() =>

@@ -54,7 +54,7 @@ export const useWorkspaceStaffManagement = ({
   }, [isCurrentWorkspaceOwner, fetchStaffList]);
 
   const createStaffMember = async (
-    data: { email: string; fullName: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },
+    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },
     targetWsId?: string
   ) => {
     const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
@@ -69,55 +69,9 @@ export const useWorkspaceStaffManagement = ({
       });
 
       setStaffMembers((prev) => [created, ...prev.filter((s) => s.id !== created.id)]);
-      notify.success(`Đã thêm nhân viên "${created.fullName}" (${created.email}) vào Workspace!`);
+      notify.success(`Đã thêm nhân viên "${created.fullName || created.email || created.phoneNumber}" vào Workspace!`);
     } catch (err) {
       notify.error((err as Error).message, 'Mời Nhân Viên Thất Bại');
-      throw err;
-    }
-  };
-
-  const updateStaffMember = async (
-    targetId: string,
-    data: { fullName?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },
-    targetWsId?: string
-  ) => {
-    const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
-    try {
-      const updated = await apiClient.put<ManagedStaffItem>(`/workspaces/current/staff/${targetId}`, data, {
-        headers: {
-          'x-owner-id': effectiveOwnerId,
-          'x-staff-id': staffId || '',
-          'x-user-role': USER_ROLES.OWNER,
-          'x-workspace-id': wsId,
-        },
-      });
-
-      setStaffMembers((prev) => prev.map((s) => (s.id === targetId ? updated : s)));
-      notify.success(`Đã cập nhật thông tin nhân viên "${updated.fullName}"!`);
-    } catch (err) {
-      notify.error((err as Error).message, 'Cập Nhật Thất Bại');
-      throw err;
-    }
-  };
-
-  const toggleLockStaffMember = async (targetId: string, lock: boolean) => {
-    try {
-      const updated = await apiClient.patch<ManagedStaffItem>(`/workspaces/current/staff/${targetId}/lock`, { lock }, {
-        headers: {
-          'x-owner-id': effectiveOwnerId,
-          'x-staff-id': staffId || '',
-          'x-user-role': USER_ROLES.OWNER,
-          'x-workspace-id': activeWorkspaceId || configWorkspaceId || '',
-        },
-      });
-
-      setStaffMembers((prev) => prev.map((s) => (s.id === targetId ? updated : s)));
-      notify.info(
-        lock ? `Đã khóa tài khoản "${updated.fullName}".` : `Đã mở khóa tài khoản "${updated.fullName}".`,
-        'Trạng Thái Nhân Viên'
-      );
-    } catch (err) {
-      notify.error((err as Error).message, 'Thao Tác Thất Bại');
       throw err;
     }
   };
@@ -150,8 +104,6 @@ export const useWorkspaceStaffManagement = ({
     setStaffMembers,
     fetchStaffList,
     createStaffMember,
-    updateStaffMember,
-    toggleLockStaffMember,
     deleteStaffMember,
   };
 };

@@ -292,18 +292,19 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   };
 
   // Mời thành viên mới
-  const handleInviteMember = async (email: string, fullName: string, role: StaffRole, phoneNumber?: string) => {
+  const handleInviteMember = async (identifier: string, role: StaffRole) => {
     try {
+      const isEmail = identifier.includes('@');
       await createStaffMember(
         {
-          email,
-          fullName: fullName || email.split('@')[0],
-          phoneNumber,
+          identifier,
+          email: isEmail ? identifier : undefined,
+          phoneNumber: !isEmail ? identifier : undefined,
           role,
         },
         workspace.id,
       );
-      notify.success(`Đã mời thành viên ${email} vào Không gian làm việc!`);
+      notify.success(`Đã mời thành viên "${identifier}" vào Không gian làm việc!`);
       await fetchStaffList(workspace.id);
     } catch (err) {
       notify.error(`Lỗi mời thành viên: ${(err as Error).message}`);

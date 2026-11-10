@@ -20,7 +20,7 @@ export interface WorkspaceMembersTabProps {
   staffMembers: ManagedStaffItem[];
   onRemoveMember: (memberId: string, memberName: string, memberRole?: string) => Promise<void>;
   onLeaveWorkspace: () => Promise<void>;
-  onInviteMember: (email: string, fullName: string, role: StaffRole, phoneNumber?: string) => Promise<void>;
+  onInviteMember: (identifier: string, role: StaffRole) => Promise<void>;
 }
 
 export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({

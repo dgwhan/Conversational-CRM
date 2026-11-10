@@ -1,8 +1,12 @@
 export * from './types.js';
+export * from './WorkspaceSettingsHeader.js';
+export * from './WorkingHoursTab.js';
+export * from './tabs/index.js';
+export * from './modals/StageModal.js';
+export * from './modals/AddProductModal.js';
+export * from './modals/AddCriteriaModal.js';
 export * from './ConfigListPage.js';
 export * from './ConfigDetailHeader.js';
 export * from './modals/CreateConfigModal.js';
 export * from './modals/EditConfigModal.js';
 export * from './modals/DeleteConfigModal.js';
-export * from './WorkingHoursTab.js';
-

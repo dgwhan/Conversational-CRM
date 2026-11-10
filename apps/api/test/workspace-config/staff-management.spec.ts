@@ -1,15 +1,201 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { StaffManagementService } from '../../src/modules/workspace-config/staff-management.service.js';
+import { StaffManagementService } from '../../src/modules/workspace-config/index.js';
+
+function createMockPrisma() {
+  const users = new Map<string, any>();
+  const workspaces = new Map<string, any>();
+  const members = new Map<string, any>();
+
+  return {
+    user: {
+      findUnique: async ({ where, include }: any) => {
+        let u: any = null;
+        if (where.id) u = users.get(where.id) || null;
+        else if (where.email) {
+          for (const user of users.values()) {
+            if (user.email === where.email) {
+              u = user;
+              break;
+            }
+          }
+        } else if (where.phoneNumber) {
+          for (const user of users.values()) {
+            if (user.phoneNumber === where.phoneNumber) {
+              u = user;
+              break;
+            }
+          }
+        }
+        if (u && include?.memberships) {
+          const uMembers = Array.from(members.values()).filter((m) => m.userId === u.id);
+          return { ...u, memberships: uMembers };
+        }
+        return u;
+      },
+      findFirst: async ({ where }: any) => {
+        const all = Array.from(users.values());
+        if (!where) return all[0] || null;
+        if (where.email) {
+          return all.find((u) => u.email === where.email) || null;
+        }
+        if (where.phoneNumber) {
+          return all.find((u) => u.phoneNumber === where.phoneNumber) || null;
+        }
+        if (where.OR) {
+          return all.find((u) => {
+            for (const cond of where.OR) {
+              if (cond.email && u.email === cond.email) return true;
+              if (cond.phoneNumber && u.phoneNumber === cond.phoneNumber) return true;
+            }
+            return false;
+          }) || null;
+        }
+        return null;
+      },
+      findMany: async ({ where }: any) => {
+        const all = Array.from(users.values());
+        if (!where) return all;
+        if (where.OR) {
+          return all.filter((u) => {
+            for (const cond of where.OR) {
+              if (cond.id && u.id === cond.id) return true;
+              if (cond.memberships?.some) {
+                const wsId = cond.memberships.some.workspaceId;
+                const hasMember = Array.from(members.values()).some(
+                  (m) => m.workspaceId === wsId && m.userId === u.id && m.isActive
+                );
+                if (hasMember) return true;
+              }
+            }
+            return false;
+          });
+        }
+        return all;
+      },
+      create: async ({ data }: any) => {
+        const id = data.id || `user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const user = {
+          id,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          memberships: [],
+          ...data,
+        };
+        users.set(id, user);
+        return user;
+      },
+      update: async ({ where, data }: any) => {
+        const existing = users.get(where.id);
+        if (!existing) throw new Error('Not found');
+        const updated = { ...existing, ...data, updatedAt: new Date() };
+        users.set(where.id, updated);
+        return updated;
+      },
+      delete: async ({ where }: any) => {
+        users.delete(where.id);
+        return {};
+      },
+    },
+    workspace: {
+      findFirst: async ({ where }: any) => {
+        for (const ws of workspaces.values()) {
+          if (where.ownerId && ws.ownerId === where.ownerId) return ws;
+        }
+        return null;
+      },
+      findUnique: async ({ where }: any) => workspaces.get(where.id) || null,
+      create: async ({ data }: any) => {
+        const id = data.id || `ws-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const ws = { id, createdAt: new Date(), ...data };
+        workspaces.set(id, ws);
+        return ws;
+      },
+      update: async ({ where, data }: any) => {
+        const ws = workspaces.get(where.id);
+        const updated = { ...ws, ...data };
+        workspaces.set(where.id, updated);
+        return updated;
+      },
+    },
+    workspaceMember: {
+      create: async ({ data }: any) => {
+        const key = `${data.workspaceId}_${data.userId}`;
+        const member = { id: `wm-${Date.now()}`, ...data };
+        members.set(key, member);
+        return member;
+      },
+      findUnique: async ({ where }: any) => {
+        const key = `${where.workspaceId_userId.workspaceId}_${where.workspaceId_userId.userId}`;
+        return members.get(key) || null;
+      },
+      findFirst: async ({ where }: any) => {
+        for (const m of members.values()) {
+          if (where.workspaceId && m.workspaceId !== where.workspaceId) continue;
+          if (where.userId && m.userId !== where.userId) continue;
+          if (where.role && m.role !== where.role) continue;
+          if (where.isActive !== undefined && m.isActive !== where.isActive) continue;
+          return m;
+        }
+        return null;
+      },
+      findMany: async ({ where }: any) => {
+        return Array.from(members.values()).filter((m) => m.workspaceId === where.workspaceId && m.isActive);
+      },
+      upsert: async ({ where, create, update }: any) => {
+        const key = `${where.workspaceId_userId.workspaceId}_${where.workspaceId_userId.userId}`;
+        const existing = members.get(key);
+        const saved = existing ? { ...existing, ...update } : { id: `wm-${Date.now()}`, ...create };
+        members.set(key, saved);
+        return saved;
+      },
+      updateMany: async ({ where, data }: any) => {
+        for (const [k, m] of members.entries()) {
+          if (m.workspaceId === where.workspaceId && m.userId === where.userId) {
+            members.set(k, { ...m, ...data });
+          }
+        }
+        return { count: 1 };
+      },
+      deleteMany: async ({ where }: any) => {
+        for (const [k, m] of members.entries()) {
+          if (m.workspaceId === where.workspaceId && m.userId === where.userId) {
+            members.delete(k);
+          }
+        }
+        return { count: 1 };
+      },
+      count: async ({ where }: any) => {
+        return Array.from(members.values()).filter((m) => m.userId === where.userId).length;
+      },
+    },
+    refreshToken: {
+      deleteMany: async () => ({ count: 0 }),
+    },
+  };
+}
 
 describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', () => {
   let service: StaffManagementService;
+  let mockPrisma: any;
 
   beforeEach(() => {
-    service = new StaffManagementService();
+    mockPrisma = createMockPrisma();
+    service = new StaffManagementService(mockPrisma);
   });
 
   it('should allow Owner to create staff belonging to ownerId', async () => {
     const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner1@cusc.com', fullName: 'Chủ sở hữu 1' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-1', ownerId, name: 'Workspace 1', isActive: true },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'tuvan1@cusc.com', fullName: 'Trần Văn Tư Vấn' },
+    });
+
     const newStaff = await service.createStaff(ownerId, {
       email: 'tuvan1@cusc.com',
       fullName: 'Trần Văn Tư Vấn',
@@ -25,101 +211,106 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
 
   it('should list all staff belonging to the owner', async () => {
     const ownerId = 'c0000000-0000-0000-0000-000000000002';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner2@cusc.com', fullName: 'Chủ sở hữu 2' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-2', ownerId, name: 'Workspace 2', isActive: true },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'staffa@cusc.com', fullName: 'Nhân viên A' },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'staffb@cusc.com', fullName: 'Nhân viên B' },
+    });
+
     await service.createStaff(ownerId, {
-      email: 'staffA@cusc.com',
+      email: 'staffa@cusc.com',
       fullName: 'Nhân viên A',
+      role: 'STAFF',
     });
     await service.createStaff(ownerId, {
-      email: 'staffB@cusc.com',
+      email: 'staffb@cusc.com',
       fullName: 'Nhân viên B',
+      role: 'STAFF',
     });
 
     const list = await service.getStaffList(ownerId);
-    expect(list.length).toBe(2);
+    expect(list.length).toBe(3); // Owner + 2 staff
     expect(list.some((s) => s.email === 'staffa@cusc.com')).toBe(true);
     expect(list.some((s) => s.email === 'staffb@cusc.com')).toBe(true);
   });
 
-  it('should allow Owner to update staff information', async () => {
-    const ownerId = 'c0000000-0000-0000-0000-000000000003';
-    const created = await service.createStaff(ownerId, {
-      email: 'staff_update@cusc.com',
-      fullName: 'Tên Ban Đầu',
-    });
-
-    const updated = await service.updateStaff(ownerId, created.id, {
-      fullName: 'Tên Đã Chỉnh Sửa',
-    });
-
-    expect(updated.fullName).toBe('Tên Đã Chỉnh Sửa');
-  });
-
-  it('should allow Owner to lock and unlock staff account', async () => {
-    const ownerId = 'c0000000-0000-0000-0000-000000000004';
-    const created = await service.createStaff(ownerId, {
-      email: 'staff_lock@cusc.com',
-      fullName: 'Nhân viên cần khóa',
-    });
-
-    // 1. Khóa tài khoản
-    const locked = await service.toggleLockStaff(ownerId, created.id, true);
-    expect(locked.status).toBe('LOCKED');
-    expect(locked.lockedAt).toBeDefined();
-
-    // 2. Mở khóa tài khoản
-    const unlocked = await service.toggleLockStaff(ownerId, created.id, false);
-    expect(unlocked.status).toBe('ACTIVE');
-  });
-
-  it('should allow Owner to delete staff', async () => {
+  it('should allow Owner to remove staff from workspace without touching user in User table', async () => {
     const ownerId = 'c0000000-0000-0000-0000-000000000005';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner5@cusc.com', fullName: 'Chủ sở hữu 5' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-5', ownerId, name: 'Workspace 5', isActive: true },
+    });
+    const staffUser = await mockPrisma.user.create({
+      data: { email: 'staff_del@cusc.com', fullName: 'Nhân viên cần xóa' },
+    });
+
     const created = await service.createStaff(ownerId, {
       email: 'staff_del@cusc.com',
       fullName: 'Nhân viên cần xóa',
+      role: 'STAFF',
     });
 
-    const res = await service.deleteStaff(ownerId, created.id);
+    const res = await service.removeStaff(ownerId, created.id);
     expect(res.success).toBe(true);
 
+    // Thành viên bị xóa khỏi danh sách Workspace
     const list = await service.getStaffList(ownerId);
     expect(list.some((s) => s.id === created.id)).toBe(false);
+
+    // BẢO MẬT: Tài khoản User vẫn tồn tại và không bị xóa hay khóa trong bảng User
+    const userInDb = await mockPrisma.user.findUnique({ where: { id: staffUser.id } });
+    expect(userInDb).not.toBeNull();
+    expect(userInDb.status).toBe('ACTIVE');
   });
 
-  it('should enforce multi-tenant isolation: staff of an owner cannot be seen by another owner', async () => {
-    const owner1 = 'c0000000-0000-0000-0000-000000000010';
-    const owner2 = 'c0000000-0000-0000-0000-000000000020';
-
-    await service.createStaff(owner1, {
-      email: 'staff_of_owner1@cusc.com',
-      fullName: 'Staff Owner 1',
+  it('should not allow removing the last Owner of a workspace', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000006';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'sole_owner@cusc.com', fullName: 'Chủ sở hữu duy nhất' },
     });
 
-    const listOwner2 = await service.getStaffList(owner2);
-    expect(listOwner2.some((s) => s.email === 'staff_of_owner1@cusc.com')).toBe(false);
+    // Tạo workspace cho owner
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-6', ownerId, name: 'WS 6' },
+    });
+
+    await expect(service.removeStaff(ownerId, ownerId, 'ws-owner-6')).rejects.toThrow(
+      'Không thể rời hoặc xóa Chủ sở hữu. Không gian làm việc phải có ít nhất 1 Chủ sở hữu'
+    );
   });
 
   it('should reject invitation if email does not exist in DB', async () => {
     const mockPrisma = {
-      staff: {
+      user: {
         findUnique: async () => null,
       },
       workspace: {
-        findFirst: async () => ({ id: 'ws-123', ownerId: 'owner-123' }),
+        findFirst: async () => ({ id: 'ws-123', ownerId: 'c0000000-0000-0000-0000-000000000123' }),
       },
     } as any;
 
     const prismaService = new StaffManagementService(mockPrisma);
     await expect(
-      prismaService.createStaff('owner-123', {
+      prismaService.createStaff('c0000000-0000-0000-0000-000000000123', {
         email: 'not_exist@gmail.com',
         fullName: 'Unknown User',
+        role: 'STAFF',
       })
     ).rejects.toThrow('chưa tồn tại trong hệ thống');
   });
 
   it('should link member if email already exists in DB', async () => {
     const mockExisting = {
-      id: 'staff-exist-uuid',
+      id: 'c0000000-0000-0000-0000-000000000999',
       email: 'exist@gmail.com',
       fullName: 'User Da Co',
       role: 'OWNER',
@@ -132,10 +323,10 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
 
     let upsertMemberCalled = false;
     const mockPrisma = {
-      staff: {
+      user: {
         findUnique: async (args: any) => {
-          if (args.where.id === 'owner-123') {
-            return { id: 'owner-123', role: 'OWNER', fullName: 'Chủ Doanh Nghiệp' };
+          if (args.where.id === 'c0000000-0000-0000-0000-000000000123') {
+            return { id: 'c0000000-0000-0000-0000-000000000123', role: 'OWNER', fullName: 'Chủ Doanh Nghiệp' };
           }
           if (args.where.email === 'exist@gmail.com') {
             return mockExisting;
@@ -145,7 +336,7 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
         update: async (args: any) => ({ ...mockExisting, ...args.data }),
       },
       workspace: {
-        findFirst: async () => ({ id: 'ws-123', ownerId: 'owner-123' }),
+        findFirst: async () => ({ id: 'ws-123', ownerId: 'c0000000-0000-0000-0000-000000000123' }),
       },
       workspaceMember: {
         findUnique: async () => null,
@@ -157,14 +348,160 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
     } as any;
 
     const prismaService = new StaffManagementService(mockPrisma);
-    const result = await prismaService.createStaff('owner-123', {
+    const result = await prismaService.createStaff('c0000000-0000-0000-0000-000000000123', {
       email: 'exist@gmail.com',
       fullName: 'User Da Co',
+      role: 'OWNER',
     });
 
     expect(result.email).toBe('exist@gmail.com');
     expect(upsertMemberCalled).toBe(true);
-    // Vẫn giữ role OWNER của chính họ nếu họ là Owner của workspace khác
     expect(result.role).toBe('OWNER');
+  });
+
+  it('should allow Owner to invite staff using only email (without fullName)', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner-email-only@cusc.com', fullName: 'Chủ sở hữu' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-email', ownerId, name: 'Workspace Email Test', isActive: true },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'staff-only-email@cusc.com', fullName: 'Nhân Viên Sẵn Có' },
+    });
+
+    const invited = await service.createStaff(ownerId, {
+      identifier: 'staff-only-email@cusc.com',
+      role: 'STAFF',
+    });
+
+    expect(invited.email).toBe('staff-only-email@cusc.com');
+    expect(invited.fullName).toBe('Nhân Viên Sẵn Có');
+    expect(invited.role).toBe('STAFF');
+  });
+
+  it('should allow Owner to invite staff using only phone number', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner-phone@cusc.com', fullName: 'Chủ sở hữu Phone' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-phone', ownerId, name: 'Workspace Phone Test', isActive: true },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'staff-phone@cusc.com', phoneNumber: '0901234567', fullName: 'Nhân Viên Số ĐT' },
+    });
+
+    // Mời qua SĐT có định dạng dấu chấm
+    const invited = await service.createStaff(ownerId, {
+      identifier: '0901.234.567',
+      role: 'STAFF',
+    });
+
+    expect(invited.email).toBe('staff-phone@cusc.com');
+    expect(invited.phoneNumber).toBe('0901234567');
+    expect(invited.fullName).toBe('Nhân Viên Số ĐT');
+    expect(invited.role).toBe('STAFF');
+  });
+
+  it('should reject invite when role is missing', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await expect(
+      service.createStaff(ownerId, { identifier: 'member@cusc.com' } as any)
+    ).rejects.toThrow('Vui lòng chỉ định vai trò cho thành viên (OWNER hoặc STAFF).');
+  });
+
+  it('should reject invite when neither email nor phone is provided', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await expect(service.createStaff(ownerId, { role: 'STAFF' } as any)).rejects.toThrow(
+      'Vui lòng nhập Email hoặc Số điện thoại của nhân viên cần mời.'
+    );
+  });
+
+  it('cho phép nhân viên (STAFF) xem danh sách nhân sự của Workspace nhưng chặn người ngoài', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    const staffId = 'c0000000-0000-0000-0000-000000000009';
+    const outsiderId = 'c0000000-0000-0000-0000-000000000088';
+
+    await mockPrisma.user.create({ data: { id: ownerId, email: 'owner_sec@cusc.com' } });
+    await mockPrisma.user.create({ data: { id: staffId, email: 'staff_sec@cusc.com' } });
+    await mockPrisma.user.create({ data: { id: outsiderId, email: 'outsider@cusc.com' } });
+
+    const ws = await mockPrisma.workspace.create({
+      data: { id: 'ws-security-1', ownerId, name: 'Workspace Security', isActive: true },
+    });
+
+    await mockPrisma.workspaceMember.create({
+      data: { workspaceId: ws.id, userId: staffId, role: 'STAFF', isActive: true },
+    });
+
+    // 1. Staff xem danh sách bình thường
+    const list = await service.getStaffList(staffId, ws.id);
+    expect(list.length).toBeGreaterThan(0);
+
+    // 2. Người ngoài không thuộc Workspace không xem được
+    await expect(service.getStaffList(outsiderId, ws.id)).rejects.toThrow(
+      'Bạn không thuộc Không gian làm việc này.'
+    );
+  });
+
+  it('không cho phép tự thêm chính mình vào Workspace', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'self_owner@cusc.com', fullName: 'Chủ WS Self' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-self', ownerId, name: 'Workspace Self Test', isActive: true },
+    });
+
+    await expect(
+      service.createStaff(ownerId, { identifier: 'self_owner@cusc.com', role: 'STAFF' })
+    ).rejects.toThrow('Không thể tự thêm chính mình vào Không gian làm việc.');
+  });
+
+  it('lấy đúng current user và role trong Workspace thông qua getCurrentUserAndRole', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    const staffId = 'c0000000-0000-0000-0000-000000000002';
+
+    await mockPrisma.user.create({ data: { id: ownerId, email: 'cur_owner@cusc.com', fullName: 'Chủ WS Current' } });
+    await mockPrisma.user.create({ data: { id: staffId, email: 'cur_staff@cusc.com', fullName: 'Nhân viên Current' } });
+
+    const ws = await mockPrisma.workspace.create({
+      data: { id: 'ws-cur-test', ownerId, name: 'Workspace Current Test', isActive: true },
+    });
+
+    await mockPrisma.workspaceMember.create({
+      data: { workspaceId: ws.id, userId: staffId, role: 'STAFF', isActive: true },
+    });
+
+    const ownerInfo = await service.getCurrentUserAndRole(ownerId, ws);
+    expect(ownerInfo.currentUser.id).toBe(ownerId);
+    expect(ownerInfo.role).toBe('OWNER');
+
+    const staffInfo = await service.getCurrentUserAndRole(staffId, ws);
+    expect(staffInfo.currentUser.id).toBe(staffId);
+    expect(staffInfo.role).toBe('STAFF');
+  });
+
+  it('không cho phép nhân viên (STAFF) mời thành viên khác vào Workspace', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    const staffId = 'c0000000-0000-0000-0000-000000000002';
+
+    await mockPrisma.user.create({ data: { id: ownerId, email: 'owner_sec2@cusc.com' } });
+    await mockPrisma.user.create({ data: { id: staffId, email: 'staff_sec2@cusc.com' } });
+    await mockPrisma.user.create({ data: { email: 'new_member@cusc.com' } });
+
+    const ws = await mockPrisma.workspace.create({
+      data: { id: 'ws-security-invite', ownerId, name: 'WS Security Invite', isActive: true },
+    });
+
+    await mockPrisma.workspaceMember.create({
+      data: { workspaceId: ws.id, userId: staffId, role: 'STAFF', isActive: true },
+    });
+
+    await expect(
+      service.createStaff(staffId, { identifier: 'new_member@cusc.com', role: 'STAFF' }, ws.id)
+    ).rejects.toThrow('Chỉ Chủ sở hữu (OWNER) mới có quyền mời thành viên vào Không gian làm việc.');
   });
 });

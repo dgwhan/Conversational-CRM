@@ -9,9 +9,10 @@ import {
   UseGuards,
   Headers,
 } from '@nestjs/common';
-import { WorkspaceConfigService } from '../../application/workspace-config.service.js';
+import { WorkspaceConfigService } from '../../application/workspace-config/index.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
+import { WorkspaceRole } from '../../domain/index.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
 import type {
   UpdateWorkspaceConfigRequestDto,
@@ -48,7 +49,7 @@ export class WorkspaceConfigController {
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.getConfig(workspaceId || 'ws-default-001', ownerId, staffId);
+    return this.configService.getConfig(workspaceId || '', ownerId, staffId);
   }
 
   /**
@@ -63,21 +64,21 @@ export class WorkspaceConfigController {
    * Cập nhật cấu hình workspace theo ownerId (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Put('config')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async updateConfig(
     @Body() payload: UpdateWorkspaceConfigRequestDto,
     @Headers('x-workspace-id') workspaceId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.updateConfig(workspaceId || 'ws-default-001', payload, ownerId, staffId);
+    return this.configService.updateConfig(workspaceId || '', payload, ownerId, staffId);
   }
 
   /**
    * Áp dụng mẫu ngành nghề 1-click (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/apply-preset')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async applyPreset(
     @Body() body: ApplyPresetRequestDto,
     @Headers('x-workspace-id') workspaceId?: string,
@@ -85,7 +86,7 @@ export class WorkspaceConfigController {
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
     return this.configService.applyPreset(
-      workspaceId || 'ws-default-001',
+      workspaceId || '',
       body.presetKey,
       body.workspaceName,
       ownerId,
@@ -97,55 +98,55 @@ export class WorkspaceConfigController {
    * Thêm giai đoạn mới vào phễu (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/stages')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async addStage(
     @Body() stage: AddPipelineStageRequestDto,
     @Headers('x-workspace-id') workspaceId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.addStage(workspaceId || 'ws-default-001', stage, ownerId, staffId);
+    return this.configService.addStage(workspaceId || '', stage, ownerId, staffId);
   }
 
   /**
    * Thêm sản phẩm / khóa học / ngành đào tạo mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/products')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async addProduct(
     @Body() product: AddProductItemRequestDto,
     @Headers('x-workspace-id') workspaceId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.addProduct(workspaceId || 'ws-default-001', product, ownerId, staffId);
+    return this.configService.addProduct(workspaceId || '', product, ownerId, staffId);
   }
 
   /**
    * Thêm tiêu chí đánh giá / phân loại mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/criteria')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async addCriteria(
     @Body() criteria: AddCriteriaRequestDto,
     @Headers('x-workspace-id') workspaceId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.addCriteria(workspaceId || 'ws-default-001', criteria, ownerId, staffId);
+    return this.configService.addCriteria(workspaceId || '', criteria, ownerId, staffId);
   }
 
   /**
    * Xóa tiêu chí (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Delete('config/criteria/:criteriaId')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   async deleteCriteria(
     @Param('criteriaId') criteriaId: string,
     @Headers('x-workspace-id') workspaceId?: string,
     @Headers('x-owner-id') ownerId?: string,
     @Headers('x-staff-id') staffId?: string,
   ): Promise<WorkspaceConfig> {
-    return this.configService.deleteCriteria(workspaceId || 'ws-default-001', criteriaId, ownerId, staffId);
+    return this.configService.deleteCriteria(workspaceId || '', criteriaId, ownerId, staffId);
   }
 }

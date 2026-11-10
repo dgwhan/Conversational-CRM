@@ -1,11 +1,8 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service.js';
-import { WorkspaceConfigService } from '../workspace-config/workspace-config.service.js';
+import { WorkspaceConfigService } from '../workspace-config/index.js';
 import type { PipelineStageConfig } from '../../contracts/workspace-config.js';
-
-const isUuid = (val?: string): boolean =>
-  typeof val === 'string' &&
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+import { isUuid } from '../../utils/uuid.util.js';
 
 export interface OverviewFilterDto {
   workspaceId?: string;

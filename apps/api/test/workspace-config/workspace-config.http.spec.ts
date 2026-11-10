@@ -4,16 +4,63 @@ import { ConfigModule } from '@nestjs/config';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { WorkspaceConfigModule } from '../../src/modules/workspace-config/workspace-config.module.js';
 import { PrismaService } from '../../src/platform/database/prisma.service.js';
+import { INDUSTRY_PRESETS } from '../../src/modules/workspace-config/domain/workspace-config.presets.js';
+
+function createHttpMockPrisma() {
+  const eduPreset = INDUSTRY_PRESETS.EDUCATION;
+  let config: any = {
+    id: 'wc-http-1',
+    workspaceId: 'ws-http-1',
+    ownerId: 'owner-http-1',
+    domain: eduPreset.domain,
+    workspaceName: eduPreset.workspaceName,
+    terminology: eduPreset.terminology,
+    pipelineStages: eduPreset.pipelineStages,
+    productCatalog: eduPreset.productCatalog,
+    criteria: eduPreset.criteria,
+  };
+
+  return {
+    user: {
+      findUnique: async () => ({ id: 'owner-http-1', role: 'OWNER', fullName: 'Owner HTTP' }),
+      findMany: async () => [],
+    },
+    staff: {
+      findUnique: async () => ({ id: 'owner-http-1', role: 'OWNER', fullName: 'Owner HTTP' }),
+      findMany: async () => [],
+    },
+    workspace: {
+      findUnique: async () => ({ id: 'ws-http-1', ownerId: 'owner-http-1' }),
+      findFirst: async () => ({ id: 'ws-http-1', ownerId: 'owner-http-1' }),
+    },
+    workspaceMember: {
+      findFirst: async () => ({ id: 'wm-1', workspaceId: 'ws-http-1', userId: 'owner-http-1', role: 'OWNER' }),
+      findMany: async () => [],
+    },
+    workspaceConfiguration: {
+      findFirst: async () => config,
+      create: async ({ data }: any) => {
+        config = { id: 'wc-http-1', ...data };
+        return config;
+      },
+      update: async ({ data }: any) => {
+        config = { ...config, ...data };
+        return config;
+      },
+    },
+  };
+}
 
 describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config)', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
+    const mockPrisma = createHttpMockPrisma();
     const moduleRef = await Test.createTestingModule({
       imports: [ConfigModule.forRoot({ isGlobal: true }), WorkspaceConfigModule],
     })
       .overrideProvider(PrismaService)
-      .useValue(null)
+      .useValue(mockPrisma)
       .compile();
 
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -34,6 +81,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       url: '/api/workspaces/current/config',
       headers: {
         'x-user-role': 'OWNER',
+        'x-owner-id': 'owner-http-1',
       },
     });
 
@@ -49,6 +97,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       url: '/api/workspaces/current/config',
       headers: {
         'x-user-role': 'OWNER',
+        'x-owner-id': 'owner-http-1',
         'content-type': 'application/json',
       },
       payload: JSON.stringify({
@@ -74,6 +123,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       url: '/api/workspaces/current/staff',
       headers: {
         'x-user-role': 'OWNER',
+        'x-owner-id': 'owner-http-1',
       },
     });
 

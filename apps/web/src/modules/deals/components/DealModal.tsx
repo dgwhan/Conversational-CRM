@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Briefcase,
@@ -36,8 +36,8 @@ export const DealModal: React.FC<DealModalProps> = ({
   isOpen,
   onClose,
   dealToEdit,
-  customerId,
-  contactId,
+  customerId: _customerId,
+  contactId: _contactId,
   customerName = 'Ứng viên',
   pipelineStages,
   catalog,
@@ -73,7 +73,7 @@ export const DealModal: React.FC<DealModalProps> = ({
         setStatus(dealToEdit.status || 'OPEN');
         setPriority(dealToEdit.priority || 'MEDIUM');
         setExpectedRevenue(dealToEdit.expectedRevenue || 0);
-        setActualRevenue(dealToEdit.actualRevenue);
+        setActualRevenue(dealToEdit.actualRevenue ?? undefined);
         setAssignedStaffName(dealToEdit.assignedStaffName || '');
         setExpectedCloseDate(
           dealToEdit.expectedCloseDate

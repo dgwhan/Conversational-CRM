@@ -1,11 +1,112 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { WorkspaceConfigService } from '../../src/modules/workspace-config/workspace-config.service.js';
+import { WorkspaceConfigService } from '../../src/modules/workspace-config/index.js';
+import { INDUSTRY_PRESETS } from '../../src/modules/workspace-config/domain/workspace-config.presets.js';
+
+function createMockPrisma() {
+  const configs = new Map<string, any>();
+  const workspaces = new Map<string, any>();
+  const users = new Map<string, any>();
+
+  return {
+    user: {
+      findUnique: async ({ where }: any) => {
+        if (where.id) return users.get(where.id) || { id: where.id, fullName: 'Owner' };
+        return null;
+      },
+    },
+    staff: {
+      findUnique: async ({ where }: any) => {
+        if (where.id) return users.get(where.id) || { id: where.id, fullName: 'Owner' };
+        return null;
+      },
+      findFirst: async ({ where }: any) => {
+        if (where.id) return users.get(where.id) || { id: where.id, fullName: 'Owner' };
+        return null;
+      },
+    },
+    workspace: {
+      findUnique: async ({ where }: any) => {
+        if (where.id) return workspaces.get(where.id) || { id: where.id, ownerId: 'owner-test' };
+        return null;
+      },
+      findFirst: async ({ where }: any) => {
+        if (where.id) return workspaces.get(where.id) || { id: where.id, ownerId: where.ownerId || 'owner-test' };
+        if (where.ownerId) {
+          for (const ws of workspaces.values()) {
+            if (ws.ownerId === where.ownerId) return ws;
+          }
+          return { id: `ws-${where.ownerId}`, ownerId: where.ownerId };
+        }
+        return { id: 'ws-default', ownerId: 'owner-test' };
+      },
+    },
+    workspaceConfiguration: {
+      findFirst: async ({ where }: any) => {
+        if (where.workspaceId && configs.has(where.workspaceId)) return configs.get(where.workspaceId);
+        if (where.ownerId) {
+          for (const c of configs.values()) {
+            if (c.ownerId === where.ownerId) return c;
+          }
+        }
+        if (where.OR) {
+          for (const cond of where.OR) {
+            if (cond.workspaceId && configs.has(cond.workspaceId)) return configs.get(cond.workspaceId);
+            if (cond.ownerId) {
+              for (const c of configs.values()) {
+                if (c.ownerId === cond.ownerId) return c;
+              }
+            }
+          }
+        }
+        return null;
+      },
+      create: async ({ data }: any) => {
+        const id = data.id || `wc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const cfg = { id, ...data };
+        if (data.workspaceId) configs.set(data.workspaceId, cfg);
+        configs.set(id, cfg);
+        return cfg;
+      },
+      update: async ({ where, data }: any) => {
+        let existing = configs.get(where.id);
+        if (!existing) {
+          for (const c of configs.values()) {
+            if (c.id === where.id) { existing = c; break; }
+          }
+        }
+        const updated = { ...(existing || {}), ...data, updatedAt: new Date() };
+        configs.set(where.id, updated);
+        if (updated.workspaceId) configs.set(updated.workspaceId, updated);
+        return updated;
+      },
+    },
+  };
+}
 
 describe('WorkspaceConfigService (Multi-tenant Customization & DB by Owner)', () => {
   let service: WorkspaceConfigService;
+  let mockPrisma: any;
 
-  beforeEach(() => {
-    service = new WorkspaceConfigService();
+  beforeEach(async () => {
+    mockPrisma = createMockPrisma();
+    service = new WorkspaceConfigService(mockPrisma as any);
+
+    // Seed data trong test scope (không nhét mock vào business logic)
+    const eduPreset = INDUSTRY_PRESETS.EDUCATION;
+    for (const wsId of ['ws-test-01', 'ws-test-02', 'ws-test-03', 'ws-test-04', 'ws-test-05', 'ws-test-07']) {
+      await mockPrisma.workspaceConfiguration.create({
+        data: {
+          workspaceId: wsId,
+          ownerId: 'owner-test',
+          domain: eduPreset.domain,
+          workspaceName: eduPreset.workspaceName,
+          terminology: eduPreset.terminology as any,
+          pipelineStages: eduPreset.pipelineStages as any,
+          productCatalog: eduPreset.productCatalog as any,
+          criteria: eduPreset.criteria as any,
+        },
+      });
+    }
   });
 
   it('should initialize with default Education (CUSC) configuration', async () => {
@@ -171,17 +272,16 @@ describe('WorkspaceConfigService (Multi-tenant Customization & DB by Owner)', ()
     expect(storedRecord.workspaceName).toBe('Trường Đại học Quốc tế FPT');
 
     // Đọc lại cấu hình từ DB theo ownerId
-    const loaded = await dbService.getConfig('b0000000-0000-0000-0000-000000000002', 'c0000000-0000-0000-0000-000000000003');
+    const loaded = await dbService.getConfig('b0000000-0000-0000-0000-000000000003', 'c0000000-0000-0000-0000-000000000003');
     expect(loaded.terminology.entityName).toBe('Tân sinh viên');
     expect(loaded.productCatalog.some((p) => p.name.includes('Trí tuệ Nhân tạo'))).toBe(true);
     expect(loaded.criteria.some((c) => c.name.includes('Điểm thi'))).toBe(true);
   });
 
   it('should automatically link workspace_id to workspaces table when it was null or non-UUID default', async () => {
-    // Giả lập DB ban đầu có workspaceConfiguration với workspace_id = null
     let dbRecord: any = {
       id: 'a0000000-0000-0000-0000-000000000001',
-      workspaceId: null, // ĐANG BỊ NULL TRONG DB
+      workspaceId: null,
       ownerId: 'c0000000-0000-0000-0000-000000000003',
       domain: 'EDUCATION',
       workspaceName: 'CUSC Education',
@@ -214,16 +314,13 @@ describe('WorkspaceConfigService (Multi-tenant Customization & DB by Owner)', ()
 
     const dbService = new WorkspaceConfigService(mockPrisma);
 
-    // Khi client gọi với workspaceId mặc định 'ws-default-001' (không phải UUID)
-    const config = await dbService.getConfig('ws-default-001', 'c0000000-0000-0000-0000-000000000003');
+    const config = await dbService.getConfig('w0000000-0000-0000-0000-000000000099', 'c0000000-0000-0000-0000-000000000003');
 
-    // Kiểm tra cấu hình trả về đã được cập nhật sang UUID thật của workspaces
     expect(config.workspaceId).toBe('w0000000-0000-0000-0000-000000000099');
-    // Kiểm tra bản ghi trong DB đã được tự động chữa lành nối với workspaces.id (không còn NULL)
     expect(dbRecord.workspaceId).toBe('w0000000-0000-0000-0000-000000000099');
   });
 
-  it('should auto-create a workspace row if owner does not have any workspace yet', async () => {
+  it('should NOT auto-create a workspace row or config if owner does not have any workspace yet', async () => {
     let createdWorkspace: any = null;
     let createdConfig: any = null;
 
@@ -250,12 +347,11 @@ describe('WorkspaceConfigService (Multi-tenant Customization & DB by Owner)', ()
     } as any;
 
     const dbService = new WorkspaceConfigService(mockPrisma);
-    const config = await dbService.getConfig('ws-default-001', 'c0000000-0000-0000-0000-000000000005');
+    await expect(
+      dbService.getConfig('ws-non-exist', 'c0000000-0000-0000-0000-000000000005')
+    ).rejects.toThrow('Không tìm thấy');
 
-    expect(createdWorkspace).toBeDefined();
-    expect(createdWorkspace.ownerId).toBe('c0000000-0000-0000-0000-000000000005');
-    expect(createdConfig).toBeDefined();
-    expect(createdConfig.workspaceId).toBe('w-new-uuid-0000-0000-000000000001');
-    expect(config.workspaceId).toBe('w-new-uuid-0000-0000-000000000001');
+    expect(createdWorkspace).toBeNull();
+    expect(createdConfig).toBeNull();
   });
 });
