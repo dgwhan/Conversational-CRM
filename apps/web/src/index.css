@@ -1,5 +1,6 @@
 @import './App.css';
 @import './styles/theme.css';
+@import './styles/glassmorphism.css';
 @import './styles/onboarding.css';
 @import './styles/kanban-realtime.css';
 @import './styles/responsive.css';

@@ -1,0 +1,444 @@
+/* ==========================================================================
+   CUSC RECRUITMENT CRM - HIGH-PERFORMANCE UNIVERSAL GLASSMORPHISM DESIGN SYSTEM
+   Phong cách Glassmorphism nhẹ (Subtle Frosted Glass) phủ toàn bộ giao diện:
+   - Sidebar, Header/Navbar, Báo cáo (Reports), Kanban, Hộp thư (Pancake Inbox),
+     Lịch biểu (Calendar), Cấu hình (Settings), Modals, Dropdowns & Popovers.
+   - Nền Ambient Glass Aurora đa sắc nhẹ nhàng giúp hiệu ứng khúc xạ kính nổi bật.
+   - Tối ưu 60fps trên máy cấu hình thấp bằng GPU Compositing & Composite Transforms.
+   ========================================================================== */
+
+:root {
+  /* --- 1. Glass Tokens --- */
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-surface-subtle: rgba(255, 255, 255, 0.52);
+  --glass-surface-elevated: rgba(255, 255, 255, 0.82);
+  --glass-surface-solid: rgba(255, 255, 255, 0.92);
+  --glass-surface-hover: rgba(255, 255, 255, 0.92);
+  --glass-surface-active: rgba(239, 246, 255, 0.82);
+
+  /* --- 2. Glass Borders & Highlights (Specular Reflection) --- */
+  --glass-border: rgba(226, 232, 240, 0.75);
+  --glass-border-light: rgba(255, 255, 255, 0.85);
+  --glass-border-subtle: rgba(226, 232, 240, 0.55);
+  --glass-border-focus: rgba(37, 99, 235, 0.5);
+
+  /* --- 3. Blur Levels (Giới hạn tối ưu GPU máy yếu: 8px - 14px) --- */
+  --glass-blur-sm: 8px;
+  --glass-blur-md: 12px;
+  --glass-blur-lg: 16px;
+
+  /* --- 4. Layer Shadows (Kính đa tầng kèm phản quang trên mép) --- */
+  --glass-shadow-xs: 0 1px 3px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  --glass-shadow-sm: 0 2px 8px -1px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03), inset 0 1px 0 #ffffff;
+  --glass-shadow-lg: 0 16px 36px -6px rgba(15, 23, 42, 0.09), 0 4px 12px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 #ffffff;
+  --glass-shadow-hover: 0 12px 28px -4px rgba(15, 23, 42, 0.08), 0 3px 8px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 #ffffff;
+
+  /* --- 5. Ambient Mesh Aurora Background --- */
+  --mesh-bg-gradient: 
+    radial-gradient(circle at 12% 15%, rgba(56, 189, 248, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 88% 18%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(244, 114, 182, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 82% 82%, rgba(45, 212, 191, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 10% 85%, rgba(129, 140, 248, 0.12) 0%, transparent 45%),
+    #f8fafc;
+}
+
+/* ==========================================================================
+   AMBIENT CONTAINER & GLOBAL OPTIMIZATIONS
+   ========================================================================== */
+
+html,
+body,
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #f8fafc;
+}
+
+body {
+  background: var(--mesh-bg-gradient) !important;
+  background-attachment: fixed !important;
+}
+
+.crm-app-container {
+  background: var(--mesh-bg-gradient) !important;
+  background-attachment: fixed !important;
+  position: relative;
+}
+
+/* Tăng tốc phần cứng cho các viewport cuộn */
+.kanban-cards-scroll,
+.conversation-items-list,
+.pancake-chat-stream,
+.crm-sidebar-menu,
+.crm-content-area {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  contain: content;
+}
+
+/* ==========================================================================
+   1. UNIVERSAL GLASS CARDS & CONTAINERS (ÁP DỤNG TOÀN DIỆN MỌI MÀN HÌNH)
+   ========================================================================== */
+
+/* Xóa bỏ các màu nền đặc che khuất lớp kính */
+.crm-main-viewport,
+.crm-content-area,
+.crm-reports-page,
+.kanban-pipeline-wrapper,
+.pancake-inbox-container,
+.crm-app-container .bg-slate-50,
+.crm-app-container .bg-slate-50\/50,
+.crm-app-container .bg-slate-100\/90 {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+/* Biến toàn bộ các thẻ màu trắng trong ứng dụng thành Glass Cards */
+.crm-app-container .bg-white,
+.crm-content-area .card,
+.crm-content-area .stat-card,
+.crm-content-area .kpi-metric-card,
+.crm-reports-page .rounded-xl,
+.glass-card {
+  background: var(--glass-surface) !important;
+  backdrop-filter: blur(var(--glass-blur-sm)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm)) !important;
+  border-color: var(--glass-border-light) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.18s ease !important;
+}
+
+.crm-app-container .bg-white:hover,
+.crm-content-area .card:hover,
+.glass-card-interactive:hover {
+  background: var(--glass-surface-hover) !important;
+  box-shadow: var(--glass-shadow-hover) !important;
+}
+
+/* Ngoại lệ cho một số phần tử nhỏ bên trong (avatar, button primary, icon circle) không bị blur đè */
+.crm-app-container button.bg-white,
+.crm-app-container .rounded-full.w-7.bg-white,
+.crm-app-container .rounded-full.w-8.bg-white,
+.crm-app-container .rounded-full.w-9.bg-white,
+.crm-app-container .bg-blue-600,
+.crm-app-container .bg-red-600,
+.crm-app-container .bg-emerald-600 {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ==========================================================================
+   2. NAVBAR & HEADER GLASS
+   ========================================================================== */
+
+.glass-header,
+.crm-navbar {
+  background: var(--glass-surface-elevated) !important;
+  backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  border-bottom: 1px solid var(--glass-border-light) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  transform: translateZ(0);
+}
+
+/* ==========================================================================
+   3. SIDEBAR NAVIGATION GLASS
+   ========================================================================== */
+
+.glass-sidebar,
+.crm-sidebar {
+  background: var(--glass-surface) !important;
+  backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  border-right: 1px solid var(--glass-border-light) !important;
+  box-shadow: 1px 0 6px 0 rgba(15, 23, 42, 0.02), inset -1px 0 0 rgba(255, 255, 255, 0.6) !important;
+  transform: translateZ(0);
+}
+
+.crm-sidebar-brand {
+  background: transparent !important;
+  border-bottom: 1px solid var(--glass-border-subtle);
+}
+
+.crm-nav-item:hover {
+  background: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: var(--glass-shadow-xs) !important;
+  transform: translateX(2px);
+}
+
+.crm-nav-item.active {
+  background: rgba(239, 246, 255, 0.85) !important;
+  border: 1px solid rgba(191, 219, 254, 0.7) !important;
+  box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.12), inset 0 1px 0 #ffffff !important;
+}
+
+/* ==========================================================================
+   4. KANBAN PIPELINE GLASS
+   ========================================================================== */
+
+.kanban-pipeline-wrapper {
+  background: transparent !important;
+}
+
+.kanban-column {
+  background: rgba(255, 255, 255, 0.5) !important;
+  backdrop-filter: blur(var(--glass-blur-md)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-md)) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+  border-radius: 12px;
+}
+
+.kanban-column-header {
+  background: rgba(255, 255, 255, 0.6) !important;
+  border-bottom: 1px solid var(--glass-border-subtle) !important;
+}
+
+.kanban-card {
+  background: rgba(255, 255, 255, 0.82) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), inset 0 1px 0 #ffffff !important;
+  border-radius: 10px;
+}
+
+.kanban-card:hover {
+  transform: translate3d(0, -2px, 0) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 8px 24px -2px rgba(15, 23, 42, 0.1), inset 0 1px 0 #ffffff !important;
+}
+
+/* ==========================================================================
+   5. PANCAKE UNIFIED INBOX GLASS (3-COLUMN)
+   ========================================================================== */
+
+.pancake-inbox-container {
+  background: transparent !important;
+}
+
+.pancake-col-left {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  border-right: 1px solid var(--glass-border-light) !important;
+}
+
+.col-left-header {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-bottom: 1px solid var(--glass-border-subtle) !important;
+}
+
+.conversation-item {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.45) !important;
+}
+
+.conversation-item:hover {
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
+.conversation-item.active {
+  background: rgba(239, 246, 255, 0.85) !important;
+  border-left: 3px solid var(--color-primary, #2563eb) !important;
+}
+
+.pancake-col-mid {
+  background: rgba(255, 255, 255, 0.35) !important;
+}
+
+.pancake-chat-header,
+.pancake-chat-input-wrapper {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(var(--glass-blur-md)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-md)) !important;
+  border-color: var(--glass-border-light) !important;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.03) !important;
+}
+
+.pancake-col-right {
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  border-left: 1px solid var(--glass-border-light) !important;
+}
+
+/* ==========================================================================
+   6. BÁO CÁO THỐNG KÊ (REPORTS DASHBOARD) & BIỂU ĐỒ
+   ========================================================================== */
+
+.crm-reports-page {
+  background: transparent !important;
+}
+
+.crm-reports-page .bg-white {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(var(--glass-blur-sm)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm)) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.crm-reports-page .bg-slate-100 {
+  background: rgba(241, 245, 249, 0.65) !important;
+}
+
+/* ==========================================================================
+   7. LỊCH BIỂU & NHIỆM VỤ (CALENDAR & TASKS)
+   ========================================================================== */
+
+.calendar-day-cell {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border: 1px solid var(--glass-border-subtle) !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.calendar-day-cell:hover {
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+.calendar-day-cell.is-today {
+  background: rgba(239, 246, 255, 0.75) !important;
+  border-color: rgba(147, 197, 253, 0.8) !important;
+}
+
+.calendar-task-card {
+  background: var(--glass-surface-elevated) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: var(--glass-shadow-xs) !important;
+  border-radius: 8px;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease !important;
+}
+
+.calendar-task-card:hover {
+  transform: translate3d(0, -1px, 0) !important;
+  box-shadow: var(--glass-shadow-sm) !important;
+}
+
+/* ==========================================================================
+   8. INPUTS, BUTTONS, BADGES, DROPDOWNS & MODALS
+   ========================================================================== */
+
+.glass-input,
+.inbox-search-input,
+.kanban-filter-select,
+.inbox-sub-filter-select,
+.form-control,
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"] {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03), 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.glass-input:focus,
+.inbox-search-input:focus,
+.kanban-filter-select:focus,
+.form-control:focus,
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  background: #ffffff !important;
+  border-color: var(--color-primary, #2563eb) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), inset 0 1px 1px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* Filter Pills & Status Buttons */
+.glass-pill,
+.channel-pill,
+.crm-status-pill,
+.presence-sound-toggle-btn,
+.staff-presence-button,
+.kanban-config-btn {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.15s ease, 
+              border-color 0.15s ease, 
+              box-shadow 0.15s ease !important;
+}
+
+.channel-pill:hover,
+.crm-status-pill:hover,
+.presence-sound-toggle-btn:hover,
+.staff-presence-button:hover,
+.kanban-config-btn:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(203, 213, 225, 0.9) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05), inset 0 1px 0 #ffffff !important;
+}
+
+.channel-pill.active {
+  background: var(--color-primary, #2563eb) !important;
+  border-color: var(--color-primary, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Glass Modals, Popovers & Dropdowns */
+.glass-modal,
+.crm-config-popover,
+.staff-presence-dropdown,
+.notification-center-dropdown,
+.notif-dropdown,
+.mobile-user-popover-card,
+.ws-dropdown-menu {
+  background: var(--glass-surface-solid) !important;
+  backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) !important;
+  border: 1px solid var(--glass-border-light) !important;
+  box-shadow: var(--glass-shadow-lg) !important;
+  border-radius: 14px;
+}
+
+/* Backdrop mờ che phủ */
+.glass-backdrop {
+  background: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+}
+
+/* ==========================================================================
+   PERFORMANCE GUARDS & GRACEFUL DEGRADATION
+   ========================================================================== */
+
+@supports not (backdrop-filter: blur(8px)) {
+  .crm-navbar,
+  .crm-sidebar,
+  .glass-modal,
+  .crm-config-popover,
+  .kanban-column,
+  .crm-reports-page .bg-white {
+    background: #ffffff !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .crm-navbar,
+  .crm-sidebar,
+  .kanban-column,
+  .glass-modal,
+  .crm-reports-page .bg-white {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #ffffff !important;
+  }
+}

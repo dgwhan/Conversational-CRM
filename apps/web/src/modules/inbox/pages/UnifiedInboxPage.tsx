@@ -186,7 +186,7 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
       {/* Banner cảnh báo thời hạn Zalo cá nhân (< 2h hoặc đã ngắt kết nối) */}
       <InboxZaloAlertBanner />
 
-      <div className={`pancake-inbox-container flex flex-1 min-h-0 h-full w-full overflow-hidden bg-slate-50/50 ${selectedId ? 'has-active-chat' : ''}`}>
+      <div className={`pancake-inbox-container flex flex-1 min-h-0 h-full w-full overflow-hidden ${selectedId ? 'has-active-chat' : ''}`}>
         {/* CỘT 1 (Trái): Danh sách Hội thoại */}
         <ConversationListColumn
           conversations={conversations}

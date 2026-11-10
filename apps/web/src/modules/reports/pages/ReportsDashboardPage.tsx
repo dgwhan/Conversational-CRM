@@ -447,7 +447,7 @@ export const ReportsDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="crm-reports-page min-h-full bg-slate-50/50 p-3 sm:p-4 max-w-[1600px] mx-auto">
+    <div className="crm-reports-page min-h-full p-3 sm:p-4 max-w-[1600px] mx-auto">
       {/* Header khu vực báo cáo - Flat section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div>

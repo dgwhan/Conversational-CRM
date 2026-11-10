@@ -10,8 +10,8 @@
   --color-text-muted: #64748b;
   --color-text-subtle: #94a3b8;
 
-  --color-bg-page: #f8fafc;
-  --color-bg-surface: #ffffff;
+  --color-bg-page: transparent;
+  --color-bg-surface: rgba(255, 255, 255, 0.78);
   --color-bg-subtle: #f1f5f9;
   --color-border-default: #cbd5e1;
   --color-border-subtle: #e2e8f0;
@@ -54,8 +54,8 @@
   --color-brand-primary-border: #bfdbfe;
 
   /* Surface & Background */
-  --color-bg-page: #f8fafc;
-  --color-bg-surface: #ffffff;
+  --color-bg-page: transparent;
+  --color-bg-surface: rgba(255, 255, 255, 0.78);
   --color-bg-subtle: #f1f5f9;
 
   /* Typography Colors */

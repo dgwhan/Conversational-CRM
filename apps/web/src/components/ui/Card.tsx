@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className = '', children, ...props }) => (
-  <div className={`card ${className}`.trim()} {...props}>
+  <div className={`card glass-card ${className}`.trim()} {...props}>
     {children}
   </div>
 );

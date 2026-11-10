@@ -287,7 +287,7 @@ export const CalendarTasksPage: React.FC<CalendarTasksPageProps> = ({
   }, [currentDate]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 text-slate-800 select-none overflow-hidden">
+    <div className="flex flex-col h-full bg-transparent text-slate-800 select-none overflow-hidden">
       {/* 1. TOP HEADER & CONTROLS: CĂN CHỈNH GỌN GÀNG, KHÔNG VỠ DÒNG */}
       <header className="bg-white border-b border-slate-200/90 px-3 sm:px-4 py-2.5 sm:py-3 shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-2xs">
         {/* Hàng 1 trên Mobile: Bộ điều hướng ngày & Tiêu đề tháng */}

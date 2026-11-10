@@ -113,7 +113,7 @@ export function Modal({
       {/* Backdrop mờ che phủ toàn bộ viewport (bao gồm cả Header và Sidebar) */}
       <div
         aria-hidden="true"
-        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200 ease-out ${
+        className={`fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-200 ease-out ${
           isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={() => {
@@ -127,8 +127,8 @@ export function Modal({
       <div
         className={`relative w-full ${sizeClasses[size] ?? sizeClasses.sm} max-h-[90vh] flex flex-col overflow-hidden shadow-2xl transform transition-all duration-200 ease-out ${
           isFlat
-            ? 'rounded-xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xl'
-            : 'rounded-2xl border border-border-default/60 bg-bg-surface p-6 sm:p-7'
+            ? 'rounded-xl border border-white/80 bg-white/95 p-5 sm:p-6 shadow-xl backdrop-blur-md glass-modal'
+            : 'rounded-2xl border border-white/80 bg-white/95 p-6 sm:p-7 shadow-2xl backdrop-blur-md glass-modal'
         } ${
           isAnimating
             ? 'opacity-100 scale-100 pointer-events-auto'
