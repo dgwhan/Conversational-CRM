@@ -12,6 +12,7 @@ import { INDUSTRY_PRESETS } from '../../../domain/workspace-config.presets.js';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import { isUuid } from '../../../../../utils/uuid.util.js';
 import type { WorkspaceLifecycleService } from '../../workspace-lifecycle/index.js';
+import { resolveBusinessDomain } from '../../../domain/business-domain.js';
 
 const logger = new Logger('ConfigQuery');
 
@@ -50,18 +51,26 @@ export async function getConfig(
     ? await lifecycle.resolveWorkspaceForOwner(resolvedOwner, cleanWsId)
     : null;
 
-  if (!dbConfig && (actualWsId || resolvedOwner)) {
-    const whereCond: any = {};
-    if (actualWsId && resolvedOwner) {
-      whereCond.OR = [{ workspaceId: actualWsId }, { ownerId: resolvedOwner }];
-    } else if (actualWsId) {
-      whereCond.workspaceId = actualWsId;
-    } else if (resolvedOwner) {
-      whereCond.ownerId = resolvedOwner;
+  if (!dbConfig) {
+    if (cleanWsId) {
+      // Khi đã truyền cleanWsId, chỉ fallback sang bản ghi của owner nếu workspaceId đang là NULL (chưa liên kết)
+      if (resolvedOwner) {
+        dbConfig = await prisma.workspaceConfiguration.findFirst({
+          where: { ownerId: resolvedOwner, workspaceId: null },
+        });
+      }
+    } else if (actualWsId || resolvedOwner) {
+      const whereCond: any = {};
+      if (actualWsId) {
+        whereCond.workspaceId = actualWsId;
+      } else if (resolvedOwner) {
+        whereCond.ownerId = resolvedOwner;
+        whereCond.workspaceId = null;
+      }
+      dbConfig = await prisma.workspaceConfiguration.findFirst({
+        where: whereCond,
+      });
     }
-    dbConfig = await prisma.workspaceConfiguration.findFirst({
-      where: whereCond,
-    });
   }
 
   if (!dbConfig) {
@@ -82,7 +91,7 @@ export async function getConfig(
   const config: WorkspaceConfig = {
     workspaceId: finalWsId,
     workspaceName: dbConfig.workspaceName || '',
-    domain: (dbConfig.domain as BusinessDomain) || 'EDUCATION',
+    domain: resolveBusinessDomain(dbConfig.domain),
     terminology: term,
     pipelineStages: ((dbConfig.pipelineStages as any[]) || []).map((s) => ({ ...s })),
     productCatalog: ((dbConfig.productCatalog as any[]) || []).map((p) => ({ ...p })),

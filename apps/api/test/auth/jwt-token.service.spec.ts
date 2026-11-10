@@ -87,4 +87,17 @@ describe('JwtTokenService', () => {
     expect(result.accessToken).toBeDefined();
     expect(result.expiresAt).toBeDefined();
   });
+
+  it('should parse JWT_ACCESS_TTL string (e.g. 1h, 30m) into minutes correctly', () => {
+    const mockConfig = {
+      get: (k: string) => {
+        if (k === 'JWT_ACCESS_SECRET') return 'test_secret_key_32_characters_long_min';
+        if (k === 'JWT_ACCESS_TTL') return '1h';
+        return undefined;
+      },
+    } as any;
+
+    const tokenService = new JwtTokenService(mockConfig);
+    expect(tokenService.getSettings().ExpiresInMinutes).toBe(60);
+  });
 });

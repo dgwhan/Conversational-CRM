@@ -45,7 +45,10 @@ function createMockPrisma() {
         if (where.workspaceId && configs.has(where.workspaceId)) return configs.get(where.workspaceId);
         if (where.ownerId) {
           for (const c of configs.values()) {
-            if (c.ownerId === where.ownerId) return c;
+            if (c.ownerId === where.ownerId) {
+              if (where.workspaceId !== undefined && c.workspaceId !== where.workspaceId) continue;
+              return c;
+            }
           }
         }
         if (where.OR) {
@@ -53,7 +56,10 @@ function createMockPrisma() {
             if (cond.workspaceId && configs.has(cond.workspaceId)) return configs.get(cond.workspaceId);
             if (cond.ownerId) {
               for (const c of configs.values()) {
-                if (c.ownerId === cond.ownerId) return c;
+                if (c.ownerId === cond.ownerId) {
+                  if (cond.workspaceId !== undefined && c.workspaceId !== cond.workspaceId) continue;
+                  return c;
+                }
               }
             }
           }
@@ -180,6 +186,31 @@ describe('WorkspaceConfigService (Multi-tenant Customization & DB by Owner)', ()
 
     const afterDelete = await service.deleteCriteria('ws-test-07', added!.id);
     expect(afterDelete.criteria.some((c) => c.id === added!.id)).toBe(false);
+  });
+
+  it('should initialize dynamic preset based on patch.domain without hardcoding Education', async () => {
+    // ws-test-08 chưa có config trong DB, tạo mới với domain REAL_ESTATE
+    const updated = await service.updateConfig('ws-test-08', {
+      domain: 'REAL_ESTATE',
+      workspaceName: 'Sàn Bất Động Sản Hưng Phát',
+    });
+
+    expect(updated.domain).toBe('REAL_ESTATE');
+    expect(updated.workspaceName).toBe('Sàn Bất Động Sản Hưng Phát');
+    expect(updated.terminology.productLabel).toContain('Bất động sản');
+    expect(updated.pipelineStages.some((s) => s.name.includes('nhà mẫu'))).toBe(true);
+    expect(updated.productCatalog.some((p) => p.name.includes('Vinhomes'))).toBe(true);
+  });
+
+  it('should resolve dynamic domain from workspace name when domain is not specified in patch', async () => {
+    // ws-test-09 có tên chứa Spa thẩm mỹ, không truyền domain
+    const updated = await service.updateConfig('ws-test-09', {
+      workspaceName: 'Viện Thẩm Mỹ & Spa Lan Anh',
+    });
+
+    expect(updated.domain).toBe('BEAUTY_SPA');
+    expect(updated.terminology.valueLabel).toContain('liệu trình');
+    expect(updated.pipelineStages.some((s) => s.name.includes('Soi da'))).toBe(true);
   });
 
   it('should throw an error if pipeline has less than 2 stages', async () => {
