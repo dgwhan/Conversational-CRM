@@ -468,15 +468,28 @@ export class MessageRepository implements OnModuleInit {
                 const fbAtts = raw.message.attachments;
                 if (Array.isArray(fbAtts) && fbAtts.length > 0) {
                     attachments = fbAtts.map((att: any, idx: number) => {
-                        const type = String(att.type || 'FILE').toUpperCase();
+                        const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
+                        const rawType = String(att.type || 'FILE').toUpperCase();
+                        let type = 'FILE';
+                        if (isSticker) {
+                            type = 'STICKER';
+                        } else if (rawType === 'IMAGE') {
+                            type = 'IMAGE';
+                        } else if (rawType === 'AUDIO') {
+                            type = 'AUDIO';
+                        } else if (rawType === 'VIDEO') {
+                            type = 'VIDEO';
+                        }
+
                         const url = att.payload?.url || att.url || '';
                         return {
                             id: att.id || `att-${Date.now()}-${idx}`,
-                            type: type === 'IMAGE' ? 'IMAGE' : type === 'AUDIO' ? 'AUDIO' : 'FILE',
+                            type,
                             url,
-                            name: att.payload?.name || att.name || `${type.toLowerCase()}_attachment`,
+                            name: att.payload?.name || att.name || (isSticker ? 'Sticker' : `${type.toLowerCase()}_attachment`),
                             size: att.payload?.size,
                             duration: att.payload?.duration,
+                            stickerId: att.payload?.sticker_id,
                         };
                     });
                 }
@@ -603,14 +616,30 @@ export class MessageRepository implements OnModuleInit {
                 const raw = (msg.rawPayload as any) || {};
                 const fbAtts = raw.message?.attachments || raw.attachments?.data || raw.attachments;
                 if (Array.isArray(fbAtts) && fbAtts.length > 0) {
-                    const parsed = fbAtts.map((att: any, idx: number) => ({
-                        id: att.id || `att-${Date.now()}-${idx}`,
-                        type: String(att.type || 'FILE').toUpperCase(),
-                        url: att.payload?.url || att.url || '',
-                        name: att.payload?.name || att.name || `${att.type}_attachment`,
-                        size: att.payload?.size,
-                        duration: att.payload?.duration,
-                    }));
+                    const parsed = fbAtts.map((att: any, idx: number) => {
+                        const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
+                        const rawType = String(att.type || 'FILE').toUpperCase();
+                        let type = 'FILE';
+                        if (isSticker) {
+                            type = 'STICKER';
+                        } else if (rawType === 'IMAGE') {
+                            type = 'IMAGE';
+                        } else if (rawType === 'AUDIO') {
+                            type = 'AUDIO';
+                        } else if (rawType === 'VIDEO') {
+                            type = 'VIDEO';
+                        }
+
+                        return {
+                            id: att.id || `att-${Date.now()}-${idx}`,
+                            type,
+                            url: att.payload?.url || att.url || '',
+                            name: att.payload?.name || att.name || (isSticker ? 'Sticker' : `${type.toLowerCase()}_attachment`),
+                            size: att.payload?.size,
+                            duration: att.payload?.duration,
+                            stickerId: att.payload?.sticker_id,
+                        };
+                    });
 
                     await this.prisma.message.update({
                         where: { id: msg.id },

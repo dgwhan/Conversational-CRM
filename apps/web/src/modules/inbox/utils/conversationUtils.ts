@@ -28,41 +28,51 @@ export const formatMessageTime = (timeStr?: string): string => {
  * Khử trùng lặp tin nhắn dựa trên content + sentAt hoặc message ID
  */
 export const deduplicateMessages = (messages: ChatMessage[]): ChatMessage[] => {
-  const seenIds = new Set<string>();
-  const seenContentTime = new Set<string>();
   const result: ChatMessage[] = [];
 
   for (const msg of messages) {
-    if (msg.id && !msg.id.startsWith('temp-') && !msg.id.startsWith('msg-')) {
-      if (seenIds.has(msg.id)) continue;
-      seenIds.add(msg.id);
-    }
-
-    const contentKey = `${msg.direction}_${(msg.content || '').trim()}_${formatMessageTime(msg.sentAt)}`;
-    if (seenContentTime.has(contentKey)) continue;
-    seenContentTime.add(contentKey);
-
     const existingIdx = result.findIndex((m) => {
-      if (m.id === msg.id && msg.id && !msg.id.startsWith('temp-')) return true;
+      // 1. Khớp ID xác định
+      if (m.id && msg.id && m.id === msg.id && !m.id.startsWith('temp-') && !m.id.startsWith('msg-')) {
+        return true;
+      }
+      // 2. Khớp theo hướng, nội dung và thời gian gửi
       if (
         m.direction === msg.direction &&
         (m.content || '').trim() === (msg.content || '').trim() &&
         (m.sentAt === msg.sentAt ||
-          Math.abs(new Date(m.sentAt).getTime() - new Date(msg.sentAt).getTime()) < 5000 ||
+          Math.abs(new Date(m.sentAt).getTime() - new Date(msg.sentAt).getTime()) < 3000 ||
           formatMessageTime(m.sentAt) === formatMessageTime(msg.sentAt))
       ) {
+        // Nếu cả hai đều có attachments nhưng URL khác nhau thì là 2 ảnh/tệp khác nhau
+        const mAtt = m.attachments?.[0]?.url || m.attachments?.[0]?.id || '';
+        const msgAtt = msg.attachments?.[0]?.url || msg.attachments?.[0]?.id || '';
+        if (mAtt && msgAtt && mAtt !== msgAtt) {
+          return false;
+        }
         return true;
       }
       return false;
     });
 
     if (existingIdx !== -1) {
+      // Cập nhật attachments nếu bản ghi trước đó bị thiếu attachments
+      if ((!result[existingIdx].attachments || result[existingIdx].attachments.length === 0) && msg.attachments && msg.attachments.length > 0) {
+        result[existingIdx] = {
+          ...result[existingIdx],
+          attachments: msg.attachments,
+        };
+      }
+      // Cập nhật nếu tin nhắn mới có ID chính thức thay thế ID tạm thời
       if (
         msg.id &&
         !msg.id.startsWith('temp-') &&
         (result[existingIdx].id.startsWith('temp-') || result[existingIdx].id.startsWith('msg-'))
       ) {
-        result[existingIdx] = msg;
+        result[existingIdx] = {
+          ...msg,
+          attachments: msg.attachments || result[existingIdx].attachments,
+        };
       }
     } else {
       result.push(msg);

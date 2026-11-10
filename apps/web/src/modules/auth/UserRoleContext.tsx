@@ -10,11 +10,8 @@ export type { UserRole, UserRoleContextValue } from './userRole.types.js';
 
 const SESSION_STORAGE_KEY = 'polarisx_crm_auth_session';
 
-function clearAccountCache() {
+function purgeSensitiveLocalStorage() {
   try {
-    localStorage.removeItem('polarisx_crm_active_workspace_id');
-    localStorage.removeItem('crm_inbox_conversations_v1');
-    localStorage.removeItem('polarisx_crm_kanban_candidates');
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -22,12 +19,24 @@ function clearAccountCache() {
         k &&
         (k.startsWith('crm_inbox_conversations') ||
           k.startsWith('polarisx_crm_kanban_candidates') ||
-          k.startsWith('polarisx_crm_workspace_config_'))
+          k.startsWith('crm_unread_messages_count') ||
+          k === SESSION_STORAGE_KEY)
       ) {
         keysToRemove.push(k);
       }
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch { }
+}
+
+function clearAccountCache() {
+  try {
+    purgeSensitiveLocalStorage();
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem('polarisx_crm_user_role');
+    sessionStorage.removeItem('polarisx_crm_active_workspace_id');
+    localStorage.removeItem('polarisx_crm_active_workspace_id');
+    localStorage.removeItem('polarisx_crm_user_role');
   } catch { }
   apiClient.setActiveWorkspaceId('');
 }
@@ -35,10 +44,17 @@ function clearAccountCache() {
 const UserRoleContext = createContext<UserRoleContextValue | null>(null);
 
 export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Lấy session đã lưu từ localStorage nếu có
+  // Lấy session từ sessionStorage (bảo mật dữ liệu nhạy cảm), tự động di chuyển & xóa khỏi localStorage nếu còn sót
   const [session, setSession] = useState<LoginResponse | null>(() => {
     try {
-      const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+      let saved = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (!saved) {
+        saved = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (saved) {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, saved);
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
       if (saved) {
         const parsed = JSON.parse(saved) as LoginResponse;
         if (parsed?.accessToken) {
@@ -50,12 +66,17 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return null;
   });
 
-  // Role được nạp từ truy vấn context Workspace (WorkspaceConfigContext), mặc định rỗng khi chưa vào workspace
+  // Tự động quét sạch dữ liệu nhạy cảm còn sót trong localStorage khi khởi động
+  useEffect(() => {
+    purgeSensitiveLocalStorage();
+  }, []);
+
+  // Role được nạp từ truy vấn context Workspace (WorkspaceConfigContext)
   const [role, setRoleState] = useState<UserRole>(() => {
     try {
-      const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      const savedSession = sessionStorage.getItem(SESSION_STORAGE_KEY) || localStorage.getItem(SESSION_STORAGE_KEY);
       if (!savedSession) return USER_ROLES.EMPTY;
-      const saved = localStorage.getItem('polarisx_crm_user_role') || '';
+      const saved = sessionStorage.getItem('polarisx_crm_user_role') || localStorage.getItem('polarisx_crm_user_role') || '';
       if (saved === USER_ROLES.OWNER || saved === USER_ROLES.STAFF) return saved as UserRole;
     } catch { }
     return USER_ROLES.EMPTY;
@@ -143,7 +164,8 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSession(newSession);
 
     try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+      localStorage.removeItem(SESSION_STORAGE_KEY);
     } catch { }
 
     // Dọn sạch kiểm role khi đăng nhập: User không có role cố định, role sẽ được nạp từ truy vấn context Workspace

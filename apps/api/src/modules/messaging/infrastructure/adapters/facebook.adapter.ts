@@ -7,7 +7,7 @@ import {
     RawWebhookRequest,
 } from "../../domain/channel-adapter.port.js";
 import { Channel, MessageDirection } from "../../domain/channel.js";
-import { InboundEvent } from "../../domain/inbound-event.js";
+import { InboundEvent, NormalizedAttachment } from "../../domain/inbound-event.js";
 
 export interface FacebookAttachment {
     type: string;
@@ -216,6 +216,7 @@ export class FacebookAdapter implements ChannelAdapter {
                     direction: isEcho ? MessageDirection.OUTBOUND : MessageDirection.INBOUND,
                     content: (e.text ?? e.content ?? null) as string | null,
                     sentAt: e.sentAt ? new Date(e.sentAt as string) : new Date(),
+                    attachments: (e.attachments as any) || undefined,
                     rawPayload: e,
                 };
             });
@@ -253,26 +254,57 @@ export class FacebookAdapter implements ChannelAdapter {
 
                         const externalAccountId = pageId;
 
-                        // Lấy nội dung tin nhắn hoặc tóm tắt attachment
-                        let content: string | null = msg.text ?? null;
-                        if (!content && Array.isArray(msg.attachments) && msg.attachments.length > 0) {
-                            const firstAtt = msg.attachments[0];
-                            const attType = firstAtt?.type || 'tệp';
-                            const attUrl = firstAtt?.payload?.url;
-                            content = attUrl ? `[${attType}: ${attUrl}]` : `[Đính kèm ${attType}]`;
-                        } else if (!content && msg.quick_reply?.payload) {
-                            content = msg.quick_reply.payload;
+                        // Trích xuất danh sách tệp/ảnh/sticker đính kèm (attachments)
+                        let parsedAttachments: NormalizedAttachment[] | undefined = undefined;
+                        if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
+                            parsedAttachments = msg.attachments.map((att, idx) => {
+                                const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
+                                const rawType = String(att.type || 'FILE').toUpperCase();
+                                let resolvedType: NormalizedAttachment['type'] = 'FILE';
+                                if (isSticker) {
+                                    resolvedType = 'STICKER';
+                                } else if (rawType === 'IMAGE') {
+                                    resolvedType = 'IMAGE';
+                                } else if (rawType === 'AUDIO') {
+                                    resolvedType = 'AUDIO';
+                                } else if (rawType === 'VIDEO') {
+                                    resolvedType = 'VIDEO';
+                                }
+
+                                const stickerId = att.payload?.sticker_id ? String(att.payload.sticker_id) : undefined;
+                                let url = att.payload?.url || (att as any).url || (att.payload as any)?.src || '';
+                                if (!url && stickerId) {
+                                    url = `https://lookaside.facebook.com/stickers/${stickerId}.png`;
+                                }
+                                const name = (att.payload as any)?.name || (att.payload as any)?.title || (isSticker ? 'Sticker Messenger' : `${rawType.toLowerCase()}_attachment`);
+                                const size = (att.payload as any)?.size ? String((att.payload as any).size) : undefined;
+
+                                return {
+                                    id: `fb_att_${Date.now()}_${idx}`,
+                                    type: resolvedType,
+                                    url,
+                                    name,
+                                    size,
+                                    stickerId,
+                                };
+                            });
                         }
 
-                        // Trích xuất danh sách tệp/ảnh đính kèm (attachments)
-                        let parsedAttachments: Array<{ id: string; type: string; url: string; name?: string }> | null = null;
-                        if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
-                            parsedAttachments = msg.attachments.map((att, idx) => ({
-                                id: `fb_att_${Date.now()}_${idx}`,
-                                type: String(att.type || 'FILE').toUpperCase(),
-                                url: att.payload?.url || '',
-                                name: (att.payload as any)?.name || (att.payload as any)?.title || `${att.type}_attachment`,
-                            }));
+                        // Lấy nội dung tin nhắn hoặc tóm tắt attachment
+                        let content: string | null = msg.text ?? null;
+                        if (!content && parsedAttachments && parsedAttachments.length > 0) {
+                            const first = parsedAttachments[0];
+                            if (first.type === 'STICKER') {
+                                content = '[Nhãn dán]';
+                            } else if (first.type === 'IMAGE') {
+                                content = '[Hình ảnh]';
+                            } else if (first.type === 'FILE') {
+                                content = first.name ? `[Tệp: ${first.name}]` : '[Tệp đính kèm]';
+                            } else {
+                                content = `[Đính kèm ${first.type}]`;
+                            }
+                        } else if (!content && msg.quick_reply?.payload) {
+                            content = msg.quick_reply.payload;
                         }
 
                         events.push({

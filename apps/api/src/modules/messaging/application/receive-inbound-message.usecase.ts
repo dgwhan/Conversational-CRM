@@ -226,6 +226,7 @@ export class ReceiveInboundMessage {
                         content: event.content || (isOutbound ? 'Tin nhắn gửi đi từ Page' : 'Tin nhắn mới'),
                         senderName: customerName,
                         senderAvatar: customerAvatar,
+                        attachments: (event.attachments as any) || (raw.attachments as any) || undefined,
                         sentAt: new Date(event.sentAt).toISOString(),
                     });
 

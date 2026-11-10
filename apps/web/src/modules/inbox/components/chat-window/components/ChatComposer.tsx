@@ -156,7 +156,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             (conversation.channel === 'FACEBOOK' && !isWithin24Hours)
           }
         >
-          {t('common.send')}
+          {t('Send')}
         </Button>
       </div>
     </div>

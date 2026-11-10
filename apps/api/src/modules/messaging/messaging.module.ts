@@ -18,6 +18,7 @@ import { WebhookController } from './presentation/webhook.controller.js';
 import { MessageImportController } from './presentation/message-import.controller.js';
 import { CustomerController } from './presentation/customer.controller.js';
 import { ContactController } from './presentation/contact.controller.js';
+import { MediaProxyController } from './presentation/media-proxy.controller.js';
 import { INBOUND_QUEUE, InboundMessageQueue } from './domain/channel-adapter.port.js';
 import { ManualImportAdapter } from './infrastructure/adapters/manual-import.adapter.js';
 import { ZaloAdapter } from './infrastructure/adapters/zalo.adapter.js';
@@ -78,7 +79,7 @@ const adaptersProvider: Provider = {
         forwardRef(() => ChannelConnectionModule),
         forwardRef(() => ActivityModule),
     ],
-    controllers: [WebhookController, MessageImportController, CustomerController, ContactController],
+    controllers: [WebhookController, MessageImportController, CustomerController, ContactController, MediaProxyController],
     providers: [
         MessageRepository,
         ChannelAdapterRegistry,

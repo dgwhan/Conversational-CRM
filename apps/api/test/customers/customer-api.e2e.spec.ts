@@ -50,7 +50,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
     const res = await controller.getCustomers(undefined, undefined, 'nguyen van a');
 
     expect(res.items.length).toBeGreaterThanOrEqual(1);
-    const found = res.items.find((c) => c.id === createdCustomerId);
+    const found = res.items.find((c: any) => c.id === createdCustomerId);
     expect(found).toBeDefined();
     expect(found?.fullName).toBe('Nguyễn Văn A');
     expect(found?.phone).toBe('0912345678');
@@ -59,7 +59,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   it('2. Tìm "Nguyen Van A" viết hoa chữ cái đầu trên PostgreSQL thật ra "Nguyễn Văn A"', async () => {
     const res = await controller.getCustomers(undefined, undefined, 'Nguyen Van A');
 
-    const found = res.items.find((c) => c.id === createdCustomerId);
+    const found = res.items.find((c: any) => c.id === createdCustomerId);
     expect(found).toBeDefined();
     expect(found?.fullName).toBe('Nguyễn Văn A');
   });
@@ -67,7 +67,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   it('3. Tìm theo SĐT định dạng có dấu chấm "0912.345.678" ra đúng khách hàng', async () => {
     const res = await controller.getCustomers(undefined, undefined, '0912.345.678');
 
-    const found = res.items.find((c) => c.id === createdCustomerId);
+    const found = res.items.find((c: any) => c.id === createdCustomerId);
     expect(found).toBeDefined();
     expect(found?.fullName).toBe('Nguyễn Văn A');
   });

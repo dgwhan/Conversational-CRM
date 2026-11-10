@@ -26,13 +26,40 @@ export function useChatComposer({ conversation, onSendMessage }: UseChatComposer
   }, [conversation.messages]);
 
   // Kiểm tra thời hạn 24 giờ của Meta (Facebook Messenger)
-  const lastCustomerMessageTime = conversation.lastCustomerMessageAt
+  // Ưu tiên 1: Tin nhắn INBOUND gần nhất trong conversation.messages
+  const latestInboundMsg = [...(conversation.messages || [])]
+    .reverse()
+    .find((m) => m.direction === 'INBOUND');
+
+  const timeFromMsg = latestInboundMsg?.sentAt
+    ? new Date(latestInboundMsg.sentAt).getTime()
+    : Number.NaN;
+
+  const timeFromField = conversation.lastCustomerMessageAt
     ? new Date(conversation.lastCustomerMessageAt).getTime()
     : Number.NaN;
 
-  const hoursDiff = (currentTimestamp - lastCustomerMessageTime) / (1000 * 60 * 60);
-  const isWithin24Hours = Number.isFinite(hoursDiff) && hoursDiff >= 0 && hoursDiff < 24;
-  const hoursRemaining = Number.isFinite(hoursDiff) ? Math.max(0, Math.floor(24 - hoursDiff)) : 0;
+  // Lấy mốc thời gian khách hàng tương tác gần nhất hợp lệ
+  const validTimes = [timeFromField, timeFromMsg].filter((t) => Number.isFinite(t) && !Number.isNaN(t));
+  const lastCustomerMessageTime = validTimes.length > 0 ? Math.max(...validTimes) : Number.NaN;
+
+  const hoursDiff = Number.isFinite(lastCustomerMessageTime)
+    ? (currentTimestamp - lastCustomerMessageTime) / (1000 * 60 * 60)
+    : Number.NaN;
+
+  // Nếu tin nhắn cuối cùng trong chuỗi hội thoại là từ khách hàng đến -> Reset tag 24h ngay lập tức
+  const isLastMsgFromCustomer = Boolean(
+    conversation.messages &&
+    conversation.messages.length > 0 &&
+    conversation.messages[conversation.messages.length - 1]?.direction === 'INBOUND'
+  );
+
+  // Hợp lệ trong 24 giờ khi:
+  // 1. Khách vừa gửi tin nhắn mới
+  // 2. Chênh lệch thời gian hợp lệ dưới 24 giờ
+  // 3. Hoặc chưa có mốc thời gian cũ (tránh chặn oan tư vấn viên khi vừa nạp hội thoại)
+  const isWithin24Hours = isLastMsgFromCustomer || !Number.isFinite(hoursDiff) || (hoursDiff >= 0 && hoursDiff < 24);
+  const hoursRemaining = Number.isFinite(hoursDiff) ? Math.max(0, Math.floor(24 - hoursDiff)) : 24;
 
   const handleSend = useCallback(() => {
     if (!inputText.trim()) return;

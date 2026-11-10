@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import type { StaffPresenceStatus, ChannelType } from '../inbox/types.js';
+import type { StaffPresenceStatus, ChannelType, MessageAttachment } from '../inbox/types.js';
 import { playTingTingSound, playUrgentAlertSound, isSoundEnabled, setSoundEnabled } from './audioNotification.js';
 import { notify } from '../../components/feedback/toastEmitter.js';
 import { apiClient } from '../../lib/api-client/index.js';
@@ -15,6 +15,7 @@ export interface InboundMessageEventData {
   senderAvatar?: string;
   customerPhone?: string;
   customerEmail?: string;
+  attachments?: MessageAttachment[];
   sentAt: string;
 }
 
@@ -85,23 +86,10 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [unreadCount, setUnreadCount] = useState<number>(() => {
     if (typeof window === 'undefined') return 0;
     try {
-      const savedCount = localStorage.getItem('crm_unread_messages_count');
+      const savedCount = sessionStorage.getItem('crm_unread_messages_count') || localStorage.getItem('crm_unread_messages_count');
       if (savedCount !== null) {
         const val = parseInt(savedCount, 10);
         if (!isNaN(val) && val > 0) return val;
-      }
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('crm_inbox_conversations')) {
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            const list = JSON.parse(raw);
-            if (Array.isArray(list)) {
-              const count = list.reduce((acc: number, c: any) => acc + (c.unreadCount || 0), 0);
-              if (count > 0) return count;
-            }
-          }
-        }
       }
     } catch {}
     return 0;
@@ -109,7 +97,8 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     try {
-      localStorage.setItem('crm_unread_messages_count', String(unreadCount));
+      sessionStorage.setItem('crm_unread_messages_count', String(unreadCount));
+      localStorage.removeItem('crm_unread_messages_count');
     } catch {}
   }, [unreadCount]);
 
@@ -374,6 +363,8 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
 
+    let wsFailures = 0;
+
     const connectWebSocket = () => {
       if (typeof window === 'undefined' || !isMounted) return;
 
@@ -383,15 +374,20 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           webSocketRef.current = null;
         }
 
-        const baseUrl = apiClient.getBaseUrl();
-        let wsUrl = '';
-        if (baseUrl.startsWith('http')) {
-          const urlObj = new URL(baseUrl);
-          const proto = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
-          wsUrl = `${proto}//${urlObj.host}/api/realtime/ws`;
-        } else {
-          const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          wsUrl = `${proto}//${window.location.host}/api/realtime/ws`;
+        const explicitWsUrl = (import.meta.env.VITE_WS_URL as string)?.trim();
+        let wsUrl = explicitWsUrl || '';
+        if (!wsUrl) {
+          const baseUrl = apiClient.getBaseUrl();
+          if (baseUrl.startsWith('http')) {
+            const urlObj = new URL(baseUrl);
+            const proto = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+            const pathname = urlObj.pathname.replace(/\/+$/, '');
+            const wsPath = pathname.endsWith('/api') ? `${pathname}/realtime/ws` : `${pathname}/api/realtime/ws`;
+            wsUrl = `${proto}//${urlObj.host}${wsPath}`;
+          } else {
+            const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsUrl = `${proto}//${window.location.host}/api/realtime/ws`;
+          }
         }
 
         const ws = new WebSocket(wsUrl);
@@ -400,6 +396,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         ws.onopen = () => {
           if (!isMounted) return;
+          wsFailures = 0;
           retryDelay = 2000;
           setConnectionStatus('CONNECTED');
           // Giữ kết nối liên tục bằng heartbeat ping mỗi 15 giây
@@ -425,6 +422,12 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const handleDisconnect = () => {
           if (pingInterval) clearInterval(pingInterval);
           if (!isMounted) return;
+          wsFailures++;
+          // Nếu WebSocket liên tục thất bại (như khi deploy trên Vercel không hỗ trợ WS), tự động chuyển sang SSE stream
+          if (wsFailures >= 2) {
+            connectSSE();
+            return;
+          }
           setConnectionStatus('CONNECTING');
           retryDelay = Math.min(Math.round(retryDelay * 1.5), 10000);
           if (reconnectTimeout) clearTimeout(reconnectTimeout);

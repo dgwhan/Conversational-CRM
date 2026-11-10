@@ -56,7 +56,14 @@ export const useInboxConversations = ({
 
   const [conversations, setConversations] = useState<ConversationItem[]>(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      // Dọn sạch dữ liệu nhạy cảm cũ trong localStorage nếu có
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('crm_inbox_conversations')) {
+          localStorage.removeItem(k);
+        }
+      }
+      const saved = sessionStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -88,10 +95,10 @@ export const useInboxConversations = ({
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Khi chuyển đổi Workspace hoặc tài khoản, tự động nạp danh sách hội thoại của Workspace đó
+  // Khi chuyển đổi Workspace hoặc tài khoản, tự động nạp danh sách hội thoại của Workspace đó từ sessionStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = sessionStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -106,7 +113,7 @@ export const useInboxConversations = ({
   }, [storageKey, initialConversationId]);
 
   // Tải các tin nhắn đã lưu trong CSDL khi vào trang Inbox & ánh xạ khớp với dữ liệu khách hàng
-  const loadSavedMessages = useCallback(async () => {
+  const loadSavedMessages = useCallback(async (isSilent = false) => {
     try {
       const [messagesRes, customersRes, channelsRes] = await Promise.all([
         apiClient.getMessages({ limit: 100, workspaceId: activeWorkspaceId || undefined }),
@@ -119,11 +126,13 @@ export const useInboxConversations = ({
       }
 
       if (!messagesRes?.items || messagesRes.items.length === 0) {
-        setConversations([]);
-        setSelectedId(null);
-        try {
-          localStorage.removeItem(storageKey);
-        } catch { }
+        if (!isSilent) {
+          setConversations([]);
+          setSelectedId(null);
+          try {
+            sessionStorage.removeItem(storageKey);
+          } catch { }
+        }
         return;
       }
 
@@ -307,6 +316,7 @@ export const useInboxConversations = ({
               conversationId: convId,
               direction: m.direction,
               content: m.content || '',
+              attachments: (m as any).attachments || (m as any).rawPayload?.attachments || (m as any).rawPayload?.message?.attachments,
               sentAt: m.sentAt ? new Date(m.sentAt).toISOString() : new Date().toISOString(),
               senderName: m.direction === 'OUTBOUND' ? channelName : (itemCustomerName || `Khách (${suffix})`),
               status: 'DELIVERED',
@@ -484,6 +494,16 @@ export const useInboxConversations = ({
     loadSavedMessages();
   }, [loadSavedMessages, activeWorkspaceId]);
 
+  // Tự động kéo tin nhắn ngầm (Smart Polling Fallback) định kỳ mỗi 6 giây
+  // Đảm bảo tin nhắn từ Facebook/Zalo luôn tự động nạp vào hộp thư ngay cả khi deploy trên Vercel không có WebSocket
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      loadSavedMessages(true);
+    }, 6000);
+
+    return () => clearInterval(pollInterval);
+  }, [loadSavedMessages]);
+
   // Lắng nghe sự kiện Realtime tin nhắn mới từ WebSocket
   useEffect(() => {
     const unsubscribe = onNewMessage((msg: any) => {
@@ -533,6 +553,7 @@ export const useInboxConversations = ({
           conversationId: matchedConvId,
           direction: msg.direction || ('INBOUND' as const),
           content: msg.content,
+          attachments: msg.attachments,
           sentAt: sentAtIso,
           senderName: msg.senderName,
           senderAvatar: msg.senderAvatar,
@@ -730,13 +751,13 @@ export const useInboxConversations = ({
     return () => window.removeEventListener('crm:lead-updated', handleLeadUpdated);
   }, []);
 
-  // Lưu danh sách hội thoại vào LocalStorage theo từng Workspace để không bị lẫn giữa các tài khoản
+  // Lưu danh sách hội thoại tạm thời vào sessionStorage (Bảo mật thông tin khách hàng, tự hủy khi đóng tab)
   useEffect(() => {
     try {
       if (conversations.length > 0) {
-        localStorage.setItem(storageKey, JSON.stringify(conversations));
+        sessionStorage.setItem(storageKey, JSON.stringify(conversations));
       } else {
-        localStorage.removeItem(storageKey);
+        sessionStorage.removeItem(storageKey);
       }
     } catch { }
   }, [conversations, storageKey]);

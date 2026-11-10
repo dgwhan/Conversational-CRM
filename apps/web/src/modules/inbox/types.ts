@@ -39,7 +39,9 @@ export type StaffPresenceStatus = 'ONLINE' | 'AWAY' | 'BUSY';
 
 export interface MessageAttachment {
   id: string;
-  type: 'IMAGE' | 'FILE' | 'AUDIO';
+  type: 'IMAGE' | 'FILE' | 'AUDIO' | 'STICKER' | 'VIDEO';
+  stickerId?: string | number;
+  thumbnailUrl?: string;
   url: string;
   name?: string;
   size?: string;

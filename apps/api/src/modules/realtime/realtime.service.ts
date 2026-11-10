@@ -212,6 +212,15 @@ export class RealtimeService implements OnModuleDestroy {
     senderAvatar?: string;
     customerPhone?: string;
     customerEmail?: string;
+    attachments?: Array<{
+      id: string;
+      type: string;
+      url: string;
+      name?: string;
+      size?: string;
+      duration?: string;
+      stickerId?: string | number;
+    }>;
     sentAt: string;
   }): void {
     this.emit('message:received', messageData);

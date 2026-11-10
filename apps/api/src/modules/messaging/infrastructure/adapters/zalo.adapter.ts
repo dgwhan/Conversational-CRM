@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ChannelAdapter, InvalidWebhookPayloadError, RawWebhookRequest } from "../../domain/channel-adapter.port.js";
 import { Channel, MessageDirection } from "../../domain/channel.js";
-import { InboundEvent } from "../../domain/inbound-event.js";
+import { InboundEvent, NormalizedAttachment } from "../../domain/inbound-event.js";
 
 @Injectable()
 export class ZaloAdapter implements ChannelAdapter {
@@ -75,20 +75,72 @@ export class ZaloAdapter implements ChannelAdapter {
             // Nội dung tin nhắn
             let contentText = (e.text ?? msgObj?.text ?? e.content ?? null) as string | null;
 
-            // Xử lý đính kèm nếu có ảnh/file
-            const attachmentsList: Array<{ type: string; url: string }> = [];
+            // Xử lý đính kèm nếu có ảnh/file/sticker/audio
+            const attachmentsList: NormalizedAttachment[] = [];
+            const isStickerEvent = e.event_name === 'user_send_sticker' || e.event_name === 'oa_send_sticker';
+            const isImageEvent = e.event_name === 'user_send_image' || e.event_name === 'oa_send_image';
+            const isFileEvent = e.event_name === 'user_send_file' || e.event_name === 'oa_send_file';
+
             if (Array.isArray(msgObj?.attachments)) {
-                for (const att of msgObj.attachments as any[]) {
-                    const url = att?.payload?.url || att?.url;
-                    if (url) {
+                for (let idx = 0; idx < msgObj.attachments.length; idx++) {
+                    const att = msgObj.attachments[idx] as any;
+                    const url = att?.payload?.url || att?.url || att?.payload?.thumbnail || '';
+                    const rawType = String(att?.type || (isStickerEvent ? 'sticker' : isImageEvent ? 'image' : isFileEvent ? 'file' : 'image')).toLowerCase();
+
+                    let normalizedType: NormalizedAttachment['type'] = 'IMAGE';
+                    if (rawType.includes('sticker') || isStickerEvent || att?.payload?.id || att?.sticker_id) {
+                        normalizedType = 'STICKER';
+                    } else if (rawType.includes('file') || isFileEvent) {
+                        normalizedType = 'FILE';
+                    } else if (rawType.includes('audio') || rawType.includes('voice')) {
+                        normalizedType = 'AUDIO';
+                    } else if (rawType.includes('video')) {
+                        normalizedType = 'VIDEO';
+                    }
+
+                    if (url || att?.payload?.id || att?.id) {
                         attachmentsList.push({
-                            type: att?.type || 'image',
-                            url,
+                            id: att?.id || `zalo_att_${Date.now()}_${idx}`,
+                            type: normalizedType,
+                            url: url || (att?.payload?.id ? `https://stickers.zalo.me/${att.payload.id}` : ''),
+                            name: att?.payload?.name || att?.name || (normalizedType === 'STICKER' ? 'Sticker Zalo' : `${normalizedType.toLowerCase()}_attachment`),
+                            size: att?.payload?.size ? String(att.payload.size) : undefined,
+                            stickerId: att?.payload?.id || att?.sticker_id || undefined,
                         });
                     }
                 }
-                if (!contentText && attachmentsList.length > 0) {
-                    contentText = '[Hình ảnh / Đính kèm]';
+            } else if (isStickerEvent || msgObj?.sticker_id || e.sticker_id || (msgObj as any)?.id) {
+                // Hỗ trợ sự kiện sticker trực tiếp từ Zalo không bọc trong mảng attachments
+                const stickerId = (msgObj as any)?.id || (msgObj as any)?.sticker_id || e.sticker_id || (e as any)?.id;
+                const stickerUrl = (msgObj as any)?.url || (e as any)?.url || (stickerId ? `https://stickers.zalo.me/${stickerId}` : '');
+                attachmentsList.push({
+                    id: `zalo_sticker_${Date.now()}_0`,
+                    type: 'STICKER',
+                    url: stickerUrl,
+                    name: 'Sticker Zalo',
+                    stickerId: stickerId ? String(stickerId) : undefined,
+                });
+            } else if ((isImageEvent || isFileEvent) && ((msgObj as any)?.url || (e as any)?.url)) {
+                const mediaUrl = (msgObj as any)?.url || (e as any)?.url;
+                const normalizedType = isImageEvent ? 'IMAGE' : 'FILE';
+                attachmentsList.push({
+                    id: `zalo_${normalizedType.toLowerCase()}_${Date.now()}_0`,
+                    type: normalizedType,
+                    url: mediaUrl,
+                    name: (msgObj as any)?.name || (e as any)?.name || `${normalizedType.toLowerCase()}_attachment`,
+                });
+            }
+
+            if (!contentText && attachmentsList.length > 0) {
+                const firstType = attachmentsList[0].type;
+                if (firstType === 'STICKER') {
+                    contentText = '[Nhãn dán]';
+                } else if (firstType === 'IMAGE') {
+                    contentText = '[Hình ảnh]';
+                } else if (firstType === 'FILE') {
+                    contentText = attachmentsList[0].name ? `[Tệp: ${attachmentsList[0].name}]` : '[Tệp đính kèm]';
+                } else {
+                    contentText = '[Đính kèm]';
                 }
             }
 
@@ -131,6 +183,7 @@ export class ZaloAdapter implements ChannelAdapter {
                     : e.timestamp
                     ? new Date(Number(e.timestamp))
                     : new Date(),
+                attachments: attachmentsList.length > 0 ? attachmentsList : undefined,
                 rawPayload: rawPayloadWithMeta,
             };
         });

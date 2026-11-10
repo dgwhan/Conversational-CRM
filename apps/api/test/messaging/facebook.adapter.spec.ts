@@ -248,8 +248,94 @@ describe('FacebookAdapter', () => {
             });
 
             expect(events).toHaveLength(1);
-            expect(events[0]!.content).toContain('https://cdn.facebook.com/images/hoc-ba.jpg');
+            expect(events[0]!.content).toBe('[Hình ảnh]');
+            expect(events[0]!.attachments).toBeDefined();
+            expect(events[0]!.attachments![0].type).toBe('IMAGE');
+            expect(events[0]!.attachments![0].url).toBe('https://cdn.facebook.com/images/hoc-ba.jpg');
             expect(events[0]!.direction).toBe(MessageDirection.INBOUND);
+        });
+
+        it('parse đúng tin nhắn Sticker / Thumbs up từ khách hàng', () => {
+            const metaPayload = {
+                object: 'page',
+                entry: [
+                    {
+                        id: 'page_id_cusc_01',
+                        messaging: [
+                            {
+                                sender: { id: 'user_cust_123' },
+                                timestamp: 1714000000000,
+                                message: {
+                                    mid: 'mid.sticker.001',
+                                    attachments: [
+                                        {
+                                            type: 'image',
+                                            payload: {
+                                                url: 'https://cdn.facebook.com/stickers/like.png',
+                                                sticker_id: '369239263222822',
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            const events = adapter.parseEvents({
+                headers: {},
+                rawBody: Buffer.from(JSON.stringify(metaPayload)),
+            });
+
+            expect(events).toHaveLength(1);
+            expect(events[0]!.content).toBe('[Nhãn dán]');
+            expect(events[0]!.attachments).toBeDefined();
+            expect(events[0]!.attachments![0].type).toBe('STICKER');
+            expect(events[0]!.attachments![0].stickerId).toBe('369239263222822');
+            expect(events[0]!.attachments![0].url).toBe('https://cdn.facebook.com/stickers/like.png');
+        });
+
+        it('parse đúng tin nhắn Tệp đính kèm (PDF, DOCX) từ khách hàng', () => {
+            const metaPayload = {
+                object: 'page',
+                entry: [
+                    {
+                        id: 'page_id_cusc_01',
+                        messaging: [
+                            {
+                                sender: { id: 'user_cust_123' },
+                                timestamp: 1714000000000,
+                                message: {
+                                    mid: 'mid.file.001',
+                                    attachments: [
+                                        {
+                                            type: 'file',
+                                            payload: {
+                                                url: 'https://cdn.facebook.com/files/cv-nguyen-van-a.pdf',
+                                                name: 'CV_Nguyen_Van_A.pdf',
+                                                size: 204800,
+                                            },
+                                        },
+                                    ],
+                                },
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            const events = adapter.parseEvents({
+                headers: {},
+                rawBody: Buffer.from(JSON.stringify(metaPayload)),
+            });
+
+            expect(events).toHaveLength(1);
+            expect(events[0]!.content).toBe('[Tệp: CV_Nguyen_Van_A.pdf]');
+            expect(events[0]!.attachments).toBeDefined();
+            expect(events[0]!.attachments![0].type).toBe('FILE');
+            expect(events[0]!.attachments![0].name).toBe('CV_Nguyen_Van_A.pdf');
+            expect(events[0]!.attachments![0].url).toBe('https://cdn.facebook.com/files/cv-nguyen-van-a.pdf');
         });
 
         it('bỏ qua sự kiện delivery và read receipts (không phải tin nhắn nội dung)', () => {
