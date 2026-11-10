@@ -591,10 +591,10 @@
 
 /* --------------------------------------------------------------------------
    5. MODERN MOBILE UX & HIGH PERFORMANCE ACCELERATION (IPHONE 15 PRO MAX 430x873)
-   Kh?c ph?c tri?t d? hi?n tu?ng dè ch?ng container, nút b?m và n?i dung trên mobile.
+   Kh?c ph?c tri?t d? hi?n tu?ng dï¿½ ch?ng container, nï¿½t b?m vï¿½ n?i dung trï¿½n mobile.
    -------------------------------------------------------------------------- */
 
-/* T?i uu c?m ?ng: Lo?i b? d? tr? 300ms và highlight xám m?c d?nh trên Webkit mobile */
+/* T?i uu c?m ?ng: Lo?i b? d? tr? 300ms vï¿½ highlight xï¿½m m?c d?nh trï¿½n Webkit mobile */
 button,
 a,
 input,
@@ -608,7 +608,7 @@ textarea,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Micro-interactions: Ph?n h?i xúc giác mu?t mà 60/120fps */
+/* Micro-interactions: Ph?n h?i xï¿½c giï¿½c mu?t mï¿½ 60/120fps */
 @media (prefers-reduced-motion: no-preference) {
   .btn,
   .crm-btn,
@@ -627,7 +627,7 @@ textarea,
   }
 }
 
-/* Container & Layout can ch?nh chu?n xác trên màn hình Mobile */
+/* Container & Layout can ch?nh chu?n xï¿½c trï¿½n mï¿½n hï¿½nh Mobile */
 @media screen and (max-width: 768px) {
   .crm-content-area:not(.pancake-fullscreen) {
     padding: 12px 12px calc(24px + env(safe-area-inset-bottom, 0px)) 12px !important;
@@ -643,7 +643,7 @@ textarea,
     box-sizing: border-box !important;
   }
 
-  /* Tiêu d? trang trên Mobile */
+  /* Tiï¿½u d? trang trï¿½n Mobile */
   .crm-page-header {
     display: flex !important;
     flex-direction: column !important;
@@ -673,7 +673,7 @@ textarea,
     font-size: 12.5px !important;
   }
 
-  /* B?ng bi?u và Lu?i d? li?u cu?n ngang d?c l?p không làm v? trang */
+  /* B?ng bi?u vï¿½ Lu?i d? li?u cu?n ngang d?c l?p khï¿½ng lï¿½m v? trang */
   .table-container,
   .crm-table-wrapper {
     width: 100% !important;
@@ -690,7 +690,7 @@ textarea,
     font-size: 12px !important;
   }
 
-  /* Thanh công c? tìm ki?m và b? l?c Kanban & Reports */
+  /* Thanh cï¿½ng c? tï¿½m ki?m vï¿½ b? l?c Kanban & Reports */
   .kanban-toolbar {
     display: flex !important;
     flex-direction: column !important;
@@ -740,7 +740,7 @@ textarea,
     border-radius: 8px !important;
   }
 
-  /* Ð?m b?o dropdown popovers không b? che khu?t ho?c tràn l? màn hình */
+  /* ï¿½?m b?o dropdown popovers khï¿½ng b? che khu?t ho?c trï¿½n l? mï¿½n hï¿½nh */
   .ws-dropdown-menu,
   .staff-presence-dropdown,
   .notification-center-dropdown {
@@ -752,5 +752,156 @@ textarea,
     max-width: calc(100vw - 20px) !important;
     border-radius: 14px !important;
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.22) !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. GLOBAL FULL RESPONSIVE SUITE (360px -> 1440px+)
+   Bao ve cau truc layout chong tran, vo giao dien tren moi man hinh di dong, tablet, laptop va desktop.
+   -------------------------------------------------------------------------- */
+
+/* Toan cuc: Triet tieu hoan toan thanh cuon ngang ngoai y muon */
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* 1. MAN HINH SIEU NHO VA DI DONG PHO THONG (360px - 480px) */
+@media screen and (max-width: 480px) {
+  /* Giam le padding hai ben man hinh */
+  .crm-content-area,
+  .crm-reports-page,
+  .crm-workspace-settings-container,
+  .onboarding-page-container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  /* Can chinh cac khoi tieu de trang */
+  .crm-page-header,
+  .crm-reports-page > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  /* Khung tim kiem va bo loc tran 100% chieu ngang */
+  .kanban-toolbar,
+  .crm-filter-bar {
+    width: 100% !important;
+  }
+
+  /* Modal va Dialog hien thi vua van trong man hinh 360px */
+  .crm-modal-dialog,
+  .glass-modal {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto !important;
+    padding: 16px 12px !important;
+    max-height: 94vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Dam bao bang du lieu cuon ngang doc lap */
+  .table-responsive,
+  .crm-table-wrapper,
+  .table-container {
+    max-width: calc(100vw - 16px) !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Tranh tran chu tieu de dai */
+  h1, .h1 {
+    font-size: clamp(1.5rem, 6vw, 2.25rem) !important;
+    word-break: break-word;
+  }
+
+  h2, .h2 {
+    font-size: clamp(1.25rem, 5vw, 1.875rem) !important;
+    word-break: break-word;
+  }
+
+  /* Nut bam khong bi dinh sat nhau tren mobile */
+  .btn-group-mobile,
+  .crm-btn-group {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  /* Tranh de len thanh Safe Area day */
+  .crm-app-container {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* 2. MAN HINH DIEN THOAI 360px DAC TRU (Galaxy S8, iPhone SE, Sony Xperia Compact) */
+@media screen and (max-width: 380px) {
+  /* Cat giam khoang cach va font size vua tam mat */
+  .crm-navbar-actions {
+    gap: 3px !important;
+  }
+
+  .crm-btn {
+    font-size: 11.5px !important;
+    padding: 5px 8px !important;
+  }
+
+  /* An cac badge phu de nhuong cho cho tieu de */
+  .crm-header-current-tab {
+    max-width: 85px !important;
+    font-size: 12px !important;
+  }
+
+  .kanban-column {
+    min-width: 230px !important;
+    width: 92vw !important;
+  }
+}
+
+/* 3. MAN HINH TABLET & IPAD (768px - 1024px) */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  .crm-sidebar {
+    width: 68px !important;
+    min-width: 68px !important;
+  }
+
+  .crm-sidebar .crm-brand-text,
+  .crm-sidebar .crm-nav-label,
+  .crm-sidebar .crm-nav-badge {
+    display: none !important;
+  }
+
+  .crm-content-area {
+    padding: 18px 20px !important;
+  }
+
+  .kanban-column {
+    min-width: 280px !important;
+  }
+
+  .grid-cols-mobile-adaptive {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* 4. MAN HINH LAPTOP & DESKTOP TIEU CHUAN (1025px - 1440px+) */
+@media screen and (min-width: 1025px) {
+  .crm-content-area {
+    max-width: 100% !important;
+  }
+
+  .crm-app-container {
+    max-width: 100vw;
   }
 }

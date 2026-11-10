@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUp, ArrowRightLeft, Printer, ShieldCheck, FileText } from 'lucide-react';
+import React, { useMemo, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { ArrowUp, ArrowRightLeft, Printer } from 'lucide-react';
 import type { LegalDocument } from '../types/legal.types.js';
 import { useActiveSection } from '../hooks/useActiveSection.js';
 import { useScrollProgress, useLandingTheme } from '../../landing/hooks/useLandingInteractions.js';
@@ -18,6 +18,20 @@ export interface LegalLayoutProps {
 export const LegalLayout: React.FC<LegalLayoutProps> = ({ document }) => {
   const { isDark, toggleTheme } = useLandingTheme();
   const scrollProgress = useScrollProgress();
+  const location = useLocation();
+
+  // Tự động scroll lên đỉnh trang khi chuyển trang sang Privacy hoặc Terms
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.replace('#', '');
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname]);
 
   const sectionIds = useMemo(() => document.sections.map((s) => s.id), [document.sections]);
   const activeSectionId = useActiveSection(sectionIds, 120);

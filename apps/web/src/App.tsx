@@ -175,6 +175,21 @@ function OnboardingRoute() {
 }
 
 /**
+ * Tự động cuộn trang lên đầu khi chuyển route (đặc biệt khi vào /privacy, /terms hoặc /home)
+ */
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [pathname, hash]);
+
+  return null;
+}
+
+/**
  * Component xử lý Route tập trung của CRM
  */
 function CRMAppRoutes() {
@@ -198,6 +213,7 @@ function CRMAppRoutes() {
 
   return (
     <>
+      <ScrollToTop />
       <ToastContainer />
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
