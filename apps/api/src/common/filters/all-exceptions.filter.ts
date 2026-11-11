@@ -117,6 +117,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
           errorMessage = 'Thao tác vi phạm mối quan hệ bắt buộc giữa các bản ghi.';
           break;
         }
+        case 'P2022': {
+          statusCode = HttpStatus.BAD_REQUEST;
+          errorTitle = 'Bad Request';
+          const column = (exception.meta?.column as string) || '';
+          errorMessage = column
+            ? `Cột '${column}' không tồn tại trong cơ sở dữ liệu.`
+            : 'Cột yêu cầu không tồn tại trong cơ sở dữ liệu.';
+          break;
+        }
         default: {
           statusCode = HttpStatus.BAD_REQUEST;
           errorTitle = 'Database Error';
@@ -148,16 +157,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Ghi log chi tiết: 4xx ghi warn, 5xx ghi error kèm stack trace
     const logPrefix = `[${method} ${path}] [Status: ${statusCode}]`;
     const clientIp = request?.ip || request?.headers?.['x-forwarded-for'] || 'unknown';
+    const detailMsg =
+      exception instanceof Error && exception.message !== errorMessage
+        ? ` | Detail: ${exception.message}`
+        : '';
 
     if (statusCode >= 500) {
       const stack = exception instanceof Error ? exception.stack : undefined;
       this.logger.error(
-        `${logPrefix} Error: ${Array.isArray(errorMessage) ? errorMessage.join('; ') : errorMessage} - IP: ${clientIp}`,
+        `${logPrefix} Error: ${Array.isArray(errorMessage) ? errorMessage.join('; ') : errorMessage}${detailMsg} - IP: ${clientIp}`,
         stack,
       );
     } else {
       this.logger.warn(
-        `${logPrefix} Handled Exception: ${Array.isArray(errorMessage) ? errorMessage.join('; ') : errorMessage} - IP: ${clientIp}`,
+        `${logPrefix} Handled Exception: ${Array.isArray(errorMessage) ? errorMessage.join('; ') : errorMessage}${detailMsg} - IP: ${clientIp}`,
       );
     }
 
