@@ -27,6 +27,7 @@ import type { RegisterRequestDto } from "../dto/register/register-request.dto.js
 import type { RegisterResponseDto } from "../dto/register/register-response.dto.js";
 import { ZodValidationPipe } from "../../../../common/pipes/zod-validation.pipe.js";
 import { RateLimit } from "../../../../common/decorators/rate-limit.decorator.js";
+import { Public } from "../../../../common/decorators/public.decorator.js";
 import type { AuthUser } from "../../domain/types/auth-user.js";
 
 const REFRESH_COOKIE_NAME = "refresh_token";
@@ -52,6 +53,7 @@ export class AuthController {
         private readonly configService: ConfigService,
     ) { }
 
+    @Public()
     @RateLimit({ limit: 10, ttlMs: 60000 })
     @Post("login")
     @HttpCode(HttpStatus.OK)
@@ -81,6 +83,7 @@ export class AuthController {
         return result.response;
     }
 
+    @Public()
     @RateLimit({ limit: 10, ttlMs: 60000 })
     @Post("register")
     @HttpCode(HttpStatus.CREATED)
@@ -113,6 +116,7 @@ export class AuthController {
      * Endpoint làm mới Access Token một cách minh bạch (Transparent Access Token Refresh).
      * Nhận Refresh Token qua HttpOnly Cookie hoặc JSON Body { refreshToken }.
      */
+    @Public()
     @Post("refresh")
     @HttpCode(HttpStatus.OK)
     async refresh(
@@ -151,6 +155,7 @@ export class AuthController {
     /**
      * Đăng xuất an toàn: Thu hồi Refresh Token trong DB và xóa Cookie.
      */
+    @Public()
     @Post("logout")
     @HttpCode(HttpStatus.OK)
     async logout(

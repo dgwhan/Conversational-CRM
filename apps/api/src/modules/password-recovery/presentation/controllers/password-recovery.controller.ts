@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ZodValidationPipe } from '../../../../common/pipes/zod-validation.pipe.js';
 import { RateLimit } from '../../../../common/decorators/rate-limit.decorator.js';
+import { Public } from '../../../../common/decorators/public.decorator.js';
 import { PasswordRecoveryService } from '../../application/services/password-recovery.service.js';
 import { PasswordRecoveryVerificationService } from '../../application/services/password-recovery-verification.service.js';
 import {
@@ -25,7 +26,8 @@ const ACCEPTED_RESPONSE = {
   message: 'If the account is eligible, recovery instructions will be sent.',
 };
 
-// Công bố endpoint yêu cầu gửi OTP, xác minh OTP và đặt lại mật khẩu mới.
+// Công bố endpoint yêu cầu gửi OTP, xác minh OTP và đặt lại mật khẩu mới (người dùng chưa đăng nhập).
+@Public()
 @Controller('auth/password-recovery')
 export class PasswordRecoveryController {
   constructor(

@@ -1,4 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import crypto from "node:crypto";
 import { ChannelAdapter, InvalidWebhookPayloadError, RawWebhookRequest } from "../../domain/channel-adapter.port.js";
 import { Channel, MessageDirection } from "../../domain/channel.js";
 import { InboundEvent, NormalizedAttachment } from "../../domain/inbound-event.js";
@@ -8,17 +10,124 @@ export class ZaloAdapter implements ChannelAdapter {
     private readonly logger = new Logger(ZaloAdapter.name);
     readonly channel = Channel.ZALO;
 
-    verifyRequest(request: RawWebhookRequest): boolean {
-        const sig =
-            request.headers['x-hub-signature-256'] ??
-            request.headers['x-zalo-signature'] ??
-            request.headers['x-zes-signature'];
+    private secretOverride?: string;
+    private appIdOverride?: string;
 
-        // Trong môi trường dev/local: cho phép test khi chưa có header chữ ký
-        if (process.env.NODE_ENV !== 'production' && !sig) {
+    constructor(@Optional() private readonly configService?: ConfigService) {}
+
+    /** Cho phép gán trực tiếp secret phục vụ unit test / kiểm thử động */
+    setSecret(secret: string, appId?: string): void {
+        this.secretOverride = secret;
+        if (appId !== undefined) this.appIdOverride = appId;
+    }
+
+    /** OA Secret Key (ưu tiên) hoặc App Secret dùng để ký webhook */
+    getSecret(): string | undefined {
+        return (
+            this.secretOverride ??
+            this.configService?.get<string>('ZALO_OA_SECRET_KEY') ??
+            this.configService?.get<string>('ZALO_APP_SECRET') ??
+            process.env.ZALO_OA_SECRET_KEY ??
+            process.env.ZALO_APP_SECRET ??
+            undefined
+        );
+    }
+
+    getAppId(): string {
+        return (
+            this.appIdOverride ??
+            this.configService?.get<string>('ZALO_APP_ID') ??
+            process.env.ZALO_APP_ID ??
+            ''
+        );
+    }
+
+    private static safeEqualHex(expectedHex: string, receivedHex: string): boolean {
+        const a = Buffer.from(expectedHex.toLowerCase(), 'utf8');
+        const b = Buffer.from(receivedHex.toLowerCase(), 'utf8');
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+    }
+
+    private static headerValue(value: string | string[] | undefined): string | undefined {
+        const v = Array.isArray(value) ? value[0] : value;
+        return typeof v === 'string' && v.trim() ? v.trim() : undefined;
+    }
+
+    /**
+     * Xác thực chữ ký webhook Zalo. Hỗ trợ 2 cách ký:
+     *  1. Chuẩn Zalo OA: header X-ZEvent-Signature = hex(sha256(appId + rawBody + timestamp + secret)),
+     *     timestamp lấy từ payload.
+     *  2. HMAC-SHA256 trên raw body với secret (header x-hub-signature-256 / x-zalo-signature / x-zes-signature,
+     *     có hoặc không có tiền tố "sha256=").
+     *
+     * - Đã cấu hình secret: BẮT BUỘC có chữ ký hợp lệ (mọi môi trường).
+     * - Chưa cấu hình secret: từ chối ở production; chỉ cho phép ở môi trường dev/test.
+     */
+    verifyRequest(request: RawWebhookRequest): boolean {
+        const secret = this.getSecret();
+
+        if (!secret) {
+            if (process.env.NODE_ENV === 'production') {
+                this.logger.error(
+                    'Từ chối webhook Zalo: chưa cấu hình ZALO_OA_SECRET_KEY / ZALO_APP_SECRET trên production.',
+                );
+                return false;
+            }
+            this.logger.warn(
+                'ZALO_OA_SECRET_KEY / ZALO_APP_SECRET chưa cấu hình: bỏ qua xác thực chữ ký (chỉ cho phép ngoài production).',
+            );
             return true;
         }
-        return true;
+
+        const headers = request.headers;
+        const bodyBuffer = Buffer.isBuffer(request.rawBody)
+            ? request.rawBody
+            : Buffer.from(request.rawBody || '');
+
+        try {
+            // Cách 1: chữ ký chuẩn Zalo OA
+            const zEvent = ZaloAdapter.headerValue(headers['x-zevent-signature']);
+            if (zEvent) {
+                const rawText = bodyBuffer.toString('utf-8');
+                let timestamp = '';
+                try {
+                    const parsed = JSON.parse(rawText) as Record<string, unknown>;
+                    timestamp = parsed?.timestamp !== undefined ? String(parsed.timestamp) : '';
+                } catch {
+                    return false;
+                }
+                const mac = zEvent.replace(/^mac=/i, '');
+                const expected = crypto
+                    .createHash('sha256')
+                    .update(`${this.getAppId()}${rawText}${timestamp}${secret}`)
+                    .digest('hex');
+                return ZaloAdapter.safeEqualHex(expected, mac);
+            }
+
+            // Cách 2: HMAC-SHA256 trên raw body
+            const hmacHeader =
+                ZaloAdapter.headerValue(headers['x-hub-signature-256']) ??
+                ZaloAdapter.headerValue(headers['x-zalo-signature']) ??
+                ZaloAdapter.headerValue(headers['x-zes-signature']);
+            if (!hmacHeader) {
+                this.logger.warn('Webhook Zalo thiếu header chữ ký trong khi secret đã được cấu hình.');
+                return false;
+            }
+            const received = hmacHeader.replace(/^sha256=/i, '').trim();
+            if (!received) return false;
+            const expected = crypto.createHmac('sha256', secret).update(bodyBuffer).digest('hex');
+            return ZaloAdapter.safeEqualHex(expected, received);
+        } catch (error) {
+            this.logger.error('Lỗi khi xác thực chữ ký webhook Zalo', error as Error);
+            return false;
+        }
+    }
+
+    /** Tiện ích tạo chữ ký HMAC-SHA256 (dạng "sha256=<hex>") phục vụ kiểm thử */
+    signPayload(rawBody: Buffer | string, secret?: string): string {
+        const sec = secret || this.getSecret() || 'default-test-secret';
+        const buffer = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody);
+        return `sha256=${crypto.createHmac('sha256', sec).update(buffer).digest('hex')}`;
     }
 
     parseEvents(request: RawWebhookRequest): InboundEvent[] {

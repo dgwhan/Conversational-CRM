@@ -4,6 +4,15 @@ const DEV_DEFAULT_ENCRYPTION_KEY =
   '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 const DEV_DEFAULT_JWT_SECRET = 'daylasecretkeysieucapbimat32kytu';
 
+/**
+ * Các giá trị mẫu đã lộ trong mã nguồn / tài liệu: tuyệt đối không được dùng ở production.
+ * (Hằng số chỉ dùng để TỪ CHỐI, không còn dùng làm giá trị mặc định ở bất kỳ môi trường nào.)
+ */
+const KNOWN_SAMPLE_SECRETS = new Set<string>([
+  DEV_DEFAULT_ENCRYPTION_KEY,
+  DEV_DEFAULT_JWT_SECRET,
+]);
+
 const optionalTrimmedString = z.preprocess(
   (value) => (value === '' ? undefined : value),
   z.string().trim().min(1).optional(),
@@ -35,9 +44,11 @@ const encryptionKey = z.string().refine((value) => {
 
 export const envSchema = z
   .object({
-    NODE_ENV: z
-      .enum(['development', 'production', 'test'])
-      .default('development'),
+    // Bắt buộc khai báo rõ: không mặc định 'development' để triển khai thật quên cấu hình
+    // không âm thầm chạy với chế độ nới lỏng bảo mật.
+    NODE_ENV: z.enum(['development', 'production', 'test'], {
+      error: 'NODE_ENV is required (development | production | test)',
+    }),
     PORT: z.coerce.number().default(3000),
     DATABASE_URL: z
       .string({ error: 'DATABASE_URL is required' })
@@ -143,10 +154,10 @@ export const envSchema = z
       .positive()
       .default(3),
     // Social integrations (from main)
+    // Không có giá trị mặc định: mỗi môi trường phải tự sinh khóa riêng
     TOKEN_ENCRYPTION_KEY: z
-      .string()
-      .min(32, 'TOKEN_ENCRYPTION_KEY must be at least 32 characters')
-      .default(DEV_DEFAULT_ENCRYPTION_KEY),
+      .string({ error: 'TOKEN_ENCRYPTION_KEY is required' })
+      .min(32, 'TOKEN_ENCRYPTION_KEY must be at least 32 characters'),
     FRONTEND_URL: z.string().default('http://localhost:5173'),
     APP_BASE_URL: z.string().default('http://localhost:3000'),
     META_APP_ID: z.string().optional(),
@@ -154,6 +165,14 @@ export const envSchema = z
     META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
     ZALO_APP_ID: z.string().optional(),
     ZALO_APP_SECRET: z.string().optional(),
+    // Khóa ký webhook Zalo OA (nếu khác ZALO_APP_SECRET). Bắt buộc có 1 trong 2 ở production khi bật Zalo.
+    ZALO_OA_SECRET_KEY: optionalTrimmedString,
+    // Media proxy: giới hạn dung lượng (byte) và danh sách hậu tố domain CDN được phép (phân tách bằng dấu phẩy)
+    MEDIA_PROXY_MAX_BYTES: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().int().positive().optional(),
+    ),
+    MEDIA_PROXY_ALLOWED_HOSTS: optionalTrimmedString,
     TIKTOK_CLIENT_KEY: z.string().optional(),
     TIKTOK_CLIENT_SECRET: z.string().optional(),
   })
@@ -198,7 +217,7 @@ export const envSchema = z
 
     // Production security checks (from main)
     if (config.NODE_ENV === 'production') {
-      if (config.TOKEN_ENCRYPTION_KEY === DEV_DEFAULT_ENCRYPTION_KEY) {
+      if (KNOWN_SAMPLE_SECRETS.has(config.TOKEN_ENCRYPTION_KEY)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['TOKEN_ENCRYPTION_KEY'],
@@ -206,12 +225,20 @@ export const envSchema = z
             'In production, TOKEN_ENCRYPTION_KEY must be a unique, cryptographically strong secret (not the default dev key)',
         });
       }
-      if (config.JWT_ACCESS_SECRET === DEV_DEFAULT_JWT_SECRET) {
+      if (KNOWN_SAMPLE_SECRETS.has(config.JWT_ACCESS_SECRET)) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['JWT_ACCESS_SECRET'],
           message:
             'In production, JWT_ACCESS_SECRET must not use the default sample key',
+        });
+      }
+      if (config.ZALO_APP_ID && !config.ZALO_OA_SECRET_KEY && !config.ZALO_APP_SECRET) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ZALO_OA_SECRET_KEY'],
+          message:
+            'In production, ZALO_OA_SECRET_KEY (or ZALO_APP_SECRET) is required to verify Zalo webhook signatures',
         });
       }
     }

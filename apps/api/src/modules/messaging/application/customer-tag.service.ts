@@ -19,11 +19,12 @@ export class CustomerTagService {
   /**
    * Gỡ trực tiếp một tag khỏi khách hàng và hội thoại thông qua CRM
    */
-  async removeCustomerTag(id: string, tagToRemove: string) {
+  async removeCustomerTag(id: string, tagToRemove: string, workspaceId?: string) {
     let existing: any = null;
     try {
       existing = await this.prisma.customer.findFirst({
         where: {
+          ...(workspaceId ? { workspaceId } : {}),
           OR: [
             { id },
             { channelIdentities: { path: ['facebook'], equals: id } },

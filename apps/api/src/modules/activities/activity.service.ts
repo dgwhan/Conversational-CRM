@@ -25,7 +25,7 @@ export class ActivityService {
     /**
      * Phân giải ID khách hàng từ UUID hoặc định danh kênh/mạng xã hội/SĐT
      */
-    async resolveCustomerId(rawId?: string): Promise<string | undefined> {
+    async resolveCustomerId(rawId?: string, workspaceId?: string): Promise<string | undefined> {
         if (!rawId) return undefined;
         const cleanId = rawId.trim();
         const stripped = cleanId.replace(/^(cust|cand)-/, '');
@@ -33,11 +33,20 @@ export class ActivityService {
         // 1. Kiểm tra trực tiếp nếu là UUID chuẩn
         if (UUID_REGEX.test(stripped)) {
             try {
-                const cust = await this.prisma.customer.findUnique({
-                    where: { id: stripped },
+                const cust = await this.prisma.customer.findFirst({
+                    where: { id: stripped, ...(workspaceId ? { workspaceId } : {}) },
                     select: { id: true },
                 });
                 if (cust) return cust.id;
+
+                // Khách hàng tồn tại nhưng thuộc workspace khác: không được liên kết xuyên tenant
+                if (workspaceId) {
+                    const foreign = await this.prisma.customer.findUnique({
+                        where: { id: stripped },
+                        select: { id: true },
+                    });
+                    if (foreign) return undefined;
+                }
 
                 const contact = await this.prisma.contact.findUnique({
                     where: { id: stripped },
@@ -56,6 +65,7 @@ export class ActivityService {
             const cleanSocial = stripped.replace(/^(facebook-|zalo-)/, '');
             const cust = await this.prisma.customer.findFirst({
                 where: {
+                    ...(workspaceId ? { workspaceId } : {}),
                     OR: [
                         { phone: cleanSocial },
                         { phoneNormalized: cleanSocial },
@@ -87,7 +97,7 @@ export class ActivityService {
             throw new BadRequestException('workspaceId must be a valid UUID');
         }
 
-        let safeCustomerId = await this.resolveCustomerId(dto.customerId);
+        let safeCustomerId = await this.resolveCustomerId(dto.customerId, safeWsId);
         if (!safeCustomerId && dto.customerId) {
             try {
                 const cleanPhone = dto.customerId.replace(/\D/g, '');
@@ -260,7 +270,7 @@ export class ActivityService {
         const where: any = { workspaceId: safeWsId };
 
         if (filter.customerId) {
-            const resolvedCustomerId = await this.resolveCustomerId(filter.customerId);
+            const resolvedCustomerId = await this.resolveCustomerId(filter.customerId, safeWsId);
             if (resolvedCustomerId) {
                 where.AND = [
                     ...(where.AND || []),
@@ -430,7 +440,10 @@ export class ActivityService {
     /**
      * Lấy chi tiết một hoạt động
      */
-    async findById(id: string): Promise<any> {
+    async findById(id: string, workspaceId?: string): Promise<any> {
+        if (!UUID_REGEX.test(id)) {
+            throw new NotFoundException(`Hoạt động với ID "${id}" không tồn tại.`);
+        }
         const activity = await this.prisma.activity.findUnique({
             where: { id },
             include: {
@@ -438,7 +451,8 @@ export class ActivityService {
                 assignedMember: true,
             },
         });
-        if (!activity) {
+        // Bản ghi thuộc workspace khác được coi như không tồn tại
+        if (!activity || (workspaceId && activity.workspaceId !== workspaceId)) {
             throw new NotFoundException(`Hoạt động với ID "${id}" không tồn tại.`);
         }
         return activity;
@@ -447,8 +461,8 @@ export class ActivityService {
     /**
      * Cập nhật thông tin hoạt động / hoàn thành task
      */
-    async update(id: string, dto: UpdateActivityDto): Promise<any> {
-        const existing = await this.findById(id);
+    async update(id: string, dto: UpdateActivityDto, workspaceId?: string): Promise<any> {
+        const existing = await this.findById(id, workspaceId);
 
         const updateData: any = {};
         if (dto.title !== undefined) updateData.title = dto.title.slice(0, 250);
@@ -555,8 +569,8 @@ export class ActivityService {
     /**
      * Xóa một hoạt động
      */
-    async delete(id: string): Promise<any> {
-        const existing = await this.findById(id);
+    async delete(id: string, workspaceId?: string): Promise<any> {
+        const existing = await this.findById(id, workspaceId);
         await this.prisma.activity.delete({ where: { id } });
 
         try {

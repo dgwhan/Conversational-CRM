@@ -227,7 +227,7 @@ If any mandatory variable is missing or formatted incorrectly, process execution
 
 | Variable | Type | Requirement | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `NODE_ENV` | String | Optional | `development` | Target execution environment (`development`, `production`, `test`) |
+| `NODE_ENV` | String | **Required** | None | Target execution environment (`development`, `production`, `test`). No silent default: a missing value aborts startup |
 | `PORT` | Number | Optional | `3000` | Port on which the HTTP server listens |
 | `DATABASE_URL` | String | **Required** | None | Full PostgreSQL connection string (must not be empty) |
 | `POSTGRES_USER` | String | Optional | `postgres` | Database superuser account |
@@ -235,6 +235,11 @@ If any mandatory variable is missing or formatted incorrectly, process execution
 | `POSTGRES_DB` | String | Optional | `recruitment_crm` | Application database name |
 | `POSTGRES_PORT` | Number | Optional | `5432` | Exposed host port for the database container |
 | `POSTGRES_HOST` | String | Optional | `postgres` | Database network address (`postgres` inside Docker, `localhost` on host) |
+| `JWT_ACCESS_SECRET` | String | **Required** | None | JWT signing secret (>= 32 chars). Sample keys are rejected in production |
+| `TOKEN_ENCRYPTION_KEY` | String | **Required** | None | AES-256-GCM key (>= 32 chars) for channel tokens. No built-in default; sample key rejected in production |
+| `ZALO_OA_SECRET_KEY` | String | Conditional | None | Zalo webhook signing key. In production with `ZALO_APP_ID` set, this or `ZALO_APP_SECRET` is required; webhooks without a valid signature are rejected |
+| `MEDIA_PROXY_MAX_BYTES` | Number | Optional | `26214400` | Max size (bytes) of a file relayed by the authenticated media proxy |
+| `MEDIA_PROXY_ALLOWED_HOSTS` | String | Optional | any public host | Comma-separated domain suffixes the media proxy may fetch (e.g. `zdn.vn,fbcdn.net`) |
 
 ### Missing Variable Error Output
 

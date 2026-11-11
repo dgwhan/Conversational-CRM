@@ -113,6 +113,7 @@ export class ZaloTokenMonitorService implements OnApplicationBootstrap {
 
           // Bắn sự kiện realtime
           this.realtime.emit('channel:session_expired', {
+            workspaceId: account.workspaceId,
             channel: 'ZALO',
             channelAccountId: account.id,
             displayName: account.displayName,

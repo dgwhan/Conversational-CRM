@@ -11,13 +11,16 @@ export class TokenEncryptionService {
   private readonly authTagLength = 16;
 
   constructor(configService: ConfigService) {
-    const isProduction = configService.get<string>('NODE_ENV') === 'production';
+    const nodeEnv = configService.get<string>('NODE_ENV');
+    // Chỉ khi chạy tường minh ở development/test mới được dùng khóa dev; mọi trường hợp khác
+    // (production, NODE_ENV thiếu hoặc sai) đều phải có TOKEN_ENCRYPTION_KEY.
+    const allowDevFallback = nodeEnv === 'development' || nodeEnv === 'test';
     const rawSecret = configService.get<string>('TOKEN_ENCRYPTION_KEY');
 
     if (!rawSecret) {
-      if (isProduction) {
+      if (!allowDevFallback) {
         throw new Error(
-          'CRITICAL SECURITY CONFIGURATION ERROR: TOKEN_ENCRYPTION_KEY must be configured in environment variables in production mode',
+          'CRITICAL SECURITY CONFIGURATION ERROR: TOKEN_ENCRYPTION_KEY must be configured in environment variables (only development/test may fall back to the sample key)',
         );
       }
       this.logger.warn(

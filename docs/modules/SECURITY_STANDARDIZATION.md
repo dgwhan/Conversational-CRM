@@ -95,13 +95,22 @@ Triển khai độc lập tại [`PasswordRecoveryModule`](file:///apps/api/src/
 
 ### 2.3. Tầng 3: Phân Quyền & Cô Lập Dữ Liệu Đa Khách Thuê (Multi-Tenancy & Authorization)
 
-#### A. Cô Lập Dữ Liệu Tuyệt Đối Theo Workspace (Multi-Tenant Isolation)
-- Toàn bộ các bảng nghiệp vụ (`customers`, `conversations`, `deals`, `activities`, `channel_accounts`, `workspace_members`) đều bắt buộc lưu khóa ngoại `workspace_id`.
-- Mọi câu truy vấn dữ liệu từ API đều bắt buộc kiểm tra xem người dùng hiện tại có thuộc `workspace_id` đó hay không (thông qua bảng `workspace_members` và `workspaces.owner_id`).
-- Ngăn chặn hoàn toàn việc nhân viên hoặc tenant này đọc/ghi trộm dữ liệu của tenant khác (Cross-Tenant Data Leakage).
+#### A. Xác Thực Mặc Định & Cô Lập Dữ Liệu Theo Workspace (Multi-Tenant Isolation)
+**Cơ chế đã thực thi (deny-by-default):**
+- [`JwtAuthGuard`](file:///apps/api/src/modules/auth/presentation/guards/jwt-auth.guard.ts) được đăng ký toàn cục (`APP_GUARD`). Mọi route đều yêu cầu Access Token hợp lệ, trừ các route gắn `@Public()` ([`public.decorator.ts`](file:///apps/api/src/common/decorators/public.decorator.ts)): health check, đăng nhập/đăng ký/refresh/logout, khôi phục mật khẩu, webhook kênh (tự xác thực bằng chữ ký) và tải mẫu import.
+- [`WorkspaceContextGuard`](file:///apps/api/src/common/guards/workspace-context.guard.ts) chạy ngay sau đó: xác định workspace đang thao tác và **kiểm tra người dùng là thành viên ACTIVE từ CSDL** (`workspaces.owner_id` / `workspace_members`). `workspaceId` do client chỉ định (param `wsId`/`workspaceId`, query, body) mà người dùng không thuộc về sẽ bị `403`. Header `x-workspace-id` không hợp lệ bị bỏ qua và dùng workspace mặc định của người dùng.
+- Vai trò (`OWNER`/`STAFF`) **chỉ lấy từ CSDL** và gắn vào `request.workspace`. Các header `x-user-role`, `x-member-status`, `x-staff-id`, `x-owner-id`, `x-actor-id` do client gửi lên bị ghi đè bằng giá trị đã xác minh; không còn mặc định `OWNER` khi thiếu thông tin.
+- Controller đọc danh tính qua [`getRequestIdentity` / `requireWorkspaceId`](file:///apps/api/src/common/auth/request-identity.ts). Các endpoint theo `:id` (khách hàng, deal, hoạt động, luật từ khóa, ...) kiểm tra bản ghi thuộc đúng workspace; bản ghi của workspace khác được trả `404` như không tồn tại.
+- Token không chứa claim `role`; không suy luận vai trò từ token.
+- Webhook inbound được định tuyến tenant bằng `ChannelAccount (channel, externalAccountId) -> workspaceId`; truy vấn khách hàng khi nhận tin luôn kèm `workspaceId`.
+
+**Giới hạn đã biết (cần xử lý tiếp, không nên xem là "cô lập tuyệt đối"):**
+- Các bảng `contacts`, `channel_identities`, `contact_merge_logs` hiện **chưa có cột `workspace_id`** (số điện thoại chuẩn hóa là unique toàn hệ thống) nên `/contacts/*` mới được bảo vệ bằng xác thực chứ chưa cô lập theo tenant. Cần migration thêm `workspace_id` để khép kín.
+- Kết nối realtime (SSE/WebSocket) không bị kiểm tra lại tư cách thành viên sau khi đã mở; ticket chỉ hiệu lực 60 giây cho lần kết nối đầu.
+- `OwnerController` (`owner/*`) vẫn chưa được kích hoạt/rà soát phân quyền xuyên tenant; không bật trước khi rà soát.
 
 #### B. Phân Quyền Theo Vai Trò (RBAC - Role-Based Access Control)
-Hệ thống chuẩn hóa 2 nhóm vai trò trong Workspace:
+Vai trò được xác định phía máy chủ từ tư cách thành viên đã xác minh ([`WorkspaceRolesGuard`](file:///apps/api/src/common/guards/workspace-roles.guard.ts) không còn tin header `x-user-role`). Hệ thống chuẩn hóa 2 nhóm vai trò trong Workspace:
 1. **`OWNER` (Chủ sở hữu / Trưởng ban Tuyển sinh)**:
    - Toàn quyền cấu hình Workspace, kết nối kênh, quản trị nhân sự, gán quyền, xem toàn bộ dữ liệu báo cáo và hội thoại.
 2. **`STAFF` (Tư vấn viên / Nhân viên tuyển sinh)**:
@@ -181,6 +190,20 @@ Mỗi HTTP Request được gắn kèm một mã định danh duy nhất (`trace
 
 ---
 
+### 2.8. Tầng 8: Webhook Zalo, Media Proxy & Realtime
+
+#### A. Xác Thực Chữ Ký Webhook Zalo OA
+Trong [`ZaloAdapter.verifyRequest`](file:///apps/api/src/modules/messaging/infrastructure/adapters/zalo.adapter.ts):
+- Khi đã cấu hình `ZALO_OA_SECRET_KEY` (hoặc `ZALO_APP_SECRET`), **bắt buộc có chữ ký hợp lệ**: `X-ZEvent-Signature` = sha256(`appId + rawBody + timestamp + secret`), hoặc HMAC-SHA256 trên `rawBody` (`x-hub-signature-256` / `x-zalo-signature`). So sánh bằng `timingSafeEqual`.
+- Thiếu khóa bí mật: production từ chối mọi webhook; môi trường phát triển cho qua kèm cảnh báo.
+- Kênh `MANUAL_IMPORT` không còn nhận qua webhook công khai; nhập thủ công đi qua `/messages/import` (có xác thực).
+
+#### B. Media Proxy & Chống SSRF
+[`MediaProxyController`](file:///apps/api/src/modules/messaging/presentation/media-proxy.controller.ts) yêu cầu đăng nhập và dùng [`safe-fetch`](file:///apps/api/src/common/security/safe-fetch.ts): phân giải DNS và chặn mọi dải IPv4/IPv6 nội bộ/dành riêng (kể cả IPv4-mapped), ghim kết nối vào IP đã kiểm tra (chống DNS-rebinding), chỉ cổng 80/443, redirect xử lý thủ công và kiểm tra lại từng chặng, stream có giới hạn dung lượng (`MEDIA_PROXY_MAX_BYTES`, mặc định 25MB), không còn `Access-Control-Allow-Origin: *`; chỉ hiển thị inline các kiểu ảnh/âm thanh/video/PDF an toàn, còn lại ép tải về. Có thể giới hạn thêm bằng `MEDIA_PROXY_ALLOWED_HOSTS`.
+
+#### C. Realtime (SSE / WebSocket)
+Trình duyệt không gửi được header `Authorization` cho `EventSource`/`WebSocket`, nên client gọi `POST /realtime/ticket` (có Access Token) để nhận ticket HMAC dùng **một lần**, sống 60 giây, gắn với (người dùng, workspace), rồi mở `/realtime/stream?ticket=...` hoặc `/api/realtime/ws?ticket=...`. Kết nối không có ticket hợp lệ bị từ chối ngay khi bắt tay. Sự kiện chỉ được phát cho client cùng workspace (sự kiện không có `workspaceId` không gửi cho ai); trạng thái hiện diện tách theo workspace. Các endpoint `simulate-inbound`, `pipeline-change`, `socket/test-ping`, `socket/test-client` chỉ tồn tại ngoài production và yêu cầu quyền OWNER (trừ trang test-client chỉ phục vụ phát triển).
+
 ## 3. DANH MỤC CÁC TỆP MÃ NGUỒN BẢO MẬT CHÍNH
 
 | Thành phần bảo mật | Đường dẫn mã nguồn | Nhiệm vụ chính |
@@ -190,7 +213,9 @@ Mỗi HTTP Request được gắn kèm một mã định danh duy nhất (`trace
 | **Rate Limiter** | `apps/api/src/common/security/rate-limiter.service.ts` | Sliding window chống Brute-force & DoS |
 | **XSS Sanitizer** | `apps/api/src/common/pipes/xss-sanitizer.pipe.ts` | Loại bỏ thẻ script, iframe, event độc hại |
 | **Exception Shield** | `apps/api/src/common/filters/all-exceptions.filter.ts` | Chuẩn hóa lỗi, giấu stack trace nhạy cảm |
-| **Role Guard** | `apps/api/src/common/guards/workspace-roles.guard.ts` | Kiểm soát quyền OWNER / STAFF |
+| **Role Guard** | `apps/api/src/common/guards/workspace-roles.guard.ts` | Kiểm soát quyền OWNER / STAFF từ tư cách thành viên đã xác minh |
+| **Workspace Context Guard** | `apps/api/src/common/guards/workspace-context.guard.ts` | Xác minh thành viên workspace, ghi đè header danh tính |
+| **SSRF Guard** | `apps/api/src/common/security/safe-fetch.ts` | Gọi HTTP ra ngoài an toàn (chặn IP nội bộ, DNS pinning) |
 | **Meta Webhook Guard** | `apps/api/src/modules/messaging/infrastructure/adapters/facebook.adapter.ts` | Xác thực chữ ký HMAC SHA-256 |
 | **Password Hashing** | `apps/api/src/modules/auth/` | Băm mật khẩu Argon2id / Bcrypt |
 | **Audit Service** | `apps/api/src/modules/audit/` | Ghi vết nhật ký đăng nhập và đổi dữ liệu |
@@ -200,7 +225,8 @@ Mỗi HTTP Request được gắn kèm một mã định danh duy nhất (`trace
 ## 4. KẾT LUẬN & KHUYẾN NGHỊ VẬN HÀNH (PRODUCTION CHECKLIST)
 
 1. **Khóa Bí Mật & Môi Trường**:
-   - Biến `JWT_SECRET`, `APP_SECRET`, `DATABASE_URL` phải được lưu trữ trong trình quản lý Secret (Docker Secrets / Vault / Env an toàn), không được commit vào Git.
+   - `NODE_ENV`, `JWT_ACCESS_SECRET`, `TOKEN_ENCRYPTION_KEY` là biến **bắt buộc** (không còn giá trị mặc định); khóa mẫu bị từ chối ở production. Bật Zalo ở production phải có `ZALO_OA_SECRET_KEY` hoặc `ZALO_APP_SECRET`.
+   - Các biến `JWT_ACCESS_SECRET`, `TOKEN_ENCRYPTION_KEY`, `META_APP_SECRET`, `ZALO_APP_SECRET`, `DATABASE_URL` phải được lưu trữ trong trình quản lý Secret (Docker Secrets / Vault / Env an toàn), không được commit vào Git.
 2. **Kích hoạt HTTPS / TLS**:
    - Ở môi trường triển khai thực tế, toàn bộ giao tiếp phải thông qua HTTPS (TLS 1.3) và WSS (Secure WebSocket) với cờ `Strict-Transport-Security (HSTS)` được bật trên Reverse Proxy (Nginx / Cloudflare).
 3. **Sao lưu & Xoay vòng Khóa**:

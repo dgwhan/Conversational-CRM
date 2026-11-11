@@ -23,6 +23,7 @@ import {
   type PurgeMessagesResponse,
   type StorageRetentionPolicy,
 } from '../../../contracts/message-storage.js';
+import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
 
 @Controller('messaging/storage')
 export class MessageStorageController {
@@ -51,8 +52,10 @@ export class MessageStorageController {
   async getMetrics(
     @Query('workspaceId') queryWsId?: string,
     @Headers('x-workspace-id') headerWsId?: string,
+    @Req() req?: any,
   ): Promise<MessageStorageMetrics> {
-    const workspaceId = queryWsId || headerWsId;
+    // Workspace đã được WorkspaceContextGuard xác minh tư cách thành viên
+    const workspaceId = requireWorkspaceId(req);
     return this.storageService.getMetrics(workspaceId);
   }
 
@@ -63,8 +66,9 @@ export class MessageStorageController {
   async getPolicy(
     @Query('workspaceId') queryWsId?: string,
     @Headers('x-workspace-id') headerWsId?: string,
+    @Req() req?: any,
   ): Promise<StorageRetentionPolicy> {
-    const workspaceId = queryWsId || headerWsId;
+    const workspaceId = requireWorkspaceId(req);
     return this.storageService.getRetentionPolicy(workspaceId);
   }
 
@@ -80,15 +84,10 @@ export class MessageStorageController {
     @Headers('x-staff-id') headerStaffId?: string,
     @Req() req?: any,
   ): Promise<StorageRetentionPolicy> {
-    const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-    const actorId = req?.user?.id || headerStaffId;
-    const workspaceId = queryWsId || headerWsId;
+    const { role, userId: actorId } = getRequestIdentity(req);
+    const workspaceId = requireWorkspaceId(req);
 
     this.checkOwnerPermission(role, 'thay đổi chính sách lưu trữ tin nhắn');
-
-    if (!workspaceId) {
-      throw new ForbiddenException('Yêu cầu cung cấp workspaceId để cập nhật chính sách.');
-    }
 
     const validated = UpdateRetentionPolicyRequestSchema.parse(body);
     return this.storageService.updateRetentionPolicy(workspaceId, validated, actorId);
@@ -103,9 +102,11 @@ export class MessageStorageController {
     @Body() body: unknown,
     @Query('workspaceId') queryWsId?: string,
     @Headers('x-workspace-id') headerWsId?: string,
+    @Req() req?: any,
   ): Promise<EstimatePurgeResponse> {
     const rawInput = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
-    const workspaceId = (rawInput.workspaceId as string) || queryWsId || headerWsId;
+    // Luôn ép về workspace đã xác minh (không tin workspaceId trong body)
+    const workspaceId = requireWorkspaceId(req);
 
     const validated = EstimatePurgeRequestSchema.parse({
       ...rawInput,
@@ -128,12 +129,12 @@ export class MessageStorageController {
     @Headers('x-staff-id') headerStaffId?: string,
     @Req() req?: any,
   ): Promise<PurgeMessagesResponse> {
-    const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-    const actorId = req?.user?.id || headerStaffId;
+    const { role, userId: actorId } = getRequestIdentity(req);
     this.checkOwnerPermission(role, 'xóa dữ liệu tin nhắn');
 
     const rawInput = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
-    const workspaceId = (rawInput.workspaceId as string) || queryWsId || headerWsId;
+    // Luôn ép về workspace đã xác minh: không thể purge dữ liệu của tenant khác (hoặc toàn hệ thống)
+    const workspaceId = requireWorkspaceId(req);
 
     const validated = PurgeMessagesRequestSchema.parse({
       ...rawInput,
@@ -155,11 +156,10 @@ export class MessageStorageController {
     @Headers('x-staff-id') headerStaffId?: string,
     @Req() req?: any,
   ): Promise<PurgeMessagesResponse> {
-    const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-    const actorId = req?.user?.id || headerStaffId;
+    const { role, userId: actorId } = getRequestIdentity(req);
     this.checkOwnerPermission(role, 'kích hoạt dọn dẹp tin nhắn định kỳ');
 
-    const workspaceId = queryWsId || headerWsId;
+    const workspaceId = requireWorkspaceId(req);
     return this.schedulerService.triggerRetentionNow(workspaceId, actorId);
   }
 }

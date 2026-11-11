@@ -1027,6 +1027,7 @@ export class ZcaPersonalService implements OnModuleInit {
           customerName,
           customerAvatar,
           recipientName: customerName,
+          workspaceId: channelAccount.workspaceId || undefined,
         } as any);
         this.logger.log(`[zca-js] Đã phát sự kiện Realtime Socket message:received cho tin nhắn Zalo (${customerName})`);
       } catch (err) {
@@ -1145,6 +1146,7 @@ export class ZcaPersonalService implements OnModuleInit {
           // Gửi cảnh báo qua WebSocket Realtime
           if (this.realtime) {
             this.realtime.emit('channel:session_expired' as any, {
+              workspaceId: channelAccount.workspaceId,
               channel: 'ZALO',
               channelAccountId: channelAccount.id,
               displayName: channelAccount.displayName,

@@ -1,20 +1,30 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Post,
+  Query,
+  Req,
   Res,
   Sse,
   MessageEvent,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { Observable } from 'rxjs';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { getRequestIdentity } from '../../common/auth/request-identity.js';
+import { WorkspaceRole } from '../../contracts/roles.js';
 import { RealtimeService, StaffPresenceStatus } from './realtime.service.js';
 
 class UpdatePresenceDto {
-  staffId!: string;
+  /** Bị bỏ qua: danh tính nhân viên luôn lấy từ Access Token, không tin dữ liệu client gửi lên */
+  staffId?: string;
   status!: StaffPresenceStatus;
   name?: string;
   avatar?: string;
@@ -43,17 +53,65 @@ class SocketTestPingDto {
   message?: string;
 }
 
+const VALID_PRESENCE: StaffPresenceStatus[] = ['ONLINE', 'AWAY', 'BUSY'];
+
+/** Các endpoint chẩn đoán / giả lập chỉ tồn tại ngoài môi trường production */
+function assertNotProduction(): void {
+  if (process.env.NODE_ENV === 'production') {
+    throw new NotFoundException();
+  }
+}
+
+function requireWorkspace(req: unknown) {
+  const identity = getRequestIdentity(req);
+  if (!identity.userId) throw new UnauthorizedException();
+  if (!identity.workspaceId) {
+    throw new ForbiddenException('Không xác định được workspace của người dùng.');
+  }
+  return { ...identity, workspaceId: identity.workspaceId, userId: identity.userId };
+}
+
+function requireOwner(req: unknown) {
+  const identity = requireWorkspace(req);
+  if (identity.role !== WorkspaceRole.OWNER) {
+    throw new ForbiddenException('Chỉ chủ workspace mới được thực hiện thao tác này.');
+  }
+  return identity;
+}
+
 @Controller('realtime')
 export class RealtimeController {
   constructor(private readonly realtimeService: RealtimeService) {}
 
   /**
-   * Kết nối Server-Sent Events (SSE) để đẩy tin nhắn và trạng thái thời gian thực
-   * URL: GET /api/realtime/stream
+   * Đổi Access Token (header Authorization) lấy ticket dùng 1 lần, sống 60 giây,
+   * để mở SSE / WebSocket (trình duyệt không gửi được header Authorization cho 2 kênh này).
+   * URL: POST /api/realtime/ticket
    */
+  @Post('ticket')
+  @HttpCode(HttpStatus.OK)
+  issueTicket(@Req() req: unknown) {
+    const identity = requireWorkspace(req);
+    const issued = this.realtimeService.issueTicket({
+      userId: identity.userId,
+      workspaceId: identity.workspaceId,
+    });
+    return { status: 'ok', data: issued };
+  }
+
+  /**
+   * Kết nối Server-Sent Events (SSE) để đẩy tin nhắn và trạng thái thời gian thực.
+   * Xác thực bằng ?ticket= (xem POST /realtime/ticket); chỉ nhận sự kiện của workspace trong ticket.
+   * URL: GET /api/realtime/stream?ticket=...
+   */
+  @Public()
   @Sse('stream')
-  streamEvents(): Observable<MessageEvent> {
-    return this.realtimeService.getEventsObservable();
+  streamEvents(@Query('ticket') ticket?: string): Observable<MessageEvent> {
+    const auth = this.realtimeService.consumeTicket(ticket);
+    if (!auth) {
+      throw new UnauthorizedException('Ticket realtime không hợp lệ hoặc đã hết hạn.');
+    }
+    return this.realtimeService.getEventsObservable(auth.workspaceId);
   }
 
   /**
@@ -61,10 +119,11 @@ export class RealtimeController {
    * URL: GET /api/realtime/socket/status
    */
   @Get('socket/status')
-  getSocketStatus() {
+  getSocketStatus(@Req() req?: unknown) {
+    const identity = requireOwner(req);
     return {
       status: 'ok',
-      data: this.realtimeService.getSocketHealth(),
+      data: this.realtimeService.getSocketHealth(identity.workspaceId),
     };
   }
 
@@ -74,8 +133,10 @@ export class RealtimeController {
    */
   @Post('socket/test-ping')
   @HttpCode(HttpStatus.OK)
-  sendSocketTestPing(@Body() body?: SocketTestPingDto) {
-    const result = this.realtimeService.testBroadcastPing(body?.message);
+  sendSocketTestPing(@Body() body?: SocketTestPingDto, @Req() req?: unknown) {
+    assertNotProduction();
+    const identity = requireOwner(req);
+    const result = this.realtimeService.testBroadcastPing(identity.workspaceId, body?.message);
     return {
       status: 'ok',
       message: 'Đã phát tín hiệu Ping kiểm tra socket',
@@ -87,8 +148,10 @@ export class RealtimeController {
    * Trang giao diện kiểm thử trực quan Socket dành cho lập trình viên và kiểm thử viên
    * URL: GET /api/realtime/socket/test-client
    */
+  @Public()
   @Get('socket/test-client')
   getTestClientHtml(@Res({ passthrough: true }) res: FastifyReply) {
+    assertNotProduction();
     if (res && typeof res.header === 'function') {
       res.header('content-type', 'text/html; charset=utf-8');
     }
@@ -119,6 +182,10 @@ export class RealtimeController {
   <div class="card">
     <p>Trạng thái kết nối Socket: <span id="statusBadge" class="badge connecting">ĐANG KẾT NỐI...</span></p>
     <p>Độ trễ Ping/Pong: <strong id="latencyText">-- ms</strong> | Số sự kiện nhận được: <strong id="eventCount">0</strong></p>
+    <p>
+      <input id="tokenInput" type="password" placeholder="Dán Access Token (JWT) của bạn" style="width: 70%; padding: 8px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc;">
+      <button onclick="connect()">Kết nối</button>
+    </p>
     <div>
       <button onclick="sendPing()">Gửi Ping qua Socket</button>
       <button onclick="clearLogs()" style="background: #475569;">Xóa Nhật Ký</button>
@@ -132,8 +199,9 @@ export class RealtimeController {
 
   <script>
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = protocol + '//' + window.location.host + '/api/realtime/ws';
+    const wsBase = protocol + '//' + window.location.host + '/api/realtime/ws';
     let ws = null;
+    let reconnectTimer = null;
     let eventCount = 0;
     let pingSentTime = 0;
 
@@ -149,12 +217,33 @@ export class RealtimeController {
       logsDiv.prepend(el);
     }
 
-    function connect() {
+    async function connect() {
+      const token = document.getElementById('tokenInput').value.trim();
+      if (!token) {
+        log('Hãy dán Access Token trước khi kết nối.');
+        return;
+      }
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      if (ws) { ws.onclose = null; try { ws.close(); } catch (e) {} }
+
       statusBadge.className = 'badge connecting';
       statusBadge.textContent = 'ĐANG KẾT NỐI...';
-      log('Đang kết nối đến WebSocket: ' + wsUrl);
+      log('Đang xin ticket realtime...');
 
-      ws = new WebSocket(wsUrl);
+      let ticket;
+      try {
+        const res = await fetch('/api/realtime/ticket', { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        ticket = (await res.json()).data.ticket;
+      } catch (e) {
+        statusBadge.className = 'badge disconnected';
+        statusBadge.textContent = 'KHÔNG XÁC THỰC ĐƯỢC';
+        log('Không lấy được ticket: ' + e.message);
+        return;
+      }
+
+      log('Đang kết nối đến WebSocket...');
+      ws = new WebSocket(wsBase + '?ticket=' + encodeURIComponent(ticket));
 
       ws.onopen = () => {
         statusBadge.className = 'badge connected';
@@ -188,7 +277,7 @@ export class RealtimeController {
         statusBadge.className = 'badge disconnected';
         statusBadge.textContent = 'NGẮT KẾT NỐI (OFFLINE)';
         log('Kết nối WebSocket đã bị ngắt. Đang thử lại sau 3s...');
-        setTimeout(connect, 3000);
+        reconnectTimer = setTimeout(connect, 3000);
       };
 
       ws.onerror = (err) => {
@@ -202,7 +291,7 @@ export class RealtimeController {
         ws.send(JSON.stringify({ type: 'ping' }));
         log('Đã gửi Ping đến server...', 'outbound');
       } else {
-        alert('Socket chưa kết nối!');
+        log('Socket chưa kết nối!');
       }
     }
 
@@ -210,7 +299,6 @@ export class RealtimeController {
       logsDiv.innerHTML = '';
     }
 
-    connect();
   </script>
 </body>
 </html>`;
@@ -221,10 +309,11 @@ export class RealtimeController {
    * URL: GET /api/realtime/presence
    */
   @Get('presence')
-  getPresences() {
+  getPresences(@Req() req?: unknown) {
+    const identity = requireWorkspace(req);
     return {
       status: 'ok',
-      data: this.realtimeService.getAllStaffPresences(),
+      data: this.realtimeService.getAllStaffPresences(identity.workspaceId),
     };
   }
 
@@ -234,15 +323,21 @@ export class RealtimeController {
    */
   @Post('presence')
   @HttpCode(HttpStatus.OK)
-  updatePresence(@Body() body: UpdatePresenceDto) {
+  updatePresence(@Body() body: UpdatePresenceDto, @Req() req?: unknown) {
+    const identity = requireWorkspace(req);
+    if (!VALID_PRESENCE.includes(body?.status)) {
+      throw new BadRequestException('Trạng thái không hợp lệ.');
+    }
+    // staffId luôn là người đang đăng nhập; role hiển thị lấy từ tư cách thành viên đã xác minh
     const updated = this.realtimeService.updateStaffPresence(
-      body.staffId,
+      identity.userId,
       body.status,
       {
         name: body.name,
         avatar: body.avatar,
-        role: body.role,
+        role: identity.role,
       },
+      identity.workspaceId,
     );
 
     return {
@@ -257,7 +352,9 @@ export class RealtimeController {
    */
   @Post('simulate-inbound')
   @HttpCode(HttpStatus.OK)
-  simulateInboundMessage(@Body() body: SimulateInboundDto) {
+  simulateInboundMessage(@Body() body: SimulateInboundDto, @Req() req?: unknown) {
+    assertNotProduction();
+    const identity = requireOwner(req);
     const channel = body.channel || 'FACEBOOK';
     const conversationId = body.conversationId || `conv-sim-${Date.now()}`;
     const senderName = body.senderName || `Khách hàng (${channel})`;
@@ -276,7 +373,7 @@ export class RealtimeController {
       sentAt: 'Vừa xong',
     };
 
-    this.realtimeService.broadcastNewMessage(newMsg);
+    this.realtimeService.broadcastNewMessage({ ...newMsg, workspaceId: identity.workspaceId });
 
     return {
       status: 'ok',
@@ -291,8 +388,11 @@ export class RealtimeController {
    */
   @Post('pipeline-change')
   @HttpCode(HttpStatus.OK)
-  broadcastPipelineChange(@Body() body: PipelineChangeDto) {
+  broadcastPipelineChange(@Body() body: PipelineChangeDto, @Req() req?: unknown) {
+    assertNotProduction();
+    const identity = requireOwner(req);
     this.realtimeService.broadcastPipelineChange({
+      workspaceId: identity.workspaceId,
       customerId: body.customerId,
       customerName: body.customerName,
       newStage: body.newStage,

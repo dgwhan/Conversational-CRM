@@ -119,19 +119,34 @@ export class KeywordRulesService {
   /**
    * Cập nhật trọng số hoặc trạng thái luật (Không cần sửa code)
    */
-  async updateRule(id: string, patch: Partial<KeywordRuleItem>): Promise<KeywordRuleItem | null> {
+  async updateRule(
+    id: string,
+    patch: Partial<KeywordRuleItem>,
+    workspaceId?: string,
+  ): Promise<KeywordRuleItem | null> {
     if (this.prisma) {
       try {
-        const updated = await (this.prisma as any).keywordRule.update({
-          where: { id },
-          data: {
-            ...(patch.group ? { group: patch.group } : {}),
-            ...(patch.keyword ? { keyword: patch.keyword } : {}),
-            ...(typeof patch.weight === 'number' ? { weight: patch.weight } : {}),
-            ...(typeof patch.isActive === 'boolean' ? { isActive: patch.isActive } : {}),
-            ...(patch.description !== undefined ? { description: patch.description } : {}),
-          },
-        });
+        const data = {
+          ...(patch.group ? { group: patch.group } : {}),
+          ...(patch.keyword ? { keyword: patch.keyword } : {}),
+          ...(typeof patch.weight === 'number' ? { weight: patch.weight } : {}),
+          ...(typeof patch.isActive === 'boolean' ? { isActive: patch.isActive } : {}),
+          ...(patch.description !== undefined ? { description: patch.description } : {}),
+        };
+
+        let updated: any;
+        if (workspaceId) {
+          // Chỉ được sửa luật thuộc đúng workspace của mình (luật dùng chung workspaceId=null là chỉ đọc)
+          const result = await (this.prisma as any).keywordRule.updateMany({
+            where: { id, workspaceId },
+            data,
+          });
+          if (!result || result.count === 0) return null;
+          updated = await (this.prisma as any).keywordRule.findUnique({ where: { id } });
+          if (!updated) return null;
+        } else {
+          updated = await (this.prisma as any).keywordRule.update({ where: { id }, data });
+        }
         return {
           id: updated.id,
           workspaceId: updated.workspaceId || undefined,
@@ -146,9 +161,12 @@ export class KeywordRulesService {
       }
     }
 
-    const idx = this.inMemoryRules.findIndex((r) => r.id === id);
+    const idx = this.inMemoryRules.findIndex(
+      (r) => r.id === id && (!workspaceId || r.workspaceId === workspaceId),
+    );
     if (idx !== -1) {
-      this.inMemoryRules[idx] = { ...this.inMemoryRules[idx], ...patch };
+      // Không cho phép đổi workspaceId của luật qua patch
+      this.inMemoryRules[idx] = { ...this.inMemoryRules[idx], ...patch, workspaceId: this.inMemoryRules[idx].workspaceId };
       return this.inMemoryRules[idx];
     }
     return null;
@@ -157,9 +175,13 @@ export class KeywordRulesService {
   /**
    * Xóa luật từ khóa
    */
-  async deleteRule(id: string): Promise<boolean> {
+  async deleteRule(id: string, workspaceId?: string): Promise<boolean> {
     if (this.prisma) {
       try {
+        if (workspaceId) {
+          const result = await (this.prisma as any).keywordRule.deleteMany({ where: { id, workspaceId } });
+          return Boolean(result && result.count > 0);
+        }
         await (this.prisma as any).keywordRule.delete({ where: { id } });
         return true;
       } catch (err) {
@@ -167,7 +189,9 @@ export class KeywordRulesService {
       }
     }
     const before = this.inMemoryRules.length;
-    this.inMemoryRules = this.inMemoryRules.filter((r) => r.id !== id);
+    this.inMemoryRules = this.inMemoryRules.filter(
+      (r) => !(r.id === id && (!workspaceId || r.workspaceId === workspaceId)),
+    );
     return this.inMemoryRules.length < before;
   }
 

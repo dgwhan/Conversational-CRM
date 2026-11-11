@@ -397,6 +397,7 @@ export class WorkingHoursService {
               tags: updatedTags.length > 0 ? updatedTags : [outOfOfficeTag],
               isOutOfOffice: true,
               outOfOfficeTag,
+              workspaceId: resolvedWorkspaceId || undefined,
             } as any);
           } catch {}
         }

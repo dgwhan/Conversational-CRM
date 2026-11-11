@@ -16,6 +16,15 @@ export class BaseApiClient {
   protected isLoggingOut: boolean = false;
   private tokenRefreshedListeners: Array<(token: string, staff?: any) => void> = [];
   private sessionExpiredListeners: Array<() => void> = [];
+  private workspaceChangedListeners: Array<(workspaceId: string) => void> = [];
+
+  /** Lắng nghe khi workspace đang làm việc đổi (vd. để mở lại kết nối realtime theo workspace mới) */
+  onWorkspaceChanged(listener: (workspaceId: string) => void): () => void {
+    this.workspaceChangedListeners.push(listener);
+    return () => {
+      this.workspaceChangedListeners = this.workspaceChangedListeners.filter((l) => l !== listener);
+    };
+  }
 
   onTokenRefreshed(listener: (token: string, staff?: any) => void): () => void {
     this.tokenRefreshedListeners.push(listener);
@@ -86,7 +95,15 @@ export class BaseApiClient {
   }
 
   setActiveWorkspaceId(id: string) {
+    const changed = this.activeWorkspaceId !== id;
     this.activeWorkspaceId = id;
+    if (changed) {
+      this.workspaceChangedListeners.forEach((l) => {
+        try {
+          l(id);
+        } catch {}
+      });
+    }
   }
 
   getActiveWorkspaceId(): string {
@@ -172,6 +189,43 @@ export class BaseApiClient {
     })();
 
     return this.refreshPromise;
+  }
+
+  /**
+   * Tải một tài nguyên nhị phân (ảnh/tệp) từ endpoint cần xác thực rồi trả về Blob.
+   * Dùng cho Media Proxy: thẻ <img src> thuần không gửi được header Authorization nên phải fetch + blob URL.
+   */
+  async fetchBlob(endpoint: string, params?: Record<string, string | number | boolean | undefined>): Promise<Blob> {
+    let url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    if (params) {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, val]) => {
+        if (val !== undefined) searchParams.append(key, String(val));
+      });
+      const query = searchParams.toString();
+      if (query) url += `?${query}`;
+    }
+
+    const doFetch = (token: string | null) =>
+      fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(this.activeWorkspaceId ? { 'x-workspace-id': this.activeWorkspaceId } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+    let response = await doFetch(this.getAccessToken());
+    if (response.status === 401) {
+      const refreshed = await this.refreshAccessToken();
+      if (refreshed) response = await doFetch(refreshed);
+    }
+    if (!response.ok) {
+      throw new ApiError(`Không thể tải tệp (HTTP ${response.status})`, response.status, `GET ${endpoint}`, 'GET');
+    }
+    return response.blob();
   }
 
   async request<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {

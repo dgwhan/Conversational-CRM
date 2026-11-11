@@ -18,6 +18,7 @@ import {
     ActivityFilterDto,
 } from './dto/activity.dto.js';
 import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator.js';
+import { requireWorkspaceId } from '../../common/auth/request-identity.js';
 
 @Controller('activities')
 export class ActivityController {
@@ -30,6 +31,7 @@ export class ActivityController {
     async getActivities(
         @Headers('x-workspace-id') headerWsId?: string,
         @Query('workspaceId') queryWsId?: string,
+        @Req() req?: any,
         @Query('customerId') customerId?: string,
         @Query('type') type?: string,
         @Query('status') status?: string,
@@ -40,7 +42,8 @@ export class ActivityController {
         @Query('page') page?: string,
         @Query('limit') limit?: string,
     ): Promise<any> {
-        const workspaceId = queryWsId || headerWsId || '';
+        // Workspace đã được WorkspaceContextGuard xác minh tư cách thành viên
+        const workspaceId = requireWorkspaceId(req);
         return this.activityService.findAll({
             workspaceId,
             customerId,
@@ -64,8 +67,9 @@ export class ActivityController {
         @Query('workspaceId') queryWsId?: string,
         @Query('startDate') startDate?: string,
         @Query('endDate') endDate?: string,
+        @Req() req?: any,
     ): Promise<any> {
-        const workspaceId = queryWsId || headerWsId || '';
+        const workspaceId = requireWorkspaceId(req);
         return this.activityService.getCalendarEvents(workspaceId, startDate, endDate);
     }
 
@@ -76,8 +80,9 @@ export class ActivityController {
     async getDueReminders(
         @Headers('x-workspace-id') headerWsId?: string,
         @Query('workspaceId') queryWsId?: string,
+        @Req() req?: any,
     ): Promise<any> {
-        const workspaceId = queryWsId || headerWsId || '';
+        const workspaceId = requireWorkspaceId(req);
         return this.activityService.getDueReminders(workspaceId);
     }
 
@@ -85,8 +90,8 @@ export class ActivityController {
      * Lấy chi tiết một hoạt động
      */
     @Get(':id')
-    async getActivityById(@Param('id') id: string): Promise<any> {
-        return this.activityService.findById(id);
+    async getActivityById(@Param('id') id: string, @Req() req?: any): Promise<any> {
+        return this.activityService.findById(id, requireWorkspaceId(req));
     }
 
     /**
@@ -96,10 +101,9 @@ export class ActivityController {
     @SkipCsrf()
     async createActivity(
         @Body() body: CreateActivityDto,
-        @Headers('x-workspace-id') headerWsId?: string,
         @Req() req?: any,
     ): Promise<any> {
-        const workspaceId = body.workspaceId || headerWsId || '';
+        const workspaceId = requireWorkspaceId(req);
         const creatorId = req?.user?.id;
         return this.activityService.create({ ...body, workspaceId }, creatorId);
     }
@@ -112,8 +116,9 @@ export class ActivityController {
     async updateActivity(
         @Param('id') id: string,
         @Body() body: UpdateActivityDto,
+        @Req() req?: any,
     ): Promise<any> {
-        return this.activityService.update(id, body);
+        return this.activityService.update(id, body, requireWorkspaceId(req));
     }
 
     /**
@@ -121,8 +126,8 @@ export class ActivityController {
      */
     @Delete(':id')
     @SkipCsrf()
-    async deleteActivity(@Param('id') id: string): Promise<any> {
-        return this.activityService.delete(id);
+    async deleteActivity(@Param('id') id: string, @Req() req?: any): Promise<any> {
+        return this.activityService.delete(id, requireWorkspaceId(req));
     }
 
     /**
@@ -132,9 +137,9 @@ export class ActivityController {
     @SkipCsrf()
     async triggerAutoTestTask(
         @Body() body: { workspaceId?: string; customerId: string; customerName: string; notes?: string },
-        @Headers('x-workspace-id') headerWsId?: string,
+        @Req() req?: any,
     ): Promise<any> {
-        const workspaceId = body.workspaceId || headerWsId || '';
+        const workspaceId = requireWorkspaceId(req);
         return this.activityService.autoCreateTestTask(
             workspaceId,
             body.customerId,

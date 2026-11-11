@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Check,
   CheckCheck,
@@ -14,6 +14,11 @@ import {
 import type { ChatMessage, CustomerProfile, MessageAttachment } from '../../../types.js';
 import { formatMessageTime } from '../../../utils/conversationUtils.js';
 import { Avatar } from '../../../../../components/common/Avatar.js';
+import { apiClient } from '../../../../../lib/api-client/index.js';
+
+// Ảnh trong suốt 1x1 hiển thị trong lúc chờ tải ảnh qua Media Proxy (tránh src rỗng)
+const TRANSPARENT_PIXEL =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 export interface MessageBubbleProps {
   message: ChatMessage;
@@ -39,6 +44,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Lưu trạng thái lỗi hoàn toàn (cả CDN lẫn Proxy đều lỗi / URL hết hạn)
   const [failedProxyUrls, setFailedProxyUrls] = useState<Record<string, boolean>>({});
 
+  // Media Proxy yêu cầu đăng nhập: tải bằng fetch kèm Authorization rồi dùng blob URL thay vì <img src> trực tiếp
+  const [proxyBlobUrls, setProxyBlobUrls] = useState<Record<string, string>>({});
+  const proxyRequestedRef = useRef<Set<string>>(new Set());
+  const proxyBlobUrlsRef = useRef<Record<string, string>>({});
+
   const resolveImageUrl = (att: MessageAttachment) => {
     let raw = (att.url || '').trim();
     if (!raw && att.stickerId) {
@@ -49,10 +59,39 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
     // Nếu tải trực tiếp bị lỗi (CORS/403 Hotlink từ Meta), chuyển hướng qua Media Proxy của CRM
     if (failedDirectUrls[att.id]) {
-      return `/api/messaging/media-proxy?url=${encodeURIComponent(raw)}`;
+      return proxyBlobUrls[att.id] || TRANSPARENT_PIXEL;
     }
     return raw;
   };
+
+  useEffect(() => {
+    (message.attachments || []).forEach((att) => {
+      if (!failedDirectUrls[att.id] || proxyRequestedRef.current.has(att.id)) return;
+      let raw = (att.url || '').trim();
+      if (!raw && att.stickerId) raw = `https://lookaside.facebook.com/stickers/${att.stickerId}.png`;
+      if (!raw) return;
+
+      proxyRequestedRef.current.add(att.id);
+      apiClient
+        .fetchBlob('/messaging/media-proxy', { url: raw })
+        .then((blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          proxyBlobUrlsRef.current[att.id] = objectUrl;
+          setProxyBlobUrls((prev) => ({ ...prev, [att.id]: objectUrl }));
+        })
+        .catch(() => {
+          setFailedProxyUrls((prev) => ({ ...prev, [att.id]: true }));
+        });
+    });
+  }, [message.attachments, failedDirectUrls]);
+
+  // Giải phóng các blob URL khi bong bóng chat bị gỡ
+  useEffect(() => {
+    return () => {
+      Object.values(proxyBlobUrlsRef.current).forEach((u) => URL.revokeObjectURL(u));
+      proxyBlobUrlsRef.current = {};
+    };
+  }, []);
 
   const handleImageError = (attId: string) => {
     if (!failedDirectUrls[attId]) {

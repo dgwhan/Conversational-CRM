@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from '../../platform/database/prisma.module.js';
@@ -13,6 +14,7 @@ import { RefreshTokenService } from './application/services/refresh-token.servic
 import { RolesGuard } from './presentation/guards/roles.guard.js';
 import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard.js';
 import { JwtTokenService } from '../../platform/config/jwt.config.js';
+import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard.js';
 
 @Module({
   imports: [
@@ -35,6 +37,10 @@ import { JwtTokenService } from '../../platform/config/jwt.config.js';
     JwtAuthGuard,
     RolesGuard,
     JwtTokenService,
+    // Deny-by-default: mọi route cần Access Token hợp lệ, trừ route gắn @Public().
+    // Thứ tự khai báo = thứ tự thực thi: xác thực trước, rồi mới xác định/kiểm tra workspace.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: WorkspaceContextGuard },
   ],
   exports: [
     JwtModule,

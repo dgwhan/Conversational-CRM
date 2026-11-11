@@ -29,7 +29,8 @@ export class NotificationController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    const callerId = req?.user?.id || queryUserId || staffId || ownerId;
+    // Chỉ dùng người dùng đã xác thực: không cho phép xem thông báo riêng của người khác qua ?userId / header
+    const callerId = req?.user?.id;
     const isReadBool =
       isRead === 'true' ? true : isRead === 'false' ? false : undefined;
 

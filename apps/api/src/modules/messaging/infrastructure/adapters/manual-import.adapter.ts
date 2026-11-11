@@ -8,8 +8,9 @@ export class ManualImportAdapter implements ChannelAdapter {
     readonly channel = Channel.MANUAL_IMPORT;
 
     verifyRequest(_request: RawWebhookRequest): boolean {
-        // Import thủ công không yêu cầu xác thực chữ ký HMAC
-        return true;
+        // Import thủ công đi qua POST /messages/import (có đăng nhập + kiểm tra workspace).
+        // Adapter này KHÔNG được phép nhận request từ webhook công khai (không có chữ ký để xác thực).
+        return false;
     }
 
     parseEvents(request: RawWebhookRequest): InboundEvent[] {

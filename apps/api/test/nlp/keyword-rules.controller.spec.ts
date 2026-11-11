@@ -1,6 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { KeywordRulesController } from '../../src/modules/nlp/keyword-rules.controller.js';
 import type { KeywordRulesService } from '../../src/modules/nlp/keyword-rules.service.js';
+
+// Danh tính do JwtAuthGuard + WorkspaceContextGuard gắn lên request (không lấy từ header/body của client)
+const req = { user: { id: 'user-1' }, workspace: { id: 'ws-1', role: 'OWNER' } };
 
 describe('KeywordRulesController', () => {
   let controller: KeywordRulesController;
@@ -27,10 +31,18 @@ describe('KeywordRulesController', () => {
     ];
     vi.mocked(mockService.getRules!).mockResolvedValue(rules as any);
 
-    const result = await controller.getRules('ws-1');
+    // Dù client gửi workspaceId khác, controller chỉ dùng workspace đã xác minh
+    const result = await controller.getRules('ws-OTHER', 'ws-OTHER', req);
 
     expect(mockService.getRules).toHaveBeenCalledWith('ws-1');
     expect(result).toEqual(rules);
+  });
+
+  it('từ chối khi request không thuộc workspace nào (403)', async () => {
+    await expect(controller.getRules(undefined, undefined, { user: { id: 'u' } })).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(mockService.getRules).not.toHaveBeenCalled();
   });
 
   it('POST /keyword-rules: tạo mới một luật từ khóa', async () => {
@@ -44,8 +56,9 @@ describe('KeywordRulesController', () => {
     const createdRule = { id: 'rule-new', ...newRuleDto };
     vi.mocked(mockService.createRule!).mockResolvedValue(createdRule as any);
 
-    const result = await controller.createRule(newRuleDto);
+    const result = await controller.createRule({ ...newRuleDto, workspaceId: 'ws-OTHER' }, 'ws-OTHER', req);
 
+    // workspaceId trong body bị ghi đè bằng workspace đã xác minh
     expect(mockService.createRule).toHaveBeenCalledWith(newRuleDto);
     expect(result).toEqual(createdRule);
   });
@@ -54,26 +67,38 @@ describe('KeywordRulesController', () => {
     const updated = { id: 'rule-1', weight: 45, isActive: false };
     vi.mocked(mockService.updateRule!).mockResolvedValue(updated as any);
 
-    const result = await controller.updateRule('rule-1', { weight: 45, isActive: false });
+    const result = await controller.updateRule('rule-1', { weight: 45, isActive: false }, req);
 
-    expect(mockService.updateRule).toHaveBeenCalledWith('rule-1', { weight: 45, isActive: false });
+    expect(mockService.updateRule).toHaveBeenCalledWith('rule-1', { weight: 45, isActive: false }, 'ws-1');
     expect(result).toEqual(updated);
+  });
+
+  it('PATCH /keyword-rules/:id: luật của workspace khác -> 404', async () => {
+    vi.mocked(mockService.updateRule!).mockResolvedValue(null as any);
+
+    await expect(controller.updateRule('rule-x', { weight: 1 }, req)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('DELETE /keyword-rules/:id: xóa một luật khỏi hệ thống', async () => {
     vi.mocked(mockService.deleteRule!).mockResolvedValue(true as any);
 
-    const result = await controller.deleteRule('rule-1');
+    const result = await controller.deleteRule('rule-1', req);
 
-    expect(mockService.deleteRule).toHaveBeenCalledWith('rule-1');
+    expect(mockService.deleteRule).toHaveBeenCalledWith('rule-1', 'ws-1');
     expect(result.success).toBe(true);
+  });
+
+  it('DELETE /keyword-rules/:id: luật của workspace khác -> 404', async () => {
+    vi.mocked(mockService.deleteRule!).mockResolvedValue(false as any);
+
+    await expect(controller.deleteRule('rule-x', req)).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('POST /keyword-rules/seed: nạp bộ luật ban đầu', async () => {
     const fakeRules = new Array(16).fill({ id: 'rule' });
     vi.mocked(mockService.seedInitialRules!).mockResolvedValue(fakeRules as any);
 
-    const result = await controller.seedRules('ws-1');
+    const result = await controller.seedRules('ws-1', 'ws-1', req);
 
     expect(mockService.seedInitialRules).toHaveBeenCalledWith('ws-1');
     expect(result.count).toBe(16);
@@ -98,6 +123,7 @@ describe('KeywordRulesController', () => {
     const result = await controller.evaluateMessage(
       { text: 'HP bn vậy' },
       'ws-1',
+      req,
     );
 
     expect(mockService.evaluateMessage).toHaveBeenCalledWith('HP bn vậy', 'ws-1', []);

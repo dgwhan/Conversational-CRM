@@ -12,6 +12,13 @@ import {
 import { CustomerController } from '../../src/modules/messaging/presentation/customer.controller.js';
 import { ChannelManagerService } from '../../src/modules/channel-connection/application/channel-manager.service.js';
 
+const TEST_WS = '55555555-5555-4555-8555-555555555555';
+/** Request giả lập sau khi JwtAuthGuard + WorkspaceContextGuard đã xác minh danh tính */
+const makeReq = (role: 'OWNER' | 'STAFF' = 'OWNER', userId = 'staff-admin-99') => ({
+  user: { id: userId },
+  workspace: { id: TEST_WS, role },
+});
+
 describe('Sub-task 4: Handle Source Tag Removal', () => {
     describe('1. Quy định hành vi khi tag Facebook Lead bị gỡ khỏi hội thoại trên Meta theo chính sách nghiệp vụ', () => {
         it('chính sách RETAIN_TARGET (mặc định): giữ nguyên tag Lead nội bộ khi Meta gỡ Facebook Lead để bảo vệ dữ liệu CRM', () => {
@@ -229,7 +236,7 @@ describe('Sub-task 4: Handle Source Tag Removal', () => {
                 })
             );
 
-            const result = await controller.removeCustomerTag(customerId, 'Lead');
+            const result = await controller.removeCustomerTag(customerId, 'Lead', makeReq());
 
             expect(result.success).toBe(true);
             expect(result.removedTag).toBe('Lead');
@@ -259,6 +266,7 @@ describe('Sub-task 4: Handle Source Tag Removal', () => {
             const customerId = '00000000-0000-0000-0000-000000000001';
             mockPrisma.customer.findUnique.mockResolvedValue({
                 id: customerId,
+                workspaceId: TEST_WS,
                 fullName: 'Trần Thị B',
                 leadStatus: 'POTENTIAL',
                 leadStage: 'STAGE_NEW',
@@ -281,7 +289,7 @@ describe('Sub-task 4: Handle Source Tag Removal', () => {
             // Tư vấn viên gỡ 'Lead' bằng cách gửi danh sách mới chỉ còn ['Khóa học React']
             const result = await controller.updateCustomer(customerId, {
                 tags: ['Khóa học React'],
-            });
+            }, undefined, undefined, undefined, makeReq());
 
             expect(result.tags).toEqual(['Khóa học React']);
             expect(mockPrisma.customer.update).toHaveBeenCalledWith(

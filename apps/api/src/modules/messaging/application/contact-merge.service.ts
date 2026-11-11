@@ -288,6 +288,7 @@ export class ContactMergeService {
           previousStage: primarySourceCustomer?.leadStage || 'STAGE_NEW',
           updatedBy: params.actorId ? `Tư vấn viên ${params.actorId}` : 'Hệ thống tự động gộp (CUS-04)',
           phone: result.updatedTarget.phoneNormalized || undefined,
+          workspaceId: primaryTargetCustomer?.workspaceId || params.workspaceId || undefined,
         } as any);
       } catch {}
     }

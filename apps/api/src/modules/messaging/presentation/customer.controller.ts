@@ -16,6 +16,8 @@ import { CustomerService, UpdateCustomerDto } from '../application/customer.serv
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { ContactMergeService } from '../application/contact-merge.service.js';
 import { ActivityService } from '../../activities/activity.service.js';
+import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
+import { WorkspaceRole } from '../../../contracts/roles.js';
 
 /**
  * Controller managing workspace customers, recruitment leads, and pipeline stages.
@@ -57,11 +59,11 @@ export class CustomerController {
         @Headers('x-staff-id') headerStaffId?: string,
         @Req() req?: any,
     ) {
-        const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-        const staffId = req?.user?.id || headerStaffId;
+        // Danh tính, vai trò và workspace lấy từ token + tư cách thành viên đã xác minh; không tin header của client
+        const { role, userId: staffId } = getRequestIdentity(req);
 
         return this.customerService.getCustomers({
-            rawWsId: queryWsId || headerWsId,
+            rawWsId: requireWorkspaceId(req),
             search,
             pageStr,
             limitStr,
@@ -85,13 +87,10 @@ export class CustomerController {
         @Headers('x-staff-id') headerStaffId?: string,
         @Req() req?: any,
     ) {
-        const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-        const staffId = req?.user?.id || headerStaffId;
-        const caller = (role === 'STAFF' || staffId) ? { role, staffId, workspaceId: queryWsId || headerWsId } : undefined;
+        const { role, userId: staffId } = getRequestIdentity(req);
+        const workspaceId = requireWorkspaceId(req);
 
-        return caller
-            ? this.customerService.getCustomerById(id, caller)
-            : this.customerService.getCustomerById(id);
+        return this.customerService.getCustomerById(id, { role, staffId, workspaceId });
     }
 
     /**
@@ -106,13 +105,18 @@ export class CustomerController {
         @Headers('x-user-role') headerUserRole?: string,
         @Req() req?: any,
     ) {
-        const role = ((req?.user?.role || headerUserRole || '') as string).toUpperCase();
-        if (role === 'STAFF') {
+        const { role } = getRequestIdentity(req);
+        if (role !== WorkspaceRole.OWNER) {
             throw new ForbiddenException(
                 'Nhân viên không có quyền phân công cuộc hội thoại cho người khác (403 Forbidden).',
             );
         }
-        return this.customerService.assignConversation(conversationId, body.staffId, body.staffName, headerWsId);
+        return this.customerService.assignConversation(
+            conversationId,
+            body.staffId,
+            body.staffName,
+            requireWorkspaceId(req),
+        );
     }
 
     /**
@@ -129,13 +133,9 @@ export class CustomerController {
         @Headers('x-staff-id') headerStaffId?: string,
         @Req() req?: any,
     ) {
-        const role = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
-        const staffId = req?.user?.id || headerStaffId;
-        const caller = (role === 'STAFF' || staffId) ? { role, staffId } : undefined;
+        const { role, userId: staffId } = getRequestIdentity(req);
 
-        return caller
-            ? this.customerService.updateCustomer(id, body, headerWsId, caller)
-            : this.customerService.updateCustomer(id, body, headerWsId);
+        return this.customerService.updateCustomer(id, body, requireWorkspaceId(req), { role, staffId });
     }
 
     /**
@@ -145,8 +145,9 @@ export class CustomerController {
     async removeCustomerTag(
         @Param('id') id: string,
         @Param('tag') tagToRemove: string,
+        @Req() req?: any,
     ) {
-        return this.customerService.removeCustomerTag(id, tagToRemove);
+        return this.customerService.removeCustomerTag(id, tagToRemove, requireWorkspaceId(req));
     }
 
     /**
@@ -157,7 +158,13 @@ export class CustomerController {
         @Param('id') id: string,
         @Body() body: { reason?: string },
         @Headers('x-staff-id') staffId?: string,
+        @Req() req?: any,
     ) {
-        return this.customerService.anonymizeCustomer(id, staffId, body?.reason);
+        // Thao tác xóa PII không thể hoàn tác: chỉ chủ workspace được thực hiện
+        const identity = getRequestIdentity(req);
+        if (identity.role !== WorkspaceRole.OWNER) {
+            throw new ForbiddenException('Chỉ chủ workspace mới được ẩn danh hóa khách hàng (403 Forbidden).');
+        }
+        return this.customerService.anonymizeCustomer(id, identity.userId, body?.reason, requireWorkspaceId(req));
     }
 }

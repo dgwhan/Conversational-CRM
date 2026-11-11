@@ -16,6 +16,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ImportMessagesUseCase } from '../application/import-messages.usecase.js';
 import { generateCsvTemplate } from '../application/csv-parser.js';
 import { MessageRepository } from '../infrastructure/message.repository.js';
+import { Public } from '../../../common/decorators/public.decorator.js';
+import { getRequestIdentity } from '../../../common/auth/request-identity.js';
 
 @Controller('messages')
 export class MessageImportController {
@@ -37,17 +39,17 @@ export class MessageImportController {
         @Query('search') search?: string,
         @Query('workspaceId') queryWorkspaceId?: string,
         @Headers('x-workspace-id') headerWorkspaceId?: string,
-        @Headers('x-user-role') headerUserRole?: string,
-        @Headers('x-staff-id') headerStaffId?: string,
         @Req() req?: any,
     ) {
         const page = Math.max(1, parseInt(pageStr || '1', 10) || 1);
         const limit = Math.min(100, Math.max(1, parseInt(limitStr || '20', 10) || 20));
         const offset = (page - 1) * limit;
 
-        const effectiveWorkspaceId = queryWorkspaceId || headerWorkspaceId;
-        const effectiveRole = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase() as 'OWNER' | 'STAFF';
-        const effectiveStaffId = req?.user?.id || headerStaffId;
+        // Danh tính / vai trò lấy từ phiên đã xác thực (JwtAuthGuard + WorkspaceContextGuard), không tin header client
+        const identity = getRequestIdentity(req);
+        const effectiveWorkspaceId = identity.workspaceId ?? queryWorkspaceId ?? headerWorkspaceId;
+        const effectiveRole = identity.role;
+        const effectiveStaffId = identity.userId;
 
         try {
             const { items, total } = await this.messageRepo.findMany({
@@ -82,6 +84,7 @@ export class MessageImportController {
     /**
      * Tải file mẫu CSV với các cột: kênh, người gửi, nội dung, thời gian
      */
+    @Public()
     @Get('import/template')
     getTemplate(@Res({ passthrough: true }) reply: FastifyReply) {
         const template = generateCsvTemplate();

@@ -9,8 +9,34 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 import { SkipCsrf } from "../../../common/decorators/skip-csrf.decorator.js";
-import { Readable } from "node:stream";
+import {
+    SafeFetchError,
+    createSizeLimiter,
+    safeGet,
+} from "../../../common/security/safe-fetch.js";
 
+/** Dung lượng tối đa của một tệp proxy (mặc định 25MB, chỉnh bằng MEDIA_PROXY_MAX_BYTES) */
+const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
+
+/** Chỉ các kiểu nội dung này được hiển thị inline; còn lại luôn ép tải về (chống XSS qua HTML/SVG) */
+const INLINE_SAFE_TYPE = /^(image\/(png|jpe?g|gif|webp|avif|bmp)|audio\/[\w.+-]+|video\/[\w.+-]+|application\/pdf)$/i;
+
+function getMaxBytes(): number {
+    const parsed = Number(process.env.MEDIA_PROXY_MAX_BYTES);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_BYTES;
+}
+
+function getAllowedHostSuffixes(): string[] | undefined {
+    const raw = process.env.MEDIA_PROXY_ALLOWED_HOSTS;
+    if (!raw) return undefined;
+    const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    return list.length > 0 ? list : undefined;
+}
+
+/**
+ * Endpoint này yêu cầu đăng nhập (JwtAuthGuard toàn cục). Frontend phải gọi bằng fetch kèm
+ * Authorization rồi dùng blob URL — thẻ <img src> thuần không gửi được header xác thực.
+ */
 @SkipCsrf()
 @Controller('messaging/media-proxy')
 export class MediaProxyController {
@@ -18,7 +44,7 @@ export class MediaProxyController {
 
     /**
      * Proxy stream đa phương tiện on-the-fly (Ảnh, File, Sticker) từ Zalo/Meta CDN.
-     * Nguyên tắc Zero-Storage: Tuyệt đối không ghi đĩa, không ghi DB.
+     * Nguyên tắc Zero-Storage: không ghi đĩa, không ghi DB, và không nạp cả tệp vào RAM (stream + giới hạn dung lượng).
      */
     @Get()
     async proxyMedia(
@@ -29,6 +55,9 @@ export class MediaProxyController {
         if (!rawUrl || typeof rawUrl !== 'string') {
             throw new BadRequestException('Tham số url là bắt buộc.');
         }
+        if (rawUrl.length > 4096) {
+            throw new BadRequestException('URL quá dài.');
+        }
 
         let targetUrl: URL;
         try {
@@ -37,73 +66,83 @@ export class MediaProxyController {
             throw new BadRequestException('URL không hợp lệ.');
         }
 
-        if (!['http:', 'https:'].includes(targetUrl.protocol)) {
-            throw new BadRequestException('Chỉ hỗ trợ giao thức HTTP/HTTPS.');
-        }
-
-        // Phòng chống SSRF: Chặn truy vấn tới IP nội bộ / private subnet
-        const hostname = targetUrl.hostname.toLowerCase();
-        if (
-            hostname === 'localhost' ||
-            hostname === '127.0.0.1' ||
-            hostname === '0.0.0.0' ||
-            hostname.startsWith('192.168.') ||
-            hostname.startsWith('10.') ||
-            hostname.startsWith('172.16.') ||
-            hostname.startsWith('169.254.')
-        ) {
-            throw new BadRequestException('Không được phép truy cập địa chỉ IP nội bộ.');
-        }
+        const maxBytes = getMaxBytes();
 
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout
-
-            const response = await fetch(targetUrl.toString(), {
-                method: 'GET',
-                signal: controller.signal,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': '*/*',
-                },
+            const upstream = await safeGet(targetUrl, {
+                allowedHostSuffixes: getAllowedHostSuffixes(),
             });
 
-            clearTimeout(timeoutId);
-
-            if (!response.ok) {
-                this.logger.warn(`Media upstream trả về mã lỗi ${response.status} cho URL: ${targetUrl}`);
-                res.status(response.status === 404 ? HttpStatus.NOT_FOUND : HttpStatus.BAD_GATEWAY);
+            if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
+                upstream.stream.resume();
+                this.logger.warn(`Media upstream trả về mã lỗi ${upstream.statusCode} cho host: ${upstream.finalUrl.hostname}`);
+                res.status(upstream.statusCode === 404 ? HttpStatus.NOT_FOUND : HttpStatus.BAD_GATEWAY);
                 res.send({
-                    statusCode: response.status,
+                    statusCode: upstream.statusCode,
                     message: 'Không thể tải tệp từ máy chủ gốc của mạng xã hội (tệp có thể đã hết hạn hoặc bị xóa).',
                 });
                 return;
             }
 
-            const contentType = response.headers.get('content-type') || 'application/octet-stream';
-            const contentLength = response.headers.get('content-length');
-
-            res.header('Content-Type', contentType);
-            res.header('Cache-Control', 'public, max-age=86400, s-maxage=86400');
-            res.header('Access-Control-Allow-Origin', '*');
-
-            const filename = customFilename || targetUrl.pathname.split('/').pop() || 'attachment';
-            if (customFilename) {
-                res.header('Content-Disposition', `inline; filename="${encodeURIComponent(filename)}"`);
+            const declaredLength = Number(upstream.headers['content-length']);
+            if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+                upstream.stream.destroy();
+                res.status(HttpStatus.PAYLOAD_TOO_LARGE).send({
+                    statusCode: HttpStatus.PAYLOAD_TOO_LARGE,
+                    message: 'Tệp vượt quá dung lượng cho phép.',
+                });
+                return;
             }
 
-            // Đọc trực tiếp dữ liệu nhị phân vào buffer trong bộ nhớ (Zero-Storage: không ghi đĩa, không ghi DB)
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
+            const contentType = String(upstream.headers['content-type'] || 'application/octet-stream');
+            const baseType = contentType.split(';')[0].trim();
+            const inlineSafe = INLINE_SAFE_TYPE.test(baseType);
 
-            res.header('Content-Length', buffer.length);
-            return res.send(buffer);
+            const filename = (customFilename || upstream.finalUrl.pathname.split('/').pop() || 'attachment')
+                .replace(/[\r\n"\\]/g, '_')
+                .slice(0, 200);
+
+            res.header('Content-Type', inlineSafe ? contentType : 'application/octet-stream');
+            res.header('X-Content-Type-Options', 'nosniff');
+            res.header('Content-Security-Policy', "default-src 'none'; sandbox");
+            res.header('Cross-Origin-Resource-Policy', 'same-site');
+            // private: không cho cache dùng chung vì endpoint cần xác thực
+            res.header('Cache-Control', 'private, max-age=3600');
+            res.header(
+                'Content-Disposition',
+                `${inlineSafe ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(filename)}`,
+            );
+            if (Number.isFinite(declaredLength) && declaredLength >= 0) {
+                res.header('Content-Length', declaredLength);
+            }
+
+            const limited = upstream.stream.pipe(createSizeLimiter(maxBytes));
+            upstream.stream.on('error', (e) => limited.destroy(e));
+            limited.on('error', (e) => {
+                this.logger.warn(`Media proxy dừng luồng: ${e.message}`);
+                upstream.stream.destroy();
+            });
+            res.raw.on('close', () => upstream.stream.destroy());
+
+            return res.send(limited);
         } catch (err) {
             const error = err as Error;
-            this.logger.error(`Lỗi khi stream media proxy từ ${targetUrl.toString()}: ${error.message}`);
+            this.logger.warn(`Lỗi media proxy (${targetUrl.hostname}): ${error.message}`);
+
+            if (error instanceof SafeFetchError) {
+                const status =
+                    error.code === 'INVALID_URL' || error.code === 'BLOCKED'
+                        ? HttpStatus.BAD_REQUEST
+                        : error.code === 'TIMEOUT'
+                          ? HttpStatus.GATEWAY_TIMEOUT
+                          : HttpStatus.BAD_GATEWAY;
+                res.status(status).send({ statusCode: status, message: error.message });
+                return;
+            }
+
             res.status(HttpStatus.BAD_GATEWAY).send({
                 statusCode: HttpStatus.BAD_GATEWAY,
-                message: `Lỗi kết nối tải đa phương tiện: ${error.message}`,
+                message: 'Lỗi kết nối tải đa phương tiện.',
             });
         }
     }

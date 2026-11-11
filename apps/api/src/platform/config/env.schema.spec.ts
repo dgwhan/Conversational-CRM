@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { validateEnv } from './env.schema.js';
 
+const baseEnv = {
+  NODE_ENV: 'test',
+  TOKEN_ENCRYPTION_KEY: 'test_token_encryption_key_0123456789ab',
+};
+
 const recoveryKeys = {
   PASSWORD_RECOVERY_EMAIL_HMAC_KEY: Buffer.alloc(32, 1).toString('base64'),
   PASSWORD_RECOVERY_OTP_HMAC_KEY: Buffer.alloc(32, 2).toString('base64'),
@@ -31,6 +36,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
 
   it('should validate and parse valid environment configuration successfully in development', () => {
     const validConfig = {
+      ...baseEnv,
       ...recoveryKeys,
       DATABASE_URL:
         'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -50,6 +56,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
 
   it('should strictly reject default sample keys in production environment', () => {
     const insecureProdConfig = {
+      ...baseEnv,
       ...recoveryKeys,
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
       NODE_ENV: 'production',
@@ -92,6 +99,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
 
   it('should accept a complete SMTP configuration', () => {
     const parsed = validateEnv({
+      ...baseEnv,
       ...recoveryKeys,
       DATABASE_URL:
         'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -114,6 +122,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
   it('should reject incomplete SMTP configuration', () => {
     expect(() =>
       validateEnv({
+        ...baseEnv,
         ...recoveryKeys,
         DATABASE_URL:
           'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -126,6 +135,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
   it('should require SMTP username and password together', () => {
     expect(() =>
       validateEnv({
+        ...baseEnv,
         ...recoveryKeys,
         DATABASE_URL:
           'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -140,6 +150,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
 
   it('should treat blank SMTP settings as disabled', () => {
     const parsed = validateEnv({
+      ...baseEnv,
       ...recoveryKeys,
       DATABASE_URL:
         'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -160,6 +171,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
   it('should require recovery keys to decode to exactly 32 bytes', () => {
     expect(() =>
       validateEnv({
+        ...baseEnv,
         ...recoveryKeys,
         DATABASE_URL:
           'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
@@ -167,5 +179,52 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
         PASSWORD_RECOVERY_EMAIL_HMAC_KEY: 'not-a-32-byte-key',
       }),
     ).toThrowError(/base64-encoded 32-byte key/);
+  });
+  describe('fail-secure defaults', () => {
+    const common = {
+      ...recoveryKeys,
+      DATABASE_URL:
+        'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
+      JWT_ACCESS_SECRET: 'a'.repeat(32),
+    };
+
+    it('should require NODE_ENV instead of silently defaulting to development', () => {
+      expect(() =>
+        validateEnv({
+          ...common,
+          TOKEN_ENCRYPTION_KEY: baseEnv.TOKEN_ENCRYPTION_KEY,
+        }),
+      ).toThrowError(/NODE_ENV is required/);
+    });
+
+    it('should require TOKEN_ENCRYPTION_KEY (no built-in default key)', () => {
+      expect(() => validateEnv({ ...common, NODE_ENV: 'development' })).toThrowError(
+        /TOKEN_ENCRYPTION_KEY is required/,
+      );
+    });
+
+    it('should reject the leaked sample TOKEN_ENCRYPTION_KEY in production', () => {
+      expect(() =>
+        validateEnv({
+          ...common,
+          NODE_ENV: 'production',
+          JWT_ACCESS_SECRET: 'production_super_strong_jwt_access_secret_key_12345',
+          TOKEN_ENCRYPTION_KEY:
+            '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        }),
+      ).toThrowError(/TOKEN_ENCRYPTION_KEY must be a unique/);
+    });
+
+    it('should require a Zalo webhook secret in production when Zalo is enabled', () => {
+      const prod = {
+        ...common,
+        NODE_ENV: 'production',
+        JWT_ACCESS_SECRET: 'production_super_strong_jwt_access_secret_key_12345',
+        TOKEN_ENCRYPTION_KEY: 'production_super_strong_token_encryption_key_12345',
+        ZALO_APP_ID: '1234567890',
+      };
+      expect(() => validateEnv(prod)).toThrowError(/ZALO_OA_SECRET_KEY/);
+      expect(() => validateEnv({ ...prod, ZALO_OA_SECRET_KEY: 'zalo-webhook-secret' })).not.toThrow();
+    });
   });
 });

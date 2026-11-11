@@ -65,6 +65,9 @@ const RealtimeContext = createContext<RealtimeContextValue | null>(null);
 export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { staffId, staffName, isAuthenticated } = useUserRole();
   const currentStaffId = staffId || 'staff-me';
+  // Tăng mỗi khi đổi workspace để mở lại kết nối realtime (ticket gắn với đúng một workspace)
+  const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
+  useEffect(() => apiClient.onWorkspaceChanged(() => setWorkspaceEpoch((n) => n + 1)), []);
   const currentStaffName = staffName ? `${staffName} (Bạn)` : 'Bạn';
 
   const [connectionStatus, setConnectionStatus] = useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
@@ -274,11 +277,44 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
 
-    const connectSSE = () => {
+    // EventSource / WebSocket của trình duyệt không gửi được header Authorization, nên đổi Access Token
+    // lấy ticket dùng 1 lần (sống 60 giây) rồi truyền qua ?ticket=. Mỗi lần (kết nối lại) đều xin ticket mới.
+    const fetchRealtimeTicket = async (): Promise<string | null> => {
+      try {
+        const res = await apiClient.post<{ data?: { ticket?: string } }>('/realtime/ticket', undefined, {
+          skipToast: true,
+        });
+        return res?.data?.ticket ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (!isMounted) return;
+      setConnectionStatus('DISCONNECTED');
+      retryDelay = Math.min(Math.round(retryDelay * 1.5), 30000);
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(() => {
+        if (isMounted) {
+          setConnectionStatus('CONNECTING');
+          connect();
+        }
+      }, retryDelay);
+    };
+
+    const connectSSE = async () => {
       if (typeof window === 'undefined' || !isMounted) return;
 
+      const ticket = await fetchRealtimeTicket();
+      if (!isMounted) return;
+      if (!ticket) {
+        scheduleReconnect();
+        return;
+      }
+
       const baseUrl = apiClient.getBaseUrl();
-      const sseUrl = `${baseUrl}/realtime/stream`;
+      const sseUrl = `${baseUrl}/realtime/stream?ticket=${encodeURIComponent(ticket)}`;
 
       try {
         if (eventSourceRef.current) {
@@ -365,8 +401,15 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     let wsFailures = 0;
 
-    const connectWebSocket = () => {
+    const connectWebSocket = async () => {
       if (typeof window === 'undefined' || !isMounted) return;
+
+      const ticket = await fetchRealtimeTicket();
+      if (!isMounted) return;
+      if (!ticket) {
+        scheduleReconnect();
+        return;
+      }
 
       try {
         if (webSocketRef.current) {
@@ -390,7 +433,8 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         }
 
-        const ws = new WebSocket(wsUrl);
+        const wsSeparator = wsUrl.includes('?') ? '&' : '?';
+        const ws = new WebSocket(`${wsUrl}${wsSeparator}ticket=${encodeURIComponent(ticket)}`);
         webSocketRef.current = ws;
         let pingInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -425,7 +469,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           wsFailures++;
           // Nếu WebSocket liên tục thất bại (như khi deploy trên Vercel không hỗ trợ WS), tự động chuyển sang SSE stream
           if (wsFailures >= 2) {
-            connectSSE();
+            void connectSSE();
             return;
           }
           setConnectionStatus('CONNECTING');
@@ -441,15 +485,15 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ws.onerror = handleDisconnect;
         ws.onclose = handleDisconnect;
       } catch {
-        connectSSE();
+        void connectSSE();
       }
     };
 
     const connect = () => {
       if (typeof WebSocket !== 'undefined') {
-        connectWebSocket();
+        void connectWebSocket();
       } else {
-        connectSSE();
+        void connectSSE();
       }
     };
 
@@ -466,7 +510,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         eventSourceRef.current.close();
       }
     };
-  }, [handleIncomingMessage, isAuthenticated]);
+  }, [handleIncomingMessage, isAuthenticated, workspaceEpoch]);
 
   return (
     <RealtimeContext.Provider

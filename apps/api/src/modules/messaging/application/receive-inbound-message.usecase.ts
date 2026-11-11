@@ -34,6 +34,41 @@ export class ReceiveInboundMessage {
         @Optional() private readonly workingHoursService?: WorkingHoursService,
     ) { }
 
+    /**
+     * Xác định workspace của từng sự kiện dựa trên ChannelAccount (channel + externalAccountId)
+     * đã được một workspace kết nối. Giá trị này luôn ưu tiên hơn workspaceId trong payload.
+     */
+    private async attachWorkspaceFromChannelAccounts(events: InboundEvent[]): Promise<InboundEvent[]> {
+        const channelAccount = this.prisma?.channelAccount;
+        if (!channelAccount || typeof channelAccount.findUnique !== 'function') return events;
+
+        const cache = new Map<string, string | null>();
+        const resolved: InboundEvent[] = [];
+        for (const event of events) {
+            const key = `${event.channel}:${event.externalAccountId}`;
+            if (!cache.has(key)) {
+                try {
+                    const account = await channelAccount.findUnique({
+                        where: {
+                            channel_externalAccountId: {
+                                channel: event.channel as any,
+                                externalAccountId: event.externalAccountId,
+                            },
+                        },
+                        select: { workspaceId: true },
+                    });
+                    cache.set(key, account?.workspaceId ?? null);
+                } catch (err) {
+                    this.logger.warn(`Could not resolve workspace for channel account ${key}: ${(err as Error).message}`);
+                    cache.set(key, null);
+                }
+            }
+            const workspaceId = cache.get(key);
+            resolved.push(workspaceId ? { ...event, workspaceId } : event);
+        }
+        return resolved;
+    }
+
     async execute(req: RawWebhookRequest & { channel: Channel }): Promise<void> {
         const adapter = this.adapters.get(req.channel);
 
@@ -50,6 +85,9 @@ export class ReceiveInboundMessage {
         }
 
         if (events.length === 0) return;
+
+        // Gắn workspace theo ChannelAccount đã được workspace kết nối (nguồn tin cậy), không lấy từ payload
+        events = await this.attachWorkspaceFromChannelAccounts(events);
 
         const created = await this.messages.insertManyIgnoreDuplicate(events);
         if (created.length === 0) return;
@@ -109,8 +147,10 @@ export class ReceiveInboundMessage {
                             if (raw.customerName) customerName = raw.customerName;
                             if (raw.customerAvatar) customerAvatar = raw.customerAvatar;
 
+                            // Chỉ tìm khách trong CÙNG workspace với tài khoản kênh nhận tin (chống gộp nhầm giữa các tenant)
                             dbCustomer = await this.prisma.customer.findFirst({
                                 where: {
+                                    workspaceId: event.workspaceId ?? null,
                                     OR: [
                                         { channelIdentities: { path: [event.channel.toLowerCase()], equals: event.senderExternalId } },
                                         { channelIdentities: { path: [event.channel.toLowerCase(), 'id'], equals: event.senderExternalId } },
@@ -228,6 +268,7 @@ export class ReceiveInboundMessage {
                         senderAvatar: customerAvatar,
                         attachments: (event.attachments as any) || (raw.attachments as any) || undefined,
                         sentAt: new Date(event.sentAt).toISOString(),
+                        workspaceId: event.workspaceId || dbCustomer?.workspaceId || undefined,
                     });
 
                     // Chỉ báo cho Kanban cập nhật ứng viên khi tạo mới khách hàng (tránh reset giai đoạn khách hàng cũ)
@@ -238,6 +279,7 @@ export class ReceiveInboundMessage {
                             previousStage: '',
                             newStage: dbCustomer.leadStage || 'STAGE_NEW',
                             updatedBy: `Webhook ${event.channel}`,
+                            workspaceId: dbCustomer.workspaceId || event.workspaceId || undefined,
                         });
                     }
 

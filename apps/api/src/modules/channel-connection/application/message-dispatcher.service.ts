@@ -330,6 +330,7 @@ export class MessageDispatcherService {
           content: input.content,
           senderName: account.displayName,
           sentAt: sentAt.toISOString(),
+          workspaceId: (account as { workspaceId?: string | null }).workspaceId || input.workspaceId || undefined,
         });
       } catch (err) {
         this.logger.warn(`Realtime broadcast failed: ${(err as Error).message}`);

@@ -5,6 +5,12 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { WorkspaceConfigModule } from '../../src/modules/workspace-config/workspace-config.module.js';
 import { PrismaService } from '../../src/platform/database/prisma.service.js';
 import { INDUSTRY_PRESETS } from '../../src/modules/workspace-config/domain/workspace-config.presets.js';
+import { JwtService } from '@nestjs/jwt';
+
+const TEST_JWT_SECRET = 'http-spec-jwt-access-secret-0123456789abcdef';
+// Access Token ký thật (guard không còn tin header x-user-role / x-owner-id do client tự khai)
+const ownerToken = () =>
+  new JwtService().sign({ sub: 'owner-http-1' }, { secret: TEST_JWT_SECRET, expiresIn: '5m' });
 
 function createHttpMockPrisma() {
   const eduPreset = INDUSTRY_PRESETS.EDUCATION;
@@ -55,6 +61,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
+    process.env.JWT_ACCESS_SECRET = TEST_JWT_SECRET;
     const mockPrisma = createHttpMockPrisma();
     const moduleRef = await Test.createTestingModule({
       imports: [ConfigModule.forRoot({ isGlobal: true }), WorkspaceConfigModule],
@@ -80,8 +87,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       method: 'GET',
       url: '/api/workspaces/current/config',
       headers: {
-        'x-user-role': 'OWNER',
-        'x-owner-id': 'owner-http-1',
+        authorization: `Bearer ${ownerToken()}`,
       },
     });
 
@@ -96,8 +102,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       method: 'PUT',
       url: '/api/workspaces/current/config',
       headers: {
-        'x-user-role': 'OWNER',
-        'x-owner-id': 'owner-http-1',
+        authorization: `Bearer ${ownerToken()}`,
         'content-type': 'application/json',
       },
       payload: JSON.stringify({
@@ -122,8 +127,7 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
       method: 'GET',
       url: '/api/workspaces/current/staff',
       headers: {
-        'x-user-role': 'OWNER',
-        'x-owner-id': 'owner-http-1',
+        authorization: `Bearer ${ownerToken()}`,
       },
     });
 

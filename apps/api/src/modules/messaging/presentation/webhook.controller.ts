@@ -20,6 +20,7 @@ import { ChannelAdapterRegistry } from "../application/channel-adapter.registry.
 import { Channel } from "../domain/channel.js";
 import { FacebookAdapter } from "../infrastructure/adapters/facebook.adapter.js";
 import { SkipCsrf } from "../../../common/decorators/skip-csrf.decorator.js";
+import { Public } from "../../../common/decorators/public.decorator.js";
 
 /**
  * Pipe chuẩn hóa channel không phân biệt hoa thường (hỗ trợ cả /facebook và /FACEBOOK)
@@ -28,6 +29,10 @@ import { SkipCsrf } from "../../../common/decorators/skip-csrf.decorator.js";
 export class ChannelPipe implements PipeTransform<string, Channel> {
     transform(value: string): Channel {
         const normalized = value ? value.toUpperCase().trim() : '';
+        if (normalized === Channel.MANUAL_IMPORT) {
+            // Import thủ công chỉ đi qua POST /messages/import (có đăng nhập), không nhận từ webhook công khai
+            throw new BadRequestException(`Validation failed: channel "${value}" is not available via webhook`);
+        }
         if (normalized && Object.values(Channel).includes(normalized as Channel)) {
             return normalized as Channel;
         }
@@ -35,6 +40,8 @@ export class ChannelPipe implements PipeTransform<string, Channel> {
     }
 }
 
+// Webhook từ Meta / Zalo: không có Access Token, được xác thực bằng chữ ký HMAC trong ReceiveInboundMessage
+@Public()
 @SkipCsrf()
 @Controller('webhook')
 export class WebhookController {

@@ -11,7 +11,12 @@ const logger = new Logger('WorkspaceResolver');
 const fallbackJwtService = new JwtService();
 
 /**
- * Trích xuất ID và Role của người dùng từ Authorization Bearer Token
+ * Trích xuất ID người dùng từ Authorization Bearer Token.
+ *
+ * BẢO MẬT: chỉ chấp nhận token có chữ ký hợp lệ và còn hạn (verify bằng JWT_ACCESS_SECRET).
+ * Thiếu secret, sai chữ ký, hết hạn hoặc token tự tạo -> trả về null (không bao giờ `decode` rồi tin).
+ * Lưu ý: hàm này chỉ dùng làm phương án dự phòng khi JwtAuthGuard toàn cục chưa chạy; nó không
+ * kiểm tra trạng thái tài khoản / tokenVersion như JwtAuthGuard.
  */
 export function extractUserFromAuthHeader(
   authHeader?: string
@@ -21,44 +26,41 @@ export function extractUserFromAuthHeader(
   if (!match) return null;
   const token = match[1];
 
+  const secret = process.env.JWT_ACCESS_SECRET;
+  if (!secret) {
+    logger.error('JWT_ACCESS_SECRET chưa cấu hình: từ chối mọi Access Token.');
+    return null;
+  }
+
   try {
-    const secret = process.env.JWT_ACCESS_SECRET;
-    const payload: any = secret
-      ? fallbackJwtService.verify(token, { secret })
-      : fallbackJwtService.decode(token);
+    const payload: any = fallbackJwtService.verify(token, { secret });
     if (payload && typeof payload.sub === 'string') {
       return { id: payload.sub, role: payload.role };
     }
   } catch {
-    try {
-      const decoded: any = fallbackJwtService.decode(token);
-      if (decoded && typeof decoded.sub === 'string') {
-        return { id: decoded.sub, role: decoded.role };
-      }
-    } catch {}
+    // Sai chữ ký / hết hạn / token không hợp lệ: không có danh tính
   }
   return null;
 }
 
 /**
- * Phân giải Caller ID an toàn theo độ ưu tiên:
- * 1. req.user.id (đã xác thực qua JwtAuthGuard)
- * 2. Authorization Bearer Access Token trong header
- * 3. ownerId / staffId header (fallback cho mock testing)
+ * Phân giải Caller ID an toàn:
+ * 1. req.user.id (đã xác thực qua JwtAuthGuard toàn cục)
+ * 2. Access Token trong header Authorization (đã verify chữ ký)
+ *
+ * Hai tham số ownerId / staffId được giữ lại để không phá chữ ký hàm cũ nhưng BỊ BỎ QUA:
+ * các header x-owner-id / x-staff-id do client gửi lên không còn được dùng để xác định danh tính.
  */
 export function resolveCallerId(
   req?: any,
-  ownerId?: string,
-  staffId?: string
+  _ownerId?: string,
+  _staffId?: string
 ): string {
   if (req?.user?.id) {
     return req.user.id;
   }
   const tokenUser = extractUserFromAuthHeader(req?.headers?.authorization);
-  if (tokenUser?.id) {
-    return tokenUser.id;
-  }
-  return ownerId || staffId || '';
+  return tokenUser?.id ?? '';
 }
 
 /**

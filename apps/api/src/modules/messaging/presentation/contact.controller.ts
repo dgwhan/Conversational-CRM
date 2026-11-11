@@ -8,10 +8,20 @@ import {
     Headers,
     Logger,
     BadRequestException,
+    Req,
 } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { Channel } from '../domain/channel.js';
 import { ContactMergeService } from '../application/contact-merge.service.js';
+import { getRequestIdentity } from '../../../common/auth/request-identity.js';
+
+/*
+ * LƯU Ý BẢO MẬT (giới hạn của mô hình dữ liệu): bảng contacts / channel_identities / contact_merge_logs
+ * hiện KHÔNG có cột workspace_id (số điện thoại chuẩn hóa là unique toàn hệ thống), nên các endpoint ở
+ * đây mới chỉ được bảo vệ bằng xác thực toàn cục (JwtAuthGuard) chứ chưa cô lập theo workspace.
+ * Muốn cô lập thật sự cần migration thêm workspace_id cho các bảng này. Danh tính người thực hiện
+ * (actorId) luôn lấy từ token, không lấy từ header do client gửi.
+ */
 
 /**
  * Controller managing Contact, ChannelIdentity, and Contact Merge/Unmerge operations (CUS-04).
@@ -66,6 +76,7 @@ export class ContactController {
             workspaceId?: string;
         },
         @Headers('x-actor-id') headerActorId?: string,
+        @Req() req?: any,
     ) {
         if (!body.targetContactId || !body.sourceContactId) {
             throw new BadRequestException('targetContactId và sourceContactId là bắt buộc');
@@ -75,10 +86,10 @@ export class ContactController {
             targetContactId: body.targetContactId,
             sourceContactId: body.sourceContactId,
             phoneNormalized: body.phoneNormalized,
-            actorId: headerActorId,
+            actorId: getRequestIdentity(req).userId,
             mergeType: 'MANUAL_STAFF',
             reason: body.reason,
-            workspaceId: body.workspaceId,
+            workspaceId: getRequestIdentity(req).workspaceId,
         });
     }
 
@@ -90,6 +101,7 @@ export class ContactController {
         @Param('mergeLogId') mergeLogId: string,
         @Body() body?: { reason?: string },
         @Headers('x-actor-id') headerActorId?: string,
+        @Req() req?: any,
     ) {
         if (!mergeLogId) {
             throw new BadRequestException('mergeLogId là bắt buộc');
@@ -97,7 +109,7 @@ export class ContactController {
 
         return this.mergeService.unmergeContact({
             mergeLogId,
-            actorId: headerActorId,
+            actorId: getRequestIdentity(req).userId,
             reason: body?.reason,
         });
     }

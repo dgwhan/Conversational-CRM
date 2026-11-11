@@ -243,12 +243,13 @@ export class DealService {
     /**
      * Lấy lịch sử tất cả các Deals / Đợt đăng ký của một Khách hàng
      */
-    async findDealsByCustomer(customerIdOrContactId: string): Promise<any> {
+    async findDealsByCustomer(customerIdOrContactId: string, workspaceId?: string): Promise<any> {
         const stripped = customerIdOrContactId.replace(/^(cust|cand)-/, '');
         if (!UUID_REGEX.test(stripped)) return [];
 
         return this.prisma.deal.findMany({
             where: {
+                ...(workspaceId ? { workspaceId } : {}),
                 OR: [
                     { customerId: stripped },
                     { contactId: stripped },
@@ -267,7 +268,10 @@ export class DealService {
     /**
      * Lấy chi tiết 1 Deal
      */
-    async findById(id: string): Promise<any> {
+    async findById(id: string, workspaceId?: string): Promise<any> {
+        if (!UUID_REGEX.test(id)) {
+            throw new NotFoundException(`Cơ hội tuyển sinh với ID "${id}" không tồn tại.`);
+        }
         const deal = await this.prisma.deal.findUnique({
             where: { id },
             include: {
@@ -279,7 +283,8 @@ export class DealService {
                 },
             },
         });
-        if (!deal) {
+        // Bản ghi thuộc workspace khác được coi như không tồn tại (không lộ sự tồn tại giữa các tenant)
+        if (!deal || (workspaceId && deal.workspaceId !== workspaceId)) {
             throw new NotFoundException(`Cơ hội tuyển sinh với ID "${id}" không tồn tại.`);
         }
         return deal;
@@ -288,8 +293,8 @@ export class DealService {
     /**
      * Cập nhật thông tin Deal / chuyển đổi giai đoạn phễu tuyển sinh
      */
-    async update(id: string, dto: UpdateDealDto): Promise<any> {
-        const existing = await this.findById(id);
+    async update(id: string, dto: UpdateDealDto, workspaceId?: string): Promise<any> {
+        const existing = await this.findById(id, workspaceId);
 
         const updateData: any = {};
         if (dto.title !== undefined) updateData.title = dto.title.slice(0, 250);
@@ -387,6 +392,7 @@ export class DealService {
                     channelAccountName: updated.title,
                     estimatedValue: updated.expectedRevenue,
                     interestCourses: updated.courses,
+                    workspaceId: updated.workspaceId,
                 });
             }
         } catch { }
@@ -397,8 +403,8 @@ export class DealService {
     /**
      * Xóa một Deal
      */
-    async delete(id: string) {
-        const existing = await this.findById(id);
+    async delete(id: string, workspaceId?: string) {
+        const existing = await this.findById(id, workspaceId);
         await this.prisma.deal.delete({ where: { id } });
 
         try {

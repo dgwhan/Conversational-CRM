@@ -321,6 +321,7 @@ export class ChannelSyncService {
             sentAt: lastMsgTime.toLocaleTimeString(),
             customerPhone: dbCustomer?.phone || '',
             customerEmail: dbCustomer?.email || '',
+            workspaceId: targetWsId || undefined,
           });
 
           if (dbCustomer) {
@@ -330,6 +331,7 @@ export class ChannelSyncService {
               previousStage: '',
               newStage: 'STAGE_NEW',
               updatedBy: isPersonal ? 'Zalo Personal Sync' : 'Zalo OA Sync',
+              workspaceId: targetWsId || undefined,
             });
           }
 
@@ -707,6 +709,7 @@ export class ChannelSyncService {
                 sentAt: new Date(ev.sentAt).toISOString(),
                 customerPhone: dbCustomer?.phone || '',
                 customerEmail: dbCustomer?.email || customer?.email || '',
+                workspaceId: targetWsId || undefined,
               });
             }
           }
@@ -719,6 +722,7 @@ export class ChannelSyncService {
               previousStage: '',
               newStage: dbCustomer.leadStage || 'STAGE_NEW',
               updatedBy: 'Facebook Sync',
+              workspaceId: targetWsId || undefined,
             });
           }
         }

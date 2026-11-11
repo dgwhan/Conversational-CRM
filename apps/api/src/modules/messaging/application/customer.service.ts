@@ -80,6 +80,11 @@ export class CustomerService {
         const limit = Math.min(100, Math.max(1, parseInt(limitStr || '20', 10) || 20));
         const skip = (page - 1) * limit;
 
+        // Fail-closed: không có workspace hợp lệ thì tuyệt đối không truy vấn (tránh trả khách hàng của mọi tenant)
+        if (!rawWsId || !UUID_REGEX.test(rawWsId)) {
+            return { items: [], total: 0, page, limit, totalPages: 0 };
+        }
+
         const where: any = {};
 
         // Only pass workspaceId to Prisma if it's a valid UUID ΓÇö reject fallback slugs like "ws-default-001"
@@ -305,7 +310,8 @@ export class CustomerService {
             }
         }
 
-        if (!customer) {
+        // Khách hàng thuộc workspace khác được coi như không tồn tại (chống IDOR giữa các tenant)
+        if (!customer || (caller?.workspaceId && customer.workspaceId !== caller.workspaceId)) {
             throw new NotFoundException('Kh├ích h├áng kh├┤ng tß╗ôn tß║íi hoß║╖c ─æ├ú bß╗ï x├│a');
         }
 
@@ -371,7 +377,8 @@ export class CustomerService {
             }
         }
 
-        let existing = await this.findExistingCustomer(id, body.conversationId, body);
+        const scopedWsId = headerWsId && UUID_REGEX.test(headerWsId) ? headerWsId : undefined;
+        let existing = await this.findExistingCustomer(id, body.conversationId, body, scopedWsId);
 
         // Upsert fallback: Provision new Customer if not found in database
         if (!existing) {
@@ -516,6 +523,7 @@ export class CustomerService {
                     newStage: (body.leadStage || existing.leadStage || 'STAGE_NEW') as string,
                     previousStage: (existing.leadStage || 'STAGE_NEW') as string,
                     updatedBy: body.updatedBy || 'Hß╗ç thß╗æng CRM',
+                    workspaceId: updated.workspaceId || existing.workspaceId || undefined,
                 };
                 if (updated.phone) payload.phone = updated.phone;
                 if (updated.email) payload.email = updated.email;
@@ -562,8 +570,8 @@ export class CustomerService {
     /**
      * Gß╗í trß╗▒c tiß║┐p mß╗Öt tag khß╗Åi kh├ích h├áng v├á hß╗Öi thoß║íi th├┤ng qua CRM
      */
-    async removeCustomerTag(id: string, tagToRemove: string) {
-        return this.tagService.removeCustomerTag(id, tagToRemove);
+    async removeCustomerTag(id: string, tagToRemove: string, workspaceId?: string) {
+        return this.tagService.removeCustomerTag(id, tagToRemove, workspaceId);
     }
 
     // ==========================================
@@ -631,10 +639,15 @@ export class CustomerService {
                     where: { id: conversationId },
                     include: { customer: true },
                 });
+                // Hội thoại thuộc workspace khác với workspace đã xác minh của người gọi -> coi như không tồn tại
+                if (conv && targetWsId && conv.workspaceId !== targetWsId) {
+                    throw new NotFoundException('Cuộc hội thoại không tồn tại.');
+                }
                 if (conv?.workspaceId && !targetWsId) {
                     targetWsId = conv.workspaceId;
                 }
-            } catch {
+            } catch (err) {
+                if (err instanceof NotFoundException) throw err;
                 conv = null;
             }
         }
@@ -671,6 +684,7 @@ export class CustomerService {
             if (senderExternalId) {
                 customer = await this.prisma.customer.findFirst({
                     where: {
+                        ...(targetWsId ? { workspaceId: targetWsId } : {}),
                         OR: [
                             ...(channel ? [{ channelIdentities: { path: [channel.toLowerCase()], equals: senderExternalId } }] : []),
                             { channelIdentities: { path: ['socialId'], equals: senderExternalId } },
@@ -854,8 +868,16 @@ export class CustomerService {
         }
     }
 
-    private async findExistingCustomer(id: string, conversationId?: string, body?: UpdateCustomerDto): Promise<any> {
+    private async findExistingCustomer(
+        id: string,
+        conversationId?: string,
+        body?: UpdateCustomerDto,
+        workspaceId?: string,
+    ): Promise<any> {
         let existing: any = null;
+        const wsScope = workspaceId ? { workspaceId } : {};
+        // Bản ghi thuộc workspace khác bị loại bỏ (không bao giờ khớp xuyên tenant)
+        const inScope = (c: any) => !workspaceId || !c || c.workspaceId === workspaceId;
 
         // 1. Match exact standard UUID
         if (UUID_REGEX.test(id)) {
@@ -864,6 +886,7 @@ export class CustomerService {
                     where: { id },
                     include: { conversations: { include: { channelAccount: true, assignedMember: true }, take: 3, orderBy: { lastMessageAt: 'desc' } } },
                 });
+                if (!inScope(existing)) existing = null;
             } catch {
                 existing = null;
             }
@@ -878,6 +901,7 @@ export class CustomerService {
                         where: { id: strippedUuid },
                         include: { conversations: { include: { channelAccount: true, assignedMember: true }, take: 3, orderBy: { lastMessageAt: 'desc' } } },
                     });
+                    if (!inScope(existing)) existing = null;
                 } catch {
                     existing = null;
                 }
@@ -892,7 +916,7 @@ export class CustomerService {
                         where: { id: conversationId },
                         include: { customer: true },
                     });
-                    if (conv?.customer) {
+                    if (conv?.customer && (!workspaceId || conv.workspaceId === workspaceId) && inScope(conv.customer)) {
                         existing = conv.customer;
                     }
                 } catch {
@@ -906,6 +930,7 @@ export class CustomerService {
                     try {
                         existing = await this.prisma.customer.findFirst({
                             where: {
+                                ...wsScope,
                                 OR: [
                                     ...(channel ? [{ channelIdentities: { path: [channel], equals: senderExternalId } }] : []),
                                     { channelIdentities: { path: ['facebook'], equals: senderExternalId } },
@@ -934,6 +959,7 @@ export class CustomerService {
             try {
                 existing = await this.prisma.customer.findFirst({
                     where: {
+                        ...wsScope,
                         OR: [
                             { channelIdentities: { path: ['facebook'], equals: cleanSocialId } },
                             { channelIdentities: { path: ['zalo', 'id'], equals: cleanSocialId } },
@@ -1029,6 +1055,7 @@ export class CustomerService {
                     newStage: (body.leadStage || 'STAGE_NEW') as string,
                     previousStage: 'STAGE_NEW',
                     updatedBy: body.updatedBy || 'Hß╗ç thß╗æng CRM',
+                    workspaceId: newCust.workspaceId || undefined,
                 });
             } catch { }
         }
@@ -1101,7 +1128,7 @@ export class CustomerService {
      * Bß║úo to├án 100% sß╗æ liß╗çu tß╗òng hß╗úp (KPI, phß╗àu tuyß╗ân sinh, doanh thu).
      * Sau khi ß║⌐n danh: kh├┤ng c├▓n t├¬n hay S─ÉT n├áo c├│ thß╗â truy vß║┐t ra ng╞░ß╗¥i ─æ├│.
      */
-    async anonymizeCustomer(customerId: string, actorId?: string, reason?: string) {
+    async anonymizeCustomer(customerId: string, actorId?: string, reason?: string, workspaceId?: string) {
         const customer = await this.prisma.customer.findUnique({
             where: { id: customerId },
             include: {
@@ -1113,7 +1140,8 @@ export class CustomerService {
             },
         });
 
-        if (!customer) {
+        // Khách hàng thuộc workspace khác được coi như không tồn tại
+        if (!customer || (workspaceId && customer.workspaceId !== workspaceId)) {
             throw new NotFoundException(`Kh├┤ng t├¼m thß║Ñy kh├ích h├áng vß╗¢i ID ${customerId}`);
         }
 
@@ -1210,6 +1238,7 @@ export class CustomerService {
                     newStage: (customer.leadStage || 'STAGE_NEW') as string,
                     previousStage: (customer.leadStage || 'STAGE_NEW') as string,
                     updatedBy: 'Hß╗ç thß╗æng PDPD (Nghß╗ï ─æß╗ïnh 13)',
+                    workspaceId: customer.workspaceId || undefined,
                 });
             } catch { }
         }

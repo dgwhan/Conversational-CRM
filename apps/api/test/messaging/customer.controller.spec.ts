@@ -1,5 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
+
+const TEST_WS = '55555555-5555-4555-8555-555555555555';
+/** Request giả lập sau khi JwtAuthGuard + WorkspaceContextGuard đã xác minh danh tính */
+const makeReq = (role: 'OWNER' | 'STAFF' = 'OWNER', userId = 'staff-admin-99') => ({
+  user: { id: userId },
+  workspace: { id: TEST_WS, role },
+});
 import { CustomerController } from '../../src/modules/messaging/presentation/customer.controller.js';
 import type { CustomerService } from '../../src/modules/messaging/application/customer.service.js';
 import type { RealtimeService } from '../../src/modules/realtime/realtime.service.js';
@@ -65,7 +72,7 @@ describe('CustomerController', () => {
 
             vi.mocked(mockCustomerService.getCustomers!).mockResolvedValue(expectedResult as any);
 
-            const result = await controller.getCustomers('ws-1');
+            const result = await controller.getCustomers(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
 
             expect(result.total).toBe(2);
             expect(result.items[0].leadStatus).toBe('POTENTIAL');
@@ -97,7 +104,7 @@ describe('CustomerController', () => {
                 leadStatus: 'POTENTIAL',
                 leadStage: 'STAGE_QUALIFIED',
                 updatedBy: 'Tư vấn viên Lan',
-            });
+            }, undefined, undefined, undefined, makeReq());
 
             expect(mockCustomerService.updateCustomer).toHaveBeenCalledWith(
                 customerUuid,
@@ -106,8 +113,8 @@ describe('CustomerController', () => {
                     leadStage: 'STAGE_QUALIFIED',
                     updatedBy: 'Tư vấn viên Lan',
                 }),
-                undefined, // headerWsId
-                expect.anything(),
+                TEST_WS, // workspace đã xác minh từ request, không từ header
+                { role: 'OWNER', staffId: 'staff-admin-99' },
             );
 
             expect(result.leadStatus).toBe('POTENTIAL');
@@ -129,7 +136,7 @@ describe('CustomerController', () => {
                 fullName: 'Ứng viên mới',
                 leadStatus: 'POTENTIAL',
                 leadStage: 'STAGE_QUALIFIED',
-            });
+            }, undefined, undefined, undefined, makeReq());
 
             expect(mockCustomerService.updateCustomer).toHaveBeenCalledWith(
                 'cand-123456',
@@ -138,8 +145,8 @@ describe('CustomerController', () => {
                     leadStatus: 'POTENTIAL',
                     leadStage: 'STAGE_QUALIFIED',
                 }),
-                undefined,
-                expect.anything(),
+                TEST_WS,
+                { role: 'OWNER', staffId: 'staff-admin-99' },
             );
             expect(result.leadStatus).toBe('POTENTIAL');
         });
@@ -162,17 +169,32 @@ describe('CustomerController', () => {
             const result = await controller.assignConversation(
                 convId,
                 { staffId, staffName: 'Nguyễn Văn Tư Vấn' },
-                wsId,
+                'ws-gia-mao-tu-header',
+                'OWNER',
+                makeReq(),
             );
 
             expect(mockCustomerService.assignConversation).toHaveBeenCalledWith(
                 convId,
                 staffId,
                 'Nguyễn Văn Tư Vấn',
-                wsId,
+                TEST_WS,
             );
             expect(result.success).toBe(true);
             expect(result.assignedMemberId).toBe(staffId);
+        });
+
+        it('STAFF không được phân công hội thoại dù tự gửi header x-user-role: OWNER', async () => {
+            await expect(
+                controller.assignConversation(
+                    '33333333-3333-3333-3333-333333333333',
+                    { staffId: 'x' },
+                    undefined,
+                    'OWNER',
+                    makeReq('STAFF', 'staff-1'),
+                ),
+            ).rejects.toThrow(ForbiddenException);
+            expect(mockCustomerService.assignConversation).not.toHaveBeenCalled();
         });
     });
 
@@ -197,16 +219,26 @@ describe('CustomerController', () => {
             const result = await controller.anonymizeCustomer(
                 customerId,
                 { reason },
-                staffId,
+                'staff-gia-mao',
+                makeReq('OWNER', staffId),
             );
 
+            // actorId lấy từ token, không từ header x-staff-id
             expect(mockCustomerService.anonymizeCustomer).toHaveBeenCalledWith(
                 customerId,
                 staffId,
                 reason,
+                TEST_WS,
             );
             expect(result.success).toBe(true);
             expect(result.anonymizedCustomerId).toBe(customerId);
+        });
+
+        it('chỉ OWNER được ẩn danh hóa khách hàng', async () => {
+            await expect(
+                controller.anonymizeCustomer('cust-1', { reason: 'x' }, undefined, makeReq('STAFF', 'staff-1')),
+            ).rejects.toThrow(ForbiddenException);
+            expect(mockCustomerService.anonymizeCustomer).not.toHaveBeenCalled();
         });
     });
 });

@@ -4,6 +4,12 @@ import { WebSocket } from 'ws';
 import { RealtimeService } from '../../src/modules/realtime/realtime.service.js';
 import { RealtimeController } from '../../src/modules/realtime/realtime.controller.js';
 
+const WS_A = '11111111-1111-4111-8111-111111111111';
+const WS_B = '22222222-2222-4222-8222-222222222222';
+const authA = { userId: 'user-a', workspaceId: WS_A };
+const authB = { userId: 'user-b', workspaceId: WS_B };
+const ownerReq = { user: { id: 'owner-1' }, workspace: { id: WS_A, role: 'OWNER' } };
+
 class MockWebSocketClient extends EventEmitter {
     readyState: number = WebSocket.OPEN;
     sentMessages: string[] = [];
@@ -54,14 +60,14 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
         expect(initialHealth.supportedTransports).toContain('websocket');
         expect(initialHealth.supportedTransports).toContain('sse');
 
-        const controllerStatus = controller.getSocketStatus();
+        const controllerStatus = controller.getSocketStatus(ownerReq);
         expect(controllerStatus.status).toBe('ok');
         expect(controllerStatus.data.activeConnections).toBe(0);
     });
 
     it('client kết nối thành công và nhận được gói tin handshake ban đầu qua socket', () => {
         const client = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client);
+        service.handleSocketConnection(client, authA);
 
         const mockClient = client as unknown as MockWebSocketClient;
         expect(mockClient.sentMessages.length).toBeGreaterThanOrEqual(1);
@@ -73,13 +79,13 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
         expect(handshake.data.activeClients).toBe(1);
 
         // Kiểm tra qua Controller
-        const statusAfter = controller.getSocketStatus();
+        const statusAfter = controller.getSocketStatus(ownerReq);
         expect(statusAfter.data.activeConnections).toBe(1);
     });
 
     it('kiểm thử Ping - Pong xác nhận socket còn phản hồi (RTT check)', () => {
         const client = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client);
+        service.handleSocketConnection(client, authA);
 
         const mockClient = client as unknown as MockWebSocketClient;
 
@@ -94,7 +100,7 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
 
     it('nhận tin nhắn ngay khi khách vừa gửi từ Facebook mà không cần gửi request lại', () => {
         const client = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client);
+        service.handleSocketConnection(client, authA);
 
         const mockClient = client as unknown as MockWebSocketClient;
 
@@ -107,6 +113,7 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
             content: 'Chào trung tâm, cho em xin bảng giá học phí ngành Lập trình phần mềm với ạ!',
             senderName: 'Khách hàng (FACEBOOK)',
             sentAt: '15:30:00',
+            workspaceId: WS_A,
         });
 
         const received = mockClient.findMessageByType('message:received');
@@ -119,7 +126,7 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
 
     it('nhận tin echo gửi đi của Page qua Socket tức thì khi Page admin trả lời', () => {
         const client = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client);
+        service.handleSocketConnection(client, authA);
 
         const mockClient = client as unknown as MockWebSocketClient;
 
@@ -132,6 +139,7 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
             content: 'Dạ chào bạn! Học phí khóa Lập trình phần mềm CUSC-Aptech là...',
             senderName: 'Trang (Page Meta)',
             sentAt: '15:31:00',
+            workspaceId: WS_A,
         });
 
         const echo = mockClient.findMessageByType('message:received');
@@ -144,13 +152,13 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
     it('bộ kiểm thử test-ping qua API phát tới tất cả client socket đang hoạt động', () => {
         const client1 = new MockWebSocketClient() as unknown as WebSocket;
         const client2 = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client1);
-        service.handleSocketConnection(client2);
+        service.handleSocketConnection(client1, authA);
+        service.handleSocketConnection(client2, authA);
 
         const mock1 = client1 as unknown as MockWebSocketClient;
         const mock2 = client2 as unknown as MockWebSocketClient;
 
-        const testPingResult = controller.sendSocketTestPing({ message: 'Kiểm tra tín hiệu socket' });
+        const testPingResult = controller.sendSocketTestPing({ message: 'Kiểm tra tín hiệu socket' }, ownerReq);
         expect(testPingResult.status).toBe('ok');
         expect(testPingResult.data.deliveredCount).toBe(2);
 
@@ -165,7 +173,7 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
 
     it('tự động giảm số lượng kết nối hoạt động khi client ngắt kết nối', () => {
         const client = new MockWebSocketClient() as unknown as WebSocket;
-        service.handleSocketConnection(client);
+        service.handleSocketConnection(client, authA);
 
         expect(service.getSocketHealth().activeConnections).toBe(1);
 
@@ -181,5 +189,56 @@ describe('Realtime WebSocket & Bộ Kiểm Thử Socket Hoạt Động', () => {
         expect(typeof html).toBe('string');
         expect(html).toContain('WebSocket Diagnostic & Test Kit');
         expect(html).toContain('/api/realtime/ws');
+        // Trang test phải xin ticket bằng Access Token, không kết nối ẩn danh
+        expect(html).toContain('/api/realtime/ticket');
+    });
+
+    it('client không có danh tính xác thực không nhận bất kỳ sự kiện nghiệp vụ nào', () => {
+        const anonymous = new MockWebSocketClient() as unknown as WebSocket;
+        service.handleSocketConnection(anonymous);
+        const mockAnon = anonymous as unknown as MockWebSocketClient;
+
+        const delivered = service.broadcastToSockets({
+            type: 'message:received',
+            data: { content: 'bí mật' },
+            timestamp: new Date().toISOString(),
+            workspaceId: WS_A,
+        });
+
+        expect(delivered).toBe(0);
+        expect(mockAnon.findMessageByType('message:received')).toBeNull();
+    });
+
+    it('cô lập tenant: client workspace B không nhận tin nhắn / ping của workspace A', () => {
+        const clientA = new MockWebSocketClient() as unknown as WebSocket;
+        const clientB = new MockWebSocketClient() as unknown as WebSocket;
+        service.handleSocketConnection(clientA, authA);
+        service.handleSocketConnection(clientB, authB);
+        const mockA = clientA as unknown as MockWebSocketClient;
+        const mockB = clientB as unknown as MockWebSocketClient;
+
+        service.broadcastNewMessage({
+            id: 'iso-1',
+            conversationId: 'conv-iso',
+            channel: 'ZALO',
+            direction: 'INBOUND',
+            content: 'chỉ tenant A được thấy',
+            senderName: 'Khách A',
+            sentAt: 'now',
+            workspaceId: WS_A,
+        });
+        const ping = controller.sendSocketTestPing({ message: 'ping A' }, ownerReq);
+
+        expect(mockA.findMessageByType('message:received')).not.toBeNull();
+        expect(mockB.findMessageByType('message:received')).toBeNull();
+        expect(ping.data.deliveredCount).toBe(1);
+        expect(mockB.findMessageByType('socket:test_ping')).toBeNull();
+        expect(service.getSocketHealth(WS_B).activeConnections).toBe(1);
+    });
+
+    it('socket/status và test-ping yêu cầu quyền OWNER', () => {
+        const staffReq = { user: { id: 'staff-1' }, workspace: { id: WS_A, role: 'STAFF' } };
+        expect(() => controller.getSocketStatus(staffReq)).toThrow();
+        expect(() => controller.sendSocketTestPing({}, staffReq)).toThrow();
     });
 });
