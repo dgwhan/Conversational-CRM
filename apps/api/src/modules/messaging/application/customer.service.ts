@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, Optional, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Optional, Logger, BadRequestException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
@@ -43,8 +43,8 @@ export class UpdateCustomerDto {
     dateOfBirth?: string;
     interestCourses?: string[];
     estimatedValue?: number;
-    leadStage?: string;
-    leadStatus?: string;
+    leadStage?: string | null;
+    leadStatus?: string | null;
     updatedBy?: string;
     tags?: string[];
     conversationId?: string;
@@ -54,6 +54,7 @@ export class UpdateCustomerDto {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CUSTOMER_LEAD_STATUSES = ['NEW', 'POTENTIAL', 'QUALIFIED', 'CONVERTED', 'UNQUALIFIED'] as const;
 
 @Injectable()
 export class CustomerService {
@@ -357,6 +358,10 @@ export class CustomerService {
         headerWsId?: string,
         caller?: { role?: string; staffId?: string },
     ) {
+        if (body.leadStatus != null && !CUSTOMER_LEAD_STATUSES.includes(body.leadStatus as (typeof CUSTOMER_LEAD_STATUSES)[number])) {
+            throw new BadRequestException(`leadStatus không hợp lệ. Giá trị cho phép: ${CUSTOMER_LEAD_STATUSES.join(', ')}.`);
+        }
+
         // Role STAFF: kh├┤ng tß╗▒ ph├ón c├┤ng cho ng╞░ß╗¥i kh├íc
         if (caller?.role === 'STAFF') {
             if (body.assignedStaffId !== undefined || body.assignedMemberId !== undefined) {
@@ -384,6 +389,8 @@ export class CustomerService {
         }
 
         const currentIdentities = (existing.channelIdentities as any) || {};
+        // Null from the Inbox's unmark action means the record returns to intake status.
+        const normalizedLeadStatus = body.leadStatus === null ? 'NEW' : body.leadStatus;
 
         // Xß╗¡ l├╜ danh s├ích tags v├á ph├ít hiß╗çn c├íc tag bß╗ï gß╗í thß╗º c├┤ng qua CRM
         let cleanTags: string[] | undefined;
@@ -420,7 +427,7 @@ export class CustomerService {
             ...(body.interestCourses !== undefined ? { interestCourses: body.interestCourses } : {}),
             ...(body.estimatedValue !== undefined ? { estimatedValue: body.estimatedValue } : {}),
             ...(body.leadStage !== undefined ? { leadStage: body.leadStage } : {}),
-            ...(body.leadStatus !== undefined ? { leadStatus: body.leadStatus } : {}),
+            ...(body.leadStatus !== undefined ? { leadStatus: normalizedLeadStatus } : {}),
             ...(cleanTags !== undefined ? { tags: cleanTags, manuallyRemovedTags } : {}),
             ...(body.assignedStaffId !== undefined ? { assignedStaffId: body.assignedStaffId } : {}),
             ...(body.assignedStaffName !== undefined ? { assignedStaffName: body.assignedStaffName } : {}),
@@ -441,7 +448,7 @@ export class CustomerService {
                     ...(body.school !== undefined ? { school: body.school } : {}),
                     ...(body.address !== undefined ? { address: body.address } : {}),
                     ...(body.dateOfBirth !== undefined ? { dateOfBirth: body.dateOfBirth } : {}),
-                    ...(body.leadStatus !== undefined ? { leadStatus: body.leadStatus } : {}),
+                    ...(body.leadStatus !== undefined ? { leadStatus: normalizedLeadStatus } : {}),
                     ...(body.leadStage !== undefined ? { leadStage: body.leadStage } : {}),
                     channelIdentities: updatedIdentities,
                 },

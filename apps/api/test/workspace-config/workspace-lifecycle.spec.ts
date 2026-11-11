@@ -144,6 +144,7 @@ describe('WorkspaceLifecycleService (Creator Ownership & Access Control)', () =>
         name: 'Công ty Cổ phần Mới',
         domain: 'EDUCATION',
       },
+      undefined,
       creatorId
     );
 
@@ -218,4 +219,3 @@ describe('WorkspaceLifecycleService (Creator Ownership & Access Control)', () =>
     );
   });
 });
-

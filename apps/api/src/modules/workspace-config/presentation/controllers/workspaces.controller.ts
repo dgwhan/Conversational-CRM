@@ -125,7 +125,7 @@ export class WorkspacesController {
     @Headers('x-owner-id') ownerId?: string,
   ): Promise<WorkspaceItemResponseDto> {
     const callerId = resolveCallerId(req, ownerId, staffId);
-    return this.configService.createWorkspace(body, callerId);
+    return this.configService.createWorkspace(body, undefined, callerId);
   }
 
   /**
