@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Smartphone, AlertTriangle, Save } from 'lucide-react';
 import { notify } from '../../../../components/feedback/toastEmitter.js';
 import { Button } from '../../../../components/ui/Button.js';
@@ -22,6 +23,17 @@ export const LogPersonalZaloModal: React.FC<LogPersonalZaloModalProps> = ({
   const [content, setContent] = useState('');
   const [summaryTag, setSummaryTag] = useState('Tư vấn Zalo Cá nhân');
 
+  // Khóa scroll của body khi modal mở
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -37,9 +49,9 @@ export const LogPersonalZaloModal: React.FC<LogPersonalZaloModalProps> = ({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div
@@ -167,5 +179,9 @@ export const LogPersonalZaloModal: React.FC<LogPersonalZaloModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };
 

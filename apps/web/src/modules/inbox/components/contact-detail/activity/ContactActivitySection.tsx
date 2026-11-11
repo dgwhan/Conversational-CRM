@@ -93,7 +93,7 @@ export const ContactActivitySection: React.FC<ContactActivitySectionProps> = ({
   };
 
   return (
-    <div className="p-4 bg-white space-y-2.5">
+    <div className="p-4 bg-white space-y-2.5 relative z-20">
       {/* 1. Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 shrink-0">

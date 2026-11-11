@@ -62,7 +62,7 @@ export class JwtTokenService {
       audience = process.env.JWT_AUDIENCE;
     }
 
-    let expiresInMinutes = 15;
+    let expiresInMinutes = 60 * 24 * 7;
     const rawExpires = this.configService
       ? this.configService.get<number | string>('JWT_EXPIRES_IN_MINUTES') ??
         this.configService.get<string>('JWT_ACCESS_TTL')

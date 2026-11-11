@@ -1,6 +1,7 @@
 import { SearchInput } from '../ui/SearchInput.js';
 import { matchesUnaccent } from '../../lib/unaccent.js';
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Plus, Package, DollarSign } from 'lucide-react';
 import type { ProductItemConfig } from '../../modules/workspace/workspaceConfig.types.js';
 import { useTranslation } from '../../i18n/index.js';
@@ -128,9 +129,20 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
     onClose();
   };
 
+  // Khóa scroll body khi mở modal
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
+  const modalElement = (
     <div
       style={{
         position: 'fixed',
@@ -596,4 +608,8 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalElement, document.body)
+    : modalElement;
 };

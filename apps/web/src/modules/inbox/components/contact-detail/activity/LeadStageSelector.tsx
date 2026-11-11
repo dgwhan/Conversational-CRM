@@ -63,7 +63,7 @@ export const LeadStageSelector: React.FC<LeadStageSelectorProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-1.5" ref={dropdownRef}>
+    <div className={`flex flex-col gap-1.5 relative ${isOpen ? 'z-30' : ''}`} ref={dropdownRef}>
       {/* Header trạng thái */}
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold text-slate-500">
@@ -85,7 +85,7 @@ export const LeadStageSelector: React.FC<LeadStageSelectorProps> = ({
       </div>
 
       {/* Dropdown trigger */}
-      <div className="relative">
+      <div className={`relative ${isOpen ? 'z-30' : ''}`}>
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
