@@ -1,11 +1,11 @@
 import { useState, type SubmitEvent } from 'react';
 import { MailIcon } from '../../../../components/icons/AuthIcons.js';
-import { Button } from '../../../../components/ui/Button.js';
-import { PageHeading } from '../../../../components/ui/PageHeading.js';
-import { TextField } from '../../../../components/ui/TextField.js';
+import { GlassButton } from '../../../../components/ui/GlassButton.js';
+import { GlassInput } from '../../../../components/ui/GlassInput.js';
 import { requestPasswordRecoveryOtp } from '../../api/password-recovery.api.js';
 import { getRequestErrorMessage, validateEmail } from './recovery.constants.js';
 import { useTranslation } from '../../../../i18n/index.js';
+import { ShieldAlert } from 'lucide-react';
 
 type PasswordRecoveryRequestStepProps = {
   initialEmail?: string;
@@ -46,21 +46,26 @@ export function PasswordRecoveryRequestStep({
 
   return (
     <section className="animate-in fade-in duration-300">
-      <PageHeading
-        title={t('auth.recovery.forgotTitle', 'Quên mật khẩu?')}
-        description={t('auth.recovery.forgotDesc', 'Nhập địa chỉ email của bạn. Hệ thống sẽ gửi mã xác minh.')}
-      />
+      <header className="flex flex-col gap-1.5 text-center sm:text-left">
+        <h2 className="m-0 font-sans text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+          {t('auth.recovery.forgotTitle', 'Quên mật khẩu?')}
+        </h2>
+        <p className="m-0 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed">
+          {t('auth.recovery.forgotDesc', 'Nhập địa chỉ email của bạn. Hệ thống sẽ gửi mã xác minh.')}
+        </p>
+      </header>
+
       <form
-        className="mt-6 flex flex-col gap-6"
+        className="mt-6 flex flex-col gap-5"
         noValidate
         onSubmit={handleRequest}
       >
-        <TextField
+        <GlassInput
           autoComplete="email"
           disabled={isSubmitting}
           errorMessage={emailError}
           label="Email"
-          leadingIcon={<MailIcon />}
+          leadingIcon={<MailIcon size={18} />}
           name="email"
           onBlur={() => setEmailError(validateEmail(email))}
           onChange={(event) => {
@@ -75,17 +80,21 @@ export function PasswordRecoveryRequestStep({
         />
 
         {error && (
-          <p className="-mt-3 font-sans text-body text-state-error" role="alert">
-            {error}
-          </p>
+          <div
+            className="rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs sm:text-sm text-red-700 backdrop-blur-xs flex items-start gap-2.5 animate-in fade-in duration-200"
+            role="alert"
+          >
+            <ShieldAlert size={18} className="shrink-0 text-red-600 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
         )}
 
-        <Button disabled={isSubmitting} fullWidth type="submit">
+        <GlassButton disabled={isSubmitting} loading={isSubmitting} fullWidth type="submit">
           {isSubmitting ? t('auth.recovery.sendingCode', 'Đang gửi mã…') : t('auth.recovery.sendCodeBtn', 'Gửi mã xác minh')}
-        </Button>
+        </GlassButton>
 
         <button
-          className="font-sans text-body text-brand-primary hover:underline text-center"
+          className="text-xs sm:text-sm font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer text-center outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm pt-1"
           onClick={onBackToLogin}
           type="button"
         >

@@ -6,13 +6,13 @@ import {
   type KeyboardEvent,
   type SubmitEvent,
 } from 'react';
-import { Button } from '../../../../components/ui/Button.js';
-import { PageHeading } from '../../../../components/ui/PageHeading.js';
+import { GlassButton } from '../../../../components/ui/GlassButton.js';
 import {
   requestPasswordRecoveryOtp,
   verifyPasswordRecoveryOtp,
 } from '../../api/password-recovery.api.js';
 import { useTranslation } from '../../../../i18n/index.js';
+import { ShieldAlert } from 'lucide-react';
 import {
   OTP_LENGTH,
   RESEND_COOLDOWN_SECONDS,
@@ -59,8 +59,8 @@ export function PasswordRecoveryVerifyStep({
 
     try {
       await requestPasswordRecoveryOtp({ email });
-      setDigits(Array(OTP_LENGTH).fill(''));
       setResendSeconds(RESEND_COOLDOWN_SECONDS);
+      setDigits(Array(OTP_LENGTH).fill(''));
       otpInputs.current[0]?.focus();
     } catch (cause) {
       setError(getRequestErrorMessage(cause));
@@ -69,9 +69,13 @@ export function PasswordRecoveryVerifyStep({
     }
   }
 
-  async function executeVerification(codeToVerify: string) {
-    if (!/^\d{6}$/.test(codeToVerify)) {
-      setError('Nhập đủ 6 chữ số của mã xác minh.');
+  async function handleVerify(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (otp.length < OTP_LENGTH) {
+      setError(`Vui lòng nhập đủ ${OTP_LENGTH} chữ số của mã xác minh.`);
+      const firstEmptyIndex = digits.findIndex((digit) => !digit);
+      otpInputs.current[firstEmptyIndex === -1 ? 0 : firstEmptyIndex]?.focus();
       return;
     }
 
@@ -79,8 +83,8 @@ export function PasswordRecoveryVerifyStep({
     setError('');
 
     try {
-      const result = await verifyPasswordRecoveryOtp({ email, otp: codeToVerify });
-      onSuccess(result.resetToken);
+      const response = await verifyPasswordRecoveryOtp({ email, otp });
+      onSuccess(response.resetToken);
     } catch (cause) {
       setError(getVerificationErrorMessage(cause));
     } finally {
@@ -88,19 +92,14 @@ export function PasswordRecoveryVerifyStep({
     }
   }
 
-  async function handleVerify(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await executeVerification(otp);
-  }
-
-  function updateDigit(index: number, value: string) {
-    const digit = value.replace(/\D/g, '').slice(-1);
-    const nextDigits = [...digits];
-    nextDigits[index] = digit;
-    setDigits(nextDigits);
+  function updateDigit(index: number, rawValue: string) {
+    const value = rawValue.replace(/\D/g, '').slice(-1);
+    const next = [...digits];
+    next[index] = value;
+    setDigits(next);
     setError('');
 
-    if (digit && index < OTP_LENGTH - 1) {
+    if (value && index < OTP_LENGTH - 1) {
       otpInputs.current[index + 1]?.focus();
     }
   }
@@ -108,9 +107,17 @@ export function PasswordRecoveryVerifyStep({
   function handleOtpKeyDown(index: number, event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Backspace' && !digits[index] && index > 0) {
       otpInputs.current[index - 1]?.focus();
-    } else if (event.key === 'ArrowLeft' && index > 0) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
       otpInputs.current[index - 1]?.focus();
-    } else if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      return;
+    }
+
+    if (event.key === 'ArrowRight' && index < OTP_LENGTH - 1) {
+      event.preventDefault();
       otpInputs.current[index + 1]?.focus();
     }
   }
@@ -133,22 +140,31 @@ export function PasswordRecoveryVerifyStep({
 
   return (
     <section className="animate-in fade-in duration-300">
-      <PageHeading
-        title={t('auth.recovery.verifyTitle', 'Xác minh email')}
-        description={`${t('auth.recovery.verifyDescPrefix', 'Mã xác minh đã được gửi đến')} ${email}. ${t('auth.recovery.verifyDescSuffix', 'Nhập mã gồm 6 chữ số để xác minh email.')}`}
-      />
+      <header className="flex flex-col gap-1.5 text-center sm:text-left">
+        <h2 className="m-0 font-sans text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+          {t('auth.recovery.verifyTitle', 'Xác minh email')}
+        </h2>
+        <p className="m-0 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed">
+          {t('auth.recovery.verifyDescPrefix', 'Mã xác minh đã được gửi đến')}{' '}
+          <span className="font-semibold text-slate-900">{email}</span>.{' '}
+          {t('auth.recovery.verifyDescSuffix', 'Nhập mã gồm 6 chữ số để xác minh email.')}
+        </p>
+      </header>
+
       <form
         className="mt-6 flex flex-col gap-6"
         noValidate
-        onSubmit={handleVerify}>
+        onSubmit={handleVerify}
+      >
         <fieldset className="min-w-0 border-0 p-0">
-          <legend className="mb-2 font-sans text-label font-medium text-text-primary">
+          <legend className="mb-2 font-sans text-sm font-medium text-slate-700">
             {t('auth.recovery.otpLegend', 'Mã xác minh')}
           </legend>
           <div
             className="grid grid-cols-6 gap-2 sm:gap-3"
             role="group"
-            aria-label="Mã xác minh gồm 6 chữ số">
+            aria-label="Mã xác minh gồm 6 chữ số"
+          >
             {digits.map((digit, index) => (
               <input
                 key={index}
@@ -158,7 +174,7 @@ export function PasswordRecoveryVerifyStep({
                 aria-label={`Chữ số ${index + 1} của mã xác minh`}
                 aria-invalid={error ? true : undefined}
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                className="h-12 min-w-0 rounded-control border border-border-default bg-bg-surface text-center font-sans text-display font-medium text-text-primary outline-none focus:border-brand-primary focus:shadow-[0_0_0_3px_rgb(41_80_151_/_18%)] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:opacity-75 transition-colors"
+                className="glass-field-input h-12 min-w-0 rounded-xl border border-slate-300 bg-white/80 text-center font-sans text-lg sm:text-xl font-bold text-slate-900 outline-none focus:border-[#1A5CFF] focus:ring-3 focus:ring-[#1A5CFF]/20 focus:bg-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"
                 disabled={isSubmitting}
                 inputMode="numeric"
                 maxLength={1}
@@ -174,32 +190,37 @@ export function PasswordRecoveryVerifyStep({
           </div>
         </fieldset>
 
-
         {/* Thông báo lỗi khi xác minh thất bại */}
         {!isSubmitting && error && (
-          <p className="-mt-2 font-sans text-body text-state-error" role="alert">
-            {error}
-          </p>
+          <div
+            className="rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs sm:text-sm text-red-700 backdrop-blur-xs flex items-start gap-2.5 animate-in fade-in duration-200"
+            role="alert"
+          >
+            <ShieldAlert size={18} className="shrink-0 text-red-600 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
         )}
 
-        <Button
+        <GlassButton
           disabled={isSubmitting}
           fullWidth
           loading={isSubmitting}
-          type="submit">
+          type="submit"
+        >
           {isSubmitting ? t('auth.recovery.verifying', 'Đang xác minh mã…') : t('auth.recovery.verifyBtn', 'Xác minh mã')}
-        </Button>
+        </GlassButton>
 
-        <div className="flex flex-col items-center gap-2 text-center">
+        <div className="flex flex-col items-center gap-2 text-center pt-1">
           <button
-            className="font-sans text-body text-text-muted disabled:cursor-not-allowed disabled:text-text-muted enabled:text-brand-primary enabled:hover:underline"
+            className="text-xs sm:text-sm font-medium disabled:cursor-not-allowed disabled:text-slate-400 enabled:text-[#1A5CFF] enabled:hover:text-[#1242bd] enabled:hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             disabled={resendSeconds > 0 || isSubmitting}
             onClick={() => void handleResend()}
-            type="button">
+            type="button"
+          >
             {t('auth.recovery.resendCode', 'Gửi lại mã')}
           </button>
           <p
-            className="font-sans text-caption text-text-secondary"
+            className="text-xs text-slate-500 font-sans"
             aria-live="polite"
           >
             {resendSeconds > 0
@@ -207,10 +228,11 @@ export function PasswordRecoveryVerifyStep({
               : t('auth.recovery.canResend', 'Bạn có thể yêu cầu gửi lại mã.')}
           </p>
           <button
-            className="mt-2 font-sans text-body text-brand-primary hover:underline"
+            className="mt-2 text-xs sm:text-sm font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             disabled={isSubmitting}
             onClick={onBackToRequest}
-            type="button">
+            type="button"
+          >
             {t('auth.recovery.backToPrevious', 'Quay lại bước trước')}
           </button>
         </div>

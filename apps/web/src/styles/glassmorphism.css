@@ -408,6 +408,161 @@ input[type="password"]:focus {
 }
 
 /* ==========================================================================
+   AUTHENTICATION GLASSMORPHISM SPECIFICATION
+   White with Soft Blue Tint (Trắng ngả xanh nhẹ), Blobs, Light Glass Card & Inputs
+   ========================================================================== */
+
+.auth-glass-bg {
+  background: 
+    radial-gradient(circle at 10% 12%, rgba(191, 219, 254, 0.5) 0%, transparent 45%),
+    radial-gradient(circle at 90% 88%, rgba(199, 210, 254, 0.45) 0%, transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(224, 231, 255, 0.35) 0%, transparent 55%),
+    linear-gradient(135deg, #f8faff 0%, #f0f4fc 45%, #e8f0fe 100%) !important;
+  background-attachment: fixed !important;
+}
+
+@keyframes blobPulse {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.08) translate(16px, -14px);
+  }
+}
+
+@keyframes blobPulseDelayed {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    transform: scale(1.1) translate(-18px, 16px);
+  }
+}
+
+.animate-blob-pulse {
+  animation: blobPulse 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-blob-pulse-delayed {
+  animation: blobPulseDelayed 11s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Glass Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.95) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 48px -12px rgba(26, 92, 255, 0.08), 0 4px 16px -4px rgba(15, 23, 42, 0.04), inset 0 1px 0 #ffffff !important;
+  animation: glassCardEnter 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes glassCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glass Input Pattern */
+.glass-field-input,
+input.glass-field-input {
+  height: 48px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  font-family: inherit;
+  font-size: 0.925rem;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease !important;
+}
+
+.glass-field-input::placeholder,
+input.glass-field-input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.glass-field-input:focus,
+input.glass-field-input:focus {
+  background: #ffffff !important;
+  border-color: #1A5CFF !important;
+  box-shadow: 0 0 0 3px rgba(26, 92, 255, 0.16) !important;
+  outline: none !important;
+}
+
+.glass-field-input.has-error,
+input.glass-field-input.has-error {
+  border-color: #ef4444 !important;
+}
+
+.glass-field-input.has-error:focus,
+input.glass-field-input.has-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.16) !important;
+}
+
+/* Glass Primary Button */
+.glass-btn-primary {
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2F6BFF 0%, #1A5CFF 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(26, 92, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease, filter 150ms ease !important;
+}
+
+.glass-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(26, 92, 255, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+}
+
+.glass-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(26, 92, 255, 0.3) !important;
+  filter: brightness(0.96);
+}
+
+.glass-btn-primary:disabled {
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Glass Checkbox */
+.glass-checkbox-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  transition: all 150ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-checkbox-box.checked {
+  background: linear-gradient(135deg, #2F6BFF 0%, #1A5CFF 100%);
+  border-color: #1A5CFF;
+  box-shadow: 0 1px 4px rgba(26, 92, 255, 0.25);
+}
+
+
+/* ==========================================================================
    PERFORMANCE GUARDS & GRACEFUL DEGRADATION
    ========================================================================== */
 
@@ -419,6 +574,12 @@ input[type="password"]:focus {
   .kanban-column,
   .crm-reports-page .bg-white {
     background: #ffffff !important;
+  }
+
+  .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.08), 0 4px 16px -4px rgba(15, 23, 42, 0.04) !important;
   }
 }
 
@@ -441,4 +602,38 @@ input[type="password"]:focus {
     -webkit-backdrop-filter: none !important;
     background: #ffffff !important;
   }
+
+  .glass-card {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .glass-btn-primary {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .animate-blob-pulse,
+  .animate-blob-pulse-delayed {
+    animation: none !important;
+  }
 }
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 20px 48px -12px rgba(15, 23, 42, 0.08), 0 4px 16px -4px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  .glass-field-input,
+  input.glass-field-input {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+  }
+}
+
+

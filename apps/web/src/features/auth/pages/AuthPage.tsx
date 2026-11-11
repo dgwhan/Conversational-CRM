@@ -35,15 +35,20 @@ export function AuthPage({
 
   return (
     <AuthLayout>
+      {/* Logo in a frosted glass rounded container with subtle brand glow */}
       <div className="flex flex-col items-center justify-center mb-6">
-        <img
-          src="/logo.svg"
-          alt="Conversational CRM Logo"
-          className="h-16 w-16 object-contain rounded-2xl shadow-xs"
-          width={64}
-          height={64}
-        />
-        <h1 className="mt-3 text-xl font-bold text-slate-900 tracking-tight">Conversational CRM</h1>
+        <div className="relative p-2.5 rounded-2xl bg-white/85 border border-white shadow-[0_4px_16px_rgba(26,92,255,0.12),0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-md flex items-center justify-center">
+          <img
+            src="/logo.svg"
+            alt="Conversational CRM Logo"
+            className="h-12 w-12 object-contain rounded-xl"
+            width={48}
+            height={48}
+          />
+        </div>
+        <h1 className="mt-3.5 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center">
+          Conversational CRM
+        </h1>
       </div>
 
       {isRecoveryOpen ? (
@@ -55,9 +60,20 @@ export function AuthPage({
         />
       ) : (
         <>
-          {/* Tab switcher với Sliding Tab Indicator */}
-          <div className="relative mb-6 flex border-b border-border-default" role="tablist" aria-label="Authentication tabs">
-            <button id="auth-tab-login" type="button" role="tab" aria-selected={isLoginActive} aria-controls="auth-panel-login" tabIndex={isLoginActive ? 0 : -1} onClick={() => handleTabChange(AUTH_TAB.LOGIN)}
+          {/* Tab switcher with clear contrast & glowing blue sliding underline */}
+          <div
+            className="relative mb-6 flex border-b border-slate-200"
+            role="tablist"
+            aria-label="Authentication tabs"
+          >
+            <button
+              id="auth-tab-login"
+              type="button"
+              role="tab"
+              aria-selected={isLoginActive}
+              aria-controls="auth-panel-login"
+              tabIndex={isLoginActive ? 0 : -1}
+              onClick={() => handleTabChange(AUTH_TAB.LOGIN)}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowRight') {
                   e.preventDefault();
@@ -65,11 +81,20 @@ export function AuthPage({
                   document.getElementById('auth-tab-signup')?.focus();
                 }
               }}
-              className={`relative z-10 flex-1 pb-3 text-center font-sans text-body font-medium transition-colors duration-200 cursor-pointer rounded-t-md hover:bg-slate-50/60 ${isLoginActive ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-text-primary'}`}>
+              className={`relative z-10 flex-1 pb-3 text-center font-sans text-sm font-medium transition-colors duration-200 cursor-pointer rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] ${
+                isLoginActive ? 'text-[#1A5CFF] font-semibold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
               {t('auth.loginTab', 'Đăng nhập')}
             </button>
 
-            <button id="auth-tab-signup" type="button" role="tab" aria-selected={isSignUpActive} aria-controls="auth-panel-signup" tabIndex={isSignUpActive ? 0 : -1}
+            <button
+              id="auth-tab-signup"
+              type="button"
+              role="tab"
+              aria-selected={isSignUpActive}
+              aria-controls="auth-panel-signup"
+              tabIndex={isSignUpActive ? 0 : -1}
               onClick={() => handleTabChange(AUTH_TAB.SIGN_UP)}
               onKeyDown={(e) => {
                 if (e.key === 'ArrowLeft') {
@@ -78,13 +103,16 @@ export function AuthPage({
                   document.getElementById('auth-tab-login')?.focus();
                 }
               }}
-              className={`relative z-10 flex-1 pb-3 text-center font-sans text-body font-medium transition-colors duration-200 cursor-pointer rounded-t-md hover:bg-slate-50/60 ${isSignUpActive ? 'text-brand-primary font-semibold' : 'text-text-secondary hover:text-text-primary'}`}>
+              className={`relative z-10 flex-1 pb-3 text-center font-sans text-sm font-medium transition-colors duration-200 cursor-pointer rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] ${
+                isSignUpActive ? 'text-[#1A5CFF] font-semibold' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
               {t('auth.signUpTab', 'Đăng ký')}
             </button>
 
-            {/* Sliding Tab Indicator */}
+            {/* Glowing Blue Sliding Tab Indicator */}
             <span
-              className="absolute -bottom-px left-0 h-[2.5px] w-1/2 rounded-full bg-brand-primary shadow-[0_1px_4px_rgba(41,80,151,0.35)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
+              className="absolute -bottom-px left-0 h-[2.5px] w-1/2 rounded-full bg-[#1A5CFF] shadow-[0_2px_8px_rgba(26,92,255,0.45)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
               style={{
                 transform: isLoginActive ? 'translateX(0%)' : 'translateX(100%)',
               }}
@@ -92,9 +120,15 @@ export function AuthPage({
             />
           </div>
 
-          {/* LoginForm & SignUpForm */}
+          {/* LoginForm & SignUpForm Panels */}
           {isLoginActive ? (
-            <div key="auth-panel-login" id="auth-panel-login" role="tabpanel" aria-labelledby="auth-tab-login" className={hasInteracted ? 'animate-auth-slide-left' : ''}>
+            <div
+              key="auth-panel-login"
+              id="auth-panel-login"
+              role="tabpanel"
+              aria-labelledby="auth-tab-login"
+              className={hasInteracted ? 'animate-auth-slide-left' : ''}
+            >
               <LoginForm
                 onSuccess={(res) => onLoginSuccess?.(res)}
                 onForgotPassword={() => setIsRecoveryOpen(true)}
@@ -102,7 +136,13 @@ export function AuthPage({
               />
             </div>
           ) : (
-            <div key="auth-panel-signup" id="auth-panel-signup" role="tabpanel" aria-labelledby="auth-tab-signup" className={hasInteracted ? 'animate-auth-slide-right' : ''}>
+            <div
+              key="auth-panel-signup"
+              id="auth-panel-signup"
+              role="tabpanel"
+              aria-labelledby="auth-tab-signup"
+              className={hasInteracted ? 'animate-auth-slide-right' : ''}
+            >
               <SignUpForm
                 onSuccess={(res: any) =>
                   onLoginSuccess?.({

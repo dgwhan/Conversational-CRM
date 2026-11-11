@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { MailIcon } from '../../../components/icons/AuthIcons.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Checkbox } from '../../../components/ui/Checkbox.js';
-import { PageHeading } from '../../../components/ui/PageHeading.js';
-import { PasswordField } from '../../../components/ui/PasswordField.js';
-import { TextField } from '../../../components/ui/TextField.js';
+import { GlassButton } from '../../../components/ui/GlassButton.js';
+import { GlassCheckbox } from '../../../components/ui/GlassCheckbox.js';
+import { GlassInput } from '../../../components/ui/GlassInput.js';
+import { GlassPasswordField } from '../../../components/ui/GlassPasswordField.js';
 import { AuthApiError, login } from '../api/auth.api.js';
 import type { LoginResponse } from '../types/auth.types.js';
 import { AUTH_MESSAGES } from '../validation/auth.validation.js';
 import { useTranslation } from '../../../i18n/index.js';
+import { ShieldAlert } from 'lucide-react';
 
 const REMEMBERED_IDENTIFIER_KEY = 'polarisx.rememberedIdentifier';
 
@@ -92,14 +92,19 @@ export function LoginForm({
   return (
     <div className="flex flex-col gap-6">
       {!hideHeading && (
-        <PageHeading
-          title="Chào mừng trở lại"
-          description={t('auth.loginSubtitle', 'Đăng nhập để tiếp tục sử dụng hệ thống Conversational CRM.')}
-        />
+        <header className="flex flex-col gap-1.5 text-center sm:text-left">
+          <h2 className="m-0 font-sans text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Chào mừng trở lại
+          </h2>
+          <p className="m-0 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed">
+            {t('auth.loginSubtitle', 'Đăng nhập để tiếp tục sử dụng hệ thống Conversational CRM.')}
+          </p>
+        </header>
       )}
 
-      <form className="flex flex-col gap-6" noValidate onSubmit={handleSubmit}>
-        <TextField
+      <form className="flex flex-col gap-5" noValidate onSubmit={handleSubmit}>
+        {/* Email / SĐT Input */}
+        <GlassInput
           label={t('auth.identifierLabel', 'Email hoặc Số điện thoại')}
           name="identifier"
           type="text"
@@ -122,13 +127,15 @@ export function LoginForm({
               );
             }
           }}
-          leadingIcon={<MailIcon />}
+          leadingIcon={<MailIcon size={18} />}
           errorMessage={identifierError}
           required
           disabled={isSubmitting}
         />
 
-        <PasswordField
+        {/* Mật khẩu Input with interior toggle eye */}
+        <GlassPasswordField
+          label={t('auth.passwordLabel', 'Mật khẩu')}
           value={password}
           onChange={(value) => {
             setPassword(value);
@@ -141,17 +148,18 @@ export function LoginForm({
           disabled={isSubmitting}
         />
 
-        <div className="-mt-2 flex flex-wrap items-center justify-between gap-3">
-          <Checkbox
+        {/* Checkbox and Forgot Password link */}
+        <div className="-mt-1 flex flex-wrap items-center justify-between gap-3 select-none">
+          <GlassCheckbox
             checked={rememberIdentifier}
             disabled={isSubmitting}
             onChange={(event) => setRememberIdentifier(event.target.checked)}
           >
             Ghi nhớ đăng nhập
-          </Checkbox>
+          </GlassCheckbox>
 
           <button
-            className="font-sans text-body text-brand-primary hover:underline cursor-pointer"
+            className="text-xs sm:text-sm font-medium text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             type="button"
             onClick={onForgotPassword}
           >
@@ -159,26 +167,30 @@ export function LoginForm({
           </button>
         </div>
 
+        {/* Inline Server Error Notification */}
         {error && (
-          <p
-            className="-mt-3 rounded-control border border-state-error bg-state-error-bg px-3 py-2 font-sans text-body text-state-error"
+          <div
+            className="rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs sm:text-sm text-red-700 backdrop-blur-xs flex items-start gap-2.5 animate-in fade-in duration-200"
             role="alert"
           >
-            {error}
-          </p>
+            <ShieldAlert size={18} className="shrink-0 text-red-600 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
+          </div>
         )}
 
-        <Button fullWidth type="submit" disabled={isSubmitting}>
+        {/* Primary Glass Button */}
+        <GlassButton fullWidth type="submit" disabled={isSubmitting} loading={isSubmitting}>
           {isSubmitting ? t('auth.loggingIn', 'Đang đăng nhập…') : t('auth.loginBtn', 'Đăng nhập')}
-        </Button>
+        </GlassButton>
 
+        {/* Link to Sign Up */}
         {onSwitchToSignUp && (
-          <div className="text-center font-sans text-body text-text-secondary">
+          <div className="text-center font-sans text-xs sm:text-sm text-slate-500 pt-1">
             <span>{t('auth.dontHaveAccount', 'Chưa có tài khoản?')}</span>{' '}
             <button
               type="button"
               onClick={onSwitchToSignUp}
-              className="font-medium text-brand-primary hover:underline cursor-pointer"
+              className="font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             >
               Đăng ký ngay
             </button>

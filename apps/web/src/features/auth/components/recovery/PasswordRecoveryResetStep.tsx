@@ -1,10 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
-import {
-  ShieldAlert,
-} from 'lucide-react';
-import { Button } from '../../../../components/ui/Button.js';
-import { PageHeading } from '../../../../components/ui/PageHeading.js';
-import { PasswordField } from '../../../../components/ui/PasswordField.js';
+import { ShieldAlert } from 'lucide-react';
+import { GlassButton } from '../../../../components/ui/GlassButton.js';
+import { GlassPasswordField } from '../../../../components/ui/GlassPasswordField.js';
 import { resetPassword } from '../../api/password-recovery.api.js';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator.js';
 import { useTranslation } from '../../../../i18n/index.js';
@@ -41,11 +38,20 @@ export function PasswordRecoveryResetStep({
   const rawPasswordError = validatePassword(newPassword);
   const rawConfirmError = validateConfirmPassword(confirmPassword, newPassword);
 
-  const displayedPasswordError = (hasBlurredNewPassword || hasSubmitted) && rawPasswordError ? rawPasswordError : '';
+  const displayedPasswordError =
+    (hasBlurredNewPassword || hasSubmitted) && rawPasswordError
+      ? rawPasswordError
+      : '';
 
-  const displayedConfirmError = (hasBlurredConfirmPassword || hasSubmitted) && rawConfirmError ? rawConfirmError : '';
+  const displayedConfirmError =
+    (hasBlurredConfirmPassword || hasSubmitted) && rawConfirmError
+      ? rawConfirmError
+      : '';
 
-  const isMatching = confirmPassword.length > 0 && confirmPassword === newPassword && !rawPasswordError;
+  const isMatching =
+    confirmPassword.length > 0 &&
+    confirmPassword === newPassword &&
+    !rawPasswordError;
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,22 +73,26 @@ export function PasswordRecoveryResetStep({
 
   return (
     <section className="animate-in fade-in duration-300">
-      <PageHeading
-        title={t('auth.recovery.resetTitle', 'Tạo mật khẩu mới')}
-        description={t('auth.recovery.resetDesc', 'Tạo mật khẩu mới an toàn để tiếp tục sử dụng hệ thống.')}
-      />
+      <header className="flex flex-col gap-1.5 text-center sm:text-left">
+        <h2 className="m-0 font-sans text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+          {t('auth.recovery.resetTitle', 'Tạo mật khẩu mới')}
+        </h2>
+        <p className="m-0 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed">
+          {t('auth.recovery.resetDesc', 'Tạo mật khẩu mới an toàn để tiếp tục sử dụng hệ thống.')}
+        </p>
+      </header>
 
       <form className="mt-6 flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
-        {/*Trường Mật khẩu mới */}
+        {/* Trường Mật khẩu mới */}
         <div className="flex flex-col gap-2">
-          <PasswordField
+          <GlassPasswordField
             autoComplete="new-password"
             disabled={isSubmitting}
             errorMessage={displayedPasswordError}
             label={t('auth.recovery.newPasswordLabel', 'Mật khẩu mới')}
             headerRight={
               newPassword.length > 0 ? (
-                <span className="font-sans text-caption font-medium text-text-secondary">
+                <span className="font-sans text-xs font-medium text-slate-600">
                   {t('auth.recovery.passwordStrength', 'Độ mạnh mật khẩu:')}{' '}
                   <span className={`font-semibold ${strength.colorClass}`}>
                     {strength.label}
@@ -98,17 +108,18 @@ export function PasswordRecoveryResetStep({
             }}
             placeholder={t('auth.recovery.newPasswordPlaceholder', 'Nhập mật khẩu mới')}
             value={newPassword}
+            required
           />
 
-          {/*Checklist tiêu chuẩn thống nhất*/}
+          {/* Checklist tiêu chuẩn */}
           {newPassword.length > 0 && (
             <PasswordStrengthIndicator strength={strength} />
           )}
         </div>
 
-        {/*Trường Xác nhận mật khẩu mới */}
+        {/* Trường Xác nhận mật khẩu mới */}
         <div>
-          <PasswordField
+          <GlassPasswordField
             autoComplete="new-password"
             disabled={isSubmitting}
             errorMessage={displayedConfirmError}
@@ -122,20 +133,21 @@ export function PasswordRecoveryResetStep({
             }}
             placeholder={t('auth.recovery.confirmNewPasswordPlaceholder', 'Nhập lại mật khẩu mới')}
             value={confirmPassword}
+            required
           />
         </div>
 
-        {/*Thông báo lỗi từ server nếu có */}
+        {/* Thông báo lỗi từ server nếu có */}
         {error && (
-          <div className="flex items-start gap-2.5 rounded-control border border-red-200 bg-red-50 p-3 text-left">
-            <ShieldAlert className="size-5 text-state-error shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs sm:text-sm text-red-700 backdrop-blur-xs">
+            <ShieldAlert className="size-5 text-red-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-sans text-caption text-state-error" role="alert">
+              <p className="font-sans text-xs sm:text-sm text-red-700" role="alert">
                 {error}
               </p>
               {error.includes('hết hạn') && (
                 <button
-                  className="font-sans text-caption font-medium text-brand-primary underline hover:opacity-80"
+                  className="font-sans text-xs font-semibold text-[#1A5CFF] underline hover:text-[#1242bd]"
                   onClick={onBackToRequest}
                   type="button"
                 >
@@ -147,19 +159,19 @@ export function PasswordRecoveryResetStep({
         )}
 
         <div className="pt-2">
-          <Button
+          <GlassButton
             disabled={isSubmitting}
             fullWidth
             loading={isSubmitting}
             type="submit"
           >
             {isSubmitting ? t('auth.recovery.updating', 'Đang cập nhật…') : t('auth.recovery.resetBtn', 'Đặt lại mật khẩu')}
-          </Button>
+          </GlassButton>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-1">
           <button
-            className="font-sans text-body text-brand-primary hover:underline transition-colors py-1 text-center"
+            className="text-xs sm:text-sm font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors py-1 text-center outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             disabled={isSubmitting}
             onClick={onBackToRequest}
             type="button"

@@ -24,10 +24,10 @@ export function PasswordRecoverySuccessStep({
   return (
     <div className="relative min-h-[280px] flex items-center justify-center">
       <div className="text-center space-y-2 opacity-30 select-none pointer-events-none">
-        <h2 className="font-sans text-display font-semibold text-text-primary">
+        <h2 className="font-sans text-xl font-semibold text-slate-800">
           {t('auth.recovery.completing', 'Đang hoàn tất…')}
         </h2>
-        <p className="font-sans text-body text-text-secondary">
+        <p className="font-sans text-sm text-slate-600">
           {t('auth.recovery.pleaseWait', 'Vui lòng đợi giây lát.')}
         </p>
       </div>

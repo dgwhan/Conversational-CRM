@@ -11,7 +11,7 @@ export type PasswordStrengthIndicatorProps = {
 };
 
 /**
- * PasswordStrengthIndicator - Component hiển thị checklist tiêu chuẩn mật khẩu
+ * PasswordStrengthIndicator - Checklist tiêu chuẩn mật khẩu hiển thị rõ ràng trên nền sáng
  */
 export function PasswordStrengthIndicator({
   strength,
@@ -47,26 +47,28 @@ export function PasswordStrengthIndicator({
 
   return (
     <div
-      className={`space-y-3 pt-1 animate-in fade-in duration-200 ${className}`}
+      className={`space-y-2.5 pt-1 animate-in fade-in duration-200 ${className}`}
     >
       {/* Tiêu đề quy tắc */}
-      <p className="font-sans text-caption font-medium text-text-secondary">
+      <p className="font-sans text-xs font-medium text-slate-700">
         Mật khẩu phải bao gồm:
       </p>
 
       {/* Danh sách 5 tiêu chuẩn xếp dọc */}
-      <div className="flex flex-col gap-2.5 font-sans text-caption">
+      <div className="flex flex-col gap-2 font-sans text-xs">
         {criteria.map((item) => (
           <div
             key={item.id}
-            className={`flex items-center gap-2.5 transition-colors duration-200 ${item.passed ? 'font-medium text-slate-700' : 'text-text-muted'
-              }`}
+            className={`flex items-center gap-2.5 transition-colors duration-200 ${
+              item.passed ? 'font-medium text-emerald-700' : 'text-slate-400'
+            }`}
           >
             <div
-              className={`flex size-4.5 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${item.passed
-                  ? 'bg-state-success text-white shadow-xs'
+              className={`flex size-4.5 shrink-0 items-center justify-center rounded-full transition-all duration-200 ${
+                item.passed
+                  ? 'bg-emerald-600 text-white shadow-xs'
                   : 'border border-slate-300 bg-white text-transparent'
-                }`}
+              }`}
             >
               <Check className="size-3 stroke-[3]" />
             </div>
