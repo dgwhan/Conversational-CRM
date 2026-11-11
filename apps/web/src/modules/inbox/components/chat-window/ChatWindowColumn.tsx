@@ -26,6 +26,7 @@ export const ChatWindowColumn: React.FC<ChatWindowColumnProps> = ({
   onAssignStaff,
   onBackToList,
   onToggleProfile,
+  isProfileOpen,
   onOpenQuickReplySettings,
   onSelectConversation,
 }) => {
@@ -58,6 +59,7 @@ export const ChatWindowColumn: React.FC<ChatWindowColumnProps> = ({
         onAssignStaff={onAssignStaff}
         onBackToList={onBackToList}
         onToggleProfile={onToggleProfile}
+        isProfileOpen={isProfileOpen}
       />
 
       {/* 2. Banner hội thoại liên kết đa kênh (CUS-04) */}

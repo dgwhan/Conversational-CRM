@@ -23,6 +23,7 @@ export interface ChatHeaderProps {
   onAssignStaff: (staffId: string) => void;
   onBackToList?: () => void;
   onToggleProfile?: () => void;
+  isProfileOpen?: boolean;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -34,6 +35,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onAssignStaff,
   onBackToList,
   onToggleProfile,
+  isProfileOpen = false,
 }) => {
   const { t } = useTranslation();
   const { isOwner, staffId } = useUserRole();
@@ -197,11 +199,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         {onToggleProfile && (
           <button
             type="button"
-            className="lg:hidden h-7 sm:h-8 inline-flex items-center gap-1 px-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 border border-slate-200/80 rounded-md transition-colors cursor-pointer shrink-0"
+            className={`lg:hidden h-7 sm:h-8 inline-flex items-center gap-1 px-2 text-xs font-semibold rounded-md transition-colors cursor-pointer shrink-0 border ${
+              isProfileOpen
+                ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-xs'
+                : 'text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 border-slate-200/80'
+            }`}
             onClick={onToggleProfile}
             title="Xem thông tin chi tiết hồ sơ khách hàng"
+            aria-expanded={isProfileOpen}
+            aria-label="Xem hồ sơ khách hàng"
           >
-            <User size={13} className="text-slate-600" />
+            <User size={13} className={isProfileOpen ? 'text-blue-600' : 'text-slate-600'} />
             <span className="hidden xs:inline">Hồ sơ</span>
           </button>
         )}

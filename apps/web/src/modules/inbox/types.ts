@@ -186,6 +186,7 @@ export interface ChatWindowColumnProps {
   onToggleStatus?: () => void;
   onBackToList?: () => void;
   onToggleProfile?: () => void;
+  isProfileOpen?: boolean;
   onOpenQuickReplySettings?: () => void;
   onSelectConversation?: (conversationId: string) => void;
 }

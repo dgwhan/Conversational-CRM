@@ -59,6 +59,7 @@ export interface TranslationDictionary {
     onboardingBreadcrumb: string;
     importBreadcrumb: string;
     calendarTasks: string;
+    deals?: string;
     workspaceSettings: string;
   };
   header: {
@@ -74,6 +75,7 @@ export interface TranslationDictionary {
     inboxTab: string;
     kanbanTab: string;
     calendarTab: string;
+    dealsTab?: string;
     workspaceSettingsTab: string;
     onboardingTab: string;
     importTab: string;
@@ -196,6 +198,12 @@ export interface TranslationDictionary {
     statusOpen: string;
     statusWon: string;
     statusLost: string;
+    serviceStatusCompleted?: string;
+    serviceStatusInProgress?: string;
+    serviceStatusCancelled?: string;
+    returningCustomerBadge?: string;
+    formerStudentBadge?: string;
+    returningCustomerTooltip?: string;
     priorityLabel: string;
     priorityLow: string;
     priorityMedium: string;

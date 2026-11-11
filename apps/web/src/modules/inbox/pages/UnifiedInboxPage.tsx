@@ -210,8 +210,12 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
             onSendMessage={handleSendMessage}
             onAssignStaff={handleAssignStaff}
             onToggleStatus={handleToggleStatus}
-            onBackToList={() => setSelectedId(null)}
+            onBackToList={() => {
+              setSelectedId(null);
+              setIsProfileMobileOpen(false);
+            }}
             onToggleProfile={() => setIsProfileMobileOpen((prev) => !prev)}
+            isProfileOpen={isProfileMobileOpen}
             onOpenQuickReplySettings={() => setIsQuickReplyModalOpen(true)}
           />
         ) : (

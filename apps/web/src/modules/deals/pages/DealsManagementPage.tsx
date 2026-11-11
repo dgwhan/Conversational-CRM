@@ -1,26 +1,19 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   Plus,
   Search,
-  Filter,
   RefreshCw,
   LayoutGrid,
   List,
   DollarSign,
-  User,
   Clock,
   CheckCircle2,
   XCircle,
-  MessageSquare,
   Edit2,
   Trash2,
-  Award,
-  ChevronRight,
   Calendar,
   Layers,
-  TrendingUp,
 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client/index.js';
 import type { DealItem, CreateDealPayload, UpdateDealPayload } from '../../../lib/api-client/deals.js';
@@ -28,7 +21,6 @@ import { useWorkspaceConfig } from '../../workspace/WorkspaceConfigContext.js';
 import { useTranslation } from '../../../i18n/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { DealModal } from '../components/DealModal.js';
-import { buildRoute } from '../../../config/routes.js';
 import { Avatar } from '../../../components/common/Avatar.js';
 
 type ViewMode = 'grid' | 'table';
@@ -36,7 +28,6 @@ type StatusFilter = 'ALL' | 'OPEN' | 'WON' | 'LOST';
 
 export const DealsManagementPage: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { config, activeWorkspaceId } = useWorkspaceConfig();
 
   const [deals, setDeals] = useState<DealItem[]>([]);

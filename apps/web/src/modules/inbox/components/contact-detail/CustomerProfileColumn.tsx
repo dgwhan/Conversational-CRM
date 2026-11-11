@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X } from 'lucide-react';
 import {
   LEAD_STATUS,
@@ -153,15 +153,38 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
       ? customer.estimatedValue
       : 0;
 
+  // Đóng bằng phím Escape trên mobile
+  useEffect(() => {
+    if (!isMobileOpen || !onCloseMobile) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseMobile();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileOpen, onCloseMobile]);
+
   return (
-    <aside
-      className={`pancake-col-right w-[320px] min-w-[320px] max-w-[320px] border-l border-slate-200/80 bg-white flex flex-col h-full shrink-0 select-none overflow-hidden transition-all ${isMobileOpen
-          ? 'fixed inset-y-0 right-0 z-50 shadow-2xl w-full max-w-sm'
-          : 'hidden lg:flex'
+    <>
+      {/* Backdrop overlay khi mở hồ sơ trên Mobile / Tablet */}
+      {isMobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-[1050] transition-opacity"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`pancake-col-right w-[320px] min-w-[320px] max-w-[320px] border-l border-slate-200/80 bg-white flex flex-col h-full shrink-0 select-none overflow-hidden transition-all ${
+          isMobileOpen
+            ? 'mobile-visible fixed inset-y-0 right-0 z-[1060] shadow-2xl w-full max-w-sm !flex'
+            : 'hidden lg:flex'
         }`}
-    >
-      {/* 1. Header Cột: Customer Details */}
-      <div className="h-14 px-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0">
+      >
+        {/* 1. Header Cột: Customer Details */}
+        <div className="h-14 px-4 border-b border-slate-200/80 flex items-center justify-between bg-white shrink-0 sticky top-0 z-10">
         <h3 className="m-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Chi Tiết Khách Hàng
         </h3>
@@ -330,5 +353,6 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
         }}
       />
     </aside>
+    </>
   );
 };
