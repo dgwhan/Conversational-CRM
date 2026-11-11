@@ -23,7 +23,6 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api ./apps/api
 
 # Generate Prisma Client and build NestJS API
-RUN pnpm --filter api prisma generate
 RUN pnpm --filter api build
 
 # Stage 2: Lightweight runner image

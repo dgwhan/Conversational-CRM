@@ -60,6 +60,7 @@ export const vi: TranslationDictionary = {
     importBreadcrumb: 'Nhập tay & Bảng tính In-App Grid',
     calendarTasks: 'Lịch biểu & Nhiệm vụ',
     deals: 'Lịch sử & Đợt tuyển sinh',
+    leadsList: 'Danh sách Lead',
     workspaceSettings: 'Quản lý Cấu hình',
   },
   header: {
@@ -76,6 +77,7 @@ export const vi: TranslationDictionary = {
     kanbanTab: 'Phễu Tuyển sinh',
     calendarTab: 'Lịch biểu & Nhiệm vụ',
     dealsTab: 'Quản Lý Đợt Tuyển Sinh & Dịch Vụ',
+    leadsTab: 'Danh sách Lead',
     workspaceSettingsTab: 'Quản lý Cấu hình',
     onboardingTab: 'Kết nối Kênh',
     importTab: 'Nhập Dữ liệu',

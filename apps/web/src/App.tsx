@@ -35,6 +35,9 @@ const TermsOfServicePage = lazy(() =>
 const UnifiedInboxPage = lazy(() =>
   import('./modules/inbox/pages/UnifiedInboxPage.js').then((m) => ({ default: m.UnifiedInboxPage }))
 );
+const LeadsListPage = lazy(() =>
+  import('./modules/leads/pages/LeadsListPage.js').then((m) => ({ default: m.LeadsListPage }))
+);
 const AdmissionKanbanBoard = lazy(() =>
   import('./modules/kanban/AdmissionKanbanBoard.js').then((m) => ({ default: m.AdmissionKanbanBoard }))
 );
@@ -285,6 +288,12 @@ function CRMAppRoutes() {
             {/* Hộp thư hội thoại trực tiếp */}
             <Route path={ROUTES.INBOX} element={<InboxRoute />} />
             <Route path={ROUTES.INBOX_CONVERSATION} element={<InboxRoute />} />
+
+            {/* Danh sách khách hàng tiềm năng */}
+            <Route
+              path={ROUTES.LEADS}
+              element={<LeadsListPage onOpenChat={(convId) => navigate(buildRoute.inbox(convId))} />}
+            />
 
             {/* Phễu tuyển sinh Kanban */}
             <Route path={ROUTES.KANBAN} element={<KanbanRoute />} />

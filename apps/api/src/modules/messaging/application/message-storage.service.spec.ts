@@ -149,6 +149,7 @@ describe('MessageStorageService & RetentionSchedulerService', () => {
         workspaceId: 'ws-1',
         retentionMonths: 12,
         slimPayloadOnly: false,
+        onlyResolvedConversations: false,
       });
 
       expect(response.matchedMessagesCount).toBe(3500);
@@ -183,6 +184,7 @@ describe('MessageStorageService & RetentionSchedulerService', () => {
           workspaceId: 'ws-1',
           retentionMonths: 12,
           slimPayloadOnly: false,
+          onlyResolvedConversations: false,
           cleanEmptyConversations: true,
         },
         'MANUAL',

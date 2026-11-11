@@ -60,6 +60,7 @@ export interface TranslationDictionary {
     importBreadcrumb: string;
     calendarTasks: string;
     deals?: string;
+    leadsList: string;
     workspaceSettings: string;
   };
   header: {
@@ -76,6 +77,7 @@ export interface TranslationDictionary {
     kanbanTab: string;
     calendarTab: string;
     dealsTab?: string;
+    leadsTab: string;
     workspaceSettingsTab: string;
     onboardingTab: string;
     importTab: string;

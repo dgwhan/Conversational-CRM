@@ -60,6 +60,7 @@ export const en: TranslationDictionary = {
     importBreadcrumb: 'Manual & In-App Grid Import',
     calendarTasks: 'Calendar & Tasks',
     deals: 'Deals & Admissions',
+    leadsList: 'Lead List',
     workspaceSettings: 'Workspace Settings',
   },
   header: {
@@ -76,6 +77,7 @@ export const en: TranslationDictionary = {
     kanbanTab: 'Admission Pipeline',
     calendarTab: 'Calendar & Tasks',
     dealsTab: 'Deals & Services Management',
+    leadsTab: 'Lead List',
     workspaceSettingsTab: 'Workspace Settings',
     onboardingTab: 'Connect Channels',
     importTab: 'Data Import',

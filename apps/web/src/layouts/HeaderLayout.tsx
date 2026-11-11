@@ -44,6 +44,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
   const tabNameMap = useMemo<Record<ActiveNavTab, string>>(() => ({
     reports: t('header.reportsTab', 'Báo cáo & Thống kê'),
     inbox: t('header.inboxTab', 'Hộp thư Hội thoại'),
+    leads: t('header.leadsTab', 'Danh sách Lead'),
     kanban: t('header.kanbanTab', 'Phễu Tuyển sinh'),
     calendar: t('header.calendarTab', 'Lịch biểu & Nhiệm vụ'),
     deals: t('header.dealsTab', 'Quản Lý Đợt Tuyển Sinh & Dịch Vụ'),

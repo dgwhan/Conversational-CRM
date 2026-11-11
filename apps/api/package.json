@@ -7,8 +7,8 @@
   "license": "UNLICENSED",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "nest build",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "build": "prisma generate && nest build",
     "deploy": "nest deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

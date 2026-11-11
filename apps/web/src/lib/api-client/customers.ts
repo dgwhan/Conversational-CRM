@@ -1,5 +1,30 @@
 import type { BaseApiClient } from './core.js';
 
+export interface CustomerListItem {
+  id: string;
+  workspaceId?: string | null;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  leadStatus?: string;
+  leadStage?: string | null;
+  channelIdentities?: any;
+  interestCourses?: string[];
+  estimatedValue?: number;
+  tags?: string[];
+  assignedStaffName?: string | null;
+  assignedStaff?: { id?: string; name?: string; avatar?: string } | null;
+  conversations?: Array<{
+    id: string;
+    snippet?: string | null;
+    lastMessageAt?: string | null;
+    channelAccount?: { displayName: string; channel: string; avatarUrl?: string | null };
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function createCustomerApi(client: BaseApiClient) {
   return {
     getMessages(params?: {
@@ -31,31 +56,20 @@ export function createCustomerApi(client: BaseApiClient) {
       });
     },
 
-    getCustomers(params?: { workspaceId?: string; search?: string }) {
+    getCustomers(params?: {
+      workspaceId?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+      leadStatus?: string;
+      leadStage?: string;
+    }) {
       return client.get<{
-        items: Array<{
-          id: string;
-          workspaceId?: string | null;
-          fullName: string;
-          phone?: string | null;
-          email?: string | null;
-          avatarUrl?: string | null;
-          leadStatus?: string;
-          channelIdentities?: any;
-          interestCourses?: string[];
-          estimatedValue?: number;
-          leadStage?: string;
-          tags?: string[];
-          conversations?: Array<{
-            id: string;
-            snippet?: string | null;
-            lastMessageAt?: string | null;
-            channelAccount?: { displayName: string; channel: string; avatarUrl?: string };
-          }>;
-          createdAt: string;
-          updatedAt: string;
-        }>;
+        items: CustomerListItem[];
         total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
       }>('/customers', {
         params,
         headers: params?.workspaceId ? { 'x-workspace-id': params.workspaceId } : {},
