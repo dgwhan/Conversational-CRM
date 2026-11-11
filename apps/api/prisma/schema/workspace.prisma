@@ -47,6 +47,7 @@ model WorkspaceConfiguration {
     pipelineStages  Json      @default("[]") @map("pipeline_stages") @db.JsonB
     productCatalog  Json      @default("[]") @map("product_catalog") @db.JsonB
     criteria        Json      @default("[]") @db.JsonB
+    leadScoringConfig Json?    @map("lead_scoring_config") @db.JsonB
     createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 

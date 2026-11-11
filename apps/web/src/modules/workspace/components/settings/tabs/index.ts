@@ -4,5 +4,6 @@ export * from './TerminologyTab.js';
 export * from './CriteriaTab.js';
 export * from './AlertsTab.js';
 export * from './MessageStorageTab.js';
+export * from './LeadScoringTab.js';
 
 

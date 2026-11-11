@@ -23,6 +23,24 @@ describe('Conversation Scoring & Classification Engine', () => {
     { id: 'rule-spam', keyword: 'tuyển dụng', weight: -100, group: 'LOAI_TRU', isActive: true },
   ];
 
+  it('uses workspace-defined negation terms for customer-defined rules', () => {
+    const rules: KeywordRuleItem[] = [
+      { id: 'subscribe', keyword: 'subscribe', weight: 8, group: 'custom', isActive: true },
+    ];
+    const result = scoreConversation(
+      ['not subscribe'],
+      rules,
+      {
+        negationTerms: ['not'],
+        negationPostTerms: [],
+        negationWindowWords: 2,
+      },
+    );
+
+    expect(result.score).toBe(0);
+    expect(result.reasons).toHaveLength(0);
+  });
+
   describe('PHẦN 1: Phát hiện Phủ định (Negation Engine) & Câu từ chối', () => {
     it('1. Tiêu chí hoàn thành câu phủ định: "không đăng ký đâu" -> không tính điểm cho luật đăng ký', () => {
       const messages = ['Dạ em cảm ơn, em không đăng ký đâu ạ'];
@@ -86,22 +104,23 @@ describe('Conversation Scoring & Classification Engine', () => {
     });
   });
 
-  describe('PHẦN 2: Tin nhắn Không dấu & Viết tắt (Teencode)', () => {
-    it('11. Tin không dấu viết tắt học phí: "hp bn v"', () => {
-      const result = scoreConversation(['hp bn v'], standardRules);
-      expect(result.reasons.some((r) => r.keyword === 'học phí')).toBe(true);
+  describe('PHẦN 2: Từ viết tắt do workspace tự cấu hình', () => {
+    it('11. Có thể khai báo cụm viết tắt riêng làm tiêu chí', () => {
+      const customRules = [{ id: 'custom-hp', keyword: 'hp bn', weight: 3, group: 'custom', isActive: true }];
+      const result = scoreConversation(['hp bn v'], customRules);
+      expect(result.reasons.some((r) => r.keyword === 'hp bn')).toBe(true);
       expect(result.score).toBe(3);
     });
 
-    it('12. Tin không dấu đăng ký: "em muon dk aptech"', () => {
+    it('12. Không tự chuyển viết tắt thành một tiêu chí chưa được cấu hình', () => {
       const result = scoreConversation(['em muon dk aptech'], standardRules);
-      expect(result.reasons.some((r) => r.keyword === 'đăng ký')).toBe(true);
-      expect(result.score).toBe(5);
+      expect(result.reasons.some((r) => r.keyword === 'đăng ký')).toBe(false);
+      expect(result.score).toBe(0);
     });
 
-    it('13. Tin không dấu SĐT viết tắt: "ib sdt cho em"', () => {
+    it('13. Chuẩn hóa không tự mở rộng các từ viết tắt nghiệp vụ', () => {
       const result = scoreConversation(['ib sdt cho em'], standardRules);
-      expect(result.entities.normalizedText).toContain('so dien thoai');
+      expect(result.entities.normalizedText).toBe('ib sdt cho em');
     });
 
     it('14. Tin không dấu chi phí: "khoa nay hoc phi bnhieu"', () => {
@@ -109,10 +128,14 @@ describe('Conversation Scoring & Classification Engine', () => {
       expect(result.reasons.some((r) => r.keyword === 'học phí')).toBe(true);
     });
 
-    it('15. Tin không dấu hồ sơ viết tắt: "em gui cccd va hb"', () => {
-      const result = scoreConversation(['em gui cccd va hb'], standardRules);
+    it('15. Có thể thêm alias theo cách trao đổi của từng workspace', () => {
+      const customRules = [
+        ...standardRules,
+        { id: 'custom-hb', keyword: 'hb', weight: 3, group: 'documents', isActive: true },
+      ];
+      const result = scoreConversation(['em gui cccd va hb'], customRules);
       expect(result.reasons.some((r) => r.keyword === 'cccd')).toBe(true);
-      expect(result.reasons.some((r) => r.keyword === 'học bạ')).toBe(true);
+      expect(result.reasons.some((r) => r.keyword === 'hb')).toBe(true);
       expect(result.score).toBe(6);
     });
 
@@ -127,9 +150,13 @@ describe('Conversation Scoring & Classification Engine', () => {
       expect(result.reasons.some((r) => r.keyword === 'lịch học')).toBe(true);
     });
 
-    it('18. Tin không dấu tư vấn: "ad tv cho e voi"', () => {
-      const result = scoreConversation(['ad tv cho e voi'], standardRules);
-      expect(result.reasons.some((r) => r.keyword === 'tư vấn')).toBe(true);
+    it('18. Alias tư vấn chỉ được áp dụng khi workspace thêm tiêu chí', () => {
+      const customRules = [
+        ...standardRules,
+        { id: 'custom-tv', keyword: 'tv', weight: 2, group: 'custom', isActive: true },
+      ];
+      const result = scoreConversation(['ad tv cho e voi'], customRules);
+      expect(result.reasons.some((r) => r.keyword === 'tv')).toBe(true);
       expect(result.score).toBe(2);
     });
   });
@@ -260,6 +287,8 @@ describe('Conversation Scoring & Classification Engine', () => {
     it('33. Tiêu chí hoàn thành: Đổi ngưỡng có hiệu lực ngay tại runtime mà không phải deploy lại', async () => {
       const mockRulesService = {
         getRules: async () => standardRules,
+        getScoringConfig: async () => null,
+        saveScoringConfig: async () => {},
       } as unknown as KeywordRulesService;
 
       const classificationService = new ConversationClassificationService(mockRulesService);
@@ -276,7 +305,7 @@ describe('Conversation Scoring & Classification Engine', () => {
       expect(res1.tier).toBe('WARM');
 
       // Lần 2: Quản trị viên đổi ngưỡng Nóng xuống 5 điểm (không deploy lại)
-      classificationService.setThresholdConfig('ws-test', {
+      await classificationService.setThresholdConfig('ws-test', {
         hotMinScore: 5,
       });
 
@@ -304,6 +333,7 @@ describe('Conversation Scoring & Classification Engine', () => {
           callCount++;
           return standardRules;
         },
+        getScoringConfig: async () => null,
       } as unknown as KeywordRulesService;
 
       const classificationService = new ConversationClassificationService(mockRulesService);
@@ -328,6 +358,7 @@ describe('Conversation Scoring & Classification Engine', () => {
     it('36. Tầng application: phát sự kiện ConversationClassified khi phân loại thành công', async () => {
       const mockRulesService = {
         getRules: async () => standardRules,
+        getScoringConfig: async () => null,
       } as unknown as KeywordRulesService;
 
       const classificationService = new ConversationClassificationService(mockRulesService);
@@ -400,22 +431,36 @@ describe('Conversation Scoring & Classification Engine', () => {
       expect(res14DaysWorkspaceB.tier).toBe('WARM');
     });
 
-    it('39. Cổng Ambiguity Gateway (Heuristic 0đ chi phí): Phân giải câu hỏi thăm dò quy trình / báo giá', async () => {
+    it('39. Từ khóa nghiệp vụ chỉ được phân loại khi workspace tự khai báo', async () => {
       const mockRulesService = {
         getRules: async () => standardRules,
+        getScoringConfig: async () => null,
       } as unknown as KeywordRulesService;
 
       const classificationService = new ConversationClassificationService(mockRulesService);
 
-      // Khách hỏi câu thăm dò không chứa từ khóa trực tiếp: "cho em hỏi thủ tục sao ad"
       const res = await classificationService.classifyConversation({
         conversationId: 'conv-ambiguous-1',
-        messages: ['Cho em hỏi thủ tục quy trình thế nào ad'],
+        messages: ['Cho em hỏi thủ tục thế nào'],
       });
 
-      // Heuristic nhận diện intent HOI_QUY_TRINH_THU_TUC và phân vào WARM
-      expect(res.tier).toBe('WARM');
-      expect(res.reasonsFormatted).toContain('Heuristic');
+      expect(res.tier).toBe('IRRELEVANT');
+
+      const customRulesService = {
+        getRules: async () => [
+          ...standardRules,
+          { id: 'custom-procedure', group: 'custom', keyword: 'thủ tục', weight: 4, isActive: true },
+        ],
+        getScoringConfig: async () => null,
+      } as unknown as KeywordRulesService;
+      const customService = new ConversationClassificationService(customRulesService);
+      const customResult = await customService.classifyConversation({
+        conversationId: 'conv-ambiguous-custom',
+        messages: ['Cho em hỏi thủ tục thế nào'],
+      });
+
+      expect(customResult.tier).toBe('WARM');
+      expect(customResult.score).toBe(4);
     });
   });
 });

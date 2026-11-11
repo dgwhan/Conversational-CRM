@@ -1,6 +1,6 @@
 
 
-import { normalize } from '../text-normalizer.js';
+import { containsNormalizedPhrase, normalize } from '../text-normalizer.js';
 import { extractEntities, type CatalogProductItem, type ExtractedEntitiesResult } from '../entity-extractor.js';
 import { isKeywordNegated } from './negation-detector.js';
 import type { KeywordRuleItem } from '../keyword-scoring.js';
@@ -9,18 +9,35 @@ import {
   SCORING_RULE_GROUPS,
   SCORING_REASONS,
   DEFAULT_SCORING_THRESHOLDS_CONFIG,
+  DEFAULT_TIER_LABELS,
+  DEFAULT_TIER_RECOMMENDATIONS,
+  DEFAULT_NEGATION_TERMS,
+  DEFAULT_NEGATION_POST_TERMS,
   type ConversationTier,
 } from './scoring.constants.js';
 
 export { CONVERSATION_TIERS, SCORING_RULE_GROUPS, SCORING_REASONS, type ConversationTier };
 
 export interface ScoringThresholdConfig {
-  hotMinScore: number;            // Nóng từ hotMinScore điểm trở lên
-  warmMinScore: number;           // Ấm từ warmMinScore điểm
-  coldMinScore: number;           // Lạnh từ coldMinScore điểm
-  phoneBonusScore?: number;       // Điểm thưởng khi phát hiện SĐT hợp lệ
-  inactivityDecayDays?: number;   // Số ngày khách im lặng bắt đầu trừ điểm (mặc định: 14)
-  inactivityDecayPoints?: number; // Số điểm trừ khi vượt ngưỡng im lặng (mặc định: 3)
+  hotMinScore: number;
+  warmMinScore: number;
+  coldMinScore: number;
+  phoneBonusScore: number;
+  inactivityDecayDays: number;
+  inactivityDecayPoints: number;
+  inactivityDecayWeeklyPoints: number;
+  inactivityDecayIntervalDays: number;
+  exclusionThresholdWeight: number;
+  exclusionPenaltyScore: number;
+  ambiguityScoreGap: number;
+  hotBoundaryMinMessages: number;
+  shortMessageMaxWords: number;
+  ambiguityResolutionEnabled: boolean;
+  negationWindowWords: number;
+  negationTerms: string[];
+  negationPostTerms: string[];
+  tierLabels: Record<ConversationTier, string>;
+  tierRecommendations: Record<ConversationTier, string>;
 }
 
 export const DEFAULT_SCORING_THRESHOLDS: ScoringThresholdConfig = {
@@ -30,6 +47,19 @@ export const DEFAULT_SCORING_THRESHOLDS: ScoringThresholdConfig = {
   phoneBonusScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.PHONE_BONUS_SCORE,
   inactivityDecayDays: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_DAYS,
   inactivityDecayPoints: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_POINTS,
+  inactivityDecayWeeklyPoints: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_WEEKLY_POINTS,
+  inactivityDecayIntervalDays: DEFAULT_SCORING_THRESHOLDS_CONFIG.INACTIVITY_DECAY_INTERVAL_DAYS,
+  exclusionThresholdWeight: DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_THRESHOLD_WEIGHT,
+  exclusionPenaltyScore: DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_PENALTY_SCORE,
+  ambiguityScoreGap: DEFAULT_SCORING_THRESHOLDS_CONFIG.AMBIGUITY_SCORE_GAP,
+  hotBoundaryMinMessages: DEFAULT_SCORING_THRESHOLDS_CONFIG.HOT_BOUNDARY_MIN_MESSAGES,
+  shortMessageMaxWords: DEFAULT_SCORING_THRESHOLDS_CONFIG.SHORT_MESSAGE_MAX_WORDS,
+  ambiguityResolutionEnabled: DEFAULT_SCORING_THRESHOLDS_CONFIG.AMBIGUITY_RESOLUTION_ENABLED,
+  negationWindowWords: DEFAULT_SCORING_THRESHOLDS_CONFIG.NEGATION_WINDOW_WORDS,
+  negationTerms: [...DEFAULT_NEGATION_TERMS],
+  negationPostTerms: [...DEFAULT_NEGATION_POST_TERMS],
+  tierLabels: { ...DEFAULT_TIER_LABELS },
+  tierRecommendations: { ...DEFAULT_TIER_RECOMMENDATIONS },
 };
 
 export interface MatchedReasonItem {
@@ -81,7 +111,7 @@ export function scoreConversation(
     ...thresholdConfig,
   };
 
-  const phoneBonus = config.phoneBonusScore ?? DEFAULT_SCORING_THRESHOLDS_CONFIG.PHONE_BONUS_SCORE;
+  const phoneBonus = config.phoneBonusScore;
 
   // 1. Chuẩn hóa danh sách chuỗi tin nhắn đầu vào
   const messageTexts: string[] = [];
@@ -116,37 +146,37 @@ export function scoreConversation(
     if (!normMsg) continue;
 
     for (const rule of activeRules) {
-      if (appliedRuleIds.has(rule.id) || appliedKeywords.has(rule.keyword.toLowerCase())) {
+      const normKeyword = normalize(rule.keyword);
+      if (
+        !normKeyword ||
+        appliedRuleIds.has(rule.id) ||
+        appliedKeywords.has(normKeyword) ||
+        !containsNormalizedPhrase(normMsg, normKeyword)
+      ) {
         continue;
       }
 
-      const normKeyword = normalize(rule.keyword);
-      if (!normKeyword) continue;
+      const negated = isKeywordNegated(
+        normMsg,
+        normKeyword,
+        config.negationWindowWords,
+        config.negationTerms,
+        config.negationPostTerms,
+      );
+      if (negated) continue;
 
-      const regex = new RegExp(`\\b${normKeyword}\\b`, 'i');
-      if (regex.test(normMsg)) {
-        const negated = isKeywordNegated(normMsg, normKeyword);
-        if (negated) {
-          continue;
-        }
+      appliedRuleIds.add(rule.id);
+      appliedKeywords.add(normKeyword);
+      matchedReasons.push({
+        keyword: rule.keyword,
+        points: rule.weight,
+        ruleId: rule.id,
+        group: rule.group,
+        sourceMessageIndex: msgIdx,
+      });
 
-        appliedRuleIds.add(rule.id);
-        appliedKeywords.add(rule.keyword.toLowerCase());
-
-        matchedReasons.push({
-          keyword: rule.keyword,
-          points: rule.weight,
-          ruleId: rule.id,
-          group: rule.group,
-          sourceMessageIndex: msgIdx,
-        });
-
-        if (
-          rule.group === SCORING_RULE_GROUPS.EXCLUSION ||
-          rule.weight <= DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_THRESHOLD_WEIGHT
-        ) {
-          isExcluded = true;
-        }
+      if (rule.weight <= config.exclusionThresholdWeight) {
+        isExcluded = true;
       }
     }
   }
@@ -170,8 +200,8 @@ export function scoreConversation(
     decayBasePoints > 0 &&
     !isExcluded
   ) {
-    const extraWeeks = Math.floor((daysInactive - decayThresholdDays) / 7);
-    const totalDecay = decayBasePoints + extraWeeks * 2;
+    const extraIntervals = Math.floor((daysInactive - decayThresholdDays) / config.inactivityDecayIntervalDays);
+    const totalDecay = decayBasePoints + extraIntervals * config.inactivityDecayWeeklyPoints;
 
     matchedReasons.push({
       keyword: SCORING_REASONS.formatInactivityReason(daysInactive),
@@ -191,7 +221,7 @@ export function scoreConversation(
   }
 
   if (isExcluded && totalScore > 0) {
-    totalScore = DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_PENALTY_SCORE;
+    totalScore = config.exclusionPenaltyScore ?? DEFAULT_SCORING_THRESHOLDS_CONFIG.EXCLUSION_PENALTY_SCORE;
   }
 
   // 5. Xác định Phân hạng nhiệt độ (Tier) dựa theo ngưỡng cấu hình qua constants

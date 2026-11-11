@@ -1,21 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { normalize } from '../../src/modules/nlp/text-normalizer.js';
-import { extractEntities, extractPhoneNumber, extractDocuments } from '../../src/modules/nlp/entity-extractor.js';
+import { extractEntities, extractPhoneNumber } from '../../src/modules/nlp/entity-extractor.js';
 import {
   evaluateKeywordRules,
-  INITIAL_SEED_KEYWORD_RULES,
-  KeywordRuleItem,
+  type KeywordRuleItem,
 } from '../../src/modules/nlp/keyword-scoring.js';
 
 describe('NLP & Information Extraction Engine', () => {
   describe('1. Hàm normalize() - Chuẩn hóa văn bản tiếng Việt', () => {
-    it('tiêu chí hoàn thành: "HP bn vậy ạ" cho ra chuỗi chứa "hoc phi" và "bao nhieu"', () => {
+    it('không mở rộng các từ viết tắt thành quy tắc nghiệp vụ gán cứng', () => {
       const input = 'HP bn vậy ạ';
       const output = normalize(input);
 
-      expect(output).toContain('hoc phi');
-      expect(output).toContain('bao nhieu');
-      expect(output).toBe('hoc phi bao nhieu vay a');
+      expect(output).toBe('hp bn vay a');
     });
 
     it('rút gọn ký tự lặp do teencode: "họcccc phí" -> "hoc phi"', () => {
@@ -30,13 +27,11 @@ describe('NLP & Information Extraction Engine', () => {
       const output = normalize(input);
 
       expect(output).toContain('da');
-      expect(output).toContain('bao nhieu');
+      expect(output).toContain('bao nhiu');
     });
 
-    it('mở rộng các từ viết tắt phổ biến: sdt, ib, dk, cccd', () => {
-      expect(normalize('ib sdt cho em')).toBe('inbox so dien thoai cho em');
-      expect(normalize('em muon dk')).toBe('em muon dang ky');
-      expect(normalize('gui cccd va hb')).toBe('gui can cuoc cong dan va hoc ba');
+    it('giữ nguyên từ viết tắt để workspace tự khai báo tiêu chí phù hợp', () => {
+      expect(normalize('ib sdt dk')).toBe('ib sdt dk');
     });
   });
 
@@ -79,52 +74,44 @@ describe('NLP & Information Extraction Engine', () => {
   });
 
   describe('3. Bảng luật từ khóa động (keyword_rules) & Chấm điểm Lead', () => {
-    it('chấm điểm chính xác theo bộ luật Seed ban đầu', () => {
-      const input = 'hoc phi bao nhieu vay a';
-      const result = evaluateKeywordRules(input, INITIAL_SEED_KEYWORD_RULES);
+    it('không tự áp dụng tiêu chí khi workspace chưa tạo luật', () => {
+      const result = evaluateKeywordRules('gói dịch vụ cao cấp');
 
-      // Khớp "hoc phi bao nhieu" (weight: 25) và "hoc phi" (weight: 10)
-      expect(result.totalScore).toBeGreaterThanOrEqual(25);
-      expect(result.matchedGroups).toContain('QUAN_TAM_SAU');
-      expect(result.isExcluded).toBe(false);
+      expect(result.totalScore).toBe(0);
+      expect(result.matchedRules).toHaveLength(0);
     });
 
     it('tiêu chí hoàn thành: đổi trọng số trong bảng thì kết quả đổi theo mà không sửa code', () => {
-      const input = 'cho em xin so tai khoan de chuyen khoan coc';
+      const input = 'Tôi muốn gói vàng';
+      const customRules: KeywordRuleItem[] = [
+        { id: 'one', group: 'ý định mua', keyword: 'gói vàng', weight: 5, isActive: true },
+      ];
+      const scoreOriginal = evaluateKeywordRules(input, customRules);
+      expect(scoreOriginal.totalScore).toBe(5);
 
-      // 1. Chấm điểm với luật gốc (so tai khoan = 50, chuyen khoan coc = 50 -> 100 điểm)
-      const scoreOriginal = evaluateKeywordRules(input, INITIAL_SEED_KEYWORD_RULES);
-      expect(scoreOriginal.totalScore).toBe(100);
+      const modifiedRules: KeywordRuleItem[] = customRules.map((rule) => ({ ...rule, weight: 100 }));
 
-      // 2. Mô phỏng quản trị viên đổi trọng số trong DB (không sửa code logic)
-      // Tăng "so tai khoan" từ 50 lên 80, và "chuyen khoan coc" từ 50 lên 70
-      const modifiedRules: KeywordRuleItem[] = INITIAL_SEED_KEYWORD_RULES.map((r) => {
-        if (r.keyword === 'so tai khoan') return { ...r, weight: 80 };
-        if (r.keyword === 'chuyen khoan coc') return { ...r, weight: 70 };
-        return r;
-      });
-
-      // 3. Chấm lại: kết quả đổi ngay lập tức thành 80 + 70 = 150
       const scoreModified = evaluateKeywordRules(input, modifiedRules);
-      expect(scoreModified.totalScore).toBe(150);
+      expect(scoreModified.totalScore).toBe(100);
 
-      // 4. Mô phỏng tắt một luật (isActive = false)
       const disabledRules: KeywordRuleItem[] = modifiedRules.map((r) => {
-        if (r.keyword === 'so tai khoan') return { ...r, isActive: false };
-        return r;
+        return { ...r, isActive: false };
       });
 
       const scoreDisabled = evaluateKeywordRules(input, disabledRules);
-      // Chỉ còn "chuyen khoan coc" (70 điểm)
-      expect(scoreDisabled.totalScore).toBe(70);
+      expect(scoreDisabled.totalScore).toBe(0);
     });
 
-    it('nhận diện nhóm LOAI_TRU và đánh dấu isExcluded', () => {
-      const input = 'chúng tôi chuyên cung cấp dịch vụ tuyển dụng nhân sự quảng cáo spam';
-      const result = evaluateKeywordRules(input, INITIAL_SEED_KEYWORD_RULES);
+    it('đánh dấu loại trừ theo trọng số cấu hình thay vì tên nhóm cố định', () => {
+      const result = evaluateKeywordRules(
+        'not a fit',
+        [{ id: 'exclude', group: 'custom group', keyword: 'not a fit', weight: -80, isActive: true }],
+        -50,
+      );
 
       expect(result.isExcluded).toBe(true);
       expect(result.totalScore).toBeLessThan(0);
     });
+
   });
 });

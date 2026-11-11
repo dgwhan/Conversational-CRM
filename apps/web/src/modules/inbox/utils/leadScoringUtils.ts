@@ -5,73 +5,34 @@ import type {
 } from '../types.js';
 import { removeVietnameseTones } from '../../../lib/unaccent.js';
 import { standardizeVietnamesePhoneNumber } from '../../../lib/phone.js';
+import type { KeywordRuleItem, LeadScoringSettings } from '../../../lib/api-client/keyword-rules.js';
 
-interface ScoringRuleDef {
-  id: string;
-  keyword: string;
-  normKeyword: string;
-  points: number;
-  group: 'QUAN_TAM' | 'SAN_SANG_DANG_KY' | 'HO_SO' | 'LOAI_TRU';
+function containsNormalizedPhrase(text: string, phrase: string): boolean {
+  const isWordCharacter = (character: string | undefined) =>
+    character !== undefined && /[\p{L}\p{N}_]/u.test(character);
+  let index = text.indexOf(phrase);
+
+  while (index !== -1) {
+    const before = index > 0 ? text[index - 1] : undefined;
+    const afterIndex = index + phrase.length;
+    const after = afterIndex < text.length ? text[afterIndex] : undefined;
+    if (!isWordCharacter(before) && !isWordCharacter(after)) return true;
+    index = text.indexOf(phrase, index + 1);
+  }
+
+  return false;
 }
-
-const DEFAULT_RULES: ScoringRuleDef[] = [
-  // 1. Quan tâm báo giá, chi phí, giải pháp / dịch vụ
-  { id: 'r_bg', keyword: 'báo giá', normKeyword: 'bao gia', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_cp', keyword: 'chi phí', normKeyword: 'chi phi', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_gia', keyword: 'giá', normKeyword: 'gia', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_hp', keyword: 'học phí', normKeyword: 'hoc phi', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_lh', keyword: 'lịch hẹn', normKeyword: 'lich hen', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_lt', keyword: 'lộ trình', normKeyword: 'lo trinh', points: 3, group: 'QUAN_TAM' },
-  { id: 'r_tv', keyword: 'tư vấn', normKeyword: 'tu van', points: 2, group: 'QUAN_TAM' },
-  { id: 'r_dv', keyword: 'dịch vụ', normKeyword: 'dich vu', points: 2, group: 'QUAN_TAM' },
-  { id: 'r_sp', keyword: 'sản phẩm', normKeyword: 'san pham', points: 2, group: 'QUAN_TAM' },
-  { id: 'r_kh', keyword: 'khóa học', normKeyword: 'khoa hoc', points: 2, group: 'QUAN_TAM' },
-
-  // 2. Sẵn sàng chốt nhu cầu / ký kết / đăng ký
-  { id: 'r_dk', keyword: 'đăng ký', normKeyword: 'dang ky', points: 5, group: 'SAN_SANG_DANG_KY' },
-  { id: 'r_mua', keyword: 'mua', normKeyword: 'mua', points: 5, group: 'SAN_SANG_DANG_KY' },
-  { id: 'r_hd', keyword: 'hợp đồng', normKeyword: 'hop dong', points: 5, group: 'SAN_SANG_DANG_KY' },
-  { id: 'r_gc', keyword: 'giữ chỗ', normKeyword: 'giu cho', points: 5, group: 'SAN_SANG_DANG_KY' },
-  { id: 'r_nh', keyword: 'nhập học', normKeyword: 'nhap hoc', points: 5, group: 'SAN_SANG_DANG_KY' },
-
-  // 3. Hồ sơ & thông tin xác nhận
-  { id: 'r_cccd', keyword: 'cccd', normKeyword: 'cccd', points: 3, group: 'HO_SO' },
-  { id: 'r_email', keyword: 'email', normKeyword: 'email', points: 3, group: 'HO_SO' },
-  { id: 'r_hs', keyword: 'hồ sơ', normKeyword: 'ho so', points: 3, group: 'HO_SO' },
-  { id: 'r_hb', keyword: 'học bạ', normKeyword: 'hoc ba', points: 3, group: 'HO_SO' },
-  { id: 'r_gks', keyword: 'giấy khai sinh', normKeyword: 'giay khai sinh', points: 3, group: 'HO_SO' },
-
-  // 4. Loại trừ
-  { id: 'r_td', keyword: 'tuyển dụng', normKeyword: 'tuyen dung', points: -100, group: 'LOAI_TRU' },
-  { id: 'r_xv', keyword: 'xin việc', normKeyword: 'xin viec', points: -100, group: 'LOAI_TRU' },
-  { id: 'r_spam', keyword: 'spam', normKeyword: 'spam', points: -100, group: 'LOAI_TRU' },
-];
-
-const NEGATION_MARKERS = [
-  'khong',
-  'chua',
-  'ko',
-  'k0',
-  'k',
-  'hong',
-  'chang',
-  'dung',
-  'huy',
-  'thoi',
-  'khoi',
-];
-
-const NEGATION_POST_MARKERS = [
-  'dau',
-  'nua',
-  'gi dau',
-  'chi nua',
-];
 
 /**
  * Kiểm tra xem từ khóa có bị phủ định trong câu hay không
  */
-function isKeywordNegatedInText(normText: string, normKw: string): boolean {
+function isKeywordNegatedInText(
+  normText: string,
+  normKw: string,
+  negationTerms: string[],
+  negationPostTerms: string[],
+  windowWords: number,
+): boolean {
   if (!normText.includes(normKw)) return false;
 
   const clauses = normText.split(/[,.;!?\n]+/).map((c) => c.trim()).filter(Boolean);
@@ -86,20 +47,20 @@ function isKeywordNegatedInText(normText: string, normKw: string): boolean {
     for (let i = 0; i <= words.length - kwLen; i++) {
       if (words.slice(i, i + kwLen).join(' ') === normKw) {
         // Kiểm tra tiền từ (1 đến 4 từ đứng trước)
-        const prefix = words.slice(Math.max(0, i - 4), i).join(' ');
-        for (const marker of NEGATION_MARKERS) {
-          if (new RegExp(`\\b${marker}\\b`, 'i').test(prefix)) {
-            return true;
-          }
-        }
+        const prefix = words.slice(Math.max(0, i - windowWords), i).join(' ');
+        if (
+          negationTerms.some((term) =>
+            containsNormalizedPhrase(prefix, removeVietnameseTones(term).replace(/\s+/g, ' ').trim()),
+          )
+        ) return true;
 
         // Kiểm tra hậu từ (1 đến 2 từ đứng sau: "đâu", "nữa")
-        const suffix = words.slice(i + kwLen, Math.min(words.length, i + kwLen + 2)).join(' ');
-        for (const postMarker of NEGATION_POST_MARKERS) {
-          if (new RegExp(`\\b${postMarker}\\b`, 'i').test(suffix)) {
-            return true;
-          }
-        }
+        const suffix = words.slice(i + kwLen, Math.min(words.length, i + kwLen + windowWords)).join(' ');
+        if (
+          negationPostTerms.some((term) =>
+            containsNormalizedPhrase(suffix, removeVietnameseTones(term).replace(/\s+/g, ' ').trim()),
+          )
+        ) return true;
       }
     }
   }
@@ -108,33 +69,17 @@ function isKeywordNegatedInText(normText: string, normKw: string): boolean {
 }
 
 /**
- * Chuẩn hóa tin nhắn và mở rộng từ viết tắt cơ bản (hp, bn, dk, cccd, hb)
- */
-function normalizeClientText(text: string): string {
-  let norm = removeVietnameseTones(text);
-
-  // Mở rộng từ viết tắt thông dụng
-  norm = norm
-    .replace(/\bhp\b/gi, 'hoc phi')
-    .replace(/\bbn\b|\bbnhieu\b|\bbnh\b/gi, 'bao nhieu')
-    .replace(/\bdk\b|\bdky\b/gi, 'dang ky')
-    .replace(/\bib\b|\binb\b/gi, 'inbox')
-    .replace(/\bsdt\b|\bdt\b/gi, 'so dien thoai')
-    .replace(/\bhb\b/gi, 'hoc ba')
-    .replace(/\bgks\b/gi, 'giay khai sinh');
-
-  return norm;
-}
-
-/**
  * Đánh giá điểm và phân loại hội thoại động DỰA TRÊN THÔNG TIN VÀ TIN NHẮN THỰC TẾ
  */
 export function evaluateConversationScore(
-  messages: ChatMessage[] = [],
-  customerPhone?: string
+  messages: ChatMessage[],
+  customerPhone: string | undefined,
+  rules: KeywordRuleItem[],
+  settings: LeadScoringSettings,
 ): ConversationClassificationData {
   const matchedReasons: Array<{ keyword: string; points: number }> = [];
   const appliedRuleIds = new Set<string>();
+  const appliedKeywords = new Set<string>();
   let isExcluded = false;
 
   // 1. Quét toàn bộ tin nhắn trao đổi trong hội thoại
@@ -146,29 +91,41 @@ export function evaluateConversationScore(
     // Chỉ tính tin nhắn của khách (INBOUND) để đánh giá ý định của thí sinh
     if (msg.direction === 'OUTBOUND') continue;
 
-    const normContent = normalizeClientText(rawContent);
+    const normContent = removeVietnameseTones(rawContent).replace(/\s+/g, ' ');
 
-    for (const rule of DEFAULT_RULES) {
-      if (appliedRuleIds.has(rule.id)) continue;
+    for (const rule of rules) {
+      const normKeyword = removeVietnameseTones(rule.keyword).replace(/\s+/g, ' ').trim();
+      if (appliedRuleIds.has(rule.id) || appliedKeywords.has(normKeyword)) continue;
 
-      if (normContent.includes(rule.normKeyword)) {
-        // Kiểm tra phủ định (ví dụ: "không đăng ký đâu")
-        if (isKeywordNegatedInText(normContent, rule.normKeyword)) {
-          continue;
-        }
+      if (!rule.isActive || !normKeyword || !containsNormalizedPhrase(normContent, normKeyword)) continue;
 
-        appliedRuleIds.add(rule.id);
-        matchedReasons.push({
-          keyword: rule.keyword,
-          points: rule.points,
-        });
+      if (isKeywordNegatedInText(
+        normContent,
+        normKeyword,
+        settings.negationTerms,
+        settings.negationPostTerms,
+        settings.negationWindowWords,
+      )) continue;
 
-        if (rule.group === 'LOAI_TRU') {
-          isExcluded = true;
-        }
-      }
+      appliedRuleIds.add(rule.id);
+      appliedKeywords.add(normKeyword);
+      matchedReasons.push({
+        keyword: rule.keyword,
+        points: rule.weight,
+      });
+
+      if (rule.weight <= settings.exclusionThresholdWeight) isExcluded = true;
     }
   }
+
+  const inboundMessages = messages.filter((message) => message.direction !== 'OUTBOUND' && message.content?.trim());
+  const lastInboundAt = inboundMessages.reduce((latest, message) => {
+    const sentAt = Date.parse(message.sentAt);
+    return Number.isFinite(sentAt) && sentAt > latest ? sentAt : latest;
+  }, 0);
+  const daysInactive = lastInboundAt > 0
+    ? Math.max(0, Math.floor((Date.now() - lastInboundAt) / 86_400_000))
+    : undefined;
 
   // 2. Kiểm tra xem có Số Điện Thoại hay không (từ thông tin khách hàng hoặc trong tin nhắn)
   let hasValidPhone = false;
@@ -194,8 +151,23 @@ export function evaluateConversationScore(
 
   if (hasValidPhone) {
     matchedReasons.push({
-      keyword: 'SĐT',
-      points: 5,
+      keyword: 'có SĐT',
+      points: settings.phoneBonusScore,
+    });
+  }
+
+  if (
+    typeof daysInactive === 'number' &&
+    daysInactive >= settings.inactivityDecayDays &&
+    settings.inactivityDecayPoints > 0 &&
+    !isExcluded
+  ) {
+    const extraIntervals = Math.floor(
+      (daysInactive - settings.inactivityDecayDays) / settings.inactivityDecayIntervalDays,
+    );
+    matchedReasons.push({
+      keyword: `im lặng ${daysInactive} ngày`,
+      points: -(settings.inactivityDecayPoints + extraIntervals * settings.inactivityDecayWeeklyPoints),
     });
   }
 
@@ -205,21 +177,27 @@ export function evaluateConversationScore(
     totalScore += r.points;
   }
 
-  if (isExcluded || totalScore < 0) {
+  if (!isExcluded && totalScore < 0) {
     totalScore = 0;
+  } else if (isExcluded && totalScore > 0) {
+    totalScore = settings.exclusionPenaltyScore;
   }
 
   // 4. Xác định Tier
+  const isInactive = typeof daysInactive === 'number' && daysInactive >= settings.inactivityDecayDays;
+  const shouldPromoteAtHotBoundary =
+    !isExcluded &&
+    !isInactive &&
+    settings.ambiguityResolutionEnabled &&
+    totalScore < settings.hotMinScore &&
+    totalScore >= settings.hotMinScore - settings.ambiguityScoreGap &&
+    inboundMessages.length >= settings.hotBoundaryMinMessages;
+  if (shouldPromoteAtHotBoundary) totalScore = settings.hotMinScore;
+
   let tier: ConversationTier = 'IRRELEVANT';
-  if (!isExcluded && totalScore >= 8) {
-    tier = 'HOT';
-  } else if (!isExcluded && totalScore >= 4) {
-    tier = 'WARM';
-  } else if (!isExcluded && totalScore >= 1) {
-    tier = 'COLD';
-  } else {
-    tier = 'IRRELEVANT';
-  }
+  if (!isExcluded && totalScore >= settings.hotMinScore) tier = 'HOT';
+  else if (!isExcluded && totalScore >= settings.warmMinScore) tier = 'WARM';
+  else if (!isExcluded && totalScore >= settings.coldMinScore) tier = 'COLD';
 
   // 5. Chuỗi giải trình
   const reasonsFormatted =

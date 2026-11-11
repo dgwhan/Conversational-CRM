@@ -1,7 +1,5 @@
 /**
- * Magic Strings & Constants: Hệ thống Chấm điểm & Đánh giá Khách hàng Tiềm năng (Lead Scoring)
- * Áp dụng cho mọi lĩnh vực kinh doanh (Customer Acquisition / CRM Multi-domain).
- * Tuyệt đối không gán cứng code hay sử dụng magic string rải rác.
+ * Stable system identifiers and editable workspace-scoring bootstrap values.
  */
 
 // 1. Phân hạng nhiệt độ của Khách hàng (Lead Tiers)
@@ -14,14 +12,10 @@ export const CONVERSATION_TIERS = {
 
 export type ConversationTier = (typeof CONVERSATION_TIERS)[keyof typeof CONVERSATION_TIERS];
 
-// 2. Nhóm quy tắc chấm điểm (Scoring Rule Groups)
+// 2. Internal reason groups; customer-defined keyword rules use workspace group names.
 export const SCORING_RULE_GROUPS = {
-  READY_TO_CONVERT: 'SAN_SANG_DANG_KY', // Sẵn sàng mua / đăng ký / ký hợp đồng
-  INTERESTED: 'QUAN_TAM',              // Quan tâm dịch vụ / chi phí / lộ trình
-  INFO_OR_DOCS: 'HO_SO',               // Thông tin hồ sơ / yêu cầu hợp tác
-  ENTITY: 'THUC_THE',                  // Thực thể trích xuất (SĐT, Email, Sản phẩm)
-  TIME_DECAY: 'TIME_DECAY',            // Suy giảm độ quan tâm do im lặng lâu
-  EXCLUSION: 'LOAI_TRU',               // Loại trừ (Spam, tuyển dụng, quảng cáo)
+  ENTITY: 'THUC_THE',
+  TIME_DECAY: 'TIME_DECAY',
 } as const;
 
 export type ScoringRuleGroup = (typeof SCORING_RULE_GROUPS)[keyof typeof SCORING_RULE_GROUPS];
@@ -34,13 +28,43 @@ export const SCORING_REASONS = {
   formatInactivityReason: (days: number): string => `im lặng ${days} ngày`,
 } as const;
 
+export const DEFAULT_NEGATION_TERMS = [
+  'khong',
+  'chua',
+  'ko',
+  'k0',
+  'k',
+  'hong',
+  'hong co',
+  'chang',
+  'dung',
+  'dung co',
+  'huy',
+  'ngung',
+  'thoi',
+  'khoi',
+  'rut',
+  'chua tung',
+  'khong he',
+  'chua muon',
+  'khong muon',
+  'ko muon',
+  'khong can',
+  'ko can',
+] as const;
+
+export const DEFAULT_NEGATION_POST_TERMS = [
+  'dau',
+  'nua',
+  'gi dau',
+  'chi nua',
+  'dau a',
+  'dau nhe',
+] as const;
+
 // 4. Các ý định phân giải tin nhắn mơ hồ (Ambiguity Intents)
 export const AMBIGUITY_INTENTS = {
   HIGH_ENGAGEMENT_BOUNDARY: 'TUONG_TAC_CAO_SAT_NGUONG',
-  INQUIRY_PROCEDURE: 'HOI_QUY_TRINH_THU_TUC',
-  INQUIRY_AVAILABILITY: 'HOI_SAN_PHAM_DICH_VU_CON_CHO',
-  INQUIRY_PRICING: 'HOI_BAO_GIA_CHI_PHI',
-  INQUIRY_OPENING: 'CAU_CHAO_THAM_DO',
   SHORT_QUERY_UNRESOLVED: 'TIN_NHAN_NGAN_CHUA_RO_Y_DINH',
 } as const;
 
@@ -63,9 +87,30 @@ export const DEFAULT_SCORING_THRESHOLDS_CONFIG = {
   PHONE_BONUS_SCORE: 5,
   INACTIVITY_DECAY_DAYS: 14,
   INACTIVITY_DECAY_POINTS: 3,
+  INACTIVITY_DECAY_WEEKLY_POINTS: 2,
+  INACTIVITY_DECAY_INTERVAL_DAYS: 7,
   CACHE_TTL_MS: 5 * 60 * 1000, // 5 phút
   EXCLUSION_PENALTY_SCORE: -100,
   EXCLUSION_THRESHOLD_WEIGHT: -50,
+  AMBIGUITY_SCORE_GAP: 1,
+  HOT_BOUNDARY_MIN_MESSAGES: 2,
+  SHORT_MESSAGE_MAX_WORDS: 4,
+  AMBIGUITY_RESOLUTION_ENABLED: true,
+  NEGATION_WINDOW_WORDS: 4,
+} as const;
+
+export const DEFAULT_TIER_LABELS = {
+  HOT: 'Ưu tiên cao',
+  WARM: 'Đang quan tâm',
+  COLD: 'Mới tiếp cận',
+  IRRELEVANT: 'Chưa phân loại',
+} as const;
+
+export const DEFAULT_TIER_RECOMMENDATIONS = {
+  HOT: 'Khách hàng có nhu cầu rõ ràng. Ưu tiên liên hệ sớm.',
+  WARM: 'Khách hàng đang tìm hiểu. Gửi thông tin tư vấn phù hợp.',
+  COLD: 'Khách hàng mới tiếp cận. Tiếp tục giải đáp và chăm sóc.',
+  IRRELEVANT: 'Chưa phát hiện tín hiệu phù hợp trong hội thoại.',
 } as const;
 
 // 7. Tên sự kiện Domain Event

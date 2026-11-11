@@ -234,7 +234,6 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
 
         {/* C. ĐÁNH GIÁ TIỀM NĂNG (Lead Intent Scoring) */}
         <LeadIntentScoreSection
-          classification={customer.classification}
           messages={messages}
           customerPhone={customer.phone}
         />

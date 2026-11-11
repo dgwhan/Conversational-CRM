@@ -14,17 +14,13 @@ import {
 } from '../src/modules/nlp/domain/conversation-scoring.js';
 import {
   CONVERSATION_TIERS,
-  SCORING_RULE_GROUPS,
   type ConversationTier,
 } from '../src/modules/nlp/domain/scoring.constants.js';
-import { MULTI_DOMAIN_BENCHMARK_RULES } from '../src/modules/nlp/domain/scoring-rules.presets.js';
+import { benchmarkRules } from '../test/fixtures/scoring-rules.js';
 import { HeuristicAmbiguityResolver } from '../src/modules/nlp/application/llm-ambiguity-gateway.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Sử dụng bộ quy tắc từ khóa mẫu đa ngành được quản lý tập trung từ domain presets
-const benchmarkRules = MULTI_DOMAIN_BENCHMARK_RULES;
 
 const thresholdConfig: ScoringThresholdConfig = {
   ...DEFAULT_SCORING_THRESHOLDS,

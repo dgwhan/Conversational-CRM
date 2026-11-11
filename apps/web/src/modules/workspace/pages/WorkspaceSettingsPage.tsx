@@ -12,9 +12,10 @@ import {
   AlertsTab,
   WorkingHoursTab,
   MessageStorageTab,
+  LeadScoringTab,
 } from '../components/settings/index.js';
 
-type SettingsTabId = 'stages' | 'catalog' | 'terminology' | 'criteria' | 'workingHours' | 'alerts' | 'storage';
+type SettingsTabId = 'stages' | 'catalog' | 'terminology' | 'criteria' | 'workingHours' | 'alerts' | 'storage' | 'leadScoring';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -69,6 +70,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
     {
       id: 'storage',
       label: t('workspaceSettings.tabs.storage', 'Lưu trữ & Dọn dẹp tin nhắn'),
+    },
+    {
+      id: 'leadScoring',
+      label: 'Chấm điểm Lead',
     },
   ];
 
@@ -170,6 +175,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
           workspaceId={config.workspaceId || activeWorkspace?.id}
           isOwner={isCurrentWorkspaceOwner}
         />
+      )}
+
+      {activeTab === 'leadScoring' && (
+        <LeadScoringTab isOwner={isCurrentWorkspaceOwner} />
       )}
     </div>
   );

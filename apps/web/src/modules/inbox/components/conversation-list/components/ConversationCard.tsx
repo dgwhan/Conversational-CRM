@@ -10,6 +10,7 @@ import { formatConversationTime, getUnresponsiveStatus } from '../../../utils/in
 import { Avatar } from '../../../../../components/common/Avatar.js';
 import { resolveChannelInfo } from '../../../../../lib/channel-meta.js';
 import { evaluateConversationScore } from '../../../utils/leadScoringUtils.js';
+import { useLeadScoringConfig } from '../../../context/leadScoringConfig.js';
 
 export interface ConversationCardProps {
   item: ConversationItem;
@@ -25,6 +26,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   alertThresholdMinutes = 15,
 }) => {
   const hasUnread = item.unreadCount > 0;
+  const { rules, settings } = useLeadScoringConfig();
   const { isOverdue, waitingMinutes } = getUnresponsiveStatus(item, alertThresholdMinutes);
   const isOutOfOffice = Boolean(
     item.tags?.some((t) => {
@@ -40,9 +42,9 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   );
 
   const scoringData = React.useMemo(() => {
-    if (item.customer.classification) return item.customer.classification;
-    return evaluateConversationScore(item.messages || [], item.customer.phone);
-  }, [item.customer.classification, item.messages, item.customer.phone]);
+    if (!settings) return null;
+    return evaluateConversationScore(item.messages || [], item.customer.phone, rules, settings);
+  }, [item.messages, item.customer.phone, rules, settings]);
 
   // Render icon kênh nhỏ gọn, tinh tế
   const renderChannelIndicator = (channel: ChannelType) => {
@@ -141,22 +143,16 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1 overflow-hidden">
             {/* Trạng thái tiềm năng: Chỉ 2 tone màu (Xanh lục cho Ưu tiên, Xám cho còn lại) */}
-            {scoringData && scoringData.score > 0 && scoringData.tier !== 'IRRELEVANT' && (
+            {settings && scoringData && scoringData.score > 0 && scoringData.tier !== 'IRRELEVANT' && (
               <span
                 className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.2 rounded border shrink-0 ${
                   scoringData.tier === 'HOT'
                     ? 'text-emerald-700 bg-emerald-50 border-emerald-200/80'
                     : 'text-slate-600 bg-slate-100 border-slate-200/80'
                 }`}
-                title={`Mức độ tiềm năng: ${scoringData.tier === 'HOT' ? 'Ưu tiên cao' : scoringData.tier === 'WARM' ? 'Đang quan tâm' : 'Mới tiếp cận'}`}
+                title={`Mức độ tiềm năng: ${settings.tierLabels[scoringData.tier]}`}
               >
-                <span>
-                  {scoringData.tier === 'HOT'
-                    ? 'Ưu tiên'
-                    : scoringData.tier === 'WARM'
-                      ? 'Đang quan tâm'
-                      : 'Mới tiếp cận'}
-                </span>
+                <span>{settings.tierLabels[scoringData.tier]}</span>
               </span>
             )}
 

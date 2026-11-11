@@ -6,6 +6,7 @@ import { createContactApi } from './contacts.js';
 import { createActivityApi } from './activities.js';
 import { createDealApi } from './deals.js';
 import { createMessageStorageApi } from './messaging-storage.js';
+import { createKeywordRulesApi } from './keyword-rules.js';
 
 export * from './types.js';
 export * from './core.js';
@@ -17,6 +18,7 @@ export * from './activities.js';
 export * from './deals.js';
 export * from './messaging-storage.types.js';
 export * from './messaging-storage.js';
+export * from './keyword-rules.js';
 
 export class ApiClient extends BaseApiClient {
   private channels = createChannelApi(this);
@@ -26,6 +28,7 @@ export class ApiClient extends BaseApiClient {
   private activities = createActivityApi(this);
   private deals = createDealApi(this);
   private messageStorage = createMessageStorageApi(this);
+  private keywordRules = createKeywordRulesApi(this);
 
   // Sub-modules
   readonly channelApi = this.channels;
@@ -35,6 +38,7 @@ export class ApiClient extends BaseApiClient {
   readonly activityApi = this.activities;
   readonly dealApi = this.deals;
   readonly messageStorageApi = this.messageStorage;
+  readonly keywordRulesApi = this.keywordRules;
 
   // Channel & OAuth APIs
   getAuthorizeUrl = this.channels.getAuthorizeUrl;
@@ -108,6 +112,14 @@ export class ApiClient extends BaseApiClient {
   estimateMessageStoragePurge = this.messageStorage.estimatePurge;
   purgeStoredMessages = this.messageStorage.purgeMessages;
   triggerMessageRetentionNow = this.messageStorage.triggerRetentionNow;
+
+  // Lead scoring
+  getKeywordRules = this.keywordRules.getRules;
+  createKeywordRule = this.keywordRules.createRule;
+  updateKeywordRule = this.keywordRules.updateRule;
+  deleteKeywordRule = this.keywordRules.deleteRule;
+  getLeadScoringSettings = this.keywordRules.getScoringSettings;
+  updateLeadScoringSettings = this.keywordRules.updateScoringSettings;
 }
 
 export const apiClient = new ApiClient();

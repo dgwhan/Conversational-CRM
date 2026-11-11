@@ -8,17 +8,12 @@ import {
 } from '../../src/modules/nlp/domain/conversation-scoring.js';
 import {
   CONVERSATION_TIERS,
-  SCORING_RULE_GROUPS,
   type ConversationTier,
 } from '../../src/modules/nlp/domain/scoring.constants.js';
-import type { KeywordRuleItem } from '../../src/modules/nlp/keyword-scoring.js';
 import { HeuristicAmbiguityResolver } from '../../src/modules/nlp/application/llm-ambiguity-gateway.service.js';
-import { MULTI_DOMAIN_BENCHMARK_RULES } from '../../src/modules/nlp/domain/scoring-rules.presets.js';
+import { benchmarkRules } from '../fixtures/scoring-rules.js';
 
 describe('100-Conversation Labeled Benchmark & Evaluation (Multi-domain CRM)', () => {
-  // Sử dụng bộ quy tắc từ khóa mẫu đa ngành được quản lý tập trung từ domain presets
-  const benchmarkRules = MULTI_DOMAIN_BENCHMARK_RULES;
-
   const thresholdConfig: ScoringThresholdConfig = {
     ...DEFAULT_SCORING_THRESHOLDS,
     hotMinScore: 8,

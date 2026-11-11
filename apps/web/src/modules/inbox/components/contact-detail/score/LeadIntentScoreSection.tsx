@@ -3,234 +3,168 @@ import { AlertCircle } from 'lucide-react';
 import type { ChatMessage, ConversationClassificationData, ConversationTier } from '../../../types.js';
 import { evaluateConversationScore } from '../../../utils/leadScoringUtils.js';
 import { Modal } from '../../../../../components/ui/Modal.js';
+import { useLeadScoringConfig } from '../../../context/leadScoringConfig.js';
 
 interface LeadIntentScoreSectionProps {
-  classification?: ConversationClassificationData;
   messages?: ChatMessage[];
   customerPhone?: string;
 }
 
+const tierStyles: Record<ConversationTier, { badge: string; bar: string }> = {
+  HOT: { badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/80', bar: 'bg-emerald-500' },
+  WARM: { badge: 'bg-slate-100 text-slate-700 border-slate-200/80', bar: 'bg-slate-400' },
+  COLD: { badge: 'bg-slate-100 text-slate-600 border-slate-200/80', bar: 'bg-slate-300' },
+  IRRELEVANT: { badge: 'bg-slate-100 text-slate-500 border-slate-200/80', bar: 'bg-slate-200' },
+};
+
 export const LeadIntentScoreSection: React.FC<LeadIntentScoreSectionProps> = ({
-  classification,
   messages = [],
   customerPhone,
 }) => {
   const [isExplanationOpen, setIsExplanationOpen] = useState(false);
+  const { rules, settings, isLoading } = useLeadScoringConfig();
 
-  // Đánh giá trực tiếp dựa trên thông tin và tin nhắn trao đổi thực tế
-  const data: ConversationClassificationData = useMemo(() => {
-    if (classification && classification.reasons && classification.reasons.length > 0) {
-      return classification;
-    }
-    return evaluateConversationScore(messages, customerPhone);
-  }, [classification, messages, customerPhone]);
+  const data: ConversationClassificationData | null = useMemo(() => {
+    if (!settings) return null;
+    return evaluateConversationScore(messages, customerPhone, rules, settings);
+  }, [messages, customerPhone, rules, settings]);
 
-  const getTierMeta = (tier: ConversationTier) => {
-    switch (tier) {
-      case 'HOT':
-        return {
-          label: 'Ưu tiên cao',
-          badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
-          barColor: 'bg-emerald-500',
-          recommendation: 'Khách hàng có nhu cầu hợp tác/chốt đơn rõ ràng và đã có SĐT. Ưu tiên liên hệ xử lý trong 15 phút.',
-        };
-      case 'WARM':
-        return {
-          label: 'Đang quan tâm',
-          badgeClass: 'bg-slate-100 text-slate-700 border border-slate-200/80',
-          barColor: 'bg-slate-400',
-          recommendation: 'Khách hàng đang tìm hiểu báo giá hoặc chi tiết giải pháp. Gửi tài liệu tư vấn và phương án triển khai.',
-        };
-      case 'COLD':
-        return {
-          label: 'Mới tiếp cận',
-          badgeClass: 'bg-slate-100 text-slate-600 border border-slate-200/80',
-          barColor: 'bg-slate-300',
-          recommendation: 'Khách hàng hỏi thông tin chung. Tiếp tục giải đáp và cập nhật hồ sơ chăm sóc định kỳ.',
-        };
-      default:
-        return {
-          label: 'Chưa phân loại',
-          badgeClass: 'bg-slate-100 text-slate-500 border border-slate-200/80',
-          barColor: 'bg-slate-200',
-          recommendation: 'Chưa phát hiện từ khóa nhu cầu trong các lượt trao đổi gần nhất.',
-        };
-    }
-  };
+  if (!settings || !data) {
+    return (
+      <div className="bg-white p-4 text-xs text-slate-500">
+        {isLoading ? 'Đang tải cấu hình đánh giá...' : 'Chưa có cấu hình đánh giá cho không gian làm việc này.'}
+      </div>
+    );
+  }
 
-  const meta = getTierMeta(data.tier);
-  const progressPercent = Math.min(100, Math.max(data.score > 0 ? 8 : 0, (data.score / 15) * 100));
+  const tierStyle = tierStyles[data.tier];
+  const progressPercent = Math.min(100, Math.max(data.score > 0 ? 8 : 0, (data.score / settings.hotMinScore) * 100));
+  const activeRules = rules.filter((rule) => rule.isActive);
 
   return (
-    <div className="p-4 bg-white space-y-2.5">
-      {/* 1. Header Section: Dấu chấm than (!) mở module giải thích */}
+    <div className="space-y-2.5 bg-white p-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <h4 className="m-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Đánh Giá Tiềm Năng
+        <div className="flex shrink-0 items-center gap-1.5">
+          <h4 className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Đánh giá tiềm năng
           </h4>
           <button
             type="button"
             onClick={() => setIsExplanationOpen(true)}
-            className="inline-flex items-center justify-center p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer rounded"
-            title="Xem nguyên tắc đánh giá tiềm năng"
-            aria-label="Nguyên tắc đánh giá tiềm năng"
+            className="cursor-pointer rounded p-0.5 text-slate-400 transition-colors hover:text-slate-700"
+            title="Xem cấu hình đánh giá"
+            aria-label="Cấu hình đánh giá tiềm năng"
           >
             <AlertCircle size={13} />
           </button>
         </div>
-
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap shrink-0 ${meta.badgeClass}`}
-        >
-          {meta.label}
+        <span className={`shrink-0 whitespace-nowrap rounded border px-2 py-0.5 text-xs font-medium ${tierStyle.badge}`}>
+          {settings.tierLabels[data.tier]}
         </span>
       </div>
 
-      {/* 2. Thang đo tiến độ mảnh, tinh giản */}
-      <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${meta.barColor}`}
+          className={`h-full rounded-full transition-all duration-300 ${tierStyle.bar}`}
           style={{ width: `${progressPercent}%` }}
         />
       </div>
 
-      {/* 3. Tiêu chí đã ghi nhận (Không hiển thị số điểm cộng để tối giản) */}
       {data.reasons.length > 0 && (
         <div className="space-y-1.5 pt-0.5">
           <div className="flex items-center justify-between text-[11px] text-slate-500">
             <span>Tiêu chí ghi nhận:</span>
             <span className="text-slate-400">Tự động nhận diện</span>
           </div>
-
           <div className="flex flex-wrap gap-1.5">
-            {data.reasons.map((reason, idx) => {
-              const keywordLabel = reason.keyword.replace(/^có\s+/i, '');
-              return (
-                <span
-                  key={idx}
-                  className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700"
-                >
-                  {keywordLabel}
-                </span>
-              );
-            })}
+            {data.reasons.map((reason, index) => (
+              <span
+                key={`${reason.keyword}-${index}`}
+                className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+              >
+                {reason.keyword}
+              </span>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 4. Khuyến nghị tư vấn */}
-      <p className="m-0 text-xs text-slate-500 leading-relaxed pt-0.5">
-        <span className="font-medium text-slate-700">Tư vấn: </span>
-        {meta.recommendation}
+      <p className="m-0 pt-0.5 text-xs leading-relaxed text-slate-500">
+        <span className="font-medium text-slate-700">Khuyến nghị: </span>
+        {settings.tierRecommendations[data.tier]}
       </p>
 
-      {/* 5. Module Giải Thích Nguyên Tắc Đánh Giá Tiềm Năng */}
       <Modal
         isOpen={isExplanationOpen}
         onClose={() => setIsExplanationOpen(false)}
-        title="Nguyên Tắc Đánh Giá Tiềm Năng"
-        size="xl"
-        showCloseButton={true}
+        title="Cấu hình đánh giá tiềm năng"
+        size="lg"
+        showCloseButton
         primaryAction={{
           label: 'Đã hiểu',
           onClick: () => setIsExplanationOpen(false),
           variant: 'primary',
         }}
       >
-        <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-          {/* Nguyên lý */}
-          <div className="space-y-1.5">
-            <h5 className="m-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">
-              1. Nguyên lý phân tích hội thoại
+        <div className="space-y-4 text-xs leading-relaxed text-slate-600">
+          <section className="space-y-2">
+            <h5 className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-900">
+              Tiêu chí từ khóa đang áp dụng
             </h5>
-            <ul className="m-0 pl-4 space-y-1 list-disc text-slate-600">
-              <li>
-                <span className="font-medium text-slate-800">Tối ưu tín hiệu:</span> Mỗi tiêu chí chỉ ghi nhận tín hiệu tối đa một lần cho toàn bộ hội thoại, tránh việc khách hàng hỏi lặp lại nhiều lần bị đánh giá sai lệch.
-              </li>
-              <li>
-                <span className="font-medium text-slate-800">Loại trừ câu phủ định:</span> Tự động nhận diện và bỏ qua các câu phủ định (ví dụ: <em>"không mua đâu"</em>, <em>"chưa có nhu cầu"</em>).
-              </li>
-              <li>
-                <span className="font-medium text-slate-800">Tiếng Việt linh hoạt:</span> Hỗ trợ cả tiếng Việt có dấu, không dấu và các từ viết tắt phổ biến (<em>"bao gia"</em>, <em>"sdt"</em>, <em>"chi phi"</em>).
-              </li>
-            </ul>
-          </div>
+            {activeRules.length ? (
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="w-full min-w-[400px] border-collapse text-left">
+                  <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Nhóm</th>
+                      <th className="px-3 py-2">Từ khóa</th>
+                      <th className="px-3 py-2 text-right">Trọng số</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[11px]">
+                    {activeRules.map((rule) => (
+                      <tr key={rule.id}>
+                        <td className="px-3 py-2">{rule.group}</td>
+                        <td className="px-3 py-2">
+                          <div>{rule.keyword}</div>
+                          {rule.description && <div className="text-[10px] text-slate-400">{rule.description}</div>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-medium">{rule.weight > 0 ? `+${rule.weight}` : rule.weight}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="m-0 rounded-lg bg-slate-50 p-3">
+                Chưa có từ khóa tùy chỉnh. Điểm hiện tại chỉ áp dụng các thiết lập số liệu bên dưới.
+              </p>
+            )}
+          </section>
 
-          {/* Bảng tín hiệu */}
-          <div className="space-y-1.5">
-            <h5 className="m-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">
-              2. Các tín hiệu nhận diện chính
+          <section className="space-y-2">
+            <h5 className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-900">
+              Ngưỡng phân loại và điểm số
             </h5>
-            <div className="border-y border-slate-200/80 overflow-hidden">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 border-b border-slate-200/80">
-                  <tr>
-                    <th className="py-2 px-3">Tín hiệu / Tiêu chí</th>
-                    <th className="py-2 px-3 w-32 text-right">Mức độ ưu tiên</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-[11px]">
-                  <tr>
-                    <td className="py-2 px-3 text-slate-800">
-                      <span className="font-medium">Số điện thoại (SĐT)</span>
-                      <p className="m-0 text-[10px] text-slate-400">Khách gửi SĐT vào chat hoặc hồ sơ có SĐT liên hệ</p>
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium text-emerald-600">Ưu tiên cao</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-slate-800">
-                      <span className="font-medium">Ý định hợp tác / Mua hàng / Đăng ký</span>
-                      <p className="m-0 text-[10px] text-slate-400">Từ khóa: <em>đăng ký, mua, chốt đơn, đặt hàng, ký hợp đồng</em></p>
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium text-emerald-600">Ưu tiên cao</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-slate-800">
-                      <span className="font-medium">Hỏi báo giá / Chi phí / Ưu đãi</span>
-                      <p className="m-0 text-[10px] text-slate-400">Từ khóa: <em>báo giá, giá, chi phí, bao nhiêu tiền, ưu đãi, chiết khấu</em></p>
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium text-slate-600">Đang quan tâm</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-slate-800">
-                      <span className="font-medium">Hỏi quy trình / Lộ trình / Kế hoạch triển khai</span>
-                      <p className="m-0 text-[10px] text-slate-400">Từ khóa: <em>quy trình, lộ trình, thời gian, lịch hẹn, kế hoạch</em></p>
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium text-slate-600">Đang quan tâm</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-slate-800">
-                      <span className="font-medium">Hỏi thông tin cơ bản</span>
-                      <p className="m-0 text-[10px] text-slate-400">Từ khóa: <em>tư vấn, sản phẩm, dịch vụ, thông tin chi tiết</em></p>
-                    </td>
-                    <td className="py-2 px-3 text-right font-medium text-slate-600">Mới tiếp cận</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Phân loại cấp bậc */}
-          <div className="space-y-1.5">
-            <h5 className="m-0 text-xs font-semibold text-slate-900 uppercase tracking-wider">
-              3. Thang phân loại tiềm năng
-            </h5>
-            <ul className="m-0 pl-4 space-y-1.5 list-disc text-slate-600 text-xs">
-              <li>
-                <span className="font-medium text-emerald-700">Ưu tiên cao:</span> Khách hàng sẵn sàng chốt nhu cầu, đã để lại SĐT. Ưu tiên liên hệ xử lý ngay.
-              </li>
-              <li>
-                <span className="font-medium text-slate-800">Đang quan tâm:</span> Đang tìm hiểu báo giá và giải pháp. Gửi ngay tài liệu chi tiết.
-              </li>
-              <li>
-                <span className="font-medium text-slate-700">Mới tiếp cận:</span> Mới hỏi thăm thông tin cơ bản. Tiếp tục tư vấn và chăm sóc định kỳ.
-              </li>
-              <li>
-                <span className="font-medium text-slate-600">Chưa phân loại:</span> Chưa phát hiện từ khóa nhu cầu hoặc hội thoại chưa đủ dữ kiện.
-              </li>
+            <ul className="m-0 list-disc space-y-1 pl-4">
+              {(['HOT', 'WARM', 'COLD', 'IRRELEVANT'] as ConversationTier[]).map((tier) => (
+                <li key={tier}>
+                  <span className="font-medium text-slate-800">{settings.tierLabels[tier]}</span>
+                  {tier !== 'IRRELEVANT' && (
+                    <>: từ {settings[`${tier.toLowerCase()}MinScore` as 'hotMinScore' | 'warmMinScore' | 'coldMinScore']} điểm</>
+                  )}
+                  {' — '}
+                  {settings.tierRecommendations[tier]}
+                </li>
+              ))}
+              <li>Điểm thưởng khi có số điện thoại: {settings.phoneBonusScore}</li>
+              <li>Tiêu chí có trọng số từ {settings.exclusionThresholdWeight} trở xuống sẽ loại trừ.</li>
             </ul>
-          </div>
+          </section>
+
+          <p className="m-0 text-[11px] text-slate-500">
+            Văn bản được so khớp không phân biệt dấu tiếng Việt. Nhóm, từ khóa, trọng số, ngưỡng và nội dung hiển thị do chủ sở hữu workspace quản lý.
+          </p>
         </div>
       </Modal>
     </div>

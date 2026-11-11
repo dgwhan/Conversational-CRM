@@ -1,4 +1,4 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
 import { KeywordRulesService } from '../keyword-rules.service.js';
 import {
   scoreConversation,
@@ -34,9 +34,6 @@ export class ConversationClassificationService {
   private readonly rulesCache = new Map<string, CacheEntry<KeywordRuleItem[]>>();
   private readonly thresholdCache = new Map<string, CacheEntry<ScoringThresholdConfig>>();
 
-  // Cấu hình ngưỡng ghi đè động tại runtime theo workspaceId
-  private readonly dynamicThresholdConfigs = new Map<string, ScoringThresholdConfig>();
-
   // Danh sách các handler đăng ký nhận sự kiện ConversationClassified
   private readonly eventListeners: Array<(event: ConversationClassifiedEvent) => void | Promise<void>> = [];
   private readonly ambiguityGateway: LlmAmbiguityGatewayService;
@@ -62,19 +59,24 @@ export class ConversationClassificationService {
   /**
    * Cập nhật ngưỡng điểm động tại runtime cho một workspace (không cần deploy lại)
    */
-  setThresholdConfig(
+  async setThresholdConfig(
     workspaceId: string = 'default',
     thresholds: Partial<ScoringThresholdConfig>
-  ): ScoringThresholdConfig {
-    const existing = this.dynamicThresholdConfigs.get(workspaceId) || { ...DEFAULT_SCORING_THRESHOLDS };
+  ): Promise<ScoringThresholdConfig> {
+    const existing = await this.getThresholdConfig(workspaceId);
     const updated: ScoringThresholdConfig = {
       ...existing,
       ...thresholds,
+      tierLabels: { ...existing.tierLabels, ...thresholds.tierLabels },
+      tierRecommendations: { ...existing.tierRecommendations, ...thresholds.tierRecommendations },
     };
+    this.validateThresholdConfig(updated);
 
-    this.dynamicThresholdConfigs.set(workspaceId, updated);
-    // Xóa cache cũ để có hiệu lực ngay lập tức
-    this.thresholdCache.delete(workspaceId);
+    await this.keywordRulesService.saveScoringConfig(workspaceId, updated);
+    this.thresholdCache.set(workspaceId, {
+      data: updated,
+      expiresAt: Date.now() + this.CACHE_TTL_MS,
+    });
     this.logger.log(`Updated scoring thresholds for workspace ${workspaceId}: ${JSON.stringify(updated)}`);
 
     return updated;
@@ -89,13 +91,88 @@ export class ConversationClassificationService {
       return cached.data;
     }
 
-    const config = this.dynamicThresholdConfigs.get(workspaceId) || { ...DEFAULT_SCORING_THRESHOLDS };
+    const persistedConfig = await this.keywordRulesService.getScoringConfig(workspaceId);
+    const config: ScoringThresholdConfig = {
+      ...DEFAULT_SCORING_THRESHOLDS,
+      ...persistedConfig,
+      tierLabels: {
+        ...DEFAULT_SCORING_THRESHOLDS.tierLabels,
+        ...persistedConfig?.tierLabels,
+      },
+      tierRecommendations: {
+        ...DEFAULT_SCORING_THRESHOLDS.tierRecommendations,
+        ...persistedConfig?.tierRecommendations,
+      },
+    };
     this.thresholdCache.set(workspaceId, {
       data: config,
       expiresAt: Date.now() + this.CACHE_TTL_MS,
     });
 
     return config;
+  }
+
+  private validateThresholdConfig(config: ScoringThresholdConfig): void {
+    const scoreValues = [
+      config.hotMinScore,
+      config.warmMinScore,
+      config.coldMinScore,
+      config.phoneBonusScore,
+      config.inactivityDecayDays,
+      config.inactivityDecayPoints,
+      config.inactivityDecayWeeklyPoints,
+      config.inactivityDecayIntervalDays,
+      config.exclusionThresholdWeight,
+      config.exclusionPenaltyScore,
+      config.ambiguityScoreGap,
+      config.hotBoundaryMinMessages,
+      config.shortMessageMaxWords,
+      config.negationWindowWords,
+    ];
+    if (scoreValues.some((value) => !Number.isInteger(value))) {
+      throw new BadRequestException('Các ngưỡng chấm điểm phải là số nguyên.');
+    }
+    if (typeof config.ambiguityResolutionEnabled !== 'boolean') {
+      throw new BadRequestException('Trạng thái xử lý tin nhắn mơ hồ không hợp lệ.');
+    }
+    if (
+      !Array.isArray(config.negationTerms) ||
+      !Array.isArray(config.negationPostTerms) ||
+      config.negationTerms.length > 100 ||
+      config.negationPostTerms.length > 100 ||
+      [...config.negationTerms, ...config.negationPostTerms].some(
+        (term) => typeof term !== 'string' || !term.trim() || term.length > 100,
+      )
+    ) {
+      throw new BadRequestException('Danh sách từ phủ định không hợp lệ.');
+    }
+    if (!(config.hotMinScore > config.warmMinScore && config.warmMinScore >= config.coldMinScore && config.coldMinScore > 0)) {
+      throw new BadRequestException('Ngưỡng Nóng phải lớn hơn Ấm, và ngưỡng Ấm phải lớn hơn hoặc bằng Lạnh.');
+    }
+    if (
+      config.phoneBonusScore < 0 ||
+      config.inactivityDecayDays < 0 ||
+      config.inactivityDecayPoints < 0 ||
+      config.inactivityDecayWeeklyPoints < 0 ||
+      config.inactivityDecayIntervalDays < 1 ||
+      config.hotBoundaryMinMessages < 1 ||
+      config.shortMessageMaxWords < 0 ||
+      config.negationWindowWords < 0 ||
+      config.ambiguityScoreGap < 0 ||
+      config.exclusionThresholdWeight > 0 ||
+      config.exclusionPenaltyScore > 0
+    ) {
+      throw new BadRequestException('Điểm thưởng, thời gian và điểm loại trừ không hợp lệ.');
+    }
+    const labels = Object.values(config.tierLabels);
+    const recommendations = Object.values(config.tierRecommendations);
+    if (
+      [...labels, ...recommendations].some(
+        (value) => typeof value !== 'string' || value.trim().length === 0 || value.length > 500,
+      )
+    ) {
+      throw new BadRequestException('Tên hạng và khuyến nghị phải có nội dung, tối đa 500 ký tự.');
+    }
   }
 
   /**
@@ -167,7 +244,7 @@ export class ConversationClassificationService {
     let result = scoreConversation(messages, rules, thresholds, catalog, daysInactive);
 
     // 4. Giải quyết tin mơ hồ qua Cổng Ambiguity Gateway nếu có cấu hình
-    if (this.ambiguityGateway && resolveAmbiguity) {
+    if (this.ambiguityGateway && resolveAmbiguity && thresholds.ambiguityResolutionEnabled) {
       if (this.ambiguityGateway.isAmbiguous(result, messages, thresholds, daysInactive)) {
         const ambiguityRes = await this.ambiguityGateway.resolveAmbiguity(
           messages,

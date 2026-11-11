@@ -4,43 +4,12 @@
  * - "không đăng ký đâu", "chưa muốn học", "đừng gọi nữa", "ko cần tư vấn"
  */
 
-import { stripVietnameseAccents } from '../text-normalizer.js';
-
-// Danh sách từ/cụm từ chỉ sự phủ định trong tiếng Việt (đã bỏ dấu và chữ thường)
-export const NEGATION_MARKERS = [
-  'khong',
-  'chua',
-  'ko',
-  'k0',
-  'k',
-  'hong',
-  'hong co',
-  'chang',
-  'dung',
-  'dung co',
-  'huy',
-  'ngung',
-  'thoi',
-  'khoi',
-  'rut',
-  'chua tung',
-  'khong he',
-  'chua muon',
-  'khong muon',
-  'ko muon',
-  'khong can',
-  'ko can',
-];
-
-// Trợ từ/hậu từ phủ định hoặc nhấn mạnh phủ định đứng sau
-export const NEGATION_POST_MARKERS = [
-  'dau',
-  'nua',
-  'gi dau',
-  'chi nua',
-  'dau a',
-  'dau nhe',
-];
+import { containsNormalizedPhrase, normalize } from '../text-normalizer.js';
+import {
+  DEFAULT_NEGATION_POST_TERMS,
+  DEFAULT_NEGATION_TERMS,
+  DEFAULT_SCORING_THRESHOLDS_CONFIG,
+} from './scoring.constants.js';
 
 /**
  * Kiểm tra xem một từ khóa mục tiêu (ví dụ "dang ky", "hoc", "tu van")
@@ -53,12 +22,14 @@ export const NEGATION_POST_MARKERS = [
 export function isKeywordNegated(
   normalizedText: string,
   normalizedKeyword: string,
-  maxWindowDistance: number = 4
+  maxWindowDistance: number = DEFAULT_SCORING_THRESHOLDS_CONFIG.NEGATION_WINDOW_WORDS,
+  negationTerms: string[] = [...DEFAULT_NEGATION_TERMS],
+  negationPostTerms: string[] = [...DEFAULT_NEGATION_POST_TERMS],
 ): boolean {
   if (!normalizedText || !normalizedKeyword) return false;
 
-  const cleanText = stripVietnameseAccents(normalizedText.toLowerCase()).trim();
-  const cleanKeyword = stripVietnameseAccents(normalizedKeyword.toLowerCase()).trim();
+  const cleanText = normalize(normalizedText);
+  const cleanKeyword = normalize(normalizedKeyword);
 
   // Tách câu thành các mệnh đề/cụm từ theo dấu chấm câu hoặc liên từ ngắt
   const clauses = cleanText.split(/[,.;!?\n]+/).map((c) => c.trim()).filter(Boolean);
@@ -79,26 +50,13 @@ export function isKeywordNegated(
         const prefixTokens = words.slice(startIndex, i);
         const prefixStr = prefixTokens.join(' ');
 
-        for (const marker of NEGATION_MARKERS) {
-          // Khớp ranh giới từ của từ phủ định trong chuỗi tiền tố
-          const markerRegex = new RegExp(`\\b${marker}\\b`, 'i');
-          if (markerRegex.test(prefixStr)) {
-            return true;
-          }
-        }
+        if (negationTerms.some((marker) => containsNormalizedPhrase(prefixStr, normalize(marker)))) return true;
 
-        // 2. Kiểm tra hậu từ (Suffix Window): 1 đến 2 từ đứng ngay sau (VD: "đăng ký đâu", "học chi nữa")
-        const endIndex = Math.min(words.length, i + kwLength + 2);
+        const endIndex = Math.min(words.length, i + kwLength + maxWindowDistance);
         const suffixTokens = words.slice(i + kwLength, endIndex);
         const suffixStr = suffixTokens.join(' ');
 
-        for (const postMarker of NEGATION_POST_MARKERS) {
-          const postRegex = new RegExp(`\\b${postMarker}\\b`, 'i');
-          if (postRegex.test(suffixStr)) {
-            // Nếu có hậu từ phủ định (như "đâu", "nữa") kết hợp với tiền tố phủ định hoặc đứng một mình
-            return true;
-          }
-        }
+        if (negationPostTerms.some((marker) => containsNormalizedPhrase(suffixStr, normalize(marker)))) return true;
       }
     }
   }

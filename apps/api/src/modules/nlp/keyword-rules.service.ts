@@ -1,116 +1,74 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import {
   KeywordRuleItem,
-  INITIAL_SEED_KEYWORD_RULES,
   evaluateKeywordRules,
   KeywordEvaluationResult,
 } from './keyword-scoring.js';
 import { extractEntities, ExtractedEntitiesResult, CatalogProductItem } from './entity-extractor.js';
+import type { ScoringThresholdConfig } from './domain/conversation-scoring.js';
+import { DEFAULT_SCORING_THRESHOLDS } from './domain/conversation-scoring.js';
 
 @Injectable()
 export class KeywordRulesService {
-  private readonly logger = new Logger(KeywordRulesService.name);
-  // In-memory fallback if Prisma is not connected or in test mode
-  private inMemoryRules: KeywordRuleItem[] = [...INITIAL_SEED_KEYWORD_RULES];
+  private inMemoryRules: KeywordRuleItem[] = [];
+  private readonly inMemoryScoringConfigs = new Map<string, ScoringThresholdConfig>();
 
   constructor(@Optional() private readonly prisma?: PrismaService) {}
 
   /**
-   * Lấy danh sách luật từ khóa (ưu tiên từ Database, fallback in-memory)
+   * Lấy danh sách luật từ khóa theo workspace.
    */
   async getRules(workspaceId?: string): Promise<KeywordRuleItem[]> {
-    if (this.prisma) {
-      try {
-        const dbRules = await (this.prisma as any).keywordRule.findMany({
-          where: workspaceId ? { OR: [{ workspaceId }, { workspaceId: null }] } : {},
-          orderBy: [{ group: 'asc' }, { weight: 'desc' }],
-        });
-
-        if (Array.isArray(dbRules) && dbRules.length > 0) {
-          return dbRules.map((r: any) => ({
-            id: r.id,
-            workspaceId: r.workspaceId || undefined,
-            group: r.group,
-            keyword: r.keyword,
-            weight: r.weight,
-            isActive: r.isActive,
-            description: r.description || undefined,
-          }));
-        }
-
-        // Tự động seed nếu DB chưa có
-        await this.seedInitialRules(workspaceId);
-        return this.inMemoryRules;
-      } catch (err) {
-        this.logger.warn(`Could not query keyword_rules from DB, using in-memory store: ${(err as Error).message}`);
-      }
+    if (!this.prisma) {
+      return this.inMemoryRules.filter((rule) => rule.workspaceId === workspaceId);
     }
 
-    return this.inMemoryRules;
-  }
+    const where = { workspaceId: workspaceId || null };
+    const dbRules = await this.prisma.keywordRule.findMany({
+      where,
+      orderBy: [{ group: 'asc' }, { weight: 'desc' }],
+    });
 
-  /**
-   * Seed bộ luật ban đầu vào Database
-   */
-  async seedInitialRules(workspaceId?: string): Promise<KeywordRuleItem[]> {
-    if (this.prisma) {
-      try {
-        for (const seed of INITIAL_SEED_KEYWORD_RULES) {
-          await (this.prisma as any).keywordRule.create({
-            data: {
-              workspaceId: workspaceId || null,
-              group: seed.group,
-              keyword: seed.keyword,
-              weight: seed.weight,
-              isActive: seed.isActive,
-              description: seed.description || null,
-            },
-          }).catch(() => {});
-        }
-        this.logger.log(`Seeded initial keyword rules into database.`);
-      } catch (e) {
-        this.logger.warn(`Seed keyword rules error: ${(e as Error).message}`);
-      }
-    }
-    return this.inMemoryRules;
+    return dbRules.map((rule) => this.mapRule(rule));
   }
 
   /**
    * Tạo luật từ khóa mới
    */
   async createRule(data: Omit<KeywordRuleItem, 'id'>): Promise<KeywordRuleItem> {
+    if (
+      !data.group?.trim() ||
+      data.group.trim().length > 50 ||
+      !data.keyword?.trim() ||
+      data.keyword.trim().length > 200 ||
+      !Number.isInteger(data.weight) ||
+      typeof data.isActive !== 'boolean' ||
+      (data.description?.length ?? 0) > 500
+    ) {
+      throw new BadRequestException('Thông tin tiêu chí chấm điểm không hợp lệ.');
+    }
+
     if (this.prisma) {
-      try {
-        const created = await (this.prisma as any).keywordRule.create({
-          data: {
-            workspaceId: data.workspaceId || null,
-            group: data.group,
-            keyword: data.keyword,
-            weight: data.weight ?? 10,
-            isActive: data.isActive ?? true,
-            description: data.description || null,
-          },
-        });
-        return {
-          id: created.id,
-          workspaceId: created.workspaceId || undefined,
-          group: created.group,
-          keyword: created.keyword,
-          weight: created.weight,
-          isActive: created.isActive,
-          description: created.description || undefined,
-        };
-      } catch (err) {
-        this.logger.warn(`Failed to create rule in DB, adding to in-memory: ${(err as Error).message}`);
-      }
+      const created = await this.prisma.keywordRule.create({
+        data: {
+          workspaceId: data.workspaceId || null,
+          group: data.group.trim(),
+          keyword: data.keyword.trim(),
+          weight: data.weight,
+          isActive: data.isActive,
+          description: data.description || null,
+        },
+      });
+      return this.mapRule(created);
     }
 
     const newRule: KeywordRuleItem = {
       id: `rule-${Date.now()}`,
       ...data,
-      weight: data.weight ?? 10,
-      isActive: data.isActive ?? true,
+      group: data.group.trim(),
+      keyword: data.keyword.trim(),
     };
     this.inMemoryRules.push(newRule);
     return newRule;
@@ -124,41 +82,37 @@ export class KeywordRulesService {
     patch: Partial<KeywordRuleItem>,
     workspaceId?: string,
   ): Promise<KeywordRuleItem | null> {
-    if (this.prisma) {
-      try {
-        const data = {
-          ...(patch.group ? { group: patch.group } : {}),
-          ...(patch.keyword ? { keyword: patch.keyword } : {}),
-          ...(typeof patch.weight === 'number' ? { weight: patch.weight } : {}),
-          ...(typeof patch.isActive === 'boolean' ? { isActive: patch.isActive } : {}),
-          ...(patch.description !== undefined ? { description: patch.description } : {}),
-        };
+    if (
+      (patch.group !== undefined && (!patch.group.trim() || patch.group.trim().length > 50)) ||
+      (patch.keyword !== undefined && (!patch.keyword.trim() || patch.keyword.trim().length > 200)) ||
+      (patch.weight !== undefined && !Number.isInteger(patch.weight)) ||
+      (patch.isActive !== undefined && typeof patch.isActive !== 'boolean') ||
+      (patch.description !== undefined && (patch.description?.length ?? 0) > 500)
+    ) {
+      throw new BadRequestException('Thông tin tiêu chí chấm điểm không hợp lệ.');
+    }
 
-        let updated: any;
-        if (workspaceId) {
-          // Chỉ được sửa luật thuộc đúng workspace của mình (luật dùng chung workspaceId=null là chỉ đọc)
-          const result = await (this.prisma as any).keywordRule.updateMany({
-            where: { id, workspaceId },
-            data,
-          });
-          if (!result || result.count === 0) return null;
-          updated = await (this.prisma as any).keywordRule.findUnique({ where: { id } });
-          if (!updated) return null;
-        } else {
-          updated = await (this.prisma as any).keywordRule.update({ where: { id }, data });
-        }
-        return {
-          id: updated.id,
-          workspaceId: updated.workspaceId || undefined,
-          group: updated.group,
-          keyword: updated.keyword,
-          weight: updated.weight,
-          isActive: updated.isActive,
-          description: updated.description || undefined,
-        };
-      } catch (err) {
-        this.logger.warn(`Failed to update rule in DB, updating in-memory: ${(err as Error).message}`);
+    if (this.prisma) {
+      const data = {
+        ...(patch.group ? { group: patch.group.trim() } : {}),
+        ...(patch.keyword ? { keyword: patch.keyword.trim() } : {}),
+        ...(typeof patch.weight === 'number' ? { weight: patch.weight } : {}),
+        ...(typeof patch.isActive === 'boolean' ? { isActive: patch.isActive } : {}),
+        ...(patch.description !== undefined ? { description: patch.description } : {}),
+      };
+
+      if (workspaceId) {
+        // Shared rules cannot be updated through workspace-scoped endpoints.
+        const result = await this.prisma.keywordRule.updateMany({
+          where: { id, workspaceId },
+          data,
+        });
+        if (result.count === 0) return null;
+        const updated = await this.prisma.keywordRule.findUnique({ where: { id } });
+        return updated ? this.mapRule(updated) : null;
       }
+
+      return this.mapRule(await this.prisma.keywordRule.update({ where: { id }, data }));
     }
 
     const idx = this.inMemoryRules.findIndex(
@@ -177,22 +131,54 @@ export class KeywordRulesService {
    */
   async deleteRule(id: string, workspaceId?: string): Promise<boolean> {
     if (this.prisma) {
-      try {
-        if (workspaceId) {
-          const result = await (this.prisma as any).keywordRule.deleteMany({ where: { id, workspaceId } });
-          return Boolean(result && result.count > 0);
-        }
-        await (this.prisma as any).keywordRule.delete({ where: { id } });
-        return true;
-      } catch (err) {
-        this.logger.warn(`Failed to delete rule in DB: ${(err as Error).message}`);
+      if (workspaceId) {
+        const result = await this.prisma.keywordRule.deleteMany({ where: { id, workspaceId } });
+        return result.count > 0;
       }
+      await this.prisma.keywordRule.delete({ where: { id } });
+      return true;
     }
     const before = this.inMemoryRules.length;
     this.inMemoryRules = this.inMemoryRules.filter(
       (r) => !(r.id === id && (!workspaceId || r.workspaceId === workspaceId)),
     );
     return this.inMemoryRules.length < before;
+  }
+
+  async getScoringConfig(workspaceId: string): Promise<Partial<ScoringThresholdConfig> | null> {
+    if (!this.prisma) return this.inMemoryScoringConfigs.get(workspaceId) ?? null;
+
+    const workspaceConfig = await this.prisma.workspaceConfiguration.findUnique({
+      where: { workspaceId },
+      select: { leadScoringConfig: true },
+    });
+    const storedConfig = workspaceConfig?.leadScoringConfig;
+    if (!storedConfig || typeof storedConfig !== 'object' || Array.isArray(storedConfig)) return null;
+    return storedConfig as Partial<ScoringThresholdConfig>;
+  }
+
+  async saveScoringConfig(workspaceId: string, config: ScoringThresholdConfig): Promise<void> {
+    if (!this.prisma) {
+      this.inMemoryScoringConfigs.set(workspaceId, structuredClone(config));
+      return;
+    }
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { ownerId: true },
+    });
+    if (!workspace) throw new NotFoundException('Không tìm thấy workspace để lưu cấu hình chấm điểm.');
+
+    const scoringConfigJson = JSON.parse(JSON.stringify(config)) as Prisma.InputJsonValue;
+    await this.prisma.workspaceConfiguration.upsert({
+      where: { workspaceId },
+      create: {
+        workspaceId,
+        ownerId: workspace.ownerId,
+        leadScoringConfig: scoringConfigJson,
+      },
+      update: { leadScoringConfig: scoringConfigJson },
+    });
   }
 
   /**
@@ -205,12 +191,40 @@ export class KeywordRulesService {
     catalog: CatalogProductItem[] = []
   ): Promise<KeywordEvaluationResult & { entities: ExtractedEntitiesResult }> {
     const rules = await this.getRules(workspaceId);
-    const scoringResult = evaluateKeywordRules(rawText, rules);
+    const scoringConfig = workspaceId ? await this.getScoringConfig(workspaceId) : null;
+    const scoringResult = evaluateKeywordRules(
+      rawText,
+      rules,
+      scoringConfig?.exclusionThresholdWeight ?? DEFAULT_SCORING_THRESHOLDS.exclusionThresholdWeight,
+      scoringConfig?.negationTerms ?? DEFAULT_SCORING_THRESHOLDS.negationTerms,
+      scoringConfig?.negationPostTerms ?? DEFAULT_SCORING_THRESHOLDS.negationPostTerms,
+      scoringConfig?.negationWindowWords ?? DEFAULT_SCORING_THRESHOLDS.negationWindowWords,
+    );
     const entities = extractEntities(rawText, catalog);
 
     return {
       ...scoringResult,
       entities,
+    };
+  }
+
+  private mapRule(rule: {
+    id: string;
+    workspaceId: string | null;
+    group: string;
+    keyword: string;
+    weight: number;
+    isActive: boolean;
+    description: string | null;
+  }): KeywordRuleItem {
+    return {
+      id: rule.id,
+      workspaceId: rule.workspaceId || undefined,
+      group: rule.group,
+      keyword: rule.keyword,
+      weight: rule.weight,
+      isActive: rule.isActive,
+      description: rule.description || undefined,
     };
   }
 }

@@ -16,7 +16,6 @@ describe('KeywordRulesController', () => {
       createRule: vi.fn(),
       updateRule: vi.fn(),
       deleteRule: vi.fn(),
-      seedInitialRules: vi.fn(),
       evaluateMessage: vi.fn(),
     };
 
@@ -92,16 +91,6 @@ describe('KeywordRulesController', () => {
     vi.mocked(mockService.deleteRule!).mockResolvedValue(false as any);
 
     await expect(controller.deleteRule('rule-x', req)).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('POST /keyword-rules/seed: nạp bộ luật ban đầu', async () => {
-    const fakeRules = new Array(16).fill({ id: 'rule' });
-    vi.mocked(mockService.seedInitialRules!).mockResolvedValue(fakeRules as any);
-
-    const result = await controller.seedRules('ws-1', 'ws-1', req);
-
-    expect(mockService.seedInitialRules).toHaveBeenCalledWith('ws-1');
-    expect(result.count).toBe(16);
   });
 
   it('POST /keyword-rules/evaluate: đánh giá và chấm điểm nội dung tin nhắn', async () => {

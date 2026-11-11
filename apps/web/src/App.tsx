@@ -21,6 +21,7 @@ import { AppSkeleton } from './components/ui/AppSkeleton.js';
 import { HttpErrorPage } from './pages/errors/HttpErrorPage.js';
 import { ROUTES, buildRoute } from './config/routes.js';
 import type { LoginResponse } from './features/auth/types/auth.types.js';
+import { LeadScoringConfigProvider } from './modules/inbox/context/LeadScoringConfigProvider.js';
 
 // Lazy load CRM internal pages and components for high performance initial load
 const LandingHomePage = lazy(() =>
@@ -123,11 +124,13 @@ function InboxRoute() {
   }
 
   return (
-    <UnifiedInboxPage
-      initialConversationId={conversationId || null}
-      onNavigateToKanban={() => navigate(ROUTES.KANBAN)}
-      onNavigateToCalendar={() => navigate(ROUTES.CALENDAR)}
-    />
+    <LeadScoringConfigProvider>
+      <UnifiedInboxPage
+        initialConversationId={conversationId || null}
+        onNavigateToKanban={() => navigate(ROUTES.KANBAN)}
+        onNavigateToCalendar={() => navigate(ROUTES.CALENDAR)}
+      />
+    </LeadScoringConfigProvider>
   );
 }
 
@@ -310,7 +313,9 @@ function CRMAppRoutes() {
               path={ROUTES.WORKSPACE_SETTINGS}
               element={
                 <WorkspaceAccessGuard requireOwner={true}>
-                  <WorkspaceSettingsPage />
+                  <LeadScoringConfigProvider>
+                    <WorkspaceSettingsPage />
+                  </LeadScoringConfigProvider>
                 </WorkspaceAccessGuard>
               }
             />
