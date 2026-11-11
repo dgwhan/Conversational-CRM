@@ -81,6 +81,12 @@ export function evaluateConversationScore(
   const appliedRuleIds = new Set<string>();
   const appliedKeywords = new Set<string>();
   let isExcluded = false;
+  const negationTerms = Array.isArray(settings.negationTerms)
+    ? settings.negationTerms.filter((term) => typeof term === 'string')
+    : [];
+  const negationPostTerms = Array.isArray(settings.negationPostTerms)
+    ? settings.negationPostTerms.filter((term) => typeof term === 'string')
+    : [];
 
   // 1. Quét toàn bộ tin nhắn trao đổi trong hội thoại
   // Khách hàng là người gửi (INBOUND hoặc tin nhắn trò chuyện)
@@ -102,8 +108,8 @@ export function evaluateConversationScore(
       if (isKeywordNegatedInText(
         normContent,
         normKeyword,
-        settings.negationTerms,
-        settings.negationPostTerms,
+        negationTerms,
+        negationPostTerms,
         settings.negationWindowWords,
       )) continue;
 

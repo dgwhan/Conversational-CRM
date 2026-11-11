@@ -103,6 +103,12 @@ export class ConversationClassificationService {
         ...DEFAULT_SCORING_THRESHOLDS.tierRecommendations,
         ...persistedConfig?.tierRecommendations,
       },
+      negationTerms: Array.isArray(persistedConfig?.negationTerms)
+        ? persistedConfig.negationTerms.filter((term): term is string => typeof term === 'string')
+        : [...DEFAULT_SCORING_THRESHOLDS.negationTerms],
+      negationPostTerms: Array.isArray(persistedConfig?.negationPostTerms)
+        ? persistedConfig.negationPostTerms.filter((term): term is string => typeof term === 'string')
+        : [...DEFAULT_SCORING_THRESHOLDS.negationPostTerms],
     };
     this.thresholdCache.set(workspaceId, {
       data: config,

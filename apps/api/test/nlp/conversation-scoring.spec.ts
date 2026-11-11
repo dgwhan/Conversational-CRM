@@ -41,6 +41,21 @@ describe('Conversation Scoring & Classification Engine', () => {
     expect(result.reasons).toHaveLength(0);
   });
 
+  it('uses default negation lists when persisted workspace settings are malformed', async () => {
+    const mockRulesService = {
+      getScoringConfig: async () => ({
+        negationTerms: null,
+        negationPostTerms: null,
+      }),
+    } as unknown as KeywordRulesService;
+
+    const classificationService = new ConversationClassificationService(mockRulesService);
+    const config = await classificationService.getThresholdConfig('ws-legacy');
+
+    expect(config.negationTerms).toContain('khong');
+    expect(config.negationPostTerms).toContain('dau');
+  });
+
   describe('PHẦN 1: Phát hiện Phủ định (Negation Engine) & Câu từ chối', () => {
     it('1. Tiêu chí hoàn thành câu phủ định: "không đăng ký đâu" -> không tính điểm cho luật đăng ký', () => {
       const messages = ['Dạ em cảm ơn, em không đăng ký đâu ạ'];

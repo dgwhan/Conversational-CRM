@@ -27,9 +27,18 @@ export const LeadScoringConfigProvider: React.FC<{ children: React.ReactNode }> 
         apiClient.getKeywordRules(),
         apiClient.getLeadScoringSettings(),
       ]);
+      const normalizedSettings = {
+        ...settings,
+        negationTerms: Array.isArray(settings.negationTerms)
+          ? settings.negationTerms.filter((term) => typeof term === 'string')
+          : [],
+        negationPostTerms: Array.isArray(settings.negationPostTerms)
+          ? settings.negationPostTerms.filter((term) => typeof term === 'string')
+          : [],
+      };
       setConfig((current) =>
         currentRequestId === requestId.current
-          ? { ...current, rules, settings, isLoading: false }
+          ? { ...current, rules, settings: normalizedSettings, isLoading: false }
           : current,
       );
       return currentRequestId === requestId.current;
