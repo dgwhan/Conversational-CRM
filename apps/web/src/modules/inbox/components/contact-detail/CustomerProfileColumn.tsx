@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { X } from 'lucide-react';
 import {
   LEAD_STATUS,
@@ -71,6 +71,34 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [isLogZaloModalOpen, setIsLogZaloModalOpen] = useState(false);
   const [isAssignProductModalOpen, setIsAssignProductModalOpen] = useState(false);
+  const [dealsList, setDealsList] = useState<any[]>([]);
+
+  const handleDealUpdated = useCallback((deals: any[]) => {
+    setDealsList((prev) => {
+      if (
+        prev.length === deals.length &&
+        prev.every((p, idx) => p.id === deals[idx]?.id && p.status === deals[idx]?.status)
+      ) {
+        return prev;
+      }
+      return deals;
+    });
+  }, []);
+
+  // Tự động nhận diện Khách hàng cũ / Cựu học viên dựa vào lịch sử dịch vụ & tags
+  const isReturningCustomer = useMemo(() => {
+    // 1. Tag cựu học viên / khách hàng cũ
+    const hasReturningTag = Array.isArray(customer.tags) && customer.tags.some(
+      (t) => /khách hàng cũ|học viên cũ|cựu|returning/i.test(t.trim())
+    );
+    if (hasReturningTag) return true;
+
+    // 2. Lịch sử dịch vụ: Đã có ít nhất 1 đợt/khóa hoàn thành (WON) hoặc đã có > 1 đợt
+    const hasCompletedDeal = dealsList.some((d) => d.status === 'WON');
+    if (hasCompletedDeal || dealsList.length > 1) return true;
+
+    return false;
+  }, [customer.tags, dealsList]);
 
   // Trigger sửa nhanh từ Header ("Gọi ngay" / "Gửi Mail")
   const [triggerEditPhone, setTriggerEditPhone] = useState(false);
@@ -159,6 +187,7 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           onStartEditPhone={() => setTriggerEditPhone(true)}
           onStartEditEmail={() => setTriggerEditEmail(true)}
           onOpenMenu={() => setIsLogZaloModalOpen(true)}
+          isReturningCustomer={isReturningCustomer}
         />
 
         {/* B. THÔNG TIN LIÊN HỆ (Phone, Email, Contact ID) */}
@@ -206,7 +235,7 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           onNavigateToKanban={onNavigateToKanban}
         />
 
-        {/* CƠ HỘI TUYỂN SINH & NIÊN KHÓA (Deals / Opportunities) - Chuẩn CRM 1 - N */}
+        {/* LỊCH SỬ DỊCH VỤ & ĐỢT TUYỂN SINH (Service History & Intakes) */}
         <DealsHistorySection
           customerId={customer.id}
           contactId={customer.contactId}
@@ -215,6 +244,7 @@ export const CustomerProfileColumn: React.FC<CustomerProfileColumnProps> = ({
           catalog={config.productCatalog}
           staffList={staffList}
           onNavigateToKanban={onNavigateToKanban}
+          onDealUpdated={handleDealUpdated}
         />
 
         {/* DÒNG THỜI GIAN HOẠT ĐỘNG & NHẬT KÝ TƯƠNG TÁC (Activity Timeline & Task Management) */}

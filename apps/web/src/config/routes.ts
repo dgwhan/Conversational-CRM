@@ -28,6 +28,9 @@ export const ROUTES = {
   // Lịch biểu & Nhiệm vụ (Calendar & Tasks)
   CALENDAR: '/calendar',
 
+  // Quản lý Đợt Tuyển Sinh & Lịch Sử Dịch Vụ (Dedicated Deals & Intake Management)
+  DEALS: '/deals',
+
   // Quản lý Không gian làm việc & Kết nối Kênh (Workspace & Onboarding)
   WORKSPACE: '/workspace/:id',
   WORKSPACE_DEFAULT: '/workspace',
@@ -69,6 +72,8 @@ export const buildRoute = {
     conversationId ? `/inbox/${encodeURIComponent(conversationId)}` : ROUTES.INBOX,
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
+  deals: (search?: string) =>
+    search ? `/deals?search=${encodeURIComponent(search)}` : ROUTES.DEALS,
   workspace: (id?: string | number | null) =>
     id && id !== 'undefined' ? `/workspace/${encodeURIComponent(id)}` : ROUTES.WORKSPACE_DEFAULT,
   workspaceInvited: (id: string | number) =>
@@ -89,6 +94,7 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
   inbox: () => ROUTES.INBOX,
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
+  deals: () => ROUTES.DEALS,
   'workspace-settings': (workspaceId) =>
     workspaceId && workspaceId !== 'undefined' ? buildRoute.workspaceSettings(workspaceId) : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
   onboarding: (workspaceId) =>
@@ -99,10 +105,11 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
 /**
  * Suy ra ActiveNavTab dựa trên pathname hiện tại của trình duyệt
  */
-export function getTabFromPathname(pathname: string): 'inbox' | 'kanban' | 'calendar' | 'reports' | 'onboarding' | 'import' | 'workspace-settings' {
+export function getTabFromPathname(pathname: string): 'inbox' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings' {
   if (pathname.startsWith('/inbox')) return 'inbox';
   if (pathname.startsWith('/kanban')) return 'kanban';
   if (pathname.startsWith('/calendar')) return 'calendar';
+  if (pathname.startsWith('/deals')) return 'deals';
   if (pathname.startsWith('/workspace-settings')) return 'workspace-settings';
   if (pathname.startsWith('/workspace') || pathname.startsWith('/onboarding')) return 'onboarding';
   if (pathname.startsWith('/import')) return 'import';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Mail, MoreHorizontal, Copy, Check, ExternalLink } from 'lucide-react';
+import { Phone, Mail, MoreHorizontal, Copy, Check, ExternalLink, Award } from 'lucide-react';
 import type { CustomerProfile } from '../../../types.js';
 import { Avatar } from '../../../../../components/common/Avatar.js';
 import { Button } from '../../../../../components/ui/Button.js';
@@ -12,6 +12,7 @@ interface ContactHeaderProps {
   onStartEditPhone: () => void;
   onStartEditEmail: () => void;
   onOpenMenu: () => void;
+  isReturningCustomer?: boolean;
 }
 
 export const ContactHeader: React.FC<ContactHeaderProps> = ({
@@ -21,6 +22,7 @@ export const ContactHeader: React.FC<ContactHeaderProps> = ({
   onStartEditPhone,
   onStartEditEmail,
   onOpenMenu,
+  isReturningCustomer = false,
 }) => {
   const customerId =
     customer.socialId ||
@@ -69,7 +71,7 @@ export const ContactHeader: React.FC<ContactHeaderProps> = ({
 
         {/* Identity Details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <h3 className="m-0 text-sm font-semibold text-slate-900 truncate" title={displayName}>
               {displayName}
             </h3>
@@ -80,10 +82,21 @@ export const ContactHeader: React.FC<ContactHeaderProps> = ({
                 </svg>
               </span>
             )}
+            {isReturningCustomer && (
+              <span
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/90 shrink-0"
+                title="Khách hàng cũ / Đã từng sử dụng dịch vụ hoặc tham gia đào tạo tại trung tâm"
+              >
+                <Award size={10} className="text-amber-500" />
+                <span>Khách hàng cũ</span>
+              </span>
+            )}
           </div>
 
           <p className="m-0 text-xs text-slate-500 truncate mt-0.5">
-            {customer.channel ? `Khách qua ${channelMeta.label}` : 'Khách hàng tiềm năng'}
+            {isReturningCustomer
+              ? `Học viên cũ • ${channelMeta.label}`
+              : (customer.channel ? `Khách qua ${channelMeta.label}` : 'Khách hàng tiềm năng')}
           </p>
 
           {/* Customer ID Row */}

@@ -46,6 +46,7 @@ export const HeaderLayout: React.FC<HeaderLayoutProps> = ({
     inbox: t('header.inboxTab', 'Hộp thư Hội thoại'),
     kanban: t('header.kanbanTab', 'Phễu Tuyển sinh'),
     calendar: t('header.calendarTab', 'Lịch biểu & Nhiệm vụ'),
+    deals: t('header.dealsTab', 'Quản Lý Đợt Tuyển Sinh & Dịch Vụ'),
     'workspace-settings': t('header.workspaceSettingsTab', 'Quản lý Cấu hình'),
     onboarding: t('header.onboardingTab', 'Kết nối Kênh'),
     import: t('header.importTab', 'Nhập Dữ liệu'),

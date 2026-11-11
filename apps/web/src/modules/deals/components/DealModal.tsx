@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
-  Briefcase,
+  GraduationCap,
   Calendar,
   DollarSign,
   User,
@@ -197,14 +197,14 @@ export const DealModal: React.FC<DealModalProps> = ({
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
-              <Briefcase size={18} />
+              <GraduationCap size={18} />
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-800">
-                {isEditing ? t('deals.dealModalEditTitle', 'Cập nhật Cơ hội') : t('deals.dealModalCreateTitle', 'Tạo Cơ hội / Khóa học mới')}
+                {isEditing ? t('deals.dealModalEditTitle', 'Cập nhật Dịch vụ / Đợt Tuyển Sinh') : t('deals.dealModalCreateTitle', 'Ghi nhận Dịch vụ / Đợt Tuyển Sinh mới')}
               </h2>
               <p className="text-xs text-slate-500">
-                {customerName} • {isEditing ? t('common.edit', 'Chỉnh sửa thông tin') : t('deals.createFirstDealBtn', 'Ghi nhận khóa học mới')}
+                {customerName} • {isEditing ? t('common.edit', 'Chỉnh sửa thông tin') : t('deals.createFirstDealBtn', 'Ghi nhận khóa học / đợt mới')}
               </p>
             </div>
           </div>
@@ -227,18 +227,18 @@ export const DealModal: React.FC<DealModalProps> = ({
           onSubmit={handleSubmit}
           className="p-6 overflow-y-auto space-y-4 text-xs"
         >
-          {/* Nhóm 1: Tên cơ hội & Niên khóa */}
+          {/* Nhóm 1: Tên đợt/dịch vụ & Niên khóa */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="md:col-span-2 space-y-1">
               <label className="block font-semibold text-slate-700">
-                {t('deals.titleLabel', 'Tên cơ hội / Nhu cầu tư vấn')} <span className="text-rose-500">*</span>
+                {t('deals.titleLabel', 'Tên đợt tuyển sinh / Khóa học')} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('deals.titlePlaceholder', 'VD: Đăng ký Khóa Aptech 2026...')}
+                placeholder={t('deals.titlePlaceholder', 'VD: Lập trình viên Quốc tế Aptech ADSE...')}
                 className="w-full h-8 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -254,63 +254,46 @@ export const DealModal: React.FC<DealModalProps> = ({
             </div>
           </div>
 
-          {/* Nhóm 2: Giai đoạn phễu & Trạng thái chốt */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="block font-semibold text-slate-700">{t('deals.stageLabel', 'Giai Đoạn Phễu Tuyển Sinh')}</label>
-              <select
-                value={stage}
-                onChange={(e) => setStage(e.target.value)}
-                className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+          {/* Nhóm 2: Trạng thái dịch vụ (Đã loại bỏ dropdown Giai đoạn phễu) */}
+          <div className="space-y-1">
+            <label className="block font-semibold text-slate-700">{t('deals.statusLabel', 'Trạng Thái Dịch Vụ')}</label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setStatus('OPEN')}
+                className={`h-8 flex items-center justify-center gap-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                  status === 'OPEN'
+                    ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold shadow-2xs'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
+                }`}
               >
-                {pipelineStages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block font-semibold text-slate-700">{t('deals.statusLabel', 'Trạng Thái Kết Quả')}</label>
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  type="button"
-                  onClick={() => setStatus('OPEN')}
-                  className={`h-8 flex items-center justify-center gap-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
-                    status === 'OPEN'
-                      ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold shadow-2xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
-                  }`}
-                >
-                  <Clock size={12} />
-                  <span>{t('deals.statusOpen', 'Đang xử lý')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus('WON')}
-                  className={`h-8 flex items-center justify-center gap-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
-                    status === 'WON'
-                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-semibold shadow-2xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
-                  }`}
-                >
-                  <CheckCircle2 size={12} />
-                  <span>{t('deals.statusWon', 'Thành công')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatus('LOST')}
-                  className={`h-8 flex items-center justify-center gap-1 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
-                    status === 'LOST'
-                      ? 'bg-rose-50 border-rose-500 text-rose-700 font-semibold shadow-2xs'
-                      : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
-                  }`}
-                >
-                  <XCircle size={12} />
-                  <span>{t('deals.statusLost', 'Thất bại')}</span>
-                </button>
-              </div>
+                <Clock size={12} />
+                <span>{t('deals.serviceStatusInProgress', 'Đang học / Đang đào tạo')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus('WON')}
+                className={`h-8 flex items-center justify-center gap-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                  status === 'WON'
+                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 font-semibold shadow-2xs'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
+                }`}
+              >
+                <CheckCircle2 size={12} />
+                <span>{t('deals.serviceStatusCompleted', 'Đã hoàn thành / Tốt nghiệp')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatus('LOST')}
+                className={`h-8 flex items-center justify-center gap-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                  status === 'LOST'
+                    ? 'bg-rose-50 border-rose-500 text-rose-700 font-semibold shadow-2xs'
+                    : 'border-slate-200 text-slate-600 hover:bg-slate-50 bg-white'
+                }`}
+              >
+                <XCircle size={12} />
+                <span>{t('deals.serviceStatusCancelled', 'Đã hủy / Bảo lưu')}</span>
+              </button>
             </div>
           </div>
 

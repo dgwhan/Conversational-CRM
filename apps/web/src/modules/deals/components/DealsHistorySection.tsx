@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Briefcase,
+  GraduationCap,
   Plus,
   DollarSign,
   User,
@@ -12,6 +13,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  Award,
+  ExternalLink,
 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client/index.js';
 import type { DealItem, CreateDealPayload, UpdateDealPayload } from '../../../lib/api-client/deals.js';
@@ -20,6 +23,7 @@ import type { AssignedStaff } from '../../inbox/types.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { DealModal } from './DealModal.js';
 import { useTranslation } from '../../../i18n/index.js';
+import { ROUTES, buildRoute } from '../../../config/routes.js';
 
 export interface DealsHistorySectionProps {
   customerId?: string;
@@ -43,6 +47,7 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   onDealUpdated,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [deals, setDeals] = useState<DealItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +56,11 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   const [activeMenuDealId, setActiveMenuDealId] = useState<string | null>(null);
 
   const targetId = customerId || contactId;
+  const onDealUpdatedRef = useRef(onDealUpdated);
+
+  useEffect(() => {
+    onDealUpdatedRef.current = onDealUpdated;
+  }, [onDealUpdated]);
 
   const loadDeals = useCallback(async () => {
     if (!targetId) return;
@@ -59,13 +69,13 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
       const res = await apiClient.getDealsByCustomer(targetId);
       const list = Array.isArray(res) ? res : (res as any)?.data || [];
       setDeals(list);
-      if (onDealUpdated) onDealUpdated(list);
+      if (onDealUpdatedRef.current) onDealUpdatedRef.current(list);
     } catch (err: any) {
       console.warn('Không thể tải danh sách Deals:', err?.message);
     } finally {
       setIsLoading(false);
     }
-  }, [targetId, onDealUpdated]);
+  }, [targetId]);
 
   useEffect(() => {
     loadDeals();
@@ -113,38 +123,44 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
     }
   };
 
-  const handleQuickChangeStage = async (dealId: string, newStage: string) => {
+  const handleQuickChangeStatus = async (dealId: string, newStatus: 'OPEN' | 'WON' | 'LOST') => {
     try {
-      await apiClient.updateDeal(dealId, { stage: newStage });
-      notify.success(t('kanban.updateSuccess', 'Đã chuyển giai đoạn cơ hội!'));
+      await apiClient.updateDeal(dealId, { status: newStatus });
+      notify.success(t('deals.saveDealSuccess', 'Đã cập nhật trạng thái dịch vụ!'));
       await loadDeals();
     } catch (err: any) {
-      notify.error(err?.message || 'Không thể cập nhật giai đoạn.');
+      notify.error(err?.message || 'Không thể cập nhật trạng thái.');
     }
   };
+
+  const completedDealsCount = useMemo(() => deals.filter((d) => d.status === 'WON').length, [deals]);
+  const totalValue = useMemo(
+    () => deals.reduce((sum, d) => sum + (d.actualRevenue || d.expectedRevenue || 0), 0),
+    [deals]
+  );
 
   const getStatusBadge = (status: 'OPEN' | 'WON' | 'LOST') => {
     switch (status) {
       case 'WON':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-            <CheckCircle2 size={11} />
-            <span>{t('deals.statusWon', 'Thành công')}</span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle2 size={11} className="text-emerald-600" />
+            <span>{t('deals.serviceStatusCompleted', 'Đã hoàn thành')}</span>
           </span>
         );
       case 'LOST':
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800">
-            <XCircle size={11} />
-            <span>{t('deals.statusLost', 'Thất bại')}</span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <XCircle size={11} className="text-rose-500" />
+            <span>{t('deals.serviceStatusCancelled', 'Đã hủy / Bảo lưu')}</span>
           </span>
         );
       case 'OPEN':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800">
-            <Clock size={11} />
-            <span>{t('deals.statusOpen', 'Đang xử lý')}</span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <Clock size={11} className="text-blue-500" />
+            <span>{t('deals.serviceStatusInProgress', 'Đang học')}</span>
           </span>
         );
     }
@@ -157,47 +173,70 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex items-center gap-1.5 text-left group cursor-pointer focus:outline-none"
+          className="flex items-center gap-1.5 text-left group cursor-pointer focus:outline-none min-w-0"
         >
-          <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Briefcase size={12} />
+          <div className="w-5 h-5 rounded bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <GraduationCap size={13} />
           </div>
-          <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-            {t('deals.sectionTitle', 'Cơ Hội Tuyển Sinh')} ({deals.length})
-          </span>
+          <div className="flex items-center gap-1.5 truncate">
+            <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider group-hover:text-blue-600 transition-colors truncate">
+              {t('deals.sectionTitle', 'Lịch Sử Dịch Vụ & Đợt')} ({deals.length})
+            </span>
+            {completedDealsCount > 0 && (
+              <span
+                className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200/80"
+                title={t('deals.returningCustomerTooltip', 'Học viên cũ đã hoàn thành khóa học')}
+              >
+                <Award size={10} className="text-amber-500" />
+                <span>Cựu học viên</span>
+              </span>
+            )}
+          </div>
           {isCollapsed ? (
-            <ChevronDown size={14} className="text-slate-400" />
+            <ChevronDown size={14} className="text-slate-400 shrink-0 ml-1" />
           ) : (
-            <ChevronUp size={14} className="text-slate-400" />
+            <ChevronUp size={14} className="text-slate-400 shrink-0 ml-1" />
           )}
         </button>
 
         <button
           type="button"
           onClick={handleOpenCreateModal}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
-          title={t('deals.addIntakeTitle', 'Tạo cơ hội / đợt tuyển sinh mới')}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer shrink-0"
+          title={t('deals.addIntakeTitle', 'Ghi nhận đợt tuyển sinh / khóa học mới')}
         >
           <Plus size={12} />
           <span>{t('deals.addIntakeBtn', 'Thêm đợt')}</span>
         </button>
       </div>
 
+      {/* Summary strip if deals exist */}
+      {!isCollapsed && deals.length > 0 && (
+        <div className="px-2.5 py-1.5 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+          <span>
+            Đã tích lũy: <strong className="text-slate-700">{deals.length}</strong> đợt / dịch vụ
+          </span>
+          <span className="font-semibold text-emerald-700">
+            {totalValue.toLocaleString('vi-VN')} đ
+          </span>
+        </div>
+      )}
+
       {/* Content */}
       {!isCollapsed && (
         <div className="space-y-2.5">
           {isLoading && deals.length === 0 ? (
-            <div className="text-center py-4 text-xs text-slate-400">{t('deals.loadingDeals', 'Đang tải cơ hội...')}</div>
+            <div className="text-center py-4 text-xs text-slate-400">{t('deals.loadingDeals', 'Đang tải lịch sử dịch vụ...')}</div>
           ) : deals.length === 0 ? (
             <div className="text-center py-4 px-3 rounded-lg border border-dashed border-slate-200 bg-slate-50/50">
-              <p className="text-xs text-slate-500 m-0 mb-2">{t('deals.noDealsYet', 'Chưa có cơ hội / đợt tuyển sinh nào')}</p>
+              <p className="text-xs text-slate-500 m-0 mb-2">{t('deals.noDealsYet', 'Chưa có lịch sử dịch vụ / đợt tuyển sinh nào')}</p>
               <button
                 type="button"
                 onClick={handleOpenCreateModal}
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-blue-600 text-white text-[11px] font-medium hover:bg-blue-700 transition-colors cursor-pointer"
               >
                 <Plus size={11} />
-                <span>{t('deals.createFirstDealBtn', 'Tạo cơ hội đầu tiên')}</span>
+                <span>{t('deals.createFirstDealBtn', 'Ghi nhận đợt đầu tiên')}</span>
               </button>
             </div>
           ) : (
@@ -259,19 +298,17 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                     </div>
                   </div>
 
-                  {/* Stage Dropdown */}
+                  {/* Service Status Selector (Removed Phễu Pipeline stage) */}
                   <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                    <span className="text-slate-500 text-[11px]">{t('deals.stageLabel', 'Giai đoạn:')}</span>
+                    <span className="text-slate-500 text-[11px] font-medium">{t('deals.statusLabel', 'Trạng thái dịch vụ:')}</span>
                     <select
-                      value={deal.stage}
-                      onChange={(e) => handleQuickChangeStage(deal.id, e.target.value)}
-                      className="h-6 px-1.5 rounded border border-slate-200 text-[11px] font-medium text-slate-700 bg-slate-50/50 hover:bg-white focus:outline-none focus:border-blue-500"
+                      value={deal.status}
+                      onChange={(e) => handleQuickChangeStatus(deal.id, e.target.value as any)}
+                      className="h-6 px-1.5 rounded border border-slate-200 text-[11px] font-medium text-slate-700 bg-slate-50/70 hover:bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
                     >
-                      {pipelineStages.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
+                      <option value="OPEN">{t('deals.serviceStatusInProgress', 'Đang học / Đang tham gia')}</option>
+                      <option value="WON">{t('deals.serviceStatusCompleted', 'Đã hoàn thành / Tốt nghiệp')}</option>
+                      <option value="LOST">{t('deals.serviceStatusCancelled', 'Đã hủy / Bảo lưu')}</option>
                     </select>
                   </div>
 
@@ -311,6 +348,16 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
               ))}
             </div>
           )}
+
+          {/* Quick link to the Dedicated Deals Management Page */}
+          <button
+            type="button"
+            onClick={() => navigate(customerName ? buildRoute.deals(customerName) : ROUTES.DEALS)}
+            className="w-full py-1.5 px-2 rounded-lg border border-dashed border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-400 text-[11px] font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <span>Mở trang Quản lý Đợt Tuyển Sinh</span>
+            <ExternalLink size={11} />
+          </button>
         </div>
       )}
 

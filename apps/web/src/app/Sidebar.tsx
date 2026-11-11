@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   Sliders,
   Calendar,
+  GraduationCap,
   X,
   PanelLeftClose,
   PanelLeftOpen,
@@ -19,7 +20,7 @@ import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.
 import { notify } from '../components/feedback/toastEmitter.js';
 import { TAB_TO_ROUTE_MAP, getTabFromPathname } from '../config/routes.js';
 
-export type ActiveNavTab = 'inbox' | 'kanban' | 'calendar' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
+export type ActiveNavTab = 'inbox' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
 
 export interface SidebarProps {
   currentTab?: ActiveNavTab;
@@ -85,6 +86,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'calendar' as ActiveNavTab,
       label: t('nav.calendarTasks', 'Lịch biểu & Nhiệm vụ'),
       icon: <Calendar size={18} />,
+    },
+    {
+      id: 'deals' as ActiveNavTab,
+      label: t('nav.deals', 'Lịch Sử & Đợt Tuyển Sinh'),
+      icon: <GraduationCap size={18} />,
     },
     {
       id: 'workspace-settings' as ActiveNavTab,

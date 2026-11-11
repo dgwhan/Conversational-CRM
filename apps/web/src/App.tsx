@@ -41,6 +41,9 @@ const AdmissionKanbanBoard = lazy(() =>
 const CalendarTasksPage = lazy(() =>
   import('./modules/calendar/pages/CalendarTasksPage.js').then((m) => ({ default: m.CalendarTasksPage }))
 );
+const DealsManagementPage = lazy(() =>
+  import('./modules/deals/pages/DealsManagementPage.js').then((m) => ({ default: m.DealsManagementPage }))
+);
 const ReportsDashboardPage = lazy(() =>
   import('./modules/reports/pages/ReportsDashboardPage.js').then((m) => ({ default: m.ReportsDashboardPage }))
 );
@@ -288,6 +291,9 @@ function CRMAppRoutes() {
 
             {/* Lịch biểu & Nhiệm vụ */}
             <Route path={ROUTES.CALENDAR} element={<CalendarRoute />} />
+
+            {/* Quản lý Đợt Tuyển Sinh & Lịch Sử Dịch Vụ */}
+            <Route path={ROUTES.DEALS} element={<DealsManagementPage />} />
 
             {/* Quản lý Cấu hình Không gian làm việc (Workspace Settings) - BẢO VỆ CHỐNG BROKEN ACCESS CONTROL BẰNG WorkspaceAccessGuard */}
             <Route path={ROUTES.WORKSPACE_SETTINGS_DEFAULT} element={<WorkspaceSettingsDefaultRoute />} />
