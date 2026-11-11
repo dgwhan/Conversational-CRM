@@ -28,12 +28,18 @@ export const ROUTES = {
   // Lịch biểu & Nhiệm vụ (Calendar & Tasks)
   CALENDAR: '/calendar',
 
-  // Quản lý Cấu hình Không gian làm việc (Workspace)
+  // Quản lý Không gian làm việc & Kết nối Kênh (Workspace & Onboarding)
   WORKSPACE: '/workspace/:id',
   WORKSPACE_DEFAULT: '/workspace',
+  WORKSPACE_INVITED: '/workspace/invited/:id',
 
-  // Quy trình Kết nối Kênh (Onboarding)
+  // Quản lý Cấu hình Không gian làm việc (Workspace Settings)
+  WORKSPACE_SETTINGS: '/workspace-settings/:id',
+  WORKSPACE_SETTINGS_DEFAULT: '/workspace-settings',
+
+  // Hỗ trợ chuyển hướng từ các route /onboarding cũ về /workspace
   ONBOARDING: '/onboarding',
+  ONBOARDING_DETAIL: '/onboarding/:id',
 
   // Nhập Dữ liệu Đa kênh (Import)
   IMPORT: '/import',
@@ -63,8 +69,14 @@ export const buildRoute = {
     conversationId ? `/inbox/${encodeURIComponent(conversationId)}` : ROUTES.INBOX,
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
-  workspace: (id: string | number) => `/workspace/${encodeURIComponent(id)}`,
-  onboarding: () => ROUTES.ONBOARDING,
+  workspace: (id?: string | number | null) =>
+    id && id !== 'undefined' ? `/workspace/${encodeURIComponent(id)}` : ROUTES.WORKSPACE_DEFAULT,
+  workspaceInvited: (id: string | number) =>
+    `/workspace/invited/${encodeURIComponent(id)}`,
+  workspaceSettings: (id?: string | number | null) =>
+    id && id !== 'undefined' ? `/workspace-settings/${encodeURIComponent(id)}` : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
+  onboarding: (idOrSlug?: string | number | null) =>
+    idOrSlug && idOrSlug !== 'undefined' ? `/workspace/${encodeURIComponent(idOrSlug)}` : ROUTES.WORKSPACE_DEFAULT,
   import: () => ROUTES.IMPORT,
   login: () => ROUTES.LOGIN,
 };
@@ -78,8 +90,9 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
   'workspace-settings': (workspaceId) =>
-    workspaceId ? buildRoute.workspace(workspaceId) : ROUTES.WORKSPACE_DEFAULT,
-  onboarding: () => ROUTES.ONBOARDING,
+    workspaceId && workspaceId !== 'undefined' ? buildRoute.workspaceSettings(workspaceId) : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
+  onboarding: (workspaceId) =>
+    workspaceId && workspaceId !== 'undefined' ? buildRoute.workspace(workspaceId) : ROUTES.WORKSPACE_DEFAULT,
   import: () => ROUTES.IMPORT,
 };
 
@@ -90,8 +103,8 @@ export function getTabFromPathname(pathname: string): 'inbox' | 'kanban' | 'cale
   if (pathname.startsWith('/inbox')) return 'inbox';
   if (pathname.startsWith('/kanban')) return 'kanban';
   if (pathname.startsWith('/calendar')) return 'calendar';
-  if (pathname.startsWith('/workspace')) return 'workspace-settings';
-  if (pathname.startsWith('/onboarding')) return 'onboarding';
+  if (pathname.startsWith('/workspace-settings')) return 'workspace-settings';
+  if (pathname.startsWith('/workspace') || pathname.startsWith('/onboarding')) return 'onboarding';
   if (pathname.startsWith('/import')) return 'import';
   if (pathname.startsWith('/reports') || pathname.startsWith('/report') || pathname.startsWith('/home')) {
     return 'reports';

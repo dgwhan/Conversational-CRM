@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { WorkspaceMemberStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import type { WorkspaceItemResponseDto } from '../../../presentation/dto/index.js';
 import { WorkspaceRole } from '../../../domain/index.js';
@@ -10,7 +11,7 @@ const logger = new Logger('WorkspaceQuery');
  * Lấy danh sách tất cả Workspace mà tài khoản người dùng tham gia
  */
 export async function getMyWorkspaces(
-  prisma?: PrismaService,
+  prisma: PrismaService,
   currentStaffId?: string,
   ownerId?: string
 ): Promise<WorkspaceItemResponseDto[]> {
@@ -65,7 +66,7 @@ export async function getMyWorkspaces(
         isOwner: true,
         domain: ws.configuration?.domain,
         ownerId: ws.ownerId,
-        ownerName: ws.owner?.fullName || currentUser?.fullName,
+        ownerName: ws.owner?.fullName,
         createdAt: ws.createdAt,
       });
     }
@@ -73,8 +74,10 @@ export async function getMyWorkspaces(
     // Đưa workspaces từ membership vào
     for (const m of memberships) {
       if (!m.workspace || !m.workspace.isActive) continue;
+      // Chỉ thành viên chính thức mới được xuất hiện trong danh sách workspace
+      if (m.status !== WorkspaceMemberStatus.ACTIVE) continue;
       if (!resultMap.has(m.workspace.id)) {
-        const isWsOwner = m.workspace.ownerId === targetStaffId || m.role === WorkspaceRole.OWNER;
+        const isWsOwner = m.workspace.ownerId === targetStaffId;
         resultMap.set(m.workspace.id, {
           id: m.workspace.id,
           name: m.workspace.name,

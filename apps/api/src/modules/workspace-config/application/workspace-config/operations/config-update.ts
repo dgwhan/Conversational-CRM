@@ -11,6 +11,7 @@ import {
   getDefaultWorkingHoursConfig,
 } from '../../../../../contracts/workspace-config.js';
 import { INDUSTRY_PRESETS } from '../../../domain/workspace-config.presets.js';
+import { resolveBusinessDomain, getIndustryPreset } from '../../../domain/business-domain.js';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import { isUuid } from '../../../../../utils/uuid.util.js';
 import type { WorkspaceLifecycleService } from '../../workspace-lifecycle/index.js';
@@ -38,31 +39,57 @@ export async function updateConfig(
   try {
     current = await getConfig(prisma, cleanWsId, ownerId, currentStaffId, lifecycle);
   } catch {
-    // Nếu chưa có cấu hình trước đó, sử dụng cấu hình preset Education làm khung cơ bản
-    const eduPreset = INDUSTRY_PRESETS.EDUCATION;
+    // Nếu chưa có cấu hình trước đó trong DB, truy xuất thông tin workspace nếu có để lấy tên & domain
+    let wsRecord: any = null;
+    if (cleanWsId) {
+      wsRecord = await prisma.workspace.findFirst({
+        where: isUuid(cleanWsId)
+          ? { id: cleanWsId }
+          : { slug: cleanWsId },
+      });
+    }
+
+    // Xác định domain ban đầu linh hoạt từ patch hoặc workspace, không gán cứng EDU
+    const initialDomain = resolveBusinessDomain(patch.domain || wsRecord?.name || patch.workspaceName);
+    const initialPreset = getIndustryPreset(initialDomain);
+
     current = {
-      domain: 'EDUCATION',
-      workspaceName: eduPreset.workspaceName,
-      terminology: { ...eduPreset.terminology },
-      pipelineStages: eduPreset.pipelineStages.map((s) => ({ ...s })),
-      productCatalog: eduPreset.productCatalog.map((p) => ({ ...p })),
-      criteria: eduPreset.criteria.map((c) => ({ ...c })),
+      domain: initialDomain,
+      workspaceName: wsRecord?.name || patch.workspaceName || initialPreset.workspaceName,
+      terminology: { ...initialPreset.terminology },
+      pipelineStages: initialPreset.pipelineStages.map((s) => ({ ...s })),
+      productCatalog: initialPreset.productCatalog.map((p) => ({ ...p })),
+      criteria: initialPreset.criteria.map((c) => ({ ...c })),
     };
   }
 
-  const defaultTerm = INDUSTRY_PRESETS.EDUCATION.terminology;
+  // Xác định domain hiệu lực theo patch hoặc cấu hình hiện tại một cách linh hoạt
+  const effectiveDomain = resolveBusinessDomain(patch.domain || current.domain);
+  const effectivePreset = getIndustryPreset(effectiveDomain);
+  const defaultTerm = effectivePreset.terminology;
+  const isDomainChanged = Boolean(patch.domain && current.domain && patch.domain !== current.domain);
+
   const merged: WorkspaceConfig = {
     workspaceId: cleanWsId || current.workspaceId || '',
-    workspaceName: patch.workspaceName || current.workspaceName || '',
-    domain: patch.domain || current.domain || 'EDUCATION',
+    workspaceName: patch.workspaceName || current.workspaceName || effectivePreset.workspaceName || '',
+    domain: effectiveDomain,
     terminology: {
       ...defaultTerm,
-      ...(current.terminology || {}),
+      ...(isDomainChanged ? {} : (current.terminology || {})),
       ...(patch.terminology || {}),
     },
-    pipelineStages: patch.pipelineStages || current.pipelineStages || [],
-    productCatalog: patch.productCatalog || current.productCatalog || [],
-    criteria: patch.criteria || current.criteria || [],
+    pipelineStages:
+      patch.pipelineStages ||
+      (isDomainChanged ? effectivePreset.pipelineStages.map((s) => ({ ...s })) : current.pipelineStages) ||
+      effectivePreset.pipelineStages.map((s) => ({ ...s })),
+    productCatalog:
+      patch.productCatalog ||
+      (isDomainChanged ? effectivePreset.productCatalog.map((p) => ({ ...p })) : current.productCatalog) ||
+      effectivePreset.productCatalog.map((p) => ({ ...p })),
+    criteria:
+      patch.criteria ||
+      (isDomainChanged ? effectivePreset.criteria.map((c) => ({ ...c })) : current.criteria) ||
+      effectivePreset.criteria.map((c) => ({ ...c })),
     unresponsiveAlertMinutes:
       patch.unresponsiveAlertMinutes !== undefined
         ? patch.unresponsiveAlertMinutes

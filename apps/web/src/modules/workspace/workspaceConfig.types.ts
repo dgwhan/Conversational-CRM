@@ -1,1 +1,1 @@
-export * from './types/index.js';
+export * from './config/workspaceConfig.types.js';

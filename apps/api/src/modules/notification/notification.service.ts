@@ -2,11 +2,11 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { CreateNotificationDto, NotificationFilterDto } from './dto/notification.dto.js';
-import { Notification } from '@prisma/client';
+import { Notification, NotificationType } from '@prisma/client';
+import { isUuid } from '../../utils/uuid.util.js';
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const normalizeWorkspaceId = (workspaceId?: string): string | undefined =>
-  workspaceId && UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
+  workspaceId && isUuid(workspaceId) ? workspaceId : undefined;
 
 @Injectable()
 export class NotificationService {
@@ -29,6 +29,7 @@ export class NotificationService {
     const notification = await this.prisma.notification.create({
       data: {
         workspaceId: safeWorkspaceId,
+        userId: dto.userId || null,
         type: dto.type,
         severity: dto.severity,
         title: dto.title,
@@ -70,7 +71,40 @@ export class NotificationService {
     totalPages: number;
   }> {
     const safeWorkspaceId = normalizeWorkspaceId(workspaceId);
-    if (!safeWorkspaceId) {
+
+    // Xây dựng điều kiện lọc người nhận bảo mật & hỗ trợ nhận lời mời toàn cục
+    let recipientCondition: any;
+    if (safeWorkspaceId && filter.userId) {
+      recipientCondition = {
+        OR: [
+          // 1. Thông báo trong workspace này (thông báo riêng cho user hoặc thông báo chung của workspace)
+          {
+            workspaceId: safeWorkspaceId,
+            OR: [
+              { userId: filter.userId },
+              { userId: null },
+            ],
+          },
+          // 2. VÀ TẤT CẢ các lời mời tham gia workspace (WORKSPACE_INVITATION) gửi riêng cho chính user này
+          {
+            userId: filter.userId,
+            type: NotificationType.WORKSPACE_INVITATION,
+          },
+        ],
+      };
+    } else if (safeWorkspaceId) {
+      // Có workspace hợp lệ nhưng không truyền callerId -> chỉ lấy thông báo chung của workspace
+      recipientCondition = {
+        workspaceId: safeWorkspaceId,
+        userId: null,
+      };
+    } else if (filter.userId) {
+      // Trường hợp workspaceId không phải UUID hợp lệ (ví dụ ws-default-001 khi user mới đăng nhập)
+      // Lấy các thông báo dành riêng cho user này (đặc biệt là lời mời tham gia workspace)
+      recipientCondition = {
+        userId: filter.userId,
+      };
+    } else {
       return {
         items: [],
         total: 0,
@@ -85,7 +119,9 @@ export class NotificationService {
     const limit = Math.min(100, Math.max(1, Number(filter.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const where: any = { workspaceId: safeWorkspaceId };
+    const where: any = {
+      ...recipientCondition,
+    };
     if (typeof filter.isRead === 'boolean') {
       where.isRead = filter.isRead;
     }
@@ -94,6 +130,60 @@ export class NotificationService {
     }
     if (filter.severity) {
       where.severity = filter.severity;
+    }
+
+    const unreadWhere: any = {
+      ...recipientCondition,
+      isRead: false,
+    };
+
+    const [items, total, unreadCount] = await Promise.all([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where }),
+      this.prisma.notification.count({
+        where: unreadWhere,
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+      unreadCount,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  /**
+   * Lấy danh sách thông báo của một người dùng (bao gồm lời mời tham gia workspace)
+   */
+  async findByUser(
+    userId: string,
+    filter: NotificationFilterDto = {},
+  ): Promise<{
+    items: Notification[];
+    total: number;
+    unreadCount: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const page = Math.max(1, Number(filter.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(filter.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const where: any = { userId };
+    if (typeof filter.isRead === 'boolean') {
+      where.isRead = filter.isRead;
+    }
+    if (filter.type) {
+      where.type = filter.type;
     }
 
     const [items, total, unreadCount] = await Promise.all([
@@ -105,7 +195,7 @@ export class NotificationService {
       }),
       this.prisma.notification.count({ where }),
       this.prisma.notification.count({
-        where: { workspaceId: safeWorkspaceId, isRead: false },
+        where: { userId, isRead: false },
       }),
     ]);
 

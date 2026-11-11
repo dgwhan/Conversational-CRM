@@ -2,6 +2,7 @@ import { NotificationType, NotificationSeverity } from '@prisma/client';
 
 export interface CreateNotificationDto {
   workspaceId: string;
+  userId?: string | null;
   type: NotificationType;
   severity: NotificationSeverity;
   title: string;
@@ -11,6 +12,7 @@ export interface CreateNotificationDto {
 }
 
 export interface NotificationFilterDto {
+  userId?: string;
   isRead?: boolean;
   type?: NotificationType;
   severity?: NotificationSeverity;

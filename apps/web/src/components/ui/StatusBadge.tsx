@@ -2,7 +2,7 @@ import React from 'react';
 import {
   type ConnectionStatus,
   CONNECTION_STATUS_LABELS,
-} from '../../modules/onboarding/components/workspace/workspace.config.js';
+} from '../../modules/workspace/onboarding/components/workspace/workspace.config.js';
 
 export interface StatusBadgeProps {
   status: ConnectionStatus;

@@ -1,4 +1,4 @@
-import { UserStatus } from "@prisma/client";
+import { UserStatus, WorkspaceMemberStatus } from "@prisma/client";
 import { WorkspaceRole } from "../../../domain/index.js";
 
 export interface StaffItemResponseDto {
@@ -8,6 +8,11 @@ export interface StaffItemResponseDto {
   fullName: string;
   role: WorkspaceRole;
   status: UserStatus;
+  memberStatus?: WorkspaceMemberStatus;
+  memberId?: string;
+  invitedAt?: Date | null;
+  joinedAt?: Date | null;
+  invitedBy?: { id: string; fullName: string; email: string } | null;
   ownerId: string | null;
   lockedAt: Date | null;
   createdAt: Date;

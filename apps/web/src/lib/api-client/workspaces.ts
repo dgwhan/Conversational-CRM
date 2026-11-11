@@ -1,5 +1,6 @@
 import type { BaseApiClient } from './core.js';
 import type { NotificationItem, NotificationListResponse } from './types.js';
+import type { WorkspaceMemberStatus } from '../../modules/workspace/types/staff.types.js';
 
 export function createWorkspaceApi(client: BaseApiClient) {
   return {
@@ -180,7 +181,7 @@ export function createWorkspaceApi(client: BaseApiClient) {
 
     getNotifications(
       workspaceId: string,
-      params?: { isRead?: boolean; page?: number; limit?: number; type?: string; severity?: string },
+      params?: { isRead?: boolean; page?: number; limit?: number; type?: string; severity?: string; userId?: string },
     ) {
       return client.get<NotificationListResponse>(`/v1/workspaces/${workspaceId}/notifications`, {
         params: params as Record<string, string | number | boolean | undefined>,
@@ -197,6 +198,42 @@ export function createWorkspaceApi(client: BaseApiClient) {
 
     deleteNotification(workspaceId: string, id: string) {
       return client.delete<{ success: boolean }>(`/v1/workspaces/${workspaceId}/notifications/${id}`);
+    },
+
+    getWorkspaceInvitation(invitationId: string) {
+      return client.get<{
+        id: string;
+        workspaceId: string;
+        workspaceName: string;
+        workspaceSlug?: string | null;
+        membersCount?: number;
+        role: string;
+        status: WorkspaceMemberStatus;
+        invitedAt: string;
+        joinedAt?: string | null;
+        invitedBy?: {
+          id: string;
+          fullName: string;
+          email: string;
+        } | null;
+        invitee: {
+          id: string;
+          fullName: string;
+          email: string;
+        };
+      }>(`/workspaces/invitations/${encodeURIComponent(invitationId)}`);
+    },
+
+    acceptWorkspaceInvitation(invitationId: string) {
+      return client.post<{ success: boolean; message: string; workspace: any }>(
+        `/workspaces/invitations/${encodeURIComponent(invitationId)}/accept`,
+      );
+    },
+
+    declineWorkspaceInvitation(invitationId: string) {
+      return client.post<{ success: boolean; message: string }>(
+        `/workspaces/invitations/${encodeURIComponent(invitationId)}/decline`,
+      );
     },
   };
 }

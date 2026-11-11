@@ -109,11 +109,83 @@ export const useWorkspaceStaffManagement = ({
     }
   };
 
+  const cancelInvitation = async (targetId: string, targetWsId?: string) => {
+    const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+    try {
+      await apiClient.delete(`/workspaces/current/staff/invitations/${targetId}`, {
+        headers: {
+          'x-owner-id': effectiveOwnerId,
+          'x-staff-id': staffId || '',
+          'x-user-role': USER_ROLES.OWNER,
+          'x-workspace-id': wsId,
+        },
+      });
+
+      setStaffMembers((prev) => prev.filter((s) => s.id !== targetId && s.memberId !== targetId));
+      if (onStaffChange) {
+        await onStaffChange();
+      }
+      notify.success('Đã hủy lời mời thành công!');
+    } catch (err) {
+      notify.error((err as Error).message, 'Hủy Lời Mời Thất Bại');
+      throw err;
+    }
+  };
+
+  const acceptInvitation = async (targetWsId: string) => {
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string; workspace: any }>(
+        `/workspaces/${targetWsId}/members/accept`,
+        {},
+        {
+          headers: {
+            'x-staff-id': staffId || '',
+            'x-owner-id': effectiveOwnerId,
+          },
+        }
+      );
+      notify.success(res.message || 'Đã chấp nhận lời mời tham gia Workspace!');
+      if (onStaffChange) {
+        await onStaffChange();
+      }
+      return res;
+    } catch (err) {
+      notify.error((err as Error).message, 'Chấp Nhận Lời Mời Thất Bại');
+      throw err;
+    }
+  };
+
+  const declineInvitation = async (targetWsId: string) => {
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        `/workspaces/${targetWsId}/members/decline`,
+        {},
+        {
+          headers: {
+            'x-staff-id': staffId || '',
+            'x-owner-id': effectiveOwnerId,
+          },
+        }
+      );
+      notify.success(res.message || 'Đã từ chối lời mời!');
+      if (onStaffChange) {
+        await onStaffChange();
+      }
+      return res;
+    } catch (err) {
+      notify.error((err as Error).message, 'Từ Chối Lời Mời Thất Bại');
+      throw err;
+    }
+  };
+
   return {
     staffMembers,
     setStaffMembers,
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,
+    cancelInvitation,
+    acceptInvitation,
+    declineInvitation,
   };
 };

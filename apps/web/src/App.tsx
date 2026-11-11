@@ -13,7 +13,7 @@ import { ErrorBoundary } from './app/ErrorBoundary.js';
 import { I18nProvider } from './i18n/I18nContext.js';
 import { ToastProvider } from './components/feedback/ToastContext.js';
 import { ToastContainer } from './components/feedback/ToastContainer.js';
-import { UserRoleProvider, useUserRole, WorkspaceAccessGuard, RoleGuard } from './modules/auth/index.js';
+import { UserRoleProvider, useUserRole, WorkspaceAccessGuard } from './modules/auth/index.js';
 import { RealtimeProvider } from './modules/realtime/RealtimeContext.js';
 import { WorkspaceConfigProvider, useWorkspaceConfig } from './modules/workspace/WorkspaceConfigContext.js';
 import { AuthPage } from './features/auth/pages/AuthPage.js';
@@ -47,8 +47,11 @@ const ReportsDashboardPage = lazy(() =>
 const WorkspaceSettingsPage = lazy(() =>
   import('./modules/workspace/pages/WorkspaceSettingsPage.js').then((m) => ({ default: m.WorkspaceSettingsPage }))
 );
+const WorkspaceInvitationPage = lazy(() =>
+  import('./modules/workspace/pages/WorkspaceInvitationPage.js').then((m) => ({ default: m.WorkspaceInvitationPage }))
+);
 const OnboardingWizardPage = lazy(() =>
-  import('./modules/onboarding/pages/OnboardingWizardPage.js').then((m) => ({ default: m.OnboardingWizardPage }))
+  import('./modules/workspace/onboarding/pages/OnboardingWizardPage.js').then((m) => ({ default: m.OnboardingWizardPage }))
 );
 const MessagingImportPage = lazy(() =>
   import('./modules/messaging/pages/MessagingImportPage.js').then((m) => ({ default: m.MessagingImportPage }))
@@ -133,7 +136,7 @@ function KanbanRoute() {
     <AdmissionKanbanBoard
       onOpenChat={(convId) => navigate(buildRoute.inbox(convId))}
       onNavigateToCalendar={() => navigate(ROUTES.CALENDAR)}
-      onNavigateToSettings={() => navigate(buildRoute.workspace(activeWorkspaceId || 'default'))}
+      onNavigateToSettings={() => navigate(buildRoute.workspaceSettings(activeWorkspaceId || 'default'))}
     />
   );
 }
@@ -153,18 +156,52 @@ function CalendarRoute() {
 }
 
 /**
- * Route chuyển hướng tự động khi truy cập /workspace không có id
+ * Route chuyển hướng tự động khi truy cập /workspace-settings không có id (Quản lý Cấu hình)
  */
-function WorkspaceDefaultRoute() {
-  const { activeWorkspaceId } = useWorkspaceConfig();
-  return <Navigate to={buildRoute.workspace(activeWorkspaceId || 'default')} replace />;
+function WorkspaceSettingsDefaultRoute() {
+  const { activeWorkspaceId, myWorkspaces, isWorkspaceListLoading } = useWorkspaceConfig();
+
+  if (isWorkspaceListLoading) {
+    return <AppSkeleton />;
+  }
+
+  const targetId = activeWorkspaceId || myWorkspaces[0]?.id || myWorkspaces[0]?.slug;
+  if (!targetId || targetId === 'undefined') {
+    return <Navigate to={ROUTES.REPORTS} replace />;
+  }
+
+  return <Navigate to={buildRoute.workspaceSettings(targetId)} replace />;
 }
 
 /**
- * Route Quy trình Kết nối Kênh (Onboarding)
+ * Route Không gian làm việc & Kết nối Kênh (Workspace)
+ * Hỗ trợ cả /workspace và /workspace/:id (id hoặc slug)
+ * Cho phép cả OWNER lẫn STAFF truy cập (không chặn 403)
+ * Nếu vào sai ID/Slug workspace thì trả về 404 Not Found (không trả về 403)
  */
-function OnboardingRoute() {
+function WorkspaceRoute() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const { myWorkspaces, isWorkspaceListLoading } = useWorkspaceConfig();
+
+  // Kiểm tra nếu có :id trên URL mà user không thuộc workspace này -> trả 404 Not Found
+  if (id && id !== 'undefined') {
+    if (isWorkspaceListLoading) {
+      return <AppSkeleton />;
+    }
+    const target = myWorkspaces.find((ws) => ws.id === id || ws.slug === id);
+    if (!target) {
+      return (
+        <HttpErrorPage
+          statusCode={404}
+          errorLocation="Workspace Security Guard"
+          errorMessage="Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập."
+          onGoHome={() => navigate(ROUTES.WORKSPACE_DEFAULT)}
+          onRetry={() => window.location.reload()}
+        />
+      );
+    }
+  }
 
   return (
     <OnboardingWizardPage
@@ -172,6 +209,14 @@ function OnboardingRoute() {
       onSkipToInbox={() => navigate(ROUTES.INBOX)}
     />
   );
+}
+
+/**
+ * Chuyển hướng các route /onboarding cũ về /workspace
+ */
+function WorkspaceRouteRedirect() {
+  const { id } = useParams<{ id?: string }>();
+  return <Navigate to={buildRoute.workspace(id)} replace />;
 }
 
 /**
@@ -244,27 +289,27 @@ function CRMAppRoutes() {
             {/* Lịch biểu & Nhiệm vụ */}
             <Route path={ROUTES.CALENDAR} element={<CalendarRoute />} />
 
-            {/* Quản lý Không gian làm việc (Workspace) - BẢO VỆ CHỐNG BROKEN ACCESS CONTROL BẰNG WorkspaceAccessGuard */}
-            <Route path={ROUTES.WORKSPACE_DEFAULT} element={<WorkspaceDefaultRoute />} />
+            {/* Quản lý Cấu hình Không gian làm việc (Workspace Settings) - BẢO VỆ CHỐNG BROKEN ACCESS CONTROL BẰNG WorkspaceAccessGuard */}
+            <Route path={ROUTES.WORKSPACE_SETTINGS_DEFAULT} element={<WorkspaceSettingsDefaultRoute />} />
             <Route
-              path={ROUTES.WORKSPACE}
+              path={ROUTES.WORKSPACE_SETTINGS}
               element={
                 <WorkspaceAccessGuard requireOwner={true}>
                   <WorkspaceSettingsPage />
                 </WorkspaceAccessGuard>
               }
             />
-            <Route path="/workspace-settings" element={<WorkspaceDefaultRoute />} />
 
-            {/* Kết nối kênh & Nhập liệu - BẢO VỆ RBAC BẰNG RoleGuard */}
-            <Route
-              path={ROUTES.ONBOARDING}
-              element={
-                <RoleGuard requireOwner={true} featureName="Quy trình Kết nối Kênh (Onboarding)">
-                  <OnboardingRoute />
-                </RoleGuard>
-              }
-            />
+            {/* Trang Chấp nhận Lời mời riêng biệt (ID lời mời riêng - scope độc lập với Workspace) */}
+            <Route path={ROUTES.WORKSPACE_INVITED} element={<WorkspaceInvitationPage />} />
+
+            {/* Quản lý Không gian làm việc & Kết nối Kênh (/workspace và /workspace/:id) */}
+            <Route path={ROUTES.WORKSPACE_DEFAULT} element={<WorkspaceRoute />} />
+            <Route path={ROUTES.WORKSPACE} element={<WorkspaceRoute />} />
+
+            {/* Chuyển hướng các route /onboarding cũ về /workspace */}
+            <Route path={ROUTES.ONBOARDING} element={<Navigate to={ROUTES.WORKSPACE_DEFAULT} replace />} />
+            <Route path={ROUTES.ONBOARDING_DETAIL} element={<WorkspaceRouteRedirect />} />
             <Route path={ROUTES.IMPORT} element={<MessagingImportPage />} />
           </Route>
 

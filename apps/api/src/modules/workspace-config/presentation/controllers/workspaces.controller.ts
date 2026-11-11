@@ -10,8 +10,10 @@ import {
   Headers,
   UseGuards,
   Req,
+  Optional,
 } from '@nestjs/common';
 import { WorkspaceConfigService } from '../../application/workspace-config/index.js';
+import { StaffManagementService } from '../../application/staff-management/index.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
 import { WorkspaceRole } from '../../domain/index.js';
@@ -27,12 +29,75 @@ import type {
   WorkspaceHotlineResponseDto,
   DeleteWorkspaceResponseDto,
   DeleteHotlineResponseDto,
+  StaffItemResponseDto,
 } from '../dto/index.js';
 
 @Controller('workspaces')
 @UseGuards(WorkspaceRolesGuard)
 export class WorkspacesController {
-  constructor(private readonly configService: WorkspaceConfigService) { }
+  constructor(
+    private readonly configService: WorkspaceConfigService,
+    @Optional() private readonly staffService?: StaffManagementService,
+  ) { }
+
+  // ========================
+  // INVITATION ROUTES (đặt TRƯỚC :id routes để tránh NestJS route conflict)
+  // ========================
+
+  /**
+   * Lấy thông tin chi tiết lời mời tham gia workspace (Chống Broken Access Control)
+   */
+  @Get('invitations/:id')
+  async getInvitationDetails(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ) {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.getInvitationDetails(callerId, id);
+  }
+
+  /**
+   * Chấp nhận lời mời tham gia Không gian làm việc theo invitationId
+   */
+  @Post('invitations/:id/accept')
+  async acceptInvitationById(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ): Promise<{ success: boolean; message: string; workspace: any }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.acceptInvitation(callerId, id);
+  }
+
+  /**
+   * Từ chối lời mời tham gia Không gian làm việc theo invitationId
+   */
+  @Post('invitations/:id/decline')
+  async declineInvitationById(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.declineInvitation(callerId, id);
+  }
+
+  // ========================
+  // WORKSPACE ROUTES
+  // ========================
 
   /**
    * Lấy danh sách tất cả Workspace mà tài khoản hiện tại sở hữu hoặc là thành viên
@@ -179,5 +244,114 @@ export class WorkspacesController {
   ): Promise<DeleteHotlineResponseDto> {
     const callerId = resolveCallerId(req, ownerId, staffId);
     return this.configService.deleteHotline(workspaceId, hotlineId, callerId);
+  }
+
+  /**
+   * Lấy danh sách thành viên của Workspace
+   */
+  @Get(':id/members')
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
+  async getWorkspaceMembers(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+  ): Promise<StaffItemResponseDto[]> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.getStaffList(callerId, workspaceId);
+  }
+
+  /**
+   * Mời nhân viên vào Workspace cụ thể
+   */
+  @Post(':id/members/invite')
+  @Roles(WorkspaceRole.OWNER)
+  async inviteWorkspaceMember(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Body() dto: any,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+  ): Promise<StaffItemResponseDto> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.createStaff(callerId, dto, workspaceId);
+  }
+
+  /**
+   * Xóa thành viên khỏi Workspace cụ thể
+   */
+  @Delete(':id/members/:memberId')
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
+  async removeWorkspaceMember(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Param('memberId') targetStaffId: string,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.removeStaff(callerId, targetStaffId, workspaceId);
+  }
+
+  /**
+   * Chấp nhận lời mời tham gia Không gian làm việc
+   */
+  @Post(':id/members/accept')
+  async acceptInvitation(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ): Promise<{ success: boolean; message: string; workspace: any }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.acceptInvitation(callerId, workspaceId);
+  }
+
+  /**
+   * Từ chối lời mời tham gia Không gian làm việc
+   */
+  @Post(':id/members/decline')
+  async declineInvitation(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.declineInvitation(callerId, workspaceId);
+  }
+
+  /**
+   * Hủy lời mời đã gửi tới nhân sự
+   */
+  @Delete(':id/members/invitations/:memberId')
+  @Roles(WorkspaceRole.OWNER)
+  async cancelInvitation(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const callerId = req.user?.id || resolveCallerId(req, ownerId, staffId);
+    if (!this.staffService) {
+      throw new Error('StaffManagementService not available');
+    }
+    return this.staffService.cancelInvitation(callerId, memberId, workspaceId);
   }
 }

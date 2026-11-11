@@ -32,6 +32,21 @@ export class ErrorBoundary extends Component<Props, State> {
   override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     this.setState({ errorInfo });
+
+    // Phát hiện lỗi không tải được dynamic chunk (do hệ thống vừa deploy phiên bản mới)
+    const isChunkLoadFailed =
+      error?.message?.includes('Failed to fetch dynamically imported module') ||
+      error?.message?.includes('Importing a module script failed');
+
+    if (isChunkLoadFailed) {
+      const storageKey = 'crm_chunk_reload_lock';
+      const lastReload = sessionStorage.getItem(storageKey);
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem(storageKey, String(now));
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = (): void => {
@@ -62,6 +77,9 @@ Component Stack: ${errorInfo?.componentStack}`;
       }
 
       const { error, errorInfo, copied } = this.state;
+      const isChunkLoadFailed =
+        error?.message?.includes('Failed to fetch dynamically imported module') ||
+        error?.message?.includes('Importing a module script failed');
 
       return (
         <div className="crm-error-boundary-screen">
@@ -70,9 +88,13 @@ Component Stack: ${errorInfo?.componentStack}`;
               <AlertCircle size={24} className="text-danger" />
             </div>
 
-            <h1 className="error-card-title">Đã Xảy Ra Lỗi Giao Diện Hệ Thống</h1>
+            <h1 className="error-card-title">
+              {isChunkLoadFailed ? 'Hệ Thống Đã Được Cập Nhật Phiên Bản Mới' : 'Đã Xảy Ra Lỗi Giao Diện Hệ Thống'}
+            </h1>
             <p className="error-card-desc">
-              Ứng dụng phát hiện sự cố không mong muốn trong quá trình kết xuất dữ liệu. Thông tin chi tiết kỹ thuật bên dưới giúp lập trình viên xác định chính xác vị trí bị lỗi.
+              {isChunkLoadFailed
+                ? 'Hệ thống vừa hoàn tất triển khai phiên bản mới trên máy chủ. Trình duyệt của bạn đang giữ bản đệm (cache) cũ, vui lòng bấm "Tải lại trang" để cập nhật ngay.'
+                : 'Ứng dụng phát hiện sự cố không mong muốn trong quá trình kết xuất dữ liệu. Thông tin chi tiết kỹ thuật bên dưới giúp lập trình viên xác định chính xác vị trí bị lỗi.'}
             </p>
 
             {/* Vị trí và thông điệp lỗi */}

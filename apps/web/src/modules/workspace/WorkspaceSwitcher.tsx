@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, ChevronDown, Check, Layers, RefreshCw } from 'lucide-react';
 import { useWorkspaceConfig } from './WorkspaceConfigContext.js';
 import { useTranslation } from '../../i18n/index.js';
-import { buildRoute } from '../../config/routes.js';
+import { buildRoute, ROUTES } from '../../config/routes.js';
 import './WorkspaceSwitcher.css';
 
 export const WorkspaceSwitcher: React.FC = () => {
@@ -41,10 +41,19 @@ export const WorkspaceSwitcher: React.FC = () => {
   const handleSelect = async (wsId: string) => {
     setIsOpen(false);
     if (wsId !== activeWorkspaceId) {
-      await switchWorkspace(wsId);
-      if (location.pathname.startsWith('/workspace')) {
+      const switching = switchWorkspace(wsId);
+      if (
+        location.pathname === ROUTES.WORKSPACE_SETTINGS_DEFAULT ||
+        location.pathname.startsWith(`${ROUTES.WORKSPACE_SETTINGS_DEFAULT}/`)
+      ) {
+        navigate(buildRoute.workspaceSettings(wsId));
+      } else if (
+        location.pathname === ROUTES.WORKSPACE_DEFAULT ||
+        location.pathname.startsWith(`${ROUTES.WORKSPACE_DEFAULT}/`)
+      ) {
         navigate(buildRoute.workspace(wsId));
       }
+      await switching;
     }
   };
 

@@ -25,6 +25,8 @@ model User {
   passwordRecoveryChallenges PasswordRecoveryChallenge[]
   ownedWorkspaces            Workspace[]                 @relation("WorkspaceOwner")
   memberships                WorkspaceMember[]
+  invitedMembers             WorkspaceMember[]           @relation("MemberInviter")
+  notifications              Notification[]
   workspaceConfigurations    WorkspaceConfiguration[]    @relation("UserWorkspaceConfig")
   auditLogs                  AuditLog[]
 

@@ -6,6 +6,19 @@ import type { JwtSettings, JwtTokenResult, JwtUser } from './jwt.types.js';
 
 export * from './jwt.types.js';
 
+function parseTtlToMinutes(ttl?: string | number | null): number | null {
+  if (ttl === null || ttl === undefined) return null;
+  if (typeof ttl === 'number') return Number.isNaN(ttl) ? null : ttl;
+  const match = ttl.toString().trim().match(/^(\d+)\s*(m|h|d|s)?$/i);
+  if (!match) return null;
+  const val = parseInt(match[1], 10);
+  const unit = (match[2] || 'm').toLowerCase();
+  if (unit === 's') return Math.max(1, Math.round(val / 60));
+  if (unit === 'h') return val * 60;
+  if (unit === 'd') return val * 60 * 24;
+  return val;
+}
+
 @Injectable()
 export class JwtTokenService {
   private readonly _jwtSettings: JwtSettings;
@@ -49,19 +62,17 @@ export class JwtTokenService {
       audience = process.env.JWT_AUDIENCE;
     }
 
-    let expiresInMinutes = 60 * 24 * 3;
-    if (this.configService) {
-      const configuredExpires = this.configService.get<number>(
-        'JWT_EXPIRES_IN_MINUTES',
-      );
-      if (configuredExpires && !Number.isNaN(Number(configuredExpires))) {
-        expiresInMinutes = Number(configuredExpires);
+    let expiresInMinutes = 15;
+    const rawExpires = this.configService
+      ? this.configService.get<number | string>('JWT_EXPIRES_IN_MINUTES') ??
+        this.configService.get<string>('JWT_ACCESS_TTL')
+      : process.env.JWT_EXPIRES_IN_MINUTES ?? process.env.JWT_ACCESS_TTL;
+
+    if (rawExpires !== undefined && rawExpires !== null) {
+      const parsed = parseTtlToMinutes(rawExpires);
+      if (parsed !== null && !Number.isNaN(parsed)) {
+        expiresInMinutes = parsed;
       }
-    } else if (
-      process.env.JWT_EXPIRES_IN_MINUTES &&
-      !Number.isNaN(Number(process.env.JWT_EXPIRES_IN_MINUTES))
-    ) {
-      expiresInMinutes = Number(process.env.JWT_EXPIRES_IN_MINUTES);
     }
 
     this._jwtSettings = {

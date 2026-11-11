@@ -23,6 +23,16 @@ export class WorkspaceRolesGuard implements CanActivate {
       }
     }
 
+    // Nếu tài khoản đang ở trạng thái PENDING đối với workspace, chặn truy cập
+    if (
+      request.user?.memberStatus === 'PENDING' ||
+      request.headers?.['x-member-status'] === 'PENDING'
+    ) {
+      throw new ForbiddenException(
+        'Bạn chưa chấp nhận lời mời tham gia Không gian làm việc này.',
+      );
+    }
+
     const requiredRoles = this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),

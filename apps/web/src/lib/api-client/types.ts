@@ -29,11 +29,14 @@ export class ApiError extends Error {
 }
 
 export type NotificationType =
+  | 'WORKSPACE_INVITATION'
   | 'CHANNEL_EXPIRING'
   | 'CHANNEL_EXPIRED'
   | 'NEW_LEAD'
   | 'SYSTEM_WARNING'
-  | 'CONVERSATION_ALERT';
+  | 'CONVERSATION_ALERT'
+  | 'TASK_REMINDER'
+  | 'ACTIVITY_LOG';
 
 export type NotificationSeverity = 'INFO' | 'WARNING' | 'URGENT' | 'CRITICAL';
 

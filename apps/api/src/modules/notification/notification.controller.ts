@@ -6,6 +6,8 @@ import {
   Delete,
   Param,
   Query,
+  Req,
+  Headers,
 } from '@nestjs/common';
 import { NotificationService } from './notification.service.js';
 import { NotificationType, NotificationSeverity } from '@prisma/client';
@@ -17,16 +19,22 @@ export class NotificationController {
   @Get()
   async getNotifications(
     @Param('wsId') workspaceId: string,
+    @Req() req: any,
+    @Headers('x-owner-id') ownerId?: string,
+    @Headers('x-staff-id') staffId?: string,
+    @Query('userId') queryUserId?: string,
     @Query('isRead') isRead?: string,
     @Query('type') type?: NotificationType,
     @Query('severity') severity?: NotificationSeverity,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    const callerId = req?.user?.id || queryUserId || staffId || ownerId;
     const isReadBool =
       isRead === 'true' ? true : isRead === 'false' ? false : undefined;
 
     return this.notificationService.findAll(workspaceId, {
+      userId: callerId,
       isRead: isReadBool,
       type,
       severity,

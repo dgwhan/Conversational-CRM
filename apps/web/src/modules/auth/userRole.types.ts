@@ -1,4 +1,4 @@
-import type { LoginResponse } from '../../features/auth/types/auth.types.js';
+import type { LoginResponse, AuthUser } from '../../features/auth/types/auth.types.js';
 
 export const USER_ROLES = {
   OWNER: 'OWNER',
@@ -14,6 +14,7 @@ export interface UserRoleContextValue {
   isStaff: boolean;
   isAgent: boolean;
   isRoleLocked: boolean;
+  user: AuthUser | null;
   userId: string;
   userName: string;
   userEmail: string;

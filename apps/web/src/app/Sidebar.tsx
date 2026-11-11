@@ -96,7 +96,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'onboarding' as ActiveNavTab,
       label: t('nav.onboarding'),
       icon: <Layers size={18} />,
-      restricted: isAgent,
     },
     {
       id: 'import' as ActiveNavTab,
