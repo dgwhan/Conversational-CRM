@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   MessageSquare,
+  Users,
   BarChart3,
   Layers,
   FileSpreadsheet,
@@ -20,7 +21,7 @@ import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.
 import { notify } from '../components/feedback/toastEmitter.js';
 import { TAB_TO_ROUTE_MAP, getTabFromPathname } from '../config/routes.js';
 
-export type ActiveNavTab = 'inbox' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
+export type ActiveNavTab = 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
 
 export interface SidebarProps {
   currentTab?: ActiveNavTab;
@@ -74,6 +75,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: t('nav.liveInbox'),
       icon: <MessageSquare size={18} />,
       badgeCount: unreadCount > 0 ? unreadCount : undefined,
+    },
+    {
+      id: 'leads' as ActiveNavTab,
+      label: t('nav.leadsList', 'Danh sách Lead'),
+      icon: <Users size={18} />,
     },
     {
       id: 'kanban' as ActiveNavTab,

@@ -13,7 +13,7 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
-import { Button, StatCard, Badge } from '../../../../../components/ui/index.js';
+import { Button, Badge } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import type {
@@ -62,10 +62,10 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         setPolicy(data.retentionPolicy);
       }
     } catch (err: any) {
-      notify.error({
-        title: 'Lỗi tải dữ liệu lưu trữ',
-        message: err.message || 'Không thể lấy số liệu dung lượng tin nhắn.',
-      });
+      notify.error(
+        err.message || 'Không thể lấy số liệu dung lượng tin nhắn.',
+        'Lỗi tải dữ liệu lưu trữ',
+      );
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -78,10 +78,10 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
 
   const handleSavePolicy = async () => {
     if (!workspaceId) {
-      notify.error({
-        title: 'Thiếu thông tin',
-        message: 'Vui lòng chọn không gian làm việc để lưu cấu hình.',
-      });
+      notify.error(
+        'Vui lòng chọn không gian làm việc để lưu cấu hình.',
+        'Thiếu thông tin',
+      );
       return;
     }
 
@@ -94,15 +94,15 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         slimPayloadOnly: policy.slimPayloadOnly,
       });
       setPolicy(updated);
-      notify.success({
-        title: 'Cập nhật thành công',
-        message: 'Chính sách lưu trữ tin nhắn đã được lưu vào hệ thống.',
-      });
+      notify.success(
+        'Chính sách lưu trữ tin nhắn đã được lưu vào hệ thống.',
+        'Cập nhật thành công',
+      );
     } catch (err: any) {
-      notify.error({
-        title: 'Cập nhật thất bại',
-        message: err.message || 'Không thể lưu chính sách lưu trữ.',
-      });
+      notify.error(
+        err.message || 'Không thể lưu chính sách lưu trữ.',
+        'Cập nhật thất bại',
+      );
     } finally {
       setIsSavingPolicy(false);
     }
@@ -116,26 +116,26 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
     setIsTriggeringRetention(true);
     try {
       const res = await apiClient.triggerMessageRetentionNow(workspaceId);
-      notify.success({
-        title: 'Dọn dẹp hoàn tất',
-        message: `Đã dọn dẹp ${res.deletedMessagesCount + res.slimmedMessagesCount} tin nhắn, giải phóng ${res.freedSizeFormatted}.`,
-      });
+      notify.success(
+        `Đã dọn dẹp ${res.deletedMessagesCount + res.slimmedMessagesCount} tin nhắn, giải phóng ${res.freedSizeFormatted}.`,
+        'Dọn dẹp hoàn tất',
+      );
       await fetchMetrics(true);
     } catch (err: any) {
-      notify.error({
-        title: 'Lỗi dọn dẹp định kỳ',
-        message: err.message || 'Không thể chạy dọn dẹp tự động.',
-      });
+      notify.error(
+        err.message || 'Không thể chạy dọn dẹp tự động.',
+        'Lỗi dọn dẹp định kỳ',
+      );
     } finally {
       setIsTriggeringRetention(false);
     }
   };
 
   const handlePurgeSuccess = (res: PurgeMessagesResponse) => {
-    notify.success({
-      title: 'Dọn dẹp thành công',
-      message: `Đã xử lý ${res.deletedMessagesCount + res.slimmedMessagesCount} tin nhắn (${res.freedSizeFormatted} giải phóng trong ${res.durationMs}ms).`,
-    });
+    notify.success(
+      `Đã xử lý ${res.deletedMessagesCount + res.slimmedMessagesCount} tin nhắn (${res.freedSizeFormatted} giải phóng trong ${res.durationMs}ms).`,
+      'Dọn dẹp thành công',
+    );
     fetchMetrics(true);
   };
 
@@ -443,7 +443,7 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
               Quy tắc hệ thống chạy định kỳ hàng ngày giúp cơ sở dữ liệu luôn gọn gàng và đạt hiệu năng cao nhất.
             </p>
           </div>
-          <Badge variant={policy.enabled ? 'success' : 'default'}>
+          <Badge variant={policy.enabled ? 'success' : 'secondary'}>
             {policy.enabled ? 'Đã kích hoạt' : 'Vô hiệu hóa'}
           </Badge>
         </div>

@@ -22,6 +22,9 @@ export const ROUTES = {
   INBOX: '/inbox',
   INBOX_CONVERSATION: '/inbox/:conversationId',
 
+  // Danh sách khách hàng tiềm năng (Leads)
+  LEADS: '/leads',
+
   // Phễu Tuyển sinh (Kanban Board)
   KANBAN: '/kanban',
 
@@ -70,6 +73,7 @@ export const buildRoute = {
   reports: () => ROUTES.REPORTS,
   inbox: (conversationId?: string | null) =>
     conversationId ? `/inbox/${encodeURIComponent(conversationId)}` : ROUTES.INBOX,
+  leads: () => ROUTES.LEADS,
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
   deals: (search?: string) =>
@@ -92,6 +96,7 @@ export const buildRoute = {
 export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> = {
   reports: () => ROUTES.REPORTS,
   inbox: () => ROUTES.INBOX,
+  leads: () => ROUTES.LEADS,
   kanban: () => ROUTES.KANBAN,
   calendar: () => ROUTES.CALENDAR,
   deals: () => ROUTES.DEALS,
@@ -105,8 +110,9 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
 /**
  * Suy ra ActiveNavTab dựa trên pathname hiện tại của trình duyệt
  */
-export function getTabFromPathname(pathname: string): 'inbox' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings' {
+export function getTabFromPathname(pathname: string): 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings' {
   if (pathname.startsWith('/inbox')) return 'inbox';
+  if (pathname.startsWith('/leads')) return 'leads';
   if (pathname.startsWith('/kanban')) return 'kanban';
   if (pathname.startsWith('/calendar')) return 'calendar';
   if (pathname.startsWith('/deals')) return 'deals';
