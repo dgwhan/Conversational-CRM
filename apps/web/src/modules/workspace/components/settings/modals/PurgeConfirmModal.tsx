@@ -3,14 +3,12 @@ import {
   Trash2,
   AlertTriangle,
   RefreshCw,
-  Database,
   CheckCircle2,
   HardDrive,
-  Info,
   Calendar,
   Filter,
 } from 'lucide-react';
-import { Modal, Button, Badge } from '../../../../../components/ui/index.js';
+import { Modal, Button } from '../../../../../components/ui/index.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import type {
   EstimatePurgeResponse,
@@ -109,7 +107,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
       isOpen={isOpen}
       onClose={isPurging ? () => {} : onClose}
       title="Dọn Dẹp Lưu Trữ Tin Nhắn Cũ"
-      maxWidth="max-w-2xl"
+      size="lg"
     >
       <div className="space-y-5 py-2">
         {/* Banner Lưu ý */}
