@@ -136,7 +136,7 @@ export function SignUpForm({
           label={t('auth.fullNameLabel', 'Họ và tên')}
           name="fullName"
           autoComplete="name"
-          placeholder={t('auth.fullNamePlaceholder', 'Nhập họ và tên của bạn')}
+          placeholder={t('auth.fullNamePlaceholder', 'Nguyen Van A')}
           leadingIcon={<UserIcon size={18} />}
           value={fullName}
           onChange={(event) => {
@@ -159,7 +159,7 @@ export function SignUpForm({
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="Nhập email của bạn"
+          placeholder="example@gmail.com"
           leadingIcon={<MailIcon size={18} />}
           value={email}
           onChange={(event) => {
@@ -182,7 +182,7 @@ export function SignUpForm({
           name="phoneNumber"
           type="tel"
           autoComplete="tel"
-          placeholder={t('auth.phonePlaceholder', 'Nhập số điện thoại của bạn')}
+          placeholder={t('auth.phonePlaceholder', '0987654321')}
           leadingIcon={<PhoneIcon size={18} />}
           value={phoneNumber}
           onChange={(event) => {

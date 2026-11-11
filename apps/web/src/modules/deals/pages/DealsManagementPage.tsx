@@ -22,13 +22,15 @@ import { useTranslation } from '../../../i18n/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { DealModal } from '../components/DealModal.js';
 import { Avatar } from '../../../components/common/Avatar.js';
+import { Modal } from '../../../components/ui/Modal.js';
+import { ModalIcon } from '../../../components/ui/ModalIcon.js';
 
 type ViewMode = 'grid' | 'table';
 type StatusFilter = 'ALL' | 'OPEN' | 'WON' | 'LOST';
 
 export const DealsManagementPage: React.FC = () => {
   const { t } = useTranslation();
-  const { config, activeWorkspaceId } = useWorkspaceConfig();
+  const { config, activeWorkspaceId, staffMembers } = useWorkspaceConfig();
 
   const [deals, setDeals] = useState<DealItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -39,6 +41,8 @@ export const DealsManagementPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [selectedDealToEdit, setSelectedDealToEdit] = useState<DealItem | null>(null);
+  const [dealToDelete, setDealToDelete] = useState<DealItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Fetch Deals list
   const loadDeals = useCallback(async () => {
@@ -92,14 +96,18 @@ export const DealsManagementPage: React.FC = () => {
     await loadDeals();
   };
 
-  const handleDeleteDeal = async (dealId: string) => {
-    if (!window.confirm(t('deals.deleteDealConfirm', 'Bạn có chắc chắn muốn xóa bản ghi này?'))) return;
+  const handleConfirmDelete = async () => {
+    if (!dealToDelete) return;
     try {
-      await apiClient.deleteDeal(dealId);
+      setIsDeleting(true);
+      await apiClient.deleteDeal(dealToDelete.id);
       notify.success(t('deals.deleteDealSuccess', 'Đã xóa bản ghi thành công!'));
+      setDealToDelete(null);
       await loadDeals();
     } catch (err: any) {
       notify.error(err?.message || 'Không thể xóa đợt tuyển sinh.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -437,7 +445,7 @@ export const DealsManagementPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleDeleteDeal(deal.id)}
+                        onClick={() => setDealToDelete(deal)}
                         className="inline-flex items-center justify-center gap-1 h-7 rounded border border-slate-200 hover:border-rose-300 hover:bg-rose-50 text-rose-600 text-[11px] font-medium transition-colors cursor-pointer"
                       >
                         <Trash2 size={12} />
@@ -508,7 +516,7 @@ export const DealsManagementPage: React.FC = () => {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteDeal(deal.id)}
+                              onClick={() => setDealToDelete(deal)}
                               className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100 cursor-pointer"
                               title="Xóa"
                             >
@@ -534,11 +542,81 @@ export const DealsManagementPage: React.FC = () => {
           setSelectedDealToEdit(null);
         }}
         dealToEdit={selectedDealToEdit}
-        customerName={selectedDealToEdit?.customer?.fullName || selectedDealToEdit?.contact?.displayName || 'Học viên'}
+        customerId={selectedDealToEdit?.customerId || undefined}
+        customerName={selectedDealToEdit?.customer?.fullName || selectedDealToEdit?.contact?.displayName || undefined}
+        customerPhone={selectedDealToEdit?.customer?.phone || selectedDealToEdit?.contact?.phoneNormalized || undefined}
+        customerEmail={selectedDealToEdit?.customer?.email || selectedDealToEdit?.contact?.email || undefined}
+        workspaceId={activeWorkspaceId}
         pipelineStages={config.pipelineStages}
         catalog={config.productCatalog}
+        staffList={staffMembers as any}
         onSave={handleSaveDeal}
       />
+
+      {/* Pop-up Xác nhận xóa trực quan */}
+      <Modal
+        isOpen={Boolean(dealToDelete)}
+        onClose={() => !isDeleting && setDealToDelete(null)}
+        variant="rounded"
+        showCloseButton={!isDeleting}
+        icon={<ModalIcon variant="danger" icon={<Trash2 size={18} className="text-white" />} />}
+        title={t('deals.deleteModalTitle', 'Xác nhận xóa cơ hội tuyển sinh')}
+        description={t(
+          'deals.deleteModalDescription',
+          'Bạn có chắc chắn muốn xóa bản ghi này? Thao tác này sẽ xóa vĩnh viễn và không thể hoàn tác.'
+        )}
+        primaryAction={{
+          label: isDeleting ? t('common.loading', 'Đang xóa...') : t('common.delete', 'Xóa vĩnh viễn'),
+          onClick: handleConfirmDelete,
+          variant: 'danger',
+          disabled: isDeleting,
+          loading: isDeleting,
+        }}
+        secondaryAction={{
+          label: t('common.cancel', 'Hủy bỏ'),
+          onClick: () => setDealToDelete(null),
+          disabled: isDeleting,
+        }}
+      >
+        {dealToDelete && (
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                {dealToDelete.title}
+              </span>
+              {dealToDelete.intake && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-700 shrink-0">
+                  {dealToDelete.intake}
+                </span>
+              )}
+            </div>
+
+            <div className="text-slate-600 text-[11px]">
+              Học viên: <strong className="text-slate-800">{dealToDelete.customer?.fullName || dealToDelete.contact?.displayName || 'Chưa định danh'}</strong>
+            </div>
+
+            {dealToDelete.courses && dealToDelete.courses.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {dealToDelete.courses.map((course, idx) => (
+                  <span
+                    key={idx}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                  >
+                    {course}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-slate-500 pt-2 border-t border-slate-200/80 text-[11px]">
+              <span>Giá trị dự kiến:</span>
+              <strong className="text-emerald-700 font-semibold text-xs">
+                {(dealToDelete.expectedRevenue || 0).toLocaleString('vi-VN')} đ
+              </strong>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

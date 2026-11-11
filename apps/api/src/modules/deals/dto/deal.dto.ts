@@ -2,6 +2,9 @@ export class CreateDealDto {
     workspaceId!: string;
     customerId?: string;
     contactId?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
     assignedMemberId?: string;
 
     title!: string;
@@ -22,6 +25,10 @@ export class CreateDealDto {
 }
 
 export class UpdateDealDto {
+    customerId?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
     title?: string;
     stage?: string;
     pipelineId?: string;

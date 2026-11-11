@@ -222,6 +222,13 @@ export interface TranslationDictionary {
     saveDealSuccess: string;
     editAction: string;
     deleteAction: string;
+    studentInfoLabel?: string;
+    selectExistingStudent?: string;
+    createNewStudent?: string;
+    selectCustomerWarning?: string;
+    enterCustomerNameWarning?: string;
+    deleteModalTitle?: string;
+    deleteModalDescription?: string;
   };
   calendar: {
     viewMonth: string;

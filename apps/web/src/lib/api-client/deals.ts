@@ -49,6 +49,9 @@ export interface CreateDealPayload {
   workspaceId?: string;
   customerId?: string;
   contactId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   assignedMemberId?: string | null;
   title: string;
   stage?: string;
@@ -67,6 +70,10 @@ export interface CreateDealPayload {
 }
 
 export interface UpdateDealPayload {
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
   title?: string;
   stage?: string;
   pipelineId?: string;
@@ -217,6 +224,14 @@ export function createDealApi(client: BaseApiClient) {
           assignedStaffName: payload.assignedStaffName || 'Tư vấn viên',
           notes: payload.notes,
           metadata: payload.metadata,
+          customer: payload.customerName
+            ? {
+                id: payload.customerId || `cust-${Date.now()}`,
+                fullName: payload.customerName,
+                phone: payload.customerPhone || null,
+                email: payload.customerEmail || null,
+              }
+            : undefined,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };

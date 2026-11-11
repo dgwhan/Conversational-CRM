@@ -32,15 +32,18 @@ export const InterestedCoursesSection: React.FC<InterestedCoursesSectionProps> =
 
   return (
     <div className="p-4 bg-white space-y-2.5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <h4 className="m-0 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-1.5 min-w-0 flex-1">
+          <h4
+            className="m-0 text-xs font-semibold text-slate-500 uppercase tracking-wider leading-snug break-words"
+            title={`${productLabel} (${effectiveCourses.length})`}
+          >
             {productLabel} ({effectiveCourses.length})
           </h4>
           <button
             type="button"
             onClick={() => setIsExplainModalOpen(true)}
-            className="inline-flex items-center justify-center p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer rounded"
+            className="inline-flex items-center justify-center p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer rounded shrink-0 mt-0.5"
             title={`Xem giải thích ${productLabel.toLowerCase()}`}
             aria-label={`Giải thích ${productLabel}`}
           >
@@ -50,7 +53,7 @@ export const InterestedCoursesSection: React.FC<InterestedCoursesSectionProps> =
         <button
           type="button"
           onClick={onOpenAssignModal}
-          className="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer bg-transparent border-0 p-0 transition-colors"
+          className="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer bg-transparent border-0 p-0 transition-colors shrink-0 whitespace-nowrap mt-0.5"
           title={`Gán hoặc đổi ${productLabel.toLowerCase()}`}
         >
           {effectiveCourses.length > 0 ? 'Sửa' : '+ Gán'}
@@ -70,16 +73,16 @@ export const InterestedCoursesSection: React.FC<InterestedCoursesSectionProps> =
             return (
               <div
                 key={idx}
-                className="flex items-center justify-between p-2 rounded-md border border-slate-200/80 bg-slate-50 text-xs"
+                className="flex items-start justify-between gap-2 p-2 rounded-md border border-slate-200/80 bg-slate-50 text-xs"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <BookOpen size={13} className="text-slate-400 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="m-0 font-medium text-slate-800 truncate" title={courseName}>
+                <div className="flex items-start gap-2 min-w-0 flex-1">
+                  <BookOpen size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <p className="m-0 font-medium text-slate-800 break-words leading-snug" title={courseName}>
                       {courseName}
                     </p>
                     {price ? (
-                      <p className="m-0 text-[11px] text-slate-500">
+                      <p className="m-0 text-[11px] text-slate-500 mt-0.5">
                         {price.toLocaleString('vi-VN')} đ
                       </p>
                     ) : null}
@@ -89,7 +92,7 @@ export const InterestedCoursesSection: React.FC<InterestedCoursesSectionProps> =
                 <button
                   type="button"
                   onClick={() => onRemoveCourse(courseName)}
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer"
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors cursor-pointer shrink-0 mt-0.5"
                   title="Gỡ khóa học"
                 >
                   <X size={12} />

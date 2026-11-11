@@ -109,7 +109,7 @@ export function LoginForm({
           name="identifier"
           type="text"
           autoComplete="username"
-          placeholder={t('auth.identifierPlaceholder', 'Nhập email hoặc số điện thoại')}
+          placeholder={t('auth.identifierPlaceholder', 'example@gmail.com')}
           value={identifier}
           onChange={(event) => {
             setIdentifier(event.target.value);
@@ -135,7 +135,7 @@ export function LoginForm({
 
         {/* Mật khẩu Input with interior toggle eye */}
         <GlassPasswordField
-          label={t('auth.passwordLabel', 'Mật khẩu')}
+          label={t('auth.passwordLabel', '••••••••••')}
           value={password}
           onChange={(value) => {
             setPassword(value);

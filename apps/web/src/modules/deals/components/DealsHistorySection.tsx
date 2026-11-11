@@ -22,6 +22,8 @@ import type { PipelineStageConfig, ProductItemConfig } from '../../workspace/wor
 import type { AssignedStaff } from '../../inbox/types.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { DealModal } from './DealModal.js';
+import { Modal } from '../../../components/ui/Modal.js';
+import { ModalIcon } from '../../../components/ui/ModalIcon.js';
 import { useTranslation } from '../../../i18n/index.js';
 import { ROUTES, buildRoute } from '../../../config/routes.js';
 
@@ -54,6 +56,8 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
   const [selectedDealToEdit, setSelectedDealToEdit] = useState<DealItem | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeMenuDealId, setActiveMenuDealId] = useState<string | null>(null);
+  const [dealToDelete, setDealToDelete] = useState<DealItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   const targetId = customerId || contactId;
   const onDealUpdatedRef = useRef(onDealUpdated);
@@ -110,15 +114,18 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
     await loadDeals();
   };
 
-  const handleDeleteDeal = async (dealId: string) => {
-    if (!window.confirm(t('deals.deleteDealConfirm', 'Bạn có chắc chắn muốn xóa cơ hội này?'))) return;
+  const handleConfirmDelete = async () => {
+    if (!dealToDelete) return;
     try {
-      await apiClient.deleteDeal(dealId);
+      setIsDeleting(true);
+      await apiClient.deleteDeal(dealToDelete.id);
       notify.success(t('deals.deleteDealSuccess', 'Đã xóa cơ hội tuyển sinh.'));
+      setDealToDelete(null);
       await loadDeals();
     } catch (err: any) {
       notify.error(err?.message || 'Không thể xóa cơ hội.');
     } finally {
+      setIsDeleting(false);
       setActiveMenuDealId(null);
     }
   };
@@ -286,7 +293,10 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteDeal(deal.id)}
+                              onClick={() => {
+                                setDealToDelete(deal);
+                                setActiveMenuDealId(null);
+                              }}
                               className="w-full px-2.5 py-1 text-left flex items-center gap-1.5 text-rose-600 hover:bg-rose-50 cursor-pointer"
                             >
                               <Trash2 size={12} />
@@ -377,6 +387,67 @@ export const DealsHistorySection: React.FC<DealsHistorySectionProps> = ({
         staffList={staffList}
         onSave={handleSaveDeal}
       />
+
+      {/* Pop-up Xác nhận xóa cơ hội trực quan */}
+      <Modal
+        isOpen={Boolean(dealToDelete)}
+        onClose={() => !isDeleting && setDealToDelete(null)}
+        variant="rounded"
+        showCloseButton={!isDeleting}
+        icon={<ModalIcon variant="danger" icon={<Trash2 size={18} className="text-white" />} />}
+        title={t('deals.deleteModalTitle', 'Xác nhận xóa cơ hội tuyển sinh')}
+        description={t(
+          'deals.deleteModalDescription',
+          'Bạn có chắc chắn muốn xóa bản ghi này? Thao tác này sẽ xóa vĩnh viễn và không thể hoàn tác.'
+        )}
+        primaryAction={{
+          label: isDeleting ? t('common.loading', 'Đang xóa...') : t('common.delete', 'Xóa vĩnh viễn'),
+          onClick: handleConfirmDelete,
+          variant: 'danger',
+          disabled: isDeleting,
+          loading: isDeleting,
+        }}
+        secondaryAction={{
+          label: t('common.cancel', 'Hủy bỏ'),
+          onClick: () => setDealToDelete(null),
+          disabled: isDeleting,
+        }}
+      >
+        {dealToDelete && (
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                {dealToDelete.title}
+              </span>
+              {dealToDelete.intake && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-200 text-slate-700 shrink-0">
+                  {dealToDelete.intake}
+                </span>
+              )}
+            </div>
+
+            {dealToDelete.courses && dealToDelete.courses.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {dealToDelete.courses.map((course, idx) => (
+                  <span
+                    key={idx}
+                    className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                  >
+                    {course}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-slate-500 pt-2 border-t border-slate-200/80 text-[11px]">
+              <span>Giá trị dự kiến:</span>
+              <strong className="text-emerald-700 font-semibold text-xs">
+                {(dealToDelete.expectedRevenue || 0).toLocaleString('vi-VN')} đ
+              </strong>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

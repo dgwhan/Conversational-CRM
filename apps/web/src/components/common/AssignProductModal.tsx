@@ -200,7 +200,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
               <Package size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 600, color: '#0f172a' }}>
+              <h3 style={{ margin: 1, fontSize: '17px', fontWeight: 600, color: '#0f172a' }}>
                 Gán {productLabel}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>

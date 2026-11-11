@@ -39,6 +39,48 @@ export class DealService {
             }
         }
 
+        // Tự động tìm hoặc tạo Customer khi tạo deal từ thông tin học viên nhập tay
+        if (!safeCustomerId && (dto.customerName || dto.customerPhone || dto.customerEmail)) {
+            const trimmedPhone = dto.customerPhone?.trim() || null;
+            let existingCust = trimmedPhone
+                ? await this.prisma.customer.findFirst({
+                    where: {
+                        workspaceId: safeWsId,
+                        OR: [
+                            { phone: trimmedPhone },
+                            { phoneNormalized: trimmedPhone },
+                        ],
+                    },
+                })
+                : null;
+
+            if (!existingCust && dto.customerEmail?.trim()) {
+                existingCust = await this.prisma.customer.findFirst({
+                    where: {
+                        workspaceId: safeWsId,
+                        email: dto.customerEmail.trim(),
+                    },
+                });
+            }
+
+            if (existingCust) {
+                safeCustomerId = existingCust.id;
+            } else {
+                const newCustomer = await this.prisma.customer.create({
+                    data: {
+                        workspaceId: safeWsId,
+                        fullName: dto.customerName?.trim() || 'Học viên',
+                        phone: trimmedPhone,
+                        phoneNormalized: trimmedPhone,
+                        email: dto.customerEmail?.trim() || null,
+                        channel: 'MANUAL_IMPORT',
+                        leadStatus: 'POTENTIAL',
+                    },
+                });
+                safeCustomerId = newCustomer.id;
+            }
+        }
+
         let safeContactId: string | undefined = undefined;
         if (dto.contactId && UUID_REGEX.test(dto.contactId)) {
             safeContactId = dto.contactId;
@@ -264,6 +306,21 @@ export class DealService {
 
         if (dto.assignedMemberId !== undefined) {
             updateData.assignedMemberId = dto.assignedMemberId && UUID_REGEX.test(dto.assignedMemberId) ? dto.assignedMemberId : null;
+        }
+        if (dto.customerId !== undefined) {
+            const stripped = dto.customerId ? dto.customerId.replace(/^(cust|cand)-/, '') : null;
+            updateData.customerId = stripped && UUID_REGEX.test(stripped) ? stripped : null;
+        }
+        if (existing.customerId && (dto.customerName || dto.customerPhone || dto.customerEmail)) {
+            await this.prisma.customer.update({
+                where: { id: existing.customerId },
+                data: {
+                    fullName: dto.customerName?.trim() || undefined,
+                    phone: dto.customerPhone?.trim() || undefined,
+                    phoneNormalized: dto.customerPhone?.trim() || undefined,
+                    email: dto.customerEmail?.trim() || undefined,
+                },
+            }).catch(() => {});
         }
         if (dto.expectedCloseDate !== undefined) {
             updateData.expectedCloseDate = dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null;
