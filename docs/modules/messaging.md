@@ -21,7 +21,9 @@ Module được tổ chức theo 4 lớp độc lập:
    - `ChannelAdapterRegistry`: Quản lý và định tuyến các Adapter theo kênh.
 3. **Infrastructure Layer**: Triển khai cụ thể các Ports:
    - `MessageRepository`: Tương tác cơ sở dữ liệu PostgreSQL qua Prisma, xử lý ràng buộc khoá ngoại và `ON CONFLICT DO NOTHING`.
-   - `BullMqInboundQueue` & `InboundMessageProcessor`: Hàng đợi phân tán Redis BullMQ với chiến lược Exponential Backoff Retry.
+   - `BullMqInboundQueue` (có `REDIS_URL`): hàng đợi bền vững Redis BullMQ, `jobId = messageId`, retry 5 lần với Exponential Backoff; worker chạy `InboundJobHandler`. Không có Redis (chỉ dev/test): `InProcessInboundQueue` chạy nền trong tiến trình.
+   - `InboundMessageSideEffects`: tác vụ phụ chạy trong worker (đồng bộ customer, realtime, trả lời ngoài giờ), chỉ ở lần thử đầu tiên.
+   - `UnprocessedMessageSweeper`: cron mỗi phút đưa lại vào hàng đợi các tin INBOUND còn `processed_at = null` quá 2 phút.
    - Các Channel Adapters: `ZaloAdapter`, `FacebookAdapter`, `ManualImportAdapter`.
    - Các Gateways: `DefaultCustomerGateway`, `DefaultClassificationGateway`.
 4. **Presentation Layer**:
@@ -58,10 +60,10 @@ graph TD
         Registry --> Adapter["Specific ChannelAdapter"]
         UC1 -->|"2. insertManyIgnoreDuplicate"| Repo["MessageRepository"]
         Repo -->|"ON CONFLICT DO NOTHING"| DB[("PostgreSQL: messages")]
-        UC1 -->|"3. enqueue(newIds)"| Queue["InboundMessageQueue (BullMQ)"]
+        UC1 -->|"3. enqueue(jobs) ghép theo (channel, externalMessageId)"| Queue["InboundMessageQueue (BullMQ)"]
     end
     
-    Queue -.->|"Async Job: message.received"| Worker["InboundMessageProcessor"]
+    Queue -.->|"Async Job: message.received"| Worker["InboundJobHandler"]
     
     subgraph "Worker Pipeline (Background Path)"
         Worker -->|"process(job)"| UC2["ProcessMessageReceived UseCase"]
@@ -134,7 +136,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     participant Q as Redis Queue
-    participant W as InboundMessageProcessor
+    participant W as InboundJobHandler
     participant UC as ProcessMessageReceived
     participant Repo as MessageRepository
     participant DB as PostgreSQL
@@ -226,11 +228,15 @@ apps/api/src/modules/messaging/
 │   └── index.ts
 ├── application/                            # Lớp Application (Use Cases)
 │   ├── channel-adapter.registry.ts         # Quản lý & tra cứu Adapter
-│   ├── receive-inbound-message.usecase.ts  # Ingest Webhook Use Case
+│   ├── receive-inbound-message.usecase.ts  # Ingest Webhook Use Case (lưu tin + enqueue)
+│   ├── inbound-job.handler.ts              # Xử lý một job inbound trong worker
+│   ├── inbound-message-side-effects.service.ts # Đồng bộ customer, realtime, ngoài giờ (worker)
+│   ├── unprocessed-message-sweeper.service.ts  # Cron đưa lại tin chưa xử lý vào hàng đợi
 │   └── process-message-received.usecase.ts # Worker Processing Use Case
 ├── infrastructure/                         # Lớp Infrastructure (Adapters & DB)
 │   ├── message.repository.ts               # Prisma Repository với ON CONFLICT
-│   ├── bullmq-inbound-queue.ts             # BullMQ Queue & Worker Processor
+│   ├── bullmq-inbound-queue.ts             # BullMQ Queue & Worker (khi có REDIS_URL)
+│   ├── in-process-inbound-queue.ts         # Hàng đợi trong tiến trình (dev/test, không Redis)
 │   ├── adapters/                           # Triển khai Channel Adapters
 │   │   ├── zalo.adapter.ts
 │   │   ├── facebook.adapter.ts

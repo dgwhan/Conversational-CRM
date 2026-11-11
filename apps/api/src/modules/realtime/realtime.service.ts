@@ -1,9 +1,16 @@
-import { Injectable, Logger, MessageEvent, OnModuleDestroy, Optional } from '@nestjs/common';
+import { Injectable, Logger, MessageEvent, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID, createHmac, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { Observable, Subject, filter, interval, map, merge } from 'rxjs';
 import { WebSocketServer, WebSocket } from 'ws';
+import type { Redis } from 'ioredis';
+import { RedisService } from '../../platform/redis/redis.service.js';
+
+/** Kênh Redis pub/sub để mọi instance cùng nhận sự kiện realtime (client có thể kết nối vào instance bất kỳ). */
+const REALTIME_CHANNEL = 'realtime:events';
+/** Presence tự hết hạn nếu không được cập nhật lại (tránh "online" vĩnh viễn khi instance chết). */
+const PRESENCE_TTL_SECONDS = 24 * 60 * 60;
 
 export type StaffPresenceStatus = 'ONLINE' | 'AWAY' | 'BUSY';
 
@@ -54,7 +61,7 @@ const TICKET_PURPOSE = 'realtime-ticket';
 export const REALTIME_TICKET_TTL_SECONDS = 60;
 
 @Injectable()
-export class RealtimeService implements OnModuleDestroy {
+export class RealtimeService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RealtimeService.name);
   private readonly eventSubject = new Subject<{ workspaceId?: string; event: MessageEvent }>();
 
@@ -69,10 +76,32 @@ export class RealtimeService implements OnModuleDestroy {
   // Ticket đã dùng (jti -> hết hạn) để mỗi ticket chỉ dùng được 1 lần
   private readonly usedTickets = new Map<string, number>();
 
-  // Danh sách trạng thái nhân viên lưu trong bộ nhớ, key = `${workspaceId}:${staffId}`
+  // Danh sách trạng thái nhân viên lưu trong bộ nhớ (chỉ dùng khi KHÔNG có Redis), key = `${workspaceId}:${staffId}`
   private readonly staffPresences = new Map<string, StaffPresenceItem>();
 
-  constructor(@Optional() private readonly configService?: ConfigService) {}
+  /** Định danh instance để bỏ qua sự kiện pub/sub do chính mình phát */
+  private readonly instanceId = randomUUID();
+  private subscriber: Redis | null = null;
+
+  constructor(
+    @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly redis?: RedisService,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    if (!this.redis?.enabled) return;
+    this.subscriber = this.redis.createConnection();
+    this.subscriber.on('message', (_channel: string, raw: string) => {
+      try {
+        const message = JSON.parse(raw) as { origin?: string; payload?: RealtimeEventPayload<unknown> };
+        if (!message.payload || message.origin === this.instanceId) return;
+        this.deliverLocally(message.payload);
+      } catch (err) {
+        this.logger.warn(`Invalid realtime pub/sub message: ${(err as Error).message}`);
+      }
+    });
+    await this.subscriber.subscribe(REALTIME_CHANNEL);
+  }
 
   // ---------------------------------------------------------------------------
   // Ticket ngắn hạn: EventSource / WebSocket của trình duyệt không gửi được header Authorization,
@@ -106,8 +135,23 @@ export class RealtimeService implements OnModuleDestroy {
     };
   }
 
-  /** Xác minh và tiêu thụ ticket (dùng 1 lần). Trả về null nếu sai chữ ký / hết hạn / đã dùng. */
+  /** Xác minh và tiêu thụ ticket (dùng 1 lần, trong tiến trình). Trả về null nếu sai chữ ký / hết hạn / đã dùng. */
   consumeTicket(ticket: unknown): RealtimeAuthContext | null {
+    const verified = this.verifyTicket(ticket);
+    if (!verified) return null;
+
+    // Dọn các ticket đã hết hạn rồi chặn dùng lại
+    const nowSec = Math.floor(Date.now() / 1000);
+    for (const [jti, exp] of this.usedTickets) {
+      if (exp < nowSec) this.usedTickets.delete(jti);
+    }
+    if (this.usedTickets.has(verified.jti)) return null;
+    this.usedTickets.set(verified.jti, verified.exp);
+    return verified.auth;
+  }
+
+  /** Chỉ kiểm tra chữ ký và hạn của ticket (chưa đánh dấu đã dùng). */
+  private verifyTicket(ticket: unknown): { auth: RealtimeAuthContext; jti: string; exp: number } | null {
     const secret = this.getTicketSecret();
     if (!secret || typeof ticket !== 'string') return null;
 
@@ -136,17 +180,31 @@ export class RealtimeService implements OnModuleDestroy {
         return null;
       }
 
-      // Dọn các ticket đã hết hạn rồi chặn dùng lại
-      for (const [jti, exp] of this.usedTickets) {
-        if (exp < nowSec) this.usedTickets.delete(jti);
-      }
-      if (this.usedTickets.has(payload.jti)) return null;
-      this.usedTickets.set(payload.jti, payload.exp);
-
-      return { userId: payload.uid, workspaceId: payload.wid };
+      return { auth: { userId: payload.uid, workspaceId: payload.wid }, jti: payload.jti, exp: payload.exp };
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Như consumeTicket, nhưng khi có Redis thì đánh dấu "đã dùng" ở Redis (SET NX) để ticket
+   * không thể dùng lại trên instance khác khi chạy nhiều instance.
+   */
+  async consumeTicketShared(ticket: unknown): Promise<RealtimeAuthContext | null> {
+    const client = this.redis?.client;
+    if (!client) return this.consumeTicket(ticket);
+
+    const verified = this.verifyTicket(ticket);
+    if (!verified) return null;
+    const ttlSeconds = Math.max(1, verified.exp - Math.floor(Date.now() / 1000));
+    try {
+      const marked = await client.set(`realtime:ticket:${verified.jti}`, '1', 'EX', ttlSeconds, 'NX');
+      if (marked !== 'OK') return null;
+    } catch (err) {
+      this.logger.warn(`Redis unavailable for realtime ticket check: ${(err as Error).message}`);
+      return this.consumeTicket(ticket);
+    }
+    return verified.auth;
   }
 
   private extractTicketFromRequest(req: IncomingMessage): string | undefined {
@@ -177,13 +235,16 @@ export class RealtimeService implements OnModuleDestroy {
         server,
         path,
         verifyClient: (info: { req: IncomingMessage }, done: (ok: boolean, code?: number, message?: string) => void) => {
-          const auth = this.consumeTicket(this.extractTicketFromRequest(info.req));
-          if (!auth) {
-            done(false, 401, 'Unauthorized');
-            return;
-          }
-          (info.req as IncomingMessage & { realtimeAuth?: RealtimeAuthContext }).realtimeAuth = auth;
-          done(true);
+          void this.consumeTicketShared(this.extractTicketFromRequest(info.req))
+            .then((auth) => {
+              if (!auth) {
+                done(false, 401, 'Unauthorized');
+                return;
+              }
+              (info.req as IncomingMessage & { realtimeAuth?: RealtimeAuthContext }).realtimeAuth = auth;
+              done(true);
+            })
+            .catch(() => done(false, 401, 'Unauthorized'));
         },
       });
 
@@ -346,13 +407,28 @@ export class RealtimeService implements OnModuleDestroy {
       return;
     }
 
+    this.deliverLocally(payload);
+
+    // Phát cho các instance khác qua Redis (client của workspace có thể đang nối vào instance khác)
+    const client = this.redis?.client;
+    if (client) {
+      client
+        .publish(REALTIME_CHANNEL, JSON.stringify({ origin: this.instanceId, payload }))
+        .catch((err) => this.logger.warn(`Realtime publish failed: ${(err as Error).message}`));
+    }
+  }
+
+  /** Gửi sự kiện tới các client WebSocket / SSE đang kết nối vào CHÍNH instance này. */
+  private deliverLocally(payload: RealtimeEventPayload<unknown>): void {
+    if (!payload.workspaceId) return;
+
     // 1. Gửi qua WebSocket cho các client của workspace
     this.broadcastToSockets(payload);
 
     // 2. Gửi qua Server-Sent Events (SSE) cho client của workspace
     this.eventSubject.next({
-      workspaceId: resolvedWorkspaceId,
-      event: { type, data: payload },
+      workspaceId: payload.workspaceId,
+      event: { type: payload.type, data: payload },
     });
   }
 
@@ -455,14 +531,28 @@ export class RealtimeService implements OnModuleDestroy {
   /**
    * Cập nhật trạng thái trực tuyến của nhân viên (Online / Away / Busy) trong một workspace
    */
-  updateStaffPresence(
+  private presenceHashKey(workspaceId: string | undefined): string {
+    return `presence:${workspaceId ?? '_'}`;
+  }
+
+  async updateStaffPresence(
     staffId: string,
     status: StaffPresenceStatus,
     extraInfo?: { name?: string; avatar?: string; role?: string },
     workspaceId?: string,
-  ): StaffPresenceItem {
+  ): Promise<StaffPresenceItem> {
     const key = this.presenceKey(workspaceId, staffId);
-    const existing = this.staffPresences.get(key) || {
+    const client = this.redis?.client;
+
+    let stored: StaffPresenceItem | undefined;
+    if (client) {
+      const raw = await client.hget(this.presenceHashKey(workspaceId), staffId);
+      stored = raw ? (JSON.parse(raw) as StaffPresenceItem) : undefined;
+    } else {
+      stored = this.staffPresences.get(key);
+    }
+
+    const existing = stored || {
       staffId,
       name: extraInfo?.name || `Nhân viên #${staffId}`,
       avatar: extraInfo?.avatar || 'NV',
@@ -480,7 +570,12 @@ export class RealtimeService implements OnModuleDestroy {
       avatar: extraInfo?.avatar || existing.avatar,
     };
 
-    this.staffPresences.set(key, updated);
+    if (client) {
+      const hashKey = this.presenceHashKey(workspaceId);
+      await client.multi().hset(hashKey, staffId, JSON.stringify(updated)).expire(hashKey, PRESENCE_TTL_SECONDS).exec();
+    } else {
+      this.staffPresences.set(key, updated);
+    }
     this.emit('presence:updated', updated, workspaceId);
 
     return updated;
@@ -489,7 +584,12 @@ export class RealtimeService implements OnModuleDestroy {
   /**
    * Lấy danh sách trạng thái của nhân viên trong một workspace
    */
-  getAllStaffPresences(workspaceId?: string): StaffPresenceItem[] {
+  async getAllStaffPresences(workspaceId?: string): Promise<StaffPresenceItem[]> {
+    const client = this.redis?.client;
+    if (client && workspaceId) {
+      const all = await client.hgetall(this.presenceHashKey(workspaceId));
+      return Object.values(all).map((raw) => JSON.parse(raw) as StaffPresenceItem);
+    }
     return Array.from(this.staffPresences.values()).filter(
       (item) => (workspaceId ? item.workspaceId === workspaceId : true),
     );
@@ -522,6 +622,7 @@ export class RealtimeService implements OnModuleDestroy {
    * Dọn dẹp tài nguyên khi module bị hủy
    */
   onModuleDestroy(): void {
+    this.subscriber = null; // kết nối được RedisService đóng khi tắt ứng dụng
     for (const client of this.socketClients.keys()) {
       try {
         client.close();

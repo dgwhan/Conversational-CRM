@@ -62,11 +62,37 @@ export const envSchema = z
     JWT_ACCESS_SECRET: z
       .string()
       .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
-    JWT_ACCESS_TTL: z.string().default('15m'),
+    // Thời hạn Access Token, ví dụ "15m", "1h", "900s". Là cấu hình chính (mặc định 15m trong JwtTokenService).
+    JWT_ACCESS_TTL: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z
+        .string()
+        .trim()
+        .regex(/^\d+\s*[smhd]?$/i, 'JWT_ACCESS_TTL must look like 15m, 1h, 900s or 1d')
+        .optional(),
+    ),
     REFRESH_TTL_DAYS: z.coerce.number().int().positive().default(7),
     JWT_ISSUER: z.string().default('CUSC-Recruitment-CRM'),
     JWT_AUDIENCE: z.string().default('CUSC-Recruitment-CRM-Client'),
-    JWT_EXPIRES_IN_MINUTES: z.coerce.number().int().positive().default(15),
+    // DEPRECATED: dùng JWT_ACCESS_TTL. Chỉ có hiệu lực khi JWT_ACCESS_TTL không được đặt. Không có default
+    // (default trước đây luôn che mất JWT_ACCESS_TTL).
+    JWT_EXPIRES_IN_MINUTES: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().int().positive().optional(),
+    ),
+    // Redis: bắt buộc ở production (hàng đợi BullMQ, rate limit, presence, pub/sub realtime, khóa cron)
+    REDIS_URL: optionalTrimmedString,
+    // Instance này có chạy worker xử lý tin inbound không (mặc định có)
+    INBOUND_WORKER_ENABLED: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.enum(['true', 'false']).optional(),
+    ),
+    INBOUND_WORKER_CONCURRENCY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().int().positive().max(100).optional(),
+    ),
+    // Proxy tin cậy để đọc X-Forwarded-For (số hop, danh sách IP/CIDR, hoặc true). Mặc định: không tin.
+    TRUST_PROXY: optionalTrimmedString,
     // Mail (SMTP)
     MAIL_HOST: optionalTrimmedString,
     MAIL_PORT: optionalPort,
@@ -239,6 +265,14 @@ export const envSchema = z
           path: ['ZALO_OA_SECRET_KEY'],
           message:
             'In production, ZALO_OA_SECRET_KEY (or ZALO_APP_SECRET) is required to verify Zalo webhook signatures',
+        });
+      }
+      if (!config.REDIS_URL) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['REDIS_URL'],
+          message:
+            'In production, REDIS_URL is required (durable inbound queue, shared rate limit/presence, cron locks)',
         });
       }
     }

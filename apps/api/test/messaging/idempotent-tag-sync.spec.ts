@@ -11,10 +11,8 @@ import {
     canUpgradeLeadStage,
 } from '../../src/modules/messaging/domain/tag-mapping/index.js';
 import { MessageRepository } from '../../src/modules/messaging/infrastructure/message.repository.js';
-import { ReceiveInboundMessage } from '../../src/modules/messaging/application/receive-inbound-message.usecase.js';
-import { ChannelAdapterRegistry } from '../../src/modules/messaging/application/channel-adapter.registry.js';
+import { InboundMessageSideEffects } from '../../src/modules/messaging/application/inbound-message-side-effects.service.js';
 import { ChannelManagerService } from '../../src/modules/channel-connection/application/channel-manager.service.js';
-import type { ChannelAdapter, InboundMessageQueue } from '../../src/modules/messaging/domain/channel-adapter.port.js';
 import type { InboundEvent } from '../../src/modules/messaging/domain/inbound-event.js';
 
 describe('Sub-task 3: Ensure Idempotent Tag Synchronization', () => {
@@ -149,19 +147,7 @@ describe('Sub-task 3: Ensure Idempotent Tag Synchronization', () => {
             expect(result.shouldUpgradeLead).toBe(false);
         });
 
-        it('ReceiveInboundMessage không gửi broadcast reset giai đoạn phễu khi khách hàng cũ gửi tin nhắn mới', async () => {
-            const mockAdapter: ChannelAdapter = {
-                channel: Channel.FACEBOOK,
-                verifyRequest: vi.fn().mockReturnValue(true),
-                parseEvents: vi.fn(),
-            };
-            const mockRegistry = new ChannelAdapterRegistry([mockAdapter]);
-            const mockRepo: any = {
-                insertManyIgnoreDuplicate: vi.fn().mockResolvedValue([{ id: 'msg-exist-1' }]),
-            };
-            const mockQueue: InboundMessageQueue = {
-                enqueue: vi.fn().mockResolvedValue(undefined),
-            };
+        it('Worker (InboundMessageSideEffects) không gửi broadcast reset giai đoạn phễu khi khách hàng cũ gửi tin nhắn mới', async () => {
             const mockPrisma: any = {
                 customer: {
                     findFirst: vi.fn().mockResolvedValue({
@@ -183,15 +169,9 @@ describe('Sub-task 3: Ensure Idempotent Tag Synchronization', () => {
                 broadcastPipelineChange: vi.fn(),
             };
 
-            const useCase = new ReceiveInboundMessage(
-                mockRegistry,
-                mockRepo,
-                mockQueue,
-                mockRealtime,
-                mockPrisma
-            );
+            const sideEffects = new InboundMessageSideEffects(mockRealtime, mockPrisma);
 
-            mockAdapter.parseEvents = vi.fn().mockReturnValue([
+            await sideEffects.run(
                 {
                     channel: Channel.FACEBOOK,
                     externalAccountId: 'page-100',
@@ -204,13 +184,8 @@ describe('Sub-task 3: Ensure Idempotent Tag Synchronization', () => {
                         tags: ['Facebook Lead'],
                     },
                 },
-            ]);
-
-            await useCase.execute({
-                channel: Channel.FACEBOOK,
-                headers: {},
-                rawBody: Buffer.from('{}'),
-            });
+                { id: 'msg-exist-1', conversationId: null },
+            );
 
             // Tin nhắn mới được gửi qua realtime
             expect(mockRealtime.broadcastNewMessage).toHaveBeenCalled();

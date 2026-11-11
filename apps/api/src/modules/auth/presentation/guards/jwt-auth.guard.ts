@@ -12,6 +12,7 @@ import { StaffRoleSchema } from '../../../../contracts/iam.js';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import { IS_PUBLIC_KEY } from '../../../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../domain/types/auth-user.js';
+import { JwtTokenService } from '../../../../platform/config/jwt.config.js';
 
 type AuthenticatedRequest = Request & { user?: AuthUser };
 type AccessTokenPayload = {
@@ -26,6 +27,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     @Optional() private readonly reflector?: Reflector,
+    @Optional() private readonly tokenSettings?: JwtTokenService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -50,7 +52,12 @@ export class JwtAuthGuard implements CanActivate {
 
     let payload: AccessTokenPayload;
     try {
-      payload = await this.jwtService.verifyAsync<AccessTokenPayload>(match[1]);
+      // Bắt buộc iss/aud khớp cấu hình và chỉ chấp nhận HS256 (không tin cấu hình mặc định của JwtModule)
+      const settings = this.tokenSettings?.getSettings();
+      payload = await this.jwtService.verifyAsync<AccessTokenPayload>(match[1], {
+        algorithms: ['HS256'],
+        ...(settings ? { issuer: settings.Issuer, audience: settings.Audience } : {}),
+      });
     } catch {
       //sai chữ ký, token hết hạn hoặc không giải mã được
       throw new UnauthorizedException();

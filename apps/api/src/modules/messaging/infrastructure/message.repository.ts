@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit, Optional } from "@nestjs/common";
 import { Message, Prisma } from "@prisma/client";
 import { PrismaService } from "../../../platform/database/prisma.service.js";
+import { DistributedLockService } from "../../../platform/redis/distributed-lock.service.js";
 import { InboundEvent } from "../domain/inbound-event.js";
 import { Channel, MessageDirection } from "../domain/channel.js";
 import {
@@ -8,6 +9,38 @@ import {
     CRM_SYSTEM_TAGS,
     META_SOURCE_TAGS,
 } from "../domain/tag-mapping/index.js";
+
+/** Tin vừa được chèn mới (đã bỏ qua tin trùng). channel + externalMessageId dùng để ghép lại đúng sự kiện gốc. */
+export interface InsertedMessage {
+    id: string;
+    conversationId: string | null;
+    channel: Channel;
+    externalMessageId: string;
+}
+
+export const inboundEventKey = (e: { channel: string; externalMessageId: string }): string =>
+    `${e.channel}:${e.externalMessageId}`;
+
+/**
+ * Ghép tin vừa chèn với sự kiện gốc theo khóa (channel, externalMessageId).
+ * KHÔNG được ghép theo chỉ số mảng: insertManyIgnoreDuplicate bỏ qua tin trùng nên created[i] không ứng với events[i].
+ */
+export function pairInsertedWithEvents<E extends { channel: string; externalMessageId: string }>(
+    events: readonly E[],
+    created: readonly InsertedMessage[],
+): Array<{ event: E; item: InsertedMessage }> {
+    const byKey = new Map<string, E>();
+    for (const event of events) {
+        const key = inboundEventKey(event);
+        if (!byKey.has(key)) byKey.set(key, event);
+    }
+    const pairs: Array<{ event: E; item: InsertedMessage }> = [];
+    for (const item of created) {
+        const event = byKey.get(inboundEventKey(item));
+        if (event) pairs.push({ event, item });
+    }
+    return pairs;
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (val?: string | null): val is string => Boolean(val && UUID_REGEX.test(val));
@@ -42,11 +75,34 @@ function normalizeChannel(rawChannel?: unknown): Channel | undefined {
 export class MessageRepository implements OnModuleInit {
     private readonly logger = new Logger(MessageRepository.name);
 
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        @Optional() private readonly locks?: DistributedLockService,
+    ) {}
 
     async onModuleInit(): Promise<void> {
-        // Tự động quét và chuẩn hóa các cột conversation_id, processed_at, attachments bị null trong DB
-        await this.backfillNullFields();
+        // Tự động quét và chuẩn hóa các cột conversation_id, attachments bị null trong DB.
+        // Chạy nền và có khóa phân tán: không chặn khởi động, và chỉ 1 instance chạy khi scale ngang.
+        const run = () => this.backfillNullFields();
+        const task = this.locks ? this.locks.runExclusive('messages:backfill', 10 * 60_000, run) : run();
+        void Promise.resolve(task).catch((err) =>
+            this.logger.warn(`Backfill messages failed: ${(err as Error).message}`),
+        );
+    }
+
+    /** Tin INBOUND chưa xử lý quá `olderThanMs` (job bị mất / enqueue lỗi) để sweeper đưa lại vào hàng đợi. */
+    async findStaleUnprocessedIds(olderThanMs: number, limit = 200): Promise<string[]> {
+        const rows = await this.prisma.message.findMany({
+            where: {
+                processedAt: null,
+                direction: MessageDirection.INBOUND,
+                sentAt: { lt: new Date(Date.now() - olderThanMs) },
+            },
+            orderBy: { sentAt: 'asc' },
+            take: limit,
+            select: { id: true },
+        });
+        return rows.map((r) => r.id);
     }
 
     async findById(id: string): Promise<Message | null> {
@@ -280,7 +336,7 @@ export class MessageRepository implements OnModuleInit {
 
     async insertManyIgnoreDuplicate(
         events: InboundEvent[],
-    ): Promise<Array<{ id: string; conversationId: string | null }>> {
+    ): Promise<InsertedMessage[]> {
         if (events.length === 0) {
             return [];
         }
@@ -522,8 +578,8 @@ export class MessageRepository implements OnModuleInit {
         return this.prisma.message.createManyAndReturn({
             data: messagesData,
             skipDuplicates: true,
-            select: { id: true, conversationId: true },
-        });
+            select: { id: true, conversationId: true, channel: true, externalMessageId: true },
+        }) as Promise<InsertedMessage[]>;
     }
 
     /**
@@ -599,12 +655,8 @@ export class MessageRepository implements OnModuleInit {
                 updatedConversations++;
             }
 
-            // 2. Cập nhật processed_at cho các tin nhắn đang bị null
-            const nullProcessed = await this.prisma.message.updateMany({
-                where: { processedAt: null },
-                data: { processedAt: new Date() },
-            });
-            updatedProcessedAt = nullProcessed.count;
+            // 2. KHÔNG tự đặt processed_at cho tin chưa xử lý: đó là tin còn chờ worker (hoặc sweeper đưa lại vào hàng đợi).
+            //    Đánh dấu hàng loạt ở đây sẽ khiến worker bỏ qua và làm mất tin.
 
             // 3. Cập nhật attachments từ rawPayload cho các tin nhắn bị null
             const nullAttMessages = await this.prisma.message.findMany({

@@ -3,11 +3,13 @@ import { AppModule } from './app.module.js';
 import { NestFastifyApplication, FastifyAdapter } from '@nestjs/platform-fastify';
 import { ConfigService } from '@nestjs/config';
 import { RealtimeService } from './modules/realtime/realtime.service.js';
+import { parseTrustProxy } from './platform/config/trust-proxy.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter({ bodyLimit: 20 * 1024 * 1024 }),
+    // trustProxy: chỉ tin X-Forwarded-For từ proxy được cấu hình (TRUST_PROXY), để req.ip không bị giả mạo
+    new FastifyAdapter({ bodyLimit: 20 * 1024 * 1024, trustProxy: parseTrustProxy(process.env.TRUST_PROXY) }),
     {
       rawBody: true,
       logger: ['error', 'warn', 'log'],

@@ -43,7 +43,7 @@ Hệ thống tuân thủ nghiêm ngặt mô hình kiến trúc đa lớp độc 
 │                     Infrastructure & Platform                          │
 │  - PostgreSQL + Prisma ORM (Staff, RefreshToken, RecoveryChallenge)   │
 │  - Argon2id & Crypto Service (HMAC-SHA256 Blind Indexing, Safe Compare)│
-│  - JwtTokenService (Khóa ký asymmetric/symmetric, Claims Payload)      │
+│  - JwtTokenService (HS256, kiểm tra iss/aud, TTL 15 phút mặc định)     │
 │  - Fastify HttpAdapter Cookie Engine (HttpOnly, SameSite=Lax)          │
 └────────────────────────────────────────────────────────────────────────┘
 ```
@@ -56,12 +56,13 @@ Hệ thống tuân thủ nghiêm ngặt mô hình kiến trúc đa lớp độc 
 | :--- | :--- | :--- | :--- |
 | **SEC-01** | **Password Hashing** | Sử dụng thuật toán Argon2id với tham số an toàn cao (memoryCost 65536 KB, timeCost 3). | Mật khẩu lưu trong cột `password_hash` luôn có tiền tố `$argon2id$`. Hỗ trợ migration từ bcrypt cũ. |
 | **SEC-02** | **Multi-identifier Login** | Cho phép đăng nhập qua Email (chuẩn hóa RFC 5322 lowercase) hoặc Số điện thoại (9-11 số, định dạng VN). | Tìm kiếm linh hoạt trong DB; nếu là số điện thoại tự động chuẩn hóa về dạng quốc gia. |
-| **SEC-03** | **Anti Brute-force Lockout** | Theo dõi số lần đăng nhập thất bại liên tiếp (`failed_login_attempts`). | Đạt 5 lần sai -> Khóa tài khoản tạm thời 15 phút (`locked_until = now() + 15m`). Trả về HTTP 401 với thông điệp rõ ràng. |
+| **SEC-03** | **Anti Brute-force Lockout** | Theo dõi số lần đăng nhập thất bại liên tiếp (`failed_login_attempts`). | Đạt 5 lần sai -> Khóa tài khoản tạm thời 15 phút (`locked_until = now() + 15m`). Trả HTTP 401 với **cùng một thông điệp chung** cho mọi trường hợp (sai mật khẩu, không tồn tại, đang khóa) để không lộ thông tin tài khoản; lý do thật chỉ ghi vào `audit_logs`. |
 | **SEC-04** | **Refresh Token Rotation** | Cấp phát cặp `(accessToken, refreshToken)`. Refresh token được gắn `family_id` và lưu dạng SHA-256 hash. | Mỗi lần refresh: Token cũ bị thu hồi (`revoked_at`), cấp token mới. Nếu token cũ bị dùng lại -> Hủy toàn bộ family. |
 | **SEC-05** | **Blind Indexing Recovery** | Không lưu email dạng raw trong bảng khôi phục mật khẩu. Dùng `emailKey = HMAC_SHA256(normalizedEmail, SECRET)`. | Bảng `password_recovery_challenges` không chứa PII dạng plaintext, ngăn ngừa triệt để rò rỉ dữ liệu khi dump DB. |
 | **SEC-06** | **OTP Crypto Verification** | OTP gồm 6 chữ số sinh từ `crypto.randomInt()`. Băm xác minh bằng `otpVerifier = HMAC_SHA256(challengeId:otp, OTP_SECRET)`. | Xác minh thời gian hằng số (`crypto.timingSafeEqual`) chống tấn công Timing Attack. Sai quá 5 lần -> Khóa Challenge. |
-| **SEC-07** | **Reset Token One-Time** | Sau khi xác thực OTP thành công, sinh `resetToken` (32 bytes hex) có hiệu lực trong 15 phút. | Reset token chỉ sử dụng đúng 1 lần (`consumed_at = now()`), không thể tái sử dụng. |
-| **SEC-08** | **Workspace RBAC Guard** | Bảo vệ route theo vai trò Workspace bằng `@UseGuards(WorkspaceRolesGuard)` kết hợp decorator `@Roles('OWNER')`. API xác thực không trả về role cố định. | Phân quyền linh hoạt theo từng Workspace; chặn truy cập HTTP 403 Forbidden nếu vai trò trong Workspace không đáp ứng. |
+| **SEC-07** | **Reset Token One-Time** | Sau khi xác thực OTP thành công, sinh `resetToken` (32 byte ngẫu nhiên, base64url; DB chỉ lưu hash) có hiệu lực `PASSWORD_RECOVERY_RESET_TOKEN_TTL_SECONDS` (mặc định 15 phút). | Reset token chỉ sử dụng đúng 1 lần (`consumed_at = now()`), không thể tái sử dụng. |
+| **SEC-08** | **Workspace RBAC Guard** | Bảo vệ route theo vai trò Workspace bằng `@UseGuards(WorkspaceRolesGuard)` kết hợp decorator `@Roles('OWNER')`. Access token không chứa vai trò; vai trò được tra trong DB theo workspace ở mỗi request (`WorkspaceContextGuard`). | Phân quyền linh hoạt theo từng Workspace; chặn truy cập HTTP 403 Forbidden nếu vai trò trong Workspace không đáp ứng. |
+| **SEC-09** | **Access Token Verification** | `JwtAuthGuard` toàn cục: chỉ chấp nhận HS256, `iss`/`aud` khớp `JWT_ISSUER`/`JWT_AUDIENCE`, user `ACTIVE` và `tokenVersion` khớp DB. Thời hạn từ `JWT_ACCESS_TTL` (mặc định 15m). | Token ký bằng khóa khác, sai issuer/audience, hết hạn hoặc của tài khoản bị khóa đều nhận `401`. |
 
 ---
 

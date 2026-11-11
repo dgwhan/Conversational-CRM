@@ -1,4 +1,5 @@
-import { Logger, Module, Provider, forwardRef } from '@nestjs/common';
+import { Module, Provider, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../platform/database/prisma.module.js';
 import { RealtimeModule } from '../realtime/realtime.module.js';
 import { AuditModule } from '../audit/audit.module.js';
@@ -23,7 +24,13 @@ import { MessageStorageController } from './presentation/message-storage.control
 import { MessageStorageRepository } from './infrastructure/message-storage.repository.js';
 import { MessageStorageService } from './application/message-storage.service.js';
 import { RetentionSchedulerService } from './application/retention-scheduler.service.js';
-import { INBOUND_QUEUE, InboundMessageQueue } from './domain/channel-adapter.port.js';
+import { INBOUND_QUEUE, type InboundMessageQueue } from './domain/channel-adapter.port.js';
+import { InboundJobHandler } from './application/inbound-job.handler.js';
+import { InboundMessageSideEffects } from './application/inbound-message-side-effects.service.js';
+import { UnprocessedMessageSweeper } from './application/unprocessed-message-sweeper.service.js';
+import { BullMqInboundQueue } from './infrastructure/bullmq-inbound-queue.js';
+import { InProcessInboundQueue } from './infrastructure/in-process-inbound-queue.js';
+import { RedisService } from '../../platform/redis/redis.service.js';
 import { ManualImportAdapter } from './infrastructure/adapters/manual-import.adapter.js';
 import { ZaloAdapter } from './infrastructure/adapters/zalo.adapter.js';
 import { FacebookAdapter } from './infrastructure/adapters/facebook.adapter.js';
@@ -31,29 +38,25 @@ import { CUSTOMER_GATEWAY } from './domain/customer-gateway.port.js';
 import { CLASSIFICATION_GATEWAY } from './domain/classification-gateway.port.js';
 import { DefaultCustomerGateway } from './infrastructure/gateways/default-customer.gateway.js';
 import { DefaultClassificationGateway } from './infrastructure/gateways/default-classification.gateway.js';
-import { Injectable } from '@nestjs/common';
-
-@Injectable()
-class DefaultInboundQueue implements InboundMessageQueue {
-    private readonly logger = new Logger(DefaultInboundQueue.name);
-
-    constructor(private readonly processUseCase: ProcessMessageReceived) {}
-
-    async enqueue(messageIds: string[]): Promise<void> {
-        this.logger.log(`Processing ${messageIds.length} message(s) through ProcessMessageReceived pipeline...`);
-        for (const id of messageIds) {
-            try {
-                await this.processUseCase.execute(id);
-            } catch (err) {
-                this.logger.error(`Error processing message ${id}: ${(err as Error).message}`);
-            }
-        }
-    }
-}
-
+/**
+ * Hàng đợi inbound:
+ * - Có REDIS_URL  -> BullMQ (bền vững, retry, chạy được nhiều instance).
+ * - Không có Redis -> hàng đợi trong tiến trình, chạy nền (chỉ cho development/test; production bắt buộc Redis).
+ * Trong cả hai trường hợp webhook KHÔNG xử lý tin trong request.
+ */
 const queueProvider: Provider = {
     provide: INBOUND_QUEUE,
-    useClass: DefaultInboundQueue,
+    useFactory: (redis: RedisService, handler: InboundJobHandler, config: ConfigService): InboundMessageQueue => {
+        if (redis.enabled) {
+            const workerFlag = String(config.get('INBOUND_WORKER_ENABLED') ?? 'true').toLowerCase();
+            return new BullMqInboundQueue(redis, handler, {
+                workerEnabled: workerFlag !== 'false',
+                concurrency: Number(config.get('INBOUND_WORKER_CONCURRENCY') ?? 5) || 5,
+            });
+        }
+        return new InProcessInboundQueue(handler);
+    },
+    inject: [RedisService, InboundJobHandler, ConfigService],
 };
 
 const customerGatewayProvider: Provider = {
@@ -99,6 +102,9 @@ const adaptersProvider: Provider = {
         ChannelAdapterRegistry,
         ReceiveInboundMessage,
         ProcessMessageReceived,
+        InboundMessageSideEffects,
+        InboundJobHandler,
+        UnprocessedMessageSweeper,
         ImportMessagesUseCase,
         ContactMergeService,
         CustomerService,

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -9,8 +9,8 @@ import {
   RateLimitGuard,
   CsrfGuard,
   SecurityHeadersInterceptor,
-  XssSanitizerPipe,
 } from './common/security/index.js';
+import { RedisModule } from './platform/redis/redis.module.js';
 import { HealthModule } from './platform/health/health.module.js';
 import { AppConfigModule } from './platform/config/config.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -30,6 +30,7 @@ import { DealModule } from './modules/deals/deal.module.js';
   imports: [
     ScheduleModule.forRoot(),
     AppConfigModule,
+    RedisModule,
     HealthModule,
     AuditModule,
     AuthModule,
@@ -63,10 +64,6 @@ import { DealModule } from './modules/deals/deal.module.js';
     {
       provide: APP_GUARD,
       useClass: CsrfGuard,
-    },
-    {
-      provide: APP_PIPE,
-      useClass: XssSanitizerPipe,
     },
   ],
 })

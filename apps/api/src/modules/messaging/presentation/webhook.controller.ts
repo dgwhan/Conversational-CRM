@@ -21,6 +21,7 @@ import { Channel } from "../domain/channel.js";
 import { FacebookAdapter } from "../infrastructure/adapters/facebook.adapter.js";
 import { SkipCsrf } from "../../../common/decorators/skip-csrf.decorator.js";
 import { Public } from "../../../common/decorators/public.decorator.js";
+import { SkipRateLimit } from "../../../common/decorators/rate-limit.decorator.js";
 
 /**
  * Pipe chuẩn hóa channel không phân biệt hoa thường (hỗ trợ cả /facebook và /FACEBOOK)
@@ -40,8 +41,11 @@ export class ChannelPipe implements PipeTransform<string, Channel> {
     }
 }
 
-// Webhook từ Meta / Zalo: không có Access Token, được xác thực bằng chữ ký HMAC trong ReceiveInboundMessage
+// Webhook từ Meta / Zalo: không có Access Token, được xác thực bằng chữ ký HMAC trong ReceiveInboundMessage.
+// Không áp rate limit theo IP: Meta/Zalo gửi dồn từ một dải IP nhỏ, chặn 429 sẽ làm rơi tin.
+// Bảo vệ thực sự là chữ ký HMAC (request giả bị trả 401 trước khi đụng tới DB).
 @Public()
+@SkipRateLimit()
 @SkipCsrf()
 @Controller('webhook')
 export class WebhookController {
@@ -87,7 +91,9 @@ export class WebhookController {
     /**
      * Nhận sự kiện Webhook POST từ Meta / Zalo
      * - Kiểm tra chữ ký X-Hub-Signature-256 (HMAC SHA-256). Nếu sai chữ ký -> trả 401 Unauthorized.
-     * - Đảm bảo thời gian phản hồi dưới 3000ms (giới hạn bảo vệ 2500ms) để tránh Meta retry liên tục.
+     * - Trong request chỉ: xác thực chữ ký, lưu tin (chống trùng) và đưa job vào hàng đợi. Phần xử lý nặng
+     *   chạy ở worker nên phản hồi nhanh (mục tiêu < 500 ms).
+     * - Nếu lưu tin thất bại thì trả lỗi (5xx) để nền tảng GỬI LẠI, thay vì trả 200 rồi làm mất tin.
      */
     @Post(':channel')
     @HttpCode(HttpStatus.OK)
@@ -99,23 +105,17 @@ export class WebhookController {
             throw new BadRequestException('Missing raw body');
         }
 
-        const executionPromise = this.receive.execute({
+        const startedAt = Date.now();
+        await this.receive.execute({
             channel,
             rawBody: req.rawBody,
             headers: req.headers,
             query: (req.query ?? {}) as Record<string, unknown>,
         });
 
-        // Giới hạn thời gian phản hồi an toàn 2500ms (< 3000ms)
-        // Nếu việc xử lý DB hoặc hàng đợi mất hơn 2.5s, hệ thống sẽ phản hồi 200 OK trước
-        // để phía Facebook không rơi vào vòng lặp retry liên tục (retry loop)
-        const timeoutPromise = new Promise<'TIMEOUT'>((resolve) =>
-            setTimeout(() => resolve('TIMEOUT'), 2500),
-        );
-
-        const result = await Promise.race([executionPromise, timeoutPromise]);
-        if (result === 'TIMEOUT') {
-            this.logger.warn(`Webhook execution took > 2500ms for channel ${channel}. Responded 200 OK early to prevent Meta retry loop.`);
+        const elapsed = Date.now() - startedAt;
+        if (elapsed > 500) {
+            this.logger.warn(`Webhook ${channel} took ${elapsed}ms (target < 500ms)`);
         }
 
         return { status: 'ok' };

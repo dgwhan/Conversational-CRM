@@ -125,6 +125,8 @@ DROP TABLE messages_y2024m11;
 ## 4. Tự động Dọn dẹp Định kỳ (Automated 12-Month Retention Scheduler)
 
 - **Cron Expression**: `0 2 * * *` (Chạy vào 02:00 AM hàng ngày, giờ thấp điểm tại Việt Nam).
+- **Chạy nhiều instance**: mọi instance đều kích hoạt cron, nhưng chỉ instance giành được khóa phân tán `cron:message-retention` (Redis, giữ tối đa 2 giờ) mới thực sự dọn dẹp; các instance khác bỏ qua lượt đó.
+- **An toàn truy vấn**: các điều kiện lọc động (kênh, workspace, hội thoại đã đóng) được ghép bằng `Prisma.sql`, mọi giá trị là tham số; không dùng `$queryRawUnsafe`.
 - **Quy tắc**:
   1. Quét toàn bộ các workspace đang kích hoạt.
   2. Kiểm tra cấu hình `retentionPolicy` của từng workspace (mặc định: `retentionMonths = 12`, `autoCleanupEnabled = true`).

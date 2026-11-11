@@ -23,7 +23,7 @@ export class RateLimitGuard implements CanActivate {
     private readonly rateLimiter: RateLimiterService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isSkipped = this.reflector.getAllAndOverride<boolean>(SKIP_RATE_LIMIT_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -55,7 +55,7 @@ export class RateLimitGuard implements CanActivate {
     const routeKey = options ? `${context.getClass().name}:${context.getHandler().name}` : 'global';
     const rateLimitKey = `${clientIp}:${routeKey}`;
 
-    const result = this.rateLimiter.checkLimit(rateLimitKey, limit, ttlMs);
+    const result = await this.rateLimiter.consume(rateLimitKey, limit, ttlMs);
 
     // Gán các header bảo mật Rate Limit tiêu chuẩn (IETF RFC 6585)
     this.setHeader(res, 'X-RateLimit-Limit', String(result.limit));
@@ -78,20 +78,13 @@ export class RateLimitGuard implements CanActivate {
     return true;
   }
 
+  /**
+   * IP client lấy từ `req.ip` của Fastify. KHÔNG tự đọc X-Forwarded-For / X-Real-IP: header đó do client
+   * tự đặt được nên giả IP để né giới hạn rất dễ. Khi chạy sau reverse proxy, cấu hình TRUST_PROXY để
+   * Fastify chỉ tin X-Forwarded-For từ proxy tin cậy (xem main.ts).
+   */
   private getClientIp(req: any): string {
-    const forwarded = req.headers?.['x-forwarded-for'];
-    if (forwarded) {
-      const ips = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0];
-      return ips.trim();
-    }
-
-    return (
-      req.headers?.['x-real-ip'] ||
-      req.ip ||
-      req.socket?.remoteAddress ||
-      req.raw?.socket?.remoteAddress ||
-      '127.0.0.1'
-    );
+    return req.ip || req.socket?.remoteAddress || req.raw?.socket?.remoteAddress || 'unknown';
   }
 
   private setHeader(res: any, name: string, value: string): void {

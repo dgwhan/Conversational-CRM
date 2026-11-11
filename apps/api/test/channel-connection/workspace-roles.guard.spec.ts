@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { DEFAULT_JWT_AUDIENCE, DEFAULT_JWT_ISSUER } from '../../src/platform/config/jwt.config.js';
 import { WorkspaceRolesGuard } from '../../src/common/guards/workspace-roles.guard.js';
 import { ROLES_KEY } from '../../src/common/decorators/roles.decorator.js';
 import { ForbiddenException, UnauthorizedException, ExecutionContext } from '@nestjs/common';
@@ -50,7 +51,7 @@ let currentUser = OWNER_ID;
 
 describe('WorkspaceRolesGuard', () => {
   const jwt = new JwtService();
-  const tokenFor = (sub: string) => jwt.sign({ sub }, { secret: SECRET, expiresIn: '5m' });
+  const tokenFor = (sub: string) => jwt.sign({ sub }, { secret: SECRET, expiresIn: '5m', ...{ issuer: DEFAULT_JWT_ISSUER, audience: DEFAULT_JWT_AUDIENCE } });
 
   beforeEach(() => {
     process.env.JWT_ACCESS_SECRET = SECRET;

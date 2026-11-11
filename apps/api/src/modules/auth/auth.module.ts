@@ -13,7 +13,11 @@ import { PasswordService } from './application/services/password.service.js';
 import { RefreshTokenService } from './application/services/refresh-token.service.js';
 import { RolesGuard } from './presentation/guards/roles.guard.js';
 import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard.js';
-import { JwtTokenService } from '../../platform/config/jwt.config.js';
+import {
+  DEFAULT_JWT_AUDIENCE,
+  DEFAULT_JWT_ISSUER,
+  JwtTokenService,
+} from '../../platform/config/jwt.config.js';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard.js';
 
 @Module({
@@ -24,6 +28,12 @@ import { WorkspaceContextGuard } from '../../common/guards/workspace-context.gua
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        // Mọi verify() mặc định kiểm tra iss/aud/thuật toán, khớp với JwtTokenService khi ký
+        verifyOptions: {
+          algorithms: ['HS256'],
+          issuer: configService.get<string>('JWT_ISSUER') || DEFAULT_JWT_ISSUER,
+          audience: configService.get<string>('JWT_AUDIENCE') || DEFAULT_JWT_AUDIENCE,
+        },
       }),
     }),
   ],

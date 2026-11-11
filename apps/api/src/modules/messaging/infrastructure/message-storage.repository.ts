@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Channel } from '@prisma/client';
+import { Channel, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 
 export interface PhysicalTableSizes {
@@ -36,6 +36,18 @@ export interface PurgeOptions {
   channel?: Channel;
   onlyResolvedConversations?: boolean;
   batchSize?: number;
+}
+
+/**
+ * Điều kiện lọc dùng chung cho các truy vấn dọn dẹp tin nhắn.
+ * Mọi giá trị đều là THAM SỐ (Prisma.sql), không ghép chuỗi vào câu SQL.
+ */
+function purgeFilters(options: Pick<PurgeOptions, 'channel' | 'onlyResolvedConversations' | 'workspaceId'>): Prisma.Sql {
+  const parts: Prisma.Sql[] = [];
+  if (options.channel) parts.push(Prisma.sql`AND m.channel::text = ${options.channel}`);
+  if (options.onlyResolvedConversations) parts.push(Prisma.sql`AND c.status = 'RESOLVED'`);
+  if (options.workspaceId) parts.push(Prisma.sql`AND ca.workspace_id = ${options.workspaceId}::uuid`);
+  return parts.length > 0 ? Prisma.join(parts, ' ') : Prisma.empty;
 }
 
 @Injectable()
@@ -275,40 +287,32 @@ export class MessageStorageRepository {
     earliestDate: Date | null;
     latestDate: Date | null;
   }> {
-    const { cutoffDate, slimPayloadOnly, workspaceId, channel, onlyResolvedConversations } = options;
+    const { cutoffDate, slimPayloadOnly } = options;
 
     try {
-      const channelFilterSql = channel ? `AND m.channel = '${channel}'` : '';
-      const convFilterSql = onlyResolvedConversations ? `AND c.status = 'RESOLVED'` : '';
-      const wsFilterSql = workspaceId ? `AND ca.workspace_id = '${workspaceId}'::uuid` : '';
+      const freedBytesSql = slimPayloadOnly
+        ? Prisma.sql`COALESCE(SUM(pg_column_size(m.raw_payload)), 0)::bigint AS freed_bytes,`
+        : Prisma.sql`COALESCE(SUM(pg_column_size(m.content) + pg_column_size(m.raw_payload) + COALESCE(pg_column_size(m.attachments), 0) + 64), 0)::bigint AS freed_bytes,`;
 
-      const query = `
-        SELECT
-          COUNT(m.id)::bigint AS matched_count,
-          ${
-            slimPayloadOnly
-              ? `COALESCE(SUM(pg_column_size(m.raw_payload)), 0)::bigint AS freed_bytes,`
-              : `COALESCE(SUM(pg_column_size(m.content) + pg_column_size(m.raw_payload) + COALESCE(pg_column_size(m.attachments), 0) + 64), 0)::bigint AS freed_bytes,`
-          }
-          MIN(m.sent_at) AS earliest_date,
-          MAX(m.sent_at) AS latest_date
-        FROM messages m
-        INNER JOIN channel_accounts ca ON m.channel_account_id = ca.id
-        LEFT JOIN conversations c ON m.conversation_id = c.id
-        WHERE m.sent_at < $1
-        ${channelFilterSql}
-        ${convFilterSql}
-        ${wsFilterSql}
-      `;
-
-      const result = await this.prisma.$queryRawUnsafe<
+      const result = await this.prisma.$queryRaw<
         Array<{
           matched_count: bigint | number;
           freed_bytes: bigint | number;
           earliest_date: Date | string | null;
           latest_date: Date | string | null;
         }>
-      >(query, cutoffDate);
+      >(Prisma.sql`
+        SELECT
+          COUNT(m.id)::bigint AS matched_count,
+          ${freedBytesSql}
+          MIN(m.sent_at) AS earliest_date,
+          MAX(m.sent_at) AS latest_date
+        FROM messages m
+        INNER JOIN channel_accounts ca ON m.channel_account_id = ca.id
+        LEFT JOIN conversations c ON m.conversation_id = c.id
+        WHERE m.sent_at < ${cutoffDate}
+        ${purgeFilters(options)}
+      `);
 
       if (result && result.length > 0) {
         return {
@@ -333,36 +337,27 @@ export class MessageStorageRepository {
     slimmedCount: number;
     freedBytes: number;
   }> {
-    const { cutoffDate, slimPayloadOnly, workspaceId, channel, onlyResolvedConversations, batchSize = 1000 } = options;
+    const { cutoffDate, slimPayloadOnly, batchSize: requestedBatchSize = 1000 } = options;
+    const batchSize = Math.min(Math.max(1, Math.trunc(Number(requestedBatchSize) || 1000)), 10_000);
+    const filters = purgeFilters(options);
 
     let totalDeleted = 0;
     let totalSlimmed = 0;
     let totalFreedBytes = 0;
 
-    const channelFilterSql = channel ? `AND m.channel = '${channel}'` : '';
-    const convFilterSql = onlyResolvedConversations ? `AND c.status = 'RESOLVED'` : '';
-    const wsFilterSql = workspaceId ? `AND ca.workspace_id = '${workspaceId}'::uuid` : '';
-
     while (true) {
       if (slimPayloadOnly) {
         // Chỉ dọn dẹp raw_payload nếu chưa rỗng
-        const findBatchQuery = `
+        const batch = await this.prisma.$queryRaw<Array<{ id: string; payload_bytes: number }>>(Prisma.sql`
           SELECT m.id, pg_column_size(m.raw_payload) as payload_bytes
           FROM messages m
           INNER JOIN channel_accounts ca ON m.channel_account_id = ca.id
           LEFT JOIN conversations c ON m.conversation_id = c.id
-          WHERE m.sent_at < $1
+          WHERE m.sent_at < ${cutoffDate}
             AND m.raw_payload::text != '{}'
-            ${channelFilterSql}
-            ${convFilterSql}
-            ${wsFilterSql}
+            ${filters}
           LIMIT ${batchSize}
-        `;
-
-        const batch = await this.prisma.$queryRawUnsafe<Array<{ id: string; payload_bytes: number }>>(
-          findBatchQuery,
-          cutoffDate,
-        );
+        `);
 
         if (!batch || batch.length === 0) {
           break;
@@ -381,22 +376,15 @@ export class MessageStorageRepository {
         totalFreedBytes += batchFreed;
       } else {
         // Xóa hoàn toàn bản ghi
-        const findBatchQuery = `
+        const batch = await this.prisma.$queryRaw<Array<{ id: string; total_bytes: number }>>(Prisma.sql`
           SELECT m.id, (pg_column_size(m.content) + pg_column_size(m.raw_payload) + COALESCE(pg_column_size(m.attachments), 0) + 64) as total_bytes
           FROM messages m
           INNER JOIN channel_accounts ca ON m.channel_account_id = ca.id
           LEFT JOIN conversations c ON m.conversation_id = c.id
-          WHERE m.sent_at < $1
-            ${channelFilterSql}
-            ${convFilterSql}
-            ${wsFilterSql}
+          WHERE m.sent_at < ${cutoffDate}
+            ${filters}
           LIMIT ${batchSize}
-        `;
-
-        const batch = await this.prisma.$queryRawUnsafe<Array<{ id: string; total_bytes: number }>>(
-          findBatchQuery,
-          cutoffDate,
-        );
+        `);
 
         if (!batch || batch.length === 0) {
           break;
@@ -434,14 +422,13 @@ export class MessageStorageRepository {
    */
   async cleanEmptyConversations(workspaceId?: string): Promise<number> {
     try {
-      const wsFilter = workspaceId ? `AND c.workspace_id = '${workspaceId}'::uuid` : '';
-      const query = `
+      const wsFilter = workspaceId ? Prisma.sql`AND c.workspace_id = ${workspaceId}::uuid` : Prisma.empty;
+      const deleted = await this.prisma.$executeRaw(Prisma.sql`
         DELETE FROM conversations c
         WHERE c.status = 'RESOLVED'
           AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id)
           ${wsFilter}
-      `;
-      const deleted = await this.prisma.$executeRawUnsafe(query);
+      `);
       return Number(deleted || 0);
     } catch (error) {
       this.logger.warn(`Error cleaning empty conversations: ${(error as Error).message}`);

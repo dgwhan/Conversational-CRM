@@ -33,39 +33,39 @@ describe('RealtimeService & SSE Engine', () => {
     else process.env.JWT_ACCESS_SECRET = previousSecret;
   });
 
-  it('should initialize with dynamic staff presences and register staff dynamically', () => {
+  it('should initialize with dynamic staff presences and register staff dynamically', async () => {
     const service = new RealtimeService();
-    expect(service.getAllStaffPresences(WS_A)).toHaveLength(0);
+    expect(await service.getAllStaffPresences(WS_A)).toHaveLength(0);
 
-    service.updateStaffPresence('staff-1', 'ONLINE', { name: 'Tư vấn viên chính', role: 'Tư vấn viên' }, WS_A);
+    await service.updateStaffPresence('staff-1', 'ONLINE', { name: 'Tư vấn viên chính', role: 'Tư vấn viên' }, WS_A);
 
-    const presences = service.getAllStaffPresences(WS_A);
+    const presences = await service.getAllStaffPresences(WS_A);
     expect(presences).toHaveLength(1);
     expect(presences[0]?.staffId).toBe('staff-1');
     expect(presences[0]?.status).toBe('ONLINE');
   });
 
-  it('presence được tách theo workspace (không lộ nhân viên của tenant khác)', () => {
+  it('presence được tách theo workspace (không lộ nhân viên của tenant khác)', async () => {
     const service = new RealtimeService();
-    service.updateStaffPresence('staff-a', 'ONLINE', undefined, WS_A);
-    service.updateStaffPresence('staff-b', 'BUSY', undefined, WS_B);
+    await service.updateStaffPresence('staff-a', 'ONLINE', undefined, WS_A);
+    await service.updateStaffPresence('staff-b', 'BUSY', undefined, WS_B);
 
-    expect(service.getAllStaffPresences(WS_A).map((p) => p.staffId)).toEqual(['staff-a']);
-    expect(service.getAllStaffPresences(WS_B).map((p) => p.staffId)).toEqual(['staff-b']);
+    expect((await service.getAllStaffPresences(WS_A)).map((p) => p.staffId)).toEqual(['staff-a']);
+    expect((await service.getAllStaffPresences(WS_B)).map((p) => p.staffId)).toEqual(['staff-b']);
   });
 
   it('should update staff presence and emit presence:updated event to the same workspace', async () => {
     const service = new RealtimeService();
     const eventPromise = firstValueFrom(service.getEventsObservable(WS_A).pipe(take(1), timeout(2000)));
 
-    service.updateStaffPresence('staff-1', 'BUSY', undefined, WS_A);
+    await service.updateStaffPresence('staff-1', 'BUSY', undefined, WS_A);
 
     const event = await eventPromise;
     expect(event.type).toBe('presence:updated');
     expect((event.data as any).data.staffId).toBe('staff-1');
     expect((event.data as any).data.status).toBe('BUSY');
 
-    const updated = service.getAllStaffPresences(WS_A).find((p) => p.staffId === 'staff-1');
+    const updated = (await service.getAllStaffPresences(WS_A)).find((p) => p.staffId === 'staff-1');
     expect(updated?.status).toBe('BUSY');
   });
 
@@ -185,30 +185,30 @@ describe('RealtimeService & SSE Engine', () => {
   });
 
   describe('controller', () => {
-    it('trả presence của workspace đã xác minh và chặn request không thuộc workspace nào', () => {
+    it('trả presence của workspace đã xác minh và chặn request không thuộc workspace nào', async () => {
       const service = new RealtimeService();
       const controller = new RealtimeController(service);
-      service.updateStaffPresence('x', 'ONLINE', undefined, WS_B);
+      await service.updateStaffPresence('x', 'ONLINE', undefined, WS_B);
 
-      const result = controller.getPresences(ownerReq);
+      const result = await controller.getPresences(ownerReq);
       expect(result.status).toBe('ok');
       expect(result.data).toEqual([]);
 
-      expect(() => controller.getPresences({ user: { id: 'u' } })).toThrow(ForbiddenException);
+      await expect(controller.getPresences({ user: { id: 'u' } })).rejects.toThrow(ForbiddenException);
     });
 
-    it('updatePresence luôn dùng danh tính từ token (bỏ qua staffId do client gửi)', () => {
+    it('updatePresence luôn dùng danh tính từ token (bỏ qua staffId do client gửi)', async () => {
       const service = new RealtimeService();
       const controller = new RealtimeController(service);
 
-      const result = controller.updatePresence({ staffId: 'someone-else', status: 'BUSY' }, staffReq);
+      const result = await controller.updatePresence({ staffId: 'someone-else', status: 'BUSY' }, staffReq);
       expect(result.data.staffId).toBe('staff-1');
-      expect(service.getAllStaffPresences(WS_A).map((p) => p.staffId)).toEqual(['staff-1']);
+      expect((await service.getAllStaffPresences(WS_A)).map((p) => p.staffId)).toEqual(['staff-1']);
     });
 
-    it('updatePresence từ chối trạng thái không hợp lệ', () => {
+    it('updatePresence từ chối trạng thái không hợp lệ', async () => {
       const controller = new RealtimeController(new RealtimeService());
-      expect(() => controller.updatePresence({ status: 'HACKED' as any }, staffReq)).toThrow();
+      await expect(controller.updatePresence({ status: 'HACKED' as any }, staffReq)).rejects.toThrow();
     });
 
     it('POST ticket cấp ticket gắn với workspace của người gọi', () => {

@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { MessageStorageService } from './message-storage.service.js';
 import type { PurgeMessagesResponse } from '../../../contracts/message-storage.js';
+import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
+
+/** Giữ khóa tối đa 2 giờ: đủ cho một lượt dọn dẹp lớn, tự hết hạn nếu instance chết giữa chừng. */
+const RETENTION_LOCK_TTL_MS = 2 * 60 * 60 * 1000;
 
 @Injectable()
 export class RetentionSchedulerService {
@@ -12,6 +16,7 @@ export class RetentionSchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: MessageStorageService,
+    @Optional() private readonly locks?: DistributedLockService,
   ) {}
 
   /**
@@ -23,6 +28,21 @@ export class RetentionSchedulerService {
     timeZone: 'Asia/Ho_Chi_Minh',
   })
   async handleDailyMessageRetention(): Promise<void> {
+    // Khi chạy nhiều instance, mọi instance đều kích hoạt cron lúc 02:00: chỉ instance giành được khóa mới chạy
+    if (this.locks) {
+      const ran = await this.locks.runExclusive('cron:message-retention', RETENTION_LOCK_TTL_MS, async () => {
+        await this.runDailyMessageRetention();
+        return true;
+      });
+      if (!ran) {
+        this.logger.log('Message retention is being handled by another instance. Skipping.');
+      }
+      return;
+    }
+    await this.runDailyMessageRetention();
+  }
+
+  private async runDailyMessageRetention(): Promise<void> {
     if (this.isRunning) {
       this.logger.warn('Previous message retention cleanup job is still running. Skipping this trigger.');
       return;

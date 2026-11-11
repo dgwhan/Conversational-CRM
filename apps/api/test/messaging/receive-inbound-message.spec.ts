@@ -24,7 +24,9 @@ describe('ReceiveInboundMessage UseCase', () => {
         registry = new ChannelAdapterRegistry([mockAdapter]);
 
         mockRepo = {
-            insertManyIgnoreDuplicate: vi.fn().mockResolvedValue([{ id: 'msg-uuid-1' }]),
+            insertManyIgnoreDuplicate: vi.fn().mockResolvedValue([
+                { id: 'msg-uuid-1', conversationId: null, channel: Channel.ZALO, externalMessageId: 'ext-1' },
+            ]),
         };
 
         mockQueue = {
@@ -75,7 +77,12 @@ describe('ReceiveInboundMessage UseCase', () => {
         await useCase.execute(req);
 
         expect(mockRepo.insertManyIgnoreDuplicate).toHaveBeenCalledWith([event]);
-        expect(mockQueue.enqueue).toHaveBeenCalledWith(['msg-uuid-1']);
+        expect(mockQueue.enqueue).toHaveBeenCalledWith([
+            expect.objectContaining({
+                messageId: 'msg-uuid-1',
+                context: expect.objectContaining({ externalMessageId: 'ext-1', senderExternalId: 'sender-1' }),
+            }),
+        ]);
     });
 
     it('does not enqueue if no events parsed', async () => {
@@ -113,7 +120,9 @@ describe('ReceiveInboundMessage UseCase', () => {
         // Lần đầu tiên insert thành công trả về ID
         // 9 lần sau do ON CONFLICT DO NOTHING nên insertManyIgnoreDuplicate trả về []
         vi.mocked(mockRepo.insertManyIgnoreDuplicate!)
-            .mockResolvedValueOnce([{ id: 'msg-first-time-id', conversationId: 'conversation-id' }])
+            .mockResolvedValueOnce([
+                { id: 'msg-first-time-id', conversationId: 'conversation-id', channel: Channel.ZALO, externalMessageId: 'ext-dup-10' },
+            ])
             .mockResolvedValue([]);
 
         const req: RawWebhookRequest & { channel: Channel } = {
@@ -131,6 +140,41 @@ describe('ReceiveInboundMessage UseCase', () => {
         expect(mockRepo.insertManyIgnoreDuplicate).toHaveBeenCalledTimes(10);
         // Nhưng queue chỉ được enqueue ĐÚNG 1 LẦN cho tin nhắn đầu tiên
         expect(mockQueue.enqueue).toHaveBeenCalledTimes(1);
-        expect(mockQueue.enqueue).toHaveBeenCalledWith(['msg-first-time-id']);
+        expect(mockQueue.enqueue).toHaveBeenCalledWith([
+            expect.objectContaining({ messageId: 'msg-first-time-id' }),
+        ]);
+    });
+
+    it('lô có tin trùng: mỗi tin mới được ghép đúng sự kiện gốc (không lệch chỉ số)', async () => {
+        vi.mocked(mockAdapter.verifyRequest).mockReturnValue(true);
+
+        const makeEvent = (id: string, sender: string): InboundEvent => ({
+            channel: Channel.ZALO,
+            externalAccountId: 'oa-1',
+            externalMessageId: id,
+            senderExternalId: sender,
+            direction: MessageDirection.INBOUND,
+            content: `content-${id}`,
+            sentAt: new Date(),
+            rawPayload: {},
+        });
+        // ext-A đã có trong DB (trùng) nên chỉ ext-B và ext-C được chèn
+        vi.mocked(mockAdapter.parseEvents).mockReturnValue([
+            makeEvent('ext-A', 'customer-A'),
+            makeEvent('ext-B', 'customer-B'),
+            makeEvent('ext-C', 'customer-C'),
+        ]);
+        vi.mocked(mockRepo.insertManyIgnoreDuplicate!).mockResolvedValue([
+            { id: 'msg-B', conversationId: null, channel: Channel.ZALO, externalMessageId: 'ext-B' },
+            { id: 'msg-C', conversationId: null, channel: Channel.ZALO, externalMessageId: 'ext-C' },
+        ]);
+
+        await useCase.execute({ channel: Channel.ZALO, headers: {}, rawBody: Buffer.from('x') });
+
+        const jobs = vi.mocked(mockQueue.enqueue).mock.calls[0][0] as unknown as Array<{ messageId: string; context: { senderExternalId: string } }>;
+        expect(jobs.map((j) => [j.messageId, j.context.senderExternalId])).toEqual([
+            ['msg-B', 'customer-B'],
+            ['msg-C', 'customer-C'],
+        ]);
     });
 });

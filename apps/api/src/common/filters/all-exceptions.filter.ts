@@ -156,7 +156,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Ghi log chi tiết: 4xx ghi warn, 5xx ghi error kèm stack trace
     const logPrefix = `[${method} ${path}] [Status: ${statusCode}]`;
-    const clientIp = request?.ip || request?.headers?.['x-forwarded-for'] || 'unknown';
+    const clientIp = request?.ip || 'unknown';
     const detailMsg =
       exception instanceof Error && exception.message !== errorMessage
         ? ` | Detail: ${exception.message}`

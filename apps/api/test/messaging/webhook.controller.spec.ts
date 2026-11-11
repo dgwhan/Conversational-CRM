@@ -119,26 +119,16 @@ describe('WebhookController', () => {
             });
         });
 
-        it('hệ thống phản hồi dưới 3000ms ngay cả khi tác vụ nền kéo dài (ngừa Meta retry loop)', async () => {
-            // Giả lập tác vụ xử lý DB chậm mất 3500ms
-            mockReceive.execute = vi.fn().mockImplementation(
-                () => new Promise((resolve) => setTimeout(resolve, 3500)),
-            );
+        it('lưu tin thất bại thì trả lỗi để nền tảng gửi lại (không trả 200 rồi làm mất tin)', async () => {
+            mockReceive.execute = vi.fn().mockRejectedValue(new Error('DB unavailable'));
 
-            const rawBody = Buffer.from('{"object":"page"}');
             const req = {
-                rawBody,
+                rawBody: Buffer.from('{"object":"page"}'),
                 headers: {},
                 query: {},
             } as unknown as FastifyRequest & { rawBody?: Buffer };
 
-            const startTime = Date.now();
-            const res = await controller.handle(Channel.FACEBOOK, req);
-            const duration = Date.now() - startTime;
-
-            expect(res).toEqual({ status: 'ok' });
-            // Chắc chắn phản hồi dưới 3000ms (giới hạn bảo vệ 2500ms)
-            expect(duration).toBeLessThan(3000);
+            await expect(controller.handle(Channel.FACEBOOK, req)).rejects.toThrow('DB unavailable');
         });
     });
 

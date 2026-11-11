@@ -1,9 +1,10 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { NotificationService } from '../../notification/notification.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { NotificationType, NotificationSeverity } from '@prisma/client';
+import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
 
 @Injectable()
 export class ZaloTokenMonitorService implements OnApplicationBootstrap {
@@ -13,7 +14,17 @@ export class ZaloTokenMonitorService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
     private readonly realtime: RealtimeService,
+    @Optional() private readonly locks?: DistributedLockService,
   ) {}
+
+  /** Chỉ một instance quét mỗi chu kỳ (tránh gửi trùng cảnh báo khi scale ngang). */
+  private async scanExclusive(): Promise<void> {
+    if (!this.locks) {
+      await this.scanZaloAccounts();
+      return;
+    }
+    await this.locks.runExclusive('cron:zalo-token-monitor', 10 * 60_000, () => this.scanZaloAccounts());
+  }
 
   /**
    * Chạy kiểm tra ngay khi ứng dụng khởi động xong
@@ -21,7 +32,7 @@ export class ZaloTokenMonitorService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     this.logger.log('Khởi chạy giám sát thời hạn Zalo cá nhân (ZaloTokenMonitorService)...');
     try {
-      await this.scanZaloAccounts();
+      await this.scanExclusive();
     } catch (err) {
       this.logger.error(`Lỗi khi quét thời hạn Zalo ban đầu: ${(err as Error).message}`);
     }
@@ -33,7 +44,7 @@ export class ZaloTokenMonitorService implements OnApplicationBootstrap {
   @Cron('0 */15 * * * *')
   async handleCron(): Promise<void> {
     this.logger.log('[ZaloTokenMonitor] Bắt đầu chu kỳ quét định kỳ 15 phút...');
-    await this.scanZaloAccounts();
+    await this.scanExclusive();
   }
 
   /**

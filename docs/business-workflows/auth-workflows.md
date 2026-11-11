@@ -189,7 +189,7 @@ flowchart TD
 
 | Tình huống ngoại lệ | Phản ứng của Hệ thống | Trải nghiệm phía Người dùng |
 | :--- | :--- | :--- |
-| **Mạng chập chờn khi gửi OTP** | Dịch vụ gửi email xếp hàng đợi tự động thử lại (Retry 3 lần) qua cơ chế hàng đợi. | Nút "Gửi lại mã" trên UI bị khóa tạm thời trong 60 giây để tránh spam. |
+| **Mạng chập chờn khi gửi OTP** | Dịch vụ gửi email xếp hàng đợi tự động thử lại với backoff (tối đa `PASSWORD_RECOVERY_DELIVERY_MAX_ATTEMPTS`, mặc định 5 lần). | Nút "Gửi lại mã" trên UI bị khóa tạm thời trong 60 giây để tránh spam. |
 | **Người dùng mở 2 tab đổi mật khẩu** | Chỉ tab nào gửi yêu cầu xác thực OTP cuối cùng được cấp Reset Token mới nhất. Bản ghi cũ bị chuyển trạng thái `SUPERSEDED`. | Tab cũ hiển thị thông báo "Yêu cầu đã hết hạn, vui lòng sử dụng mã mới nhất". |
 | **Token hết hạn giữa phiên làm việc** | `api-client` nhận mã HTTP 401, tự động kích hoạt request `/api/auth/refresh` bằng cookie ngầm để lấy Access Token mới. | Trải nghiệm làm việc của người dùng diễn ra liên tục, không bị ngắt quãng hay văng khỏi trang. |
 | **Phát hiện Token Refresh bị đánh cắp** | Khi một Refresh Token cũ đã bị thu hồi mà vẫn có request gửi lên, hệ thống kích hoạt báo động **Token Family Invalidation**. | Toàn bộ các phiên đang hoạt động của tài khoản đó bị thu hồi ngay lập tức, bắt buộc đăng nhập lại từ đầu. |

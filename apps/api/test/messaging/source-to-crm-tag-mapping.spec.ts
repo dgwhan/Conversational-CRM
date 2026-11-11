@@ -9,10 +9,8 @@ import {
     deduplicateTags,
 } from '../../src/modules/messaging/domain/tag-mapping/index.js';
 import { MessageRepository } from '../../src/modules/messaging/infrastructure/message.repository.js';
-import { ReceiveInboundMessage } from '../../src/modules/messaging/application/receive-inbound-message.usecase.js';
-import { ChannelAdapterRegistry } from '../../src/modules/messaging/application/channel-adapter.registry.js';
+import { InboundMessageSideEffects } from '../../src/modules/messaging/application/inbound-message-side-effects.service.js';
 import { ChannelManagerService } from '../../src/modules/channel-connection/application/channel-manager.service.js';
-import type { ChannelAdapter, InboundMessageQueue } from '../../src/modules/messaging/domain/channel-adapter.port.js';
 import type { InboundEvent } from '../../src/modules/messaging/domain/inbound-event.js';
 
 describe('Sub-task 2: Implement Source-to-CRM Tag Mapping', () => {
@@ -154,29 +152,13 @@ describe('Sub-task 2: Implement Source-to-CRM Tag Mapping', () => {
         });
     });
 
-    describe('2. Ánh xạ tag & đồng bộ Customer qua ReceiveInboundMessage UseCase', () => {
-        let useCase: ReceiveInboundMessage;
-        let mockRegistry: ChannelAdapterRegistry;
-        let mockAdapter: ChannelAdapter;
-        let mockRepo: any;
-        let mockQueue: InboundMessageQueue;
+    // Đồng bộ customer chạy trong worker (InboundMessageSideEffects), không còn chạy trong request webhook
+    describe('2. Ánh xạ tag & đồng bộ Customer qua InboundMessageSideEffects (worker)', () => {
+        let sideEffects: InboundMessageSideEffects;
         let mockPrisma: any;
         let mockRealtime: any;
 
         beforeEach(() => {
-            mockAdapter = {
-                channel: Channel.FACEBOOK,
-                verifyRequest: vi.fn().mockReturnValue(true),
-                parseEvents: vi.fn(),
-            };
-
-            mockRegistry = new ChannelAdapterRegistry([mockAdapter]);
-            mockRepo = {
-                insertManyIgnoreDuplicate: vi.fn(),
-            };
-            mockQueue = {
-                enqueue: vi.fn().mockResolvedValue(undefined),
-            };
             mockPrisma = {
                 customer: {
                     findFirst: vi.fn().mockResolvedValue(null),
@@ -189,13 +171,7 @@ describe('Sub-task 2: Implement Source-to-CRM Tag Mapping', () => {
                 broadcastPipelineChange: vi.fn(),
             };
 
-            useCase = new ReceiveInboundMessage(
-                mockRegistry,
-                mockRepo,
-                mockQueue,
-                mockRealtime,
-                mockPrisma,
-            );
+            sideEffects = new InboundMessageSideEffects(mockRealtime, mockPrisma);
         });
 
         it('tự động gán leadStatus POTENTIAL và lưu tag Lead vào customer khi nhận Facebook Lead', async () => {
@@ -213,8 +189,6 @@ describe('Sub-task 2: Implement Source-to-CRM Tag Mapping', () => {
                 },
             };
 
-            mockAdapter.parseEvents = vi.fn().mockReturnValue([inboundEvent]);
-            mockRepo.insertManyIgnoreDuplicate.mockResolvedValue([{ id: 'msg-db-1' }]);
             mockPrisma.customer.create.mockResolvedValue({
                 id: 'cust-db-1',
                 fullName: 'Nguyễn Văn Lead',
@@ -222,11 +196,7 @@ describe('Sub-task 2: Implement Source-to-CRM Tag Mapping', () => {
                 leadStage: 'STAGE_NEW',
             });
 
-            await useCase.execute({
-                channel: Channel.FACEBOOK,
-                headers: {},
-                rawBody: Buffer.from('{}'),
-            });
+            await sideEffects.run(inboundEvent, { id: 'msg-db-1', conversationId: null });
 
             expect(mockPrisma.customer.create).toHaveBeenCalledWith(
                 expect.objectContaining({

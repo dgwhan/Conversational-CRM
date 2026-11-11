@@ -13,7 +13,7 @@ import type { CustomerGateway } from '../../messaging/domain/customer-gateway.po
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
 import { ZcaPersonalService } from './zca-personal.service.js';
-import { MessageRepository } from '../../messaging/infrastructure/message.repository.js';
+import { MessageRepository, pairInsertedWithEvents } from '../../messaging/infrastructure/message.repository.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { InboundEvent } from '../../messaging/domain/inbound-event.js';
 import { Channel, MessageDirection } from '../../messaging/domain/channel.js';
@@ -691,9 +691,8 @@ export class ChannelSyncService {
 
         // Bắn sự kiện WebSocket realtime để màn hình Inbox & Kanban cập nhật ngay tức thì
         if (this.realtime) {
-          for (let i = 0; i < created.length; i++) {
-            const ev = events[i];
-            const item = created[i];
+          // Ghép theo (channel, externalMessageId): tin trùng bị bỏ qua nên không ghép theo chỉ số được
+          for (const { event: ev, item } of pairInsertedWithEvents(events, created)) {
             if (ev && item) {
               const isOut = ev.direction === MessageDirection.OUTBOUND;
               const conversationId = `FACEBOOK_${pageId}_${customer?.id || ev.senderExternalId}`;

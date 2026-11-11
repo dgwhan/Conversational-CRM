@@ -14,13 +14,15 @@ import {
   Sse,
   MessageEvent,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { Observable } from 'rxjs';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { getRequestIdentity } from '../../common/auth/request-identity.js';
 import { WorkspaceRole } from '../../contracts/roles.js';
-import { RealtimeService, StaffPresenceStatus } from './realtime.service.js';
+import { RealtimeService, StaffPresenceStatus, type RealtimeAuthContext } from './realtime.service.js';
+import { RealtimeTicketGuard } from './realtime-ticket.guard.js';
 
 class UpdatePresenceDto {
   /** Bị bỏ qua: danh tính nhân viên luôn lấy từ Access Token, không tin dữ liệu client gửi lên */
@@ -105,9 +107,13 @@ export class RealtimeController {
    * URL: GET /api/realtime/stream?ticket=...
    */
   @Public()
+  @UseGuards(RealtimeTicketGuard)
   @Sse('stream')
-  streamEvents(@Query('ticket') ticket?: string): Observable<MessageEvent> {
-    const auth = this.realtimeService.consumeTicket(ticket);
+  streamEvents(@Query('ticket') ticket?: string, @Req() req?: unknown): Observable<MessageEvent> {
+    // RealtimeTicketGuard đã tiêu thụ ticket (dùng chung qua Redis khi chạy nhiều instance)
+    const auth =
+      (req as { realtimeAuth?: RealtimeAuthContext } | undefined)?.realtimeAuth ??
+      this.realtimeService.consumeTicket(ticket);
     if (!auth) {
       throw new UnauthorizedException('Ticket realtime không hợp lệ hoặc đã hết hạn.');
     }
@@ -154,6 +160,11 @@ export class RealtimeController {
     assertNotProduction();
     if (res && typeof res.header === 'function') {
       res.header('content-type', 'text/html; charset=utf-8');
+      // Trang chẩn đoán chỉ dùng ở dev, cần script inline: ghi đè CSP chặt mặc định của API cho riêng route này
+      res.header(
+        'Content-Security-Policy',
+        "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' ws: wss:; frame-ancestors 'none'",
+      );
     }
 
     return `<!DOCTYPE html>
@@ -309,11 +320,11 @@ export class RealtimeController {
    * URL: GET /api/realtime/presence
    */
   @Get('presence')
-  getPresences(@Req() req?: unknown) {
+  async getPresences(@Req() req?: unknown) {
     const identity = requireWorkspace(req);
     return {
       status: 'ok',
-      data: this.realtimeService.getAllStaffPresences(identity.workspaceId),
+      data: await this.realtimeService.getAllStaffPresences(identity.workspaceId),
     };
   }
 
@@ -323,13 +334,13 @@ export class RealtimeController {
    */
   @Post('presence')
   @HttpCode(HttpStatus.OK)
-  updatePresence(@Body() body: UpdatePresenceDto, @Req() req?: unknown) {
+  async updatePresence(@Body() body: UpdatePresenceDto, @Req() req?: unknown) {
     const identity = requireWorkspace(req);
     if (!VALID_PRESENCE.includes(body?.status)) {
       throw new BadRequestException('Trạng thái không hợp lệ.');
     }
     // staffId luôn là người đang đăng nhập; role hiển thị lấy từ tư cách thành viên đã xác minh
-    const updated = this.realtimeService.updateStaffPresence(
+    const updated = await this.realtimeService.updateStaffPresence(
       identity.userId,
       body.status,
       {

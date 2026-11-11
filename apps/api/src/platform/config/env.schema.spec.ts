@@ -78,6 +78,7 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
       TOKEN_ENCRYPTION_KEY: 'production_super_strong_token_encryption_key_12345',
       FRONTEND_URL: 'https://crm.cusc.vn',
       APP_BASE_URL: 'https://api.crm.cusc.vn',
+      REDIS_URL: 'redis://redis:6379',
     };
 
     const parsed = validateEnv(secureProdConfig);
@@ -222,9 +223,35 @@ describe('validateEnv (Security & Configuration Integrity)', () => {
         JWT_ACCESS_SECRET: 'production_super_strong_jwt_access_secret_key_12345',
         TOKEN_ENCRYPTION_KEY: 'production_super_strong_token_encryption_key_12345',
         ZALO_APP_ID: '1234567890',
+        REDIS_URL: 'redis://redis:6379',
       };
       expect(() => validateEnv(prod)).toThrowError(/ZALO_OA_SECRET_KEY/);
       expect(() => validateEnv({ ...prod, ZALO_OA_SECRET_KEY: 'zalo-webhook-secret' })).not.toThrow();
+    });
+  });
+
+  describe('Redis & JWT TTL', () => {
+    const prodBase = {
+      ...recoveryKeys,
+      DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/crm?schema=public',
+      NODE_ENV: 'production',
+      JWT_ACCESS_SECRET: 'production_super_strong_jwt_access_secret_key_12345',
+      TOKEN_ENCRYPTION_KEY: 'production_super_strong_token_encryption_key_12345',
+    };
+
+    it('bắt buộc REDIS_URL ở production (hàng đợi bền vững, scale ngang)', () => {
+      expect(() => validateEnv(prodBase)).toThrowError(/REDIS_URL/);
+      expect(() => validateEnv({ ...prodBase, REDIS_URL: 'redis://redis:6379' })).not.toThrow();
+    });
+
+    it('JWT_EXPIRES_IN_MINUTES không còn giá trị mặc định che mất JWT_ACCESS_TTL', () => {
+      const parsed = validateEnv({ ...prodBase, REDIS_URL: 'redis://redis:6379', JWT_ACCESS_TTL: '1h' });
+      expect(parsed.JWT_ACCESS_TTL).toBe('1h');
+      expect(parsed.JWT_EXPIRES_IN_MINUTES).toBeUndefined();
+    });
+
+    it('từ chối JWT_ACCESS_TTL sai định dạng', () => {
+      expect(() => validateEnv({ ...prodBase, REDIS_URL: 'redis://redis:6379', JWT_ACCESS_TTL: 'forever' })).toThrowError(/JWT_ACCESS_TTL/);
     });
   });
 });

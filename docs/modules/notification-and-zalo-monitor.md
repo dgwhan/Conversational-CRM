@@ -194,6 +194,7 @@ sequenceDiagram
 
 ### 5.2. Token Expiry & Monitor Service (`apps/api/src/modules/channel-connection/application/zalo-token-monitor.service.ts`)
 - Đăng ký `@Cron('0 */15 * * * *')` thông qua `@nestjs/schedule` (`ScheduleModule.forRoot()`).
+- Mỗi lượt quét (kể cả lượt chạy khi khởi động) đi qua khóa phân tán `cron:zalo-token-monitor`, nên khi chạy nhiều instance chỉ một instance quét và không phát trùng cảnh báo.
 - Tích hợp hook `OnApplicationBootstrap` để quét kiểm tra ngay khi máy chủ khởi động.
 - Tránh spam thông báo bằng cách kiểm tra lịch sử thông báo đã phát trong khoảng thời gian tương ứng (2 giờ cho `URGENT`, 12 giờ cho `WARNING`, 24 giờ cho `INFO`).
 

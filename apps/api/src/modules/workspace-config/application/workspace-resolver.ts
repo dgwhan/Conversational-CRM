@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { isUuid } from '../../../utils/uuid.util.js';
 import { WorkspaceRole } from '../domain/index.js';
+import { DEFAULT_JWT_AUDIENCE, DEFAULT_JWT_ISSUER } from '../../../platform/config/jwt.config.js';
 
 const logger = new Logger('WorkspaceResolver');
 const fallbackJwtService = new JwtService();
@@ -33,7 +34,12 @@ export function extractUserFromAuthHeader(
   }
 
   try {
-    const payload: any = fallbackJwtService.verify(token, { secret });
+    const payload: any = fallbackJwtService.verify(token, {
+      secret,
+      algorithms: ['HS256'],
+      issuer: process.env.JWT_ISSUER || DEFAULT_JWT_ISSUER,
+      audience: process.env.JWT_AUDIENCE || DEFAULT_JWT_AUDIENCE,
+    });
     if (payload && typeof payload.sub === 'string') {
       return { id: payload.sub, role: payload.role };
     }

@@ -138,7 +138,7 @@ sequenceDiagram
         API-->>Web: Lỗi 409 Conflict (Email đã được đăng ký)
         Web-->>User: Hiển thị Toast cảnh báo lỗi
     else Hợp lệ
-        API->>DB: 1. Tạo User (Hash password Argon2/Bcrypt)
+        API->>DB: 1. Tạo User (Hash password Argon2id)
         API->>DB: 2. Tạo Workspace mặc định (VD: "Đại học CUSC")
         API->>DB: 3. Tạo WorkspaceMember với role = OWNER
         API->>DB: 4. Sinh JWT Access Token & Refresh Token

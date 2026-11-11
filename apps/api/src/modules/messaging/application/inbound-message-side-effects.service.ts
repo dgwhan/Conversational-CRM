@@ -1,0 +1,241 @@
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
+import { Channel } from "../domain/channel.js";
+import type { InboundEvent } from "../domain/inbound-event.js";
+import { RealtimeService } from "../../realtime/realtime.service.js";
+import { PrismaService } from "../../../platform/database/prisma.service.js";
+import { CUSTOMER_GATEWAY } from "../domain/customer-gateway.port.js";
+import type { CustomerGateway } from "../domain/customer-gateway.port.js";
+import { WorkingHoursService } from "./working-hours.service.js";
+import {
+    resolveTagMappings,
+    CRM_SYSTEM_TAGS,
+    META_SOURCE_TAGS,
+    tagSyncLogger,
+    TAG_SYNC_STAGE,
+    TAG_SYNC_ERROR_TYPE,
+    TAG_EVENT_SOURCE,
+} from "../domain/tag-mapping/index.js";
+
+/**
+ * Các tác vụ phụ sau khi một tin webhook đã được lưu: đồng bộ khách hàng vào bảng customers,
+ * đẩy realtime cho Inbox/Kanban và xử lý trả lời ngoài giờ.
+ *
+ * Chạy trong worker của hàng đợi inbound (KHÔNG chạy trong request webhook) để webhook phản hồi nhanh.
+ * Mọi lỗi bên trong đều được bắt và ghi log: hàm này không ném lỗi.
+ */
+@Injectable()
+export class InboundMessageSideEffects {
+    private readonly logger = new Logger(InboundMessageSideEffects.name);
+
+    constructor(
+        @Optional() private readonly realtime?: RealtimeService,
+        @Optional() private readonly prisma?: PrismaService,
+        @Optional() @Inject(CUSTOMER_GATEWAY) private readonly customers?: CustomerGateway,
+        @Optional() private readonly workingHoursService?: WorkingHoursService,
+    ) { }
+
+    async run(event: InboundEvent, item: { id: string; conversationId: string | null }): Promise<void> {
+        const isOutbound = event.direction === 'OUTBOUND';
+        const raw = (event.rawPayload as any) || {};
+        // Đối với tin echo/outbound từ Page, khách hàng chính là recipient chứ không phải sender (Page ID)
+        const customerExternalId = isOutbound
+            ? (raw.recipient?.id || raw.to?.data?.[0]?.id || raw.to?.id || event.senderExternalId)
+            : event.senderExternalId;
+
+        // Tạo conversationId theo ngữ cảnh tài khoản và ID khách hàng đối thoại
+        const conversationId = item.conversationId || (
+            event.externalAccountId && customerExternalId
+                ? `${event.channel}_${event.externalAccountId}_${customerExternalId}`
+                : `conv_${item.id}`
+        );
+
+        let customerName = isOutbound
+            ? (event.channel === 'ZALO' ? 'Zalo Official Account' : 'Trang (Page Meta)')
+            : (raw.customerName || `Khách hàng (${customerExternalId?.slice(-4) || event.channel})`);
+        let customerAvatar =
+            raw.customerAvatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0284c7&color=fff&bold=true`;
+        let dbCustomer: any = null;
+        let isNewlyCreated = false;
+
+        // TỰ ĐỘNG TÌM HOẶC TẠO CONTACT & IDENTITY THEO (KÊNH, EXTERNAL_USER_ID)
+        if (!isOutbound && this.customers && event.senderExternalId) {
+            try {
+                const raw = (event.rawPayload as any) || {};
+                const contactResult = await this.customers.findOrCreate({
+                    channel: event.channel,
+                    senderExternalId: event.senderExternalId,
+                    displayName: raw.customerName || raw.displayName || raw.name,
+                    rawPayload: event.rawPayload,
+                });
+                const contactObj = contactResult.contact as { displayName?: string } | undefined;
+                if (contactObj?.displayName) {
+                    customerName = contactObj.displayName;
+                }
+            } catch (err) {
+                this.logger.warn(`Could not findOrCreate contact on message arrival: ${(err as Error).message}`);
+            }
+        }
+
+        // TỰ ĐỘNG ĐỔ DỮ LIỆU KHÁCH HÀNG VÀO DATABASE BẢNG "customers" (cho Kanban & Pipeline)
+        if (!isOutbound && this.prisma && event.senderExternalId) {
+            try {
+                const raw = (event.rawPayload as any) || {};
+                if (raw.customerName) customerName = raw.customerName;
+                if (raw.customerAvatar) customerAvatar = raw.customerAvatar;
+
+                // Chỉ tìm khách trong CÙNG workspace với tài khoản kênh nhận tin (chống gộp nhầm giữa các tenant)
+                dbCustomer = await this.prisma.customer.findFirst({
+                    where: {
+                        workspaceId: event.workspaceId ?? null,
+                        OR: [
+                            { channelIdentities: { path: [event.channel.toLowerCase()], equals: event.senderExternalId } },
+                            { channelIdentities: { path: [event.channel.toLowerCase(), 'id'], equals: event.senderExternalId } },
+                            { channelIdentities: { path: ['socialId'], equals: event.senderExternalId } },
+                            ...(customerName && !customerName.startsWith('Khách hàng') && !customerName.startsWith('Lead') ? [{ fullName: customerName }] : []),
+                        ],
+                    },
+                });
+
+                if (!dbCustomer) {
+                    const rawTags: string[] = Array.isArray(raw.tags) && raw.tags.length > 0
+                        ? raw.tags
+                        : (event.channel === Channel.FACEBOOK ? [META_SOURCE_TAGS.FACEBOOK_LEAD] : [CRM_SYSTEM_TAGS.NEW_CUSTOMER]);
+                    const tagResult = resolveTagMappings({
+                        channel: event.channel,
+                        currentTags: [],
+                        sourceTags: rawTags,
+                        eventTimestamp: event.sentAt,
+                    });
+
+                    dbCustomer = await this.prisma.customer.create({
+                        data: {
+                            workspaceId: event.workspaceId || null,
+                            fullName: customerName,
+                            avatarUrl: customerAvatar,
+                            leadStatus: tagResult.suggestedLeadStatus || 'NEW',
+                            leadStage: tagResult.suggestedLeadStage || 'STAGE_NEW',
+                            channelIdentities: {
+                                [event.channel.toLowerCase()]: event.senderExternalId,
+                                channel: event.channel,
+                                tags: tagResult.finalTags,
+                            },
+                        },
+                    });
+                    isNewlyCreated = true;
+                    this.logger.log(`Tự động lưu khách hàng mới từ Webhook vào DB: "${customerName}" (${dbCustomer.id}) với tag: ${tagResult.finalTags.join(', ')}`);
+                } else {
+                    // Nếu khách hàng đã tồn tại trong DB, bảo lưu tên thật và avatar thật
+                    if (dbCustomer.fullName && !dbCustomer.fullName.startsWith('Khách hàng')) {
+                        customerName = dbCustomer.fullName;
+                    }
+                    if (dbCustomer.avatarUrl) {
+                        customerAvatar = dbCustomer.avatarUrl;
+                    }
+
+                    const existingIdentities = (dbCustomer.channelIdentities as any) || {};
+                    const currentTags: string[] = Array.isArray(existingIdentities.tags) ? existingIdentities.tags : [];
+                    const rawTags: string[] = Array.isArray(raw.tags) && raw.tags.length > 0
+                        ? raw.tags
+                        : (event.channel === Channel.FACEBOOK ? [META_SOURCE_TAGS.FACEBOOK_LEAD] : []);
+
+                    const manuallyRemovedTags: string[] = Array.isArray(existingIdentities.manuallyRemovedTags)
+                        ? existingIdentities.manuallyRemovedTags
+                        : [];
+
+                    const tagResult = resolveTagMappings({
+                        channel: event.channel,
+                        currentTags,
+                        sourceTags: rawTags,
+                        existingLeadStatus: dbCustomer.leadStatus,
+                        existingLeadStage: dbCustomer.leadStage,
+                        eventTimestamp: event.sentAt,
+                        lastSyncTimestamp: dbCustomer.updatedAt,
+                        explicitEmptyLabels: Array.isArray(raw.tags) && raw.tags.length === 0,
+                        manuallyRemovedTags,
+                    });
+
+                    // Chỉ cập nhật nếu có thay đổi tag hoặc nâng cấp trạng thái hợp lệ (chống hạ cấp khi out-of-order)
+                    if (tagResult.hasChanges || tagResult.shouldUpgradeLead) {
+                        const updateData: any = {
+                            channelIdentities: {
+                                ...existingIdentities,
+                                [event.channel.toLowerCase()]: event.senderExternalId,
+                                channel: event.channel,
+                                tags: tagResult.finalTags,
+                            },
+                        };
+                        if (tagResult.shouldUpgradeLead) {
+                            if (tagResult.suggestedLeadStatus) updateData.leadStatus = tagResult.suggestedLeadStatus;
+                            if (tagResult.suggestedLeadStage) updateData.leadStage = tagResult.suggestedLeadStage;
+                        }
+
+                        dbCustomer = await this.prisma.customer.update({
+                            where: { id: dbCustomer.id },
+                            data: updateData,
+                        });
+                    }
+                }
+            } catch (err) {
+                this.logger.warn(`Could not sync webhook customer to DB: ${(err as Error).message}`);
+                tagSyncLogger.logError({
+                    stage: TAG_SYNC_STAGE.UPDATE,
+                    errorType: TAG_SYNC_ERROR_TYPE.TAG_UPDATE_ERROR,
+                    message: `Không thể đồng bộ hoặc cập nhật nhãn khách hàng từ webhook vào CSDL: ${(err as Error).message}`,
+                    eventSource: TAG_EVENT_SOURCE.META_WEBHOOK,
+                    channel: event.channel,
+                    error: err,
+                    customerId: dbCustomer?.id,
+                    senderExternalId: event.senderExternalId,
+                    metadata: {
+                        conversationId,
+                        messageId: item.id,
+                    },
+                });
+            }
+        }
+
+        this.realtime?.broadcastNewMessage({
+            id: item.id,
+            conversationId,
+            channel: event.channel as any,
+            direction: (event.direction as any) || 'INBOUND',
+            content: event.content || (isOutbound ? 'Tin nhắn gửi đi từ Page' : 'Tin nhắn mới'),
+            senderName: customerName,
+            senderAvatar: customerAvatar,
+            attachments: (event.attachments as any) || (raw.attachments as any) || undefined,
+            sentAt: new Date(event.sentAt).toISOString(),
+            workspaceId: event.workspaceId || dbCustomer?.workspaceId || undefined,
+        });
+
+        // Chỉ báo cho Kanban cập nhật ứng viên khi tạo mới khách hàng (tránh reset giai đoạn khách hàng cũ)
+        if (isNewlyCreated && dbCustomer) {
+            this.realtime?.broadcastPipelineChange({
+                customerId: dbCustomer.id,
+                customerName: customerName,
+                previousStage: '',
+                newStage: dbCustomer.leadStage || 'STAGE_NEW',
+                updatedBy: `Webhook ${event.channel}`,
+                workspaceId: dbCustomer.workspaceId || event.workspaceId || undefined,
+            });
+        }
+
+        // TỰ ĐỘNG XỬ LÝ NGOÀI GIỜ LÀM VIỆC: GỬI LỜI NHẮN & ĐÁNH DẤU HỘI THOẠI HÔM SAU TƯ VẤN
+        if (!isOutbound && this.workingHoursService) {
+            const targetConvId = item.conversationId || conversationId;
+            try {
+                await this.workingHoursService.processInboundOutOfOffice({
+                    messageId: item.id,
+                    conversationId: targetConvId,
+                    channel: event.channel,
+                    senderExternalId: customerExternalId || event.senderExternalId,
+                    externalAccountId: event.externalAccountId,
+                    workspaceId: event.workspaceId || dbCustomer?.workspaceId || null,
+                    sentAt: new Date(event.sentAt),
+                });
+            } catch (err) {
+                this.logger.warn(`Could not handle working hours out-of-office logic: ${(err as Error).message}`);
+            }
+        }
+    }
+}

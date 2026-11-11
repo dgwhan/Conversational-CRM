@@ -11,7 +11,7 @@ Hệ thống Realtime đóng vai trò là "hệ thần kinh" của CRM Tuyển s
 ### 1.1. Mục tiêu Kỹ thuật
 - **Độ trễ cực thấp (Sub-50ms Latency)**: Chuyển tiếp ngay lập tức các sự kiện tin nhắn từ Webhook Meta/Zalo đến giao diện Hộp thư tiếp nhận (Unified Inbox).
 - **Kiến trúc Hybrid Fallback (WebSocket song hành Server-Sent Events - SSE)**: Ưu tiên thiết lập kết nối hai chiều toàn phần qua WebSocket. Nếu mạng doanh nghiệp chặn WebSocket hoặc gặp sự cố bắt tay, client tự động hạ cấp xuống Server-Sent Events (SSE) để duy trì luồng nhận tin nhắn ổn định.
-- **Theo dõi Hiện diện Tư vấn viên (Staff Presence Tracking)**: Cập nhật trạng thái tức thời (`ONLINE`, `BUSY`, `AWAY`, `OFFLINE`) của từng chuyên viên trong workspace, hỗ trợ điều phối thí sinh thông minh.
+- **Theo dõi Hiện diện Tư vấn viên (Staff Presence Tracking)**: Cập nhật trạng thái tức thời (`ONLINE`, `BUSY`, `AWAY`; server chấp nhận đúng ba giá trị này) của từng chuyên viên trong workspace, hỗ trợ điều phối thí sinh thông minh.
 - **Phát hiện & Phản hồi mượt mà trong React Lifecycle**: Khắc phục triệt để hiện tượng ngắt kết nối đột ngột hoặc cảnh báo *"WebSocket is closed before the connection is established"* khi React Strict Mode mount/unmount component.
 
 ---
@@ -23,7 +23,9 @@ Hệ thống Realtime đóng vai trò là "hệ thần kinh" của CRM Tuyển s
 | **RT-01** | **WebSocket Server Binding** | Gắn `WebSocketServer` (thư viện `ws`) vào HTTP Server nền tảng Fastify tại endpoint `/api/realtime/ws`. | Lắng nghe chính xác cổng API (3000) và qua Vite Dev Proxy (5173). Bắt tay HTTP 101 Switching Protocols thành công. |
 | **RT-02** | **SSE Fallback Engine** | Cung cấp endpoint HTTP GET `/api/realtime/stream` truyền dữ liệu dạng `text/event-stream`. | Trả về stream SSE liên tục, hỗ trợ tự động reconnect khi đường truyền mạng biến động. |
 | **RT-03** | **Webhook Live Broadcasting** | Khi Webhook nhận tin nhắn mới từ khách hàng, phát broadcast sự kiện `message:received` tới toàn bộ chuyên viên trong workspace. | Tin nhắn xuất hiện ngay trên giao diện hộp thư, tăng số đếm tin chưa đọc và phát âm thanh thông báo. |
-| **RT-04** | **Staff Presence Sync** | Quản lý kết nối socket theo từng `staffId`, phát broadcast sự kiện `presence:updated` khi trạng thái thay đổi. | Danh sách tư vấn viên cập nhật màu chấm trạng thái (xanh lá, vàng, đỏ, xám) tức thời. |
+| **RT-04** | **Staff Presence Sync** | Lưu trạng thái theo (workspace, `staffId` lấy từ token), phát broadcast sự kiện `presence:updated` khi trạng thái thay đổi. | Danh sách tư vấn viên cập nhật màu chấm trạng thái (xanh lá, vàng, đỏ, xám) tức thời. |
+| **RT-06** | **Xác thực bằng vé dùng 1 lần** | Client đổi Access Token lấy vé HMAC sống 60 giây qua `POST /api/realtime/ticket`, rồi kết nối `?ticket=...`. Vé được đánh dấu đã dùng bằng `SET NX` trên Redis (`realtime:ticket:<jti>`). | Vé sai/hết hạn/đã dùng (kể cả trên instance khác) bị từ chối `401` ngay khi bắt tay. Chi tiết: [SECURITY_STANDARDIZATION.md §3.14](SECURITY_STANDARDIZATION.md#314-realtime-websocket--sse). |
+| **RT-07** | **Chạy nhiều instance** | Sự kiện phát qua Redis pub/sub kênh `realtime:events`; presence lưu ở hash `presence:<workspaceId>` (TTL 24 giờ). Không có Redis (dev/test) thì dùng bộ nhớ tiến trình. | Client nối vào instance A vẫn nhận sự kiện phát ra từ instance B (đúng một lần), và chỉ của workspace mình. |
 | **RT-05** | **Safe Teardown in React** | Xử lý an toàn khi React unmount (đặc biệt Strict Mode) không đóng socket khi đang ở trạng thái `CONNECTING`. | Không xuất hiện lỗi warning trên console trình duyệt; ngắt kết nối dọn sạch tài nguyên bộ nhớ. |
 
 ---
@@ -74,8 +76,9 @@ sequenceDiagram
     Customer->>Meta: Gửi tin nhắn đến Fanpage CUSC
     Meta->>Webhook: POST /api/webhook/facebook (Payload kèm chữ ký X-Hub-Signature-256)
     Webhook->>Core: Xác thực SHA-256 HMAC & giải mã Event
-    Core->>DB: Lưu tin nhắn vào bảng `messages` (idempotency check)
-    Webhook-->>Meta: 200 OK (Phản hồi < 2500ms ngừa retry loop)
+    Core->>DB: Lưu tin nhắn vào bảng `messages` (idempotency check) + đưa job vào BullMQ
+    Webhook-->>Meta: 200 OK (mục tiêu < 500ms, không xử lý nặng trong request)
+    Note over Core,RT: Worker BullMQ chạy tác vụ phụ; sự kiện được phát qua Redis pub/sub tới mọi instance
     Core->>RT: broadcastNewMessage({ conversationId, content, senderName, ... })
     RT->>StaffUI: WebSocket Event: `message:received`
     StaffUI->>StaffUI: 1. Cập nhật danh sách hội thoại<br/>2. Tăng Unread Counter (+1)<br/>3. Phát âm thanh notification sound

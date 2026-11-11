@@ -6,7 +6,6 @@ import {
   RateLimiterService,
   RateLimitGuard,
   SecurityHeadersInterceptor,
-  XssSanitizerPipe,
   CsrfGuard,
   RATE_LIMIT_KEY,
   SKIP_RATE_LIMIT_KEY,
@@ -67,7 +66,7 @@ describe('Security Protection Layer (DDoS, XSS, CSRF)', () => {
       vi.restoreAllMocks();
     });
 
-    it('RateLimitGuard ném HttpException 429 khi vượt ngưỡng và thiết lập header chuẩn RFC', () => {
+    it('RateLimitGuard ném HttpException 429 khi vượt ngưỡng và thiết lập header chuẩn RFC', async () => {
       const reflector = new Reflector();
       const guard = new RateLimitGuard(reflector, rateLimiter);
 
@@ -97,25 +96,49 @@ describe('Security Protection Layer (DDoS, XSS, CSRF)', () => {
       });
 
       // Request 1: OK
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
       expect(headersSet['X-RateLimit-Limit']).toBe('2');
       expect(headersSet['X-RateLimit-Remaining']).toBe('1');
 
       // Request 2: OK
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
       expect(headersSet['X-RateLimit-Remaining']).toBe('0');
 
       // Request 3: Bị chặn với lỗi 429
-      expect(() => guard.canActivate(mockContext)).toThrow(HttpException);
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(HttpException);
       try {
-        guard.canActivate(mockContext);
+        await guard.canActivate(mockContext);
       } catch (err: any) {
         expect(err.getStatus()).toBe(HttpStatus.TOO_MANY_REQUESTS);
         expect(headersSet['Retry-After']).toBeDefined();
       }
     });
 
-    it('RateLimitGuard bỏ qua kiểm tra khi có decorator @SkipRateLimit', () => {
+    it('RateLimitGuard không tin X-Forwarded-For do client tự đặt (không né giới hạn bằng giả IP)', async () => {
+      const reflector = new Reflector();
+      const guard = new RateLimitGuard(reflector, rateLimiter);
+      let forwarded = '1.1.1.1';
+      const mockContext = {
+        switchToHttp: () => ({
+          // req.ip là IP kết nối thật (Fastify chỉ dùng X-Forwarded-For khi cấu hình TRUST_PROXY)
+          getRequest: () => ({ headers: { 'x-forwarded-for': forwarded, 'x-test-rate-limit': 'true' }, ip: '198.51.100.7' }),
+          getResponse: () => ({ header: vi.fn() }),
+        }),
+        getHandler: () => () => {},
+        getClass: () => class SpoofController {},
+      } as unknown as ExecutionContext;
+
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+        if (key === RATE_LIMIT_KEY) return { limit: 1, ttlMs: 60000 };
+        return null;
+      });
+
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
+      forwarded = '2.2.2.2'; // đổi header giả IP
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(HttpException);
+    });
+
+    it('RateLimitGuard bỏ qua kiểm tra khi có decorator @SkipRateLimit', async () => {
       const reflector = new Reflector();
       const guard = new RateLimitGuard(reflector, rateLimiter);
       const mockContext = {
@@ -132,14 +155,14 @@ describe('Security Protection Layer (DDoS, XSS, CSRF)', () => {
         return null;
       });
 
-      expect(guard.canActivate(mockContext)).toBe(true);
+      await expect(guard.canActivate(mockContext)).resolves.toBe(true);
     });
   });
 
   // ==========================================
   // 2. XSS DEFENSE
   // ==========================================
-  describe('XSS Protection (SecurityHeadersInterceptor & XssSanitizerPipe)', () => {
+  describe('XSS Protection (SecurityHeadersInterceptor)', () => {
     it('SecurityHeadersInterceptor thiết lập đầy đủ các HTTP Security Headers theo khuyến nghị OWASP', async () => {
       const interceptor = new SecurityHeadersInterceptor();
       const headersSet: Record<string, string> = {};
@@ -160,53 +183,32 @@ describe('Security Protection Layer (DDoS, XSS, CSRF)', () => {
 
       await interceptor.intercept(mockContext, callHandler).toPromise();
 
-      expect(headersSet['Content-Security-Policy']).toContain("default-src 'self'");
+      expect(headersSet['Content-Security-Policy']).toContain("default-src 'none'");
+      expect(headersSet['Content-Security-Policy']).not.toContain('unsafe-inline');
+      expect(headersSet['Content-Security-Policy']).not.toContain('unsafe-eval');
       expect(headersSet['X-Content-Type-Options']).toBe('nosniff');
-      expect(headersSet['X-Frame-Options']).toBe('SAMEORIGIN');
+      expect(headersSet['X-Frame-Options']).toBe('DENY');
       expect(headersSet['X-XSS-Protection']).toBe('1; mode=block');
       expect(headersSet['Referrer-Policy']).toBe('strict-origin-when-cross-origin');
       expect(headersSet['Permissions-Policy']).toBe('camera=(), microphone=(), geolocation=()');
     });
 
-    it('XssSanitizerPipe làm sạch các mã độc hại (script, onerror, javascript:)', () => {
-      const pipe = new XssSanitizerPipe();
-
-      const dirtyInput = {
-        title: 'Chào mừng <script>alert("hack")</script> đến với CUSC',
-        description: '<img src="x" onerror="stealCookies()"> Thông tin tuyển sinh',
-        link: 'javascript:alert(1)',
-        nested: {
-          bio: '<iframe src="evil.com"></iframe> Lập trình viên tương lai',
-          tags: ['<script>evil()</script>NodeJS', 'ReactJS'],
-        },
-      };
-
-      const cleanOutput = pipe.transform(dirtyInput, { type: 'body' });
-
-      expect(cleanOutput.title).toBe('Chào mừng  đến với CUSC');
-      expect(cleanOutput.description).toBe('<img src="x" > Thông tin tuyển sinh');
-      expect(cleanOutput.link).toBe('blocked:alert(1)');
-      expect(cleanOutput.nested.bio).toBe(' Lập trình viên tương lai');
-      expect(cleanOutput.nested.tags).toEqual(['NodeJS', 'ReactJS']);
-    });
-
-    it('XssSanitizerPipe bảo toàn tuyệt đối tiếng Việt, ký tự hợp lệ và không can thiệp vào password/token', () => {
-      const pipe = new XssSanitizerPipe();
-
-      const sensitivePayload = {
-        email: 'sinhvien@cusc.ctu.edu.vn',
-        fullName: 'Nguyễn Văn Đạt - Khóa K48 & K49 (ĐHCT)',
-        password: 'Pass<word>123!@#',
-        refreshToken: 'def50200abcd1234<script>not_sanitized</script>',
-        note: 'Điểm trung bình >= 8.0 & có chứng chỉ TOEIC > 650',
-      };
-
-      const result = pipe.transform(sensitivePayload, { type: 'body' });
-
-      expect(result.fullName).toBe('Nguyễn Văn Đạt - Khóa K48 & K49 (ĐHCT)');
-      expect(result.password).toBe('Pass<word>123!@#'); // Mật khẩu không bị biến đổi
-      expect(result.refreshToken).toBe('def50200abcd1234<script>not_sanitized</script>'); // Token không bị sửa đổi
-      expect(result.note).toBe('Điểm trung bình >= 8.0 & có chứng chỉ TOEIC > 650');
+    it('SecurityHeadersInterceptor gửi HSTS ở production', async () => {
+      const previous = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      try {
+        const interceptor = new SecurityHeadersInterceptor();
+        const headersSet: Record<string, string> = {};
+        const mockContext = {
+          switchToHttp: () => ({
+            getResponse: () => ({ header: (name: string, val: string) => { headersSet[name] = val; } }),
+          }),
+        } as unknown as ExecutionContext;
+        await interceptor.intercept(mockContext, { handle: () => of('ok') }).toPromise();
+        expect(headersSet['Strict-Transport-Security']).toContain('max-age=');
+      } finally {
+        process.env.NODE_ENV = previous;
+      }
     });
   });
 

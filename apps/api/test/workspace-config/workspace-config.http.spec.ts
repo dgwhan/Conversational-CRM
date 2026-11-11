@@ -6,11 +6,12 @@ import { WorkspaceConfigModule } from '../../src/modules/workspace-config/worksp
 import { PrismaService } from '../../src/platform/database/prisma.service.js';
 import { INDUSTRY_PRESETS } from '../../src/modules/workspace-config/domain/workspace-config.presets.js';
 import { JwtService } from '@nestjs/jwt';
+import { DEFAULT_JWT_AUDIENCE, DEFAULT_JWT_ISSUER } from '../../src/platform/config/jwt.config.js';
 
 const TEST_JWT_SECRET = 'http-spec-jwt-access-secret-0123456789abcdef';
 // Access Token ký thật (guard không còn tin header x-user-role / x-owner-id do client tự khai)
 const ownerToken = () =>
-  new JwtService().sign({ sub: 'owner-http-1' }, { secret: TEST_JWT_SECRET, expiresIn: '5m' });
+  new JwtService().sign({ sub: 'owner-http-1' }, { secret: TEST_JWT_SECRET, expiresIn: '5m', ...{ issuer: DEFAULT_JWT_ISSUER, audience: DEFAULT_JWT_AUDIENCE } });
 
 function createHttpMockPrisma() {
   const eduPreset = INDUSTRY_PRESETS.EDUCATION;

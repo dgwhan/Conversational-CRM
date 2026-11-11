@@ -6,7 +6,11 @@ import type { JwtSettings, JwtTokenResult, JwtUser } from './jwt.types.js';
 
 export * from './jwt.types.js';
 
-function parseTtlToMinutes(ttl?: string | number | null): number | null {
+export const DEFAULT_ACCESS_TTL_MINUTES = 15;
+export const DEFAULT_JWT_ISSUER = 'CUSC-Recruitment-CRM';
+export const DEFAULT_JWT_AUDIENCE = 'CUSC-Recruitment-CRM-Client';
+
+export function parseTtlToMinutes(ttl?: string | number | null): number | null {
   if (ttl === null || ttl === undefined) return null;
   if (typeof ttl === 'number') return Number.isNaN(ttl) ? null : ttl;
   const match = ttl.toString().trim().match(/^(\d+)\s*(m|h|d|s)?$/i);
@@ -41,7 +45,7 @@ export class JwtTokenService {
       );
     }
 
-    let issuer = 'CUSC-Recruitment-CRM';
+    let issuer = DEFAULT_JWT_ISSUER;
     if (this.configService) {
       const configuredIssuer = this.configService.get<string>('JWT_ISSUER');
       if (configuredIssuer) {
@@ -51,7 +55,7 @@ export class JwtTokenService {
       issuer = process.env.JWT_ISSUER;
     }
 
-    let audience = 'CUSC-Recruitment-CRM-Client';
+    let audience = DEFAULT_JWT_AUDIENCE;
     if (this.configService) {
       const configuredAudience =
         this.configService.get<string>('JWT_AUDIENCE');
@@ -62,17 +66,23 @@ export class JwtTokenService {
       audience = process.env.JWT_AUDIENCE;
     }
 
-    let expiresInMinutes = 60 * 24 * 7;
-    const rawExpires = this.configService
-      ? this.configService.get<number | string>('JWT_EXPIRES_IN_MINUTES') ??
-        this.configService.get<string>('JWT_ACCESS_TTL')
-      : process.env.JWT_EXPIRES_IN_MINUTES ?? process.env.JWT_ACCESS_TTL;
+    // JWT_ACCESS_TTL (vd: "15m", "1h") là cấu hình chính. JWT_EXPIRES_IN_MINUTES chỉ còn để tương thích ngược
+    // và chỉ được dùng khi JWT_ACCESS_TTL không được đặt. Mặc định an toàn 15 phút.
+    const readSetting = (name: string): string | number | undefined => {
+      const value = this.configService
+        ? this.configService.get<string | number>(name)
+        : process.env[name];
+      return value === '' || value === null ? undefined : value;
+    };
 
-    if (rawExpires !== undefined && rawExpires !== null) {
+    let expiresInMinutes = DEFAULT_ACCESS_TTL_MINUTES;
+    const rawExpires = readSetting('JWT_ACCESS_TTL') ?? readSetting('JWT_EXPIRES_IN_MINUTES');
+    if (rawExpires !== undefined) {
       const parsed = parseTtlToMinutes(rawExpires);
-      if (parsed !== null && !Number.isNaN(parsed)) {
-        expiresInMinutes = parsed;
+      if (parsed === null || Number.isNaN(parsed) || parsed <= 0) {
+        throw new Error(`Bảo mật JWT: thời hạn Access Token không hợp lệ: "${String(rawExpires)}"`);
       }
+      expiresInMinutes = parsed;
     }
 
     this._jwtSettings = {

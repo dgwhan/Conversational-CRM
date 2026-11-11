@@ -100,4 +100,23 @@ describe('JwtTokenService', () => {
     const tokenService = new JwtTokenService(mockConfig);
     expect(tokenService.getSettings().ExpiresInMinutes).toBe(60);
   });
+
+  it('JWT_ACCESS_TTL được ưu tiên hơn JWT_EXPIRES_IN_MINUTES (không còn là cấu hình chết)', () => {
+    const tokenService = new JwtTokenService({
+      get: (k: string) => {
+        if (k === 'JWT_ACCESS_SECRET') return 'test_secret_key_32_characters_long_min';
+        if (k === 'JWT_ACCESS_TTL') return '30m';
+        if (k === 'JWT_EXPIRES_IN_MINUTES') return 15;
+        return undefined;
+      },
+    } as any);
+    expect(tokenService.getSettings().ExpiresInMinutes).toBe(30);
+  });
+
+  it('mặc định 15 phút khi không cấu hình thời hạn', () => {
+    const tokenService = new JwtTokenService({
+      get: (k: string) => (k === 'JWT_ACCESS_SECRET' ? 'test_secret_key_32_characters_long_min' : undefined),
+    } as any);
+    expect(tokenService.getSettings().ExpiresInMinutes).toBe(15);
+  });
 });

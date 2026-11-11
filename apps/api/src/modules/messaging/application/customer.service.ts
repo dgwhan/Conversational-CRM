@@ -14,7 +14,7 @@ export function isTestAppointmentStage(stage?: string | null): boolean {
     const lower = stage.toLowerCase();
     return (
         lower.includes('test') ||
-        lower.includes('hß║╣n') ||
+        lower.includes('hẹn') ||
         lower.includes('trial') ||
         lower === 'stage_trial_appointment' ||
         lower === 'trial_appointment'
@@ -87,7 +87,7 @@ export class CustomerService {
 
         const where: any = {};
 
-        // Only pass workspaceId to Prisma if it's a valid UUID ΓÇö reject fallback slugs like "ws-default-001"
+        // Only pass workspaceId to Prisma if it's a valid UUID — reject fallback slugs like "ws-default-001"
         if (rawWsId && UUID_REGEX.test(rawWsId)) {
             where.workspaceId = rawWsId;
         }
@@ -100,7 +100,7 @@ export class CustomerService {
             where.leadStage = leadStage.trim();
         }
 
-        // Role STAFF: Chß╗ë xem kh├ích h├áng ─æ╞░ß╗úc ph├ón c├┤ng cho m├¼nh (OWNER xem to├án bß╗Ö)
+        // Role STAFF: Chỉ xem khách hàng được phân công cho mình (OWNER xem toàn bộ)
         if (params.role === 'STAFF' && params.staffId) {
             const memberIds: string[] = [];
             try {
@@ -212,7 +212,7 @@ export class CustomerService {
 
             let mappedItems = items.map((c: any) => this.mapCustomerDto(c));
 
-            // Fallback in-memory unaccent filter nß║┐u Prisma mock hoß║╖c DB kh├┤ng hß╗ù trß╗ú queryRaw
+            // Fallback in-memory unaccent filter nếu Prisma mock hoặc DB không hỗ trợ queryRaw
             if (fallbackFilterNeeded && cleanSearchTerm) {
                 mappedItems = mappedItems.filter((item: any) => {
                     if (matchesUnaccent(item.fullName, cleanSearchTerm)) return true;
@@ -312,15 +312,15 @@ export class CustomerService {
 
         // Khách hàng thuộc workspace khác được coi như không tồn tại (chống IDOR giữa các tenant)
         if (!customer || (caller?.workspaceId && customer.workspaceId !== caller.workspaceId)) {
-            throw new NotFoundException('Kh├ích h├áng kh├┤ng tß╗ôn tß║íi hoß║╖c ─æ├ú bß╗ï x├│a');
+            throw new NotFoundException('Khách hàng không tồn tại hoặc đã bị xóa');
         }
 
-        // Role STAFF: nß║┐u v├áo kh├ích h├áng cß╗ºa ng╞░ß╗¥i kh├íc sß║╜ trß║ú vß╗ü lß╗ùi 403 Forbidden
+        // Role STAFF: nếu vào khách hàng của người khác sẽ trả về lỗi 403 Forbidden
         if (caller?.role === 'STAFF' && caller?.staffId) {
             const isAssigned = this.isCustomerAssignedToStaff(customer, caller.staffId);
             if (!isAssigned) {
                 throw new ForbiddenException(
-                    'Bß║ín kh├┤ng c├│ quyß╗ün xem th├┤ng tin kh├ích h├áng cß╗ºa ng╞░ß╗¥i kh├íc (403 Forbidden).',
+                    'Bạn không có quyền xem thông tin khách hàng của người khác (403 Forbidden).',
                 );
             }
         }
@@ -329,7 +329,7 @@ export class CustomerService {
     }
 
     /**
-     * Kiß╗âm tra xem kh├ích h├áng c├│ thuß╗Öc quyß╗ün phß╗Ñ tr├ích cß╗ºa nh├ón sß╗▒ hay kh├┤ng
+     * Kiểm tra xem khách hàng có thuộc quyền phụ trách của nhân sự hay không
      */
     isCustomerAssignedToStaff(customer: any, staffId: string): boolean {
         if (!customer || !staffId) return false;
@@ -368,11 +368,11 @@ export class CustomerService {
             throw new BadRequestException(`leadStatus không hợp lệ. Giá trị cho phép: ${CUSTOMER_LEAD_STATUSES.join(', ')}.`);
         }
 
-        // Role STAFF: kh├┤ng tß╗▒ ph├ón c├┤ng cho ng╞░ß╗¥i kh├íc
+        // Role STAFF: không tự phân công cho người khác
         if (caller?.role === 'STAFF') {
             if (body.assignedStaffId !== undefined || body.assignedMemberId !== undefined) {
                 throw new ForbiddenException(
-                    'Nh├ón vi├¬n kh├┤ng c├│ quyß╗ün tß╗▒ ph├ón c├┤ng kh├ích h├áng cho ng╞░ß╗¥i kh├íc (403 Forbidden).',
+                    'Nhân viên không có quyền tự phân công khách hàng cho người khác (403 Forbidden).',
                 );
             }
         }
@@ -385,12 +385,12 @@ export class CustomerService {
             return this.provisionNewCustomer(id, body, headerWsId);
         }
 
-        // Role STAFF: chß╗ë ─æ╞░ß╗úc chß╗ënh sß╗¡a c├íc trß║íng th├íi lead thuß╗Öc kh├ích h├áng m├¼nh phß╗Ñ tr├ích, nß║┐u v├áo cß╗ºa ng╞░ß╗¥i kh├íc sß║╜ trß║ú vß╗ü lß╗ùi 403
+        // Role STAFF: chỉ được chỉnh sửa các trạng thái lead thuộc khách hàng mình phụ trách, nếu vào của người khác sẽ trả về lỗi 403
         if (caller?.role === 'STAFF' && caller?.staffId) {
             const isAssigned = this.isCustomerAssignedToStaff(existing, caller.staffId);
             if (!isAssigned) {
                 throw new ForbiddenException(
-                    'Bß║ín chß╗ë ─æ╞░ß╗úc chß╗ënh sß╗¡a c├íc trß║íng th├íi lead thuß╗Öc kh├ích h├áng m├¼nh phß╗Ñ tr├ích (403 Forbidden).',
+                    'Bạn chỉ được chỉnh sửa các trạng thái lead thuộc khách hàng mình phụ trách (403 Forbidden).',
                 );
             }
         }
@@ -399,7 +399,7 @@ export class CustomerService {
         // Null from the Inbox's unmark action means the record returns to intake status.
         const normalizedLeadStatus = body.leadStatus === null ? 'NEW' : body.leadStatus;
 
-        // Xß╗¡ l├╜ danh s├ích tags v├á ph├ít hiß╗çn c├íc tag bß╗ï gß╗í thß╗º c├┤ng qua CRM
+        // Xử lý danh sách tags và phát hiện các tag bị gỡ thủ công qua CRM
         let cleanTags: string[] | undefined;
         let manuallyRemovedTags: string[] | undefined;
         if (body.tags !== undefined) {
@@ -478,7 +478,7 @@ export class CustomerService {
             });
         }
 
-        // Xß╗¡ l├╜ chuß║⌐n h├│a S─ÉT v├á tß╗▒ ─æß╗Öng gß╗Öp Contact theo S─ÉT (CUS-04)
+        // Xử lý chuẩn hóa SĐT và tự động gộp Contact theo SĐT (CUS-04)
         if (existing.contactId && this.prisma.contact) {
             await this.prisma.contact.update({
                 where: { id: existing.contactId },
@@ -495,16 +495,16 @@ export class CustomerService {
         }
 
         let mergedResult: any = null;
-        if (body.phone && body.phone !== 'Ch╞░a c├│ S─ÉT' && this.mergeService) {
+        if (body.phone && body.phone !== 'Chưa có SĐT' && this.mergeService) {
             mergedResult = await this.handlePhoneMerge(existing, body.phone, headerWsId, body.updatedBy);
         }
 
-        // ─Éß╗ông bß╗Ö cß║¡p nhß║¡t tag v├áo cuß╗Öc hß╗Öi thoß║íi
+        // Đồng bộ cập nhật tag vào cuộc hội thoại
         if (cleanTags !== undefined && this.prisma.conversation) {
             await this.syncConversationTags(existing.id, body.conversationId, cleanTags);
         }
 
-        // ─Éß╗ông bß╗Ö ph├ón c├┤ng nh├ón sß╗▒ (assigned_member_id) v├áo bß║úng Conversation ─æß║úm bß║úo to├án vß║╣n tham chiß║┐u
+        // Đồng bộ phân công nhân sự (assigned_member_id) vào bảng Conversation đảm bảo toàn vẹn tham chiếu
         if (resolvedMemberId !== undefined && this.prisma.conversation) {
             await this.syncConversationAssignedMember(
                 existing.id,
@@ -522,7 +522,7 @@ export class CustomerService {
                     customerName: updated.fullName,
                     newStage: (body.leadStage || existing.leadStage || 'STAGE_NEW') as string,
                     previousStage: (existing.leadStage || 'STAGE_NEW') as string,
-                    updatedBy: body.updatedBy || 'Hß╗ç thß╗æng CRM',
+                    updatedBy: body.updatedBy || 'Hệ thống CRM',
                     workspaceId: updated.workspaceId || existing.workspaceId || undefined,
                 };
                 if (updated.phone) payload.phone = updated.phone;
@@ -537,7 +537,7 @@ export class CustomerService {
 
                 this.realtime?.broadcastPipelineChange(payload);
 
-                // Tß╗▒ ─æß╗Öng k├¡ch hoß║ít tß║ío Task cho ph├▓ng ─É├áo tß║ío xß║┐p ph├▓ng m├íy khi Lead r╞íi v├áo trß║íng th├íi "Hß║╣n Test ─æß║ºu v├áo"
+                // Tự động kích hoạt tạo Task cho phòng Đào tạo xếp phòng máy khi Lead rơi vào trạng thái "Hẹn Test đầu vào"
                 if (body.leadStage && isTestAppointmentStage(body.leadStage) && !isTestAppointmentStage(existing.leadStage)) {
                     if (this.activityService) {
                         this.activityService.autoCreateTestTask(
@@ -546,7 +546,7 @@ export class CustomerService {
                             updated.fullName,
                             body.notes,
                         ).catch((taskErr) => {
-                            this.logger.warn(`Kh├┤ng thß╗â tß╗▒ ─æß╗Öng tß║ío Task ph├▓ng m├íy: ${taskErr.message}`);
+                            this.logger.warn(`Không thể tự động tạo Task phòng máy: ${taskErr.message}`);
                         });
                     }
                 }
@@ -568,7 +568,7 @@ export class CustomerService {
     }
 
     /**
-     * Gß╗í trß╗▒c tiß║┐p mß╗Öt tag khß╗Åi kh├ích h├áng v├á hß╗Öi thoß║íi th├┤ng qua CRM
+     * Gỡ trực tiếp một tag khỏi khách hàng và hội thoại thông qua CRM
      */
     async removeCustomerTag(id: string, tagToRemove: string, workspaceId?: string) {
         return this.tagService.removeCustomerTag(id, tagToRemove, workspaceId);
@@ -591,7 +591,7 @@ export class CustomerService {
             ? {
                 id: assignedMember.user?.id || assignedMember.userId || assignedMember.id,
                 memberId: assignedMember.id,
-                name: assignedMember.user?.fullName || 'T╞░ vß║Ñn vi├¬n',
+                name: assignedMember.user?.fullName || 'Tư vấn viên',
                 email: assignedMember.user?.email || null,
                 avatar: (assignedMember.user as any)?.avatarUrl || '',
                 role: assignedMember.role || 'STAFF',
@@ -599,7 +599,7 @@ export class CustomerService {
             : (identities.assignedStaffId
                 ? {
                     id: identities.assignedStaffId,
-                    name: identities.assignedStaffName || 'T╞░ vß║Ñn vi├¬n',
+                    name: identities.assignedStaffName || 'Tư vấn viên',
                     role: 'STAFF',
                 }
                 : undefined);
@@ -611,7 +611,7 @@ export class CustomerService {
             notes: customer.notes || identities.notes || null,
             interestCourses: identities.interestCourses || [],
             estimatedValue: identities.estimatedValue || 0,
-            tags: hasExplicitTags ? tags : (customer.leadStatus === 'POTENTIAL' ? ['Lead'] : ['Kh├ích h├áng mß╗¢i']),
+            tags: hasExplicitTags ? tags : (customer.leadStatus === 'POTENTIAL' ? ['Lead'] : ['Khách hàng mới']),
             assignedStaffId: identities.assignedStaffId || assignedMember?.user?.id || assignedMember?.userId || null,
             assignedStaffName: identities.assignedStaffName || assignedMember?.user?.fullName || null,
             assignedMemberId: firstConv?.assignedMemberId || identities.assignedMemberId || null,
@@ -620,8 +620,8 @@ export class CustomerService {
     }
 
     /**
-     * Ph├ón c├┤ng nh├ón sß╗▒ (staff) cho cuß╗Öc hß╗Öi thoß║íi v├á ─æß╗ông bß╗Ö kh├ích h├áng.
-     * ─Éß║úm bß║úo t├¡nh to├án vß║╣n tham chiß║┐u (Foreign Key tß╗¢i workspace_members).
+     * Phân công nhân sự (staff) cho cuộc hội thoại và đồng bộ khách hàng.
+     * Đảm bảo tính toàn vẹn tham chiếu (Foreign Key tới workspace_members).
      */
     async assignConversation(
         conversationId: string,
@@ -729,8 +729,8 @@ export class CustomerService {
     }
 
     /**
-     * Ph├ón giß║úi staffId (WorkspaceMember.id hoß║╖c User.id) th├ánh WorkspaceMember.id hß╗úp lß╗ç
-     * ─Éß║úm bß║úo kh├┤ng bß╗ï vi phß║ím foreign key constraint cß╗ºa bß║úng workspace_members trong PostgreSQL.
+     * Phân giải staffId (WorkspaceMember.id hoặc User.id) thành WorkspaceMember.id hợp lệ
+     * Đảm bảo không bị vi phạm foreign key constraint của bảng workspace_members trong PostgreSQL.
      */
     async resolveWorkspaceMemberId(
         staffId?: string | null,
@@ -748,7 +748,7 @@ export class CustomerService {
         const validWsId = workspaceId && UUID_REGEX.test(workspaceId) ? workspaceId : null;
 
         try {
-            // 1. Kiß╗âm tra trß╗▒c tiß║┐p WorkspaceMember theo ID
+            // 1. Kiểm tra trực tiếp WorkspaceMember theo ID
             const memberById = await this.prisma.workspaceMember.findUnique({
                 where: { id: cleanId },
                 select: { id: true, workspaceId: true, isActive: true },
@@ -757,7 +757,7 @@ export class CustomerService {
                 return memberById.id;
             }
 
-            // 2. Kiß╗âm tra nß║┐u staffId l├á User.id thuß╗Öc vß╗ü Workspace
+            // 2. Kiểm tra nếu staffId là User.id thuộc về Workspace
             if (validWsId) {
                 const memberByUserId = await this.prisma.workspaceMember.findUnique({
                     where: {
@@ -781,7 +781,7 @@ export class CustomerService {
                 }
             }
 
-            // 3. Nß║┐u User c├│ thß║¡t trong bß║úng User v├á ─æ├ú c├│ Workspace, tß╗▒ ─æß╗Öng tß║ío th├ánh vi├¬n Workspace
+            // 3. Nếu User có thật trong bảng User và đã có Workspace, tự động tạo thành viên Workspace
             if (validWsId) {
                 const user = await this.prisma.user.findUnique({
                     where: { id: cleanId },
@@ -821,7 +821,7 @@ export class CustomerService {
     }
 
     /**
-     * ─Éß╗ông bß╗Ö assigned_member_id v├áo bß║úng Conversation trong DB.
+     * Đồng bộ assigned_member_id vào bảng Conversation trong DB.
      */
     async syncConversationAssignedMember(
         customerId: string,
@@ -952,9 +952,9 @@ export class CustomerService {
         // 4. Fallback to socialId or personal identifier lookups
         if (!existing) {
             const cleanSocialId = id.replace(/^(cust|cand)-(facebook-|zalo-)?/, '').replace(/^(facebook|zalo)-/, '');
-            const validPhone = body?.phone && body.phone !== 'Ch╞░a c├│ S─ÉT' ? body.phone : null;
-            const validEmail = body?.email && body.email !== 'Ch╞░a c├│ Email' ? body.email : null;
-            const validName = body?.fullName && !body.fullName.startsWith('Kh├ích h├áng') && !body.fullName.startsWith('Lead') ? body.fullName : null;
+            const validPhone = body?.phone && body.phone !== 'Chưa có SĐT' ? body.phone : null;
+            const validEmail = body?.email && body.email !== 'Chưa có Email' ? body.email : null;
+            const validName = body?.fullName && !body.fullName.startsWith('Khách hàng') && !body.fullName.startsWith('Lead') ? body.fullName : null;
 
             try {
                 existing = await this.prisma.customer.findFirst({
@@ -984,8 +984,8 @@ export class CustomerService {
 
     private async provisionNewCustomer(id: string, body: UpdateCustomerDto, headerWsId?: string) {
         const cleanSocialId = id.replace(/^(cust|cand)-(facebook-|zalo-)?/, '').replace(/^(facebook|zalo)-/, '');
-        const validPhone = body.phone && body.phone !== 'Ch╞░a c├│ S─ÉT' ? body.phone : null;
-        const validEmail = body.email && body.email !== 'Ch╞░a c├│ Email' ? body.email : null;
+        const validPhone = body.phone && body.phone !== 'Chưa có SĐT' ? body.phone : null;
+        const validEmail = body.email && body.email !== 'Chưa có Email' ? body.email : null;
         let newCust: any;
 
         let resolvedMemberId: string | null = null;
@@ -997,7 +997,7 @@ export class CustomerService {
         }
 
         const customerPayload = {
-            fullName: body.fullName || (id.startsWith('cand-') ? 'ß╗¿ng vi├¬n mß╗¢i' : 'Kh├ích h├áng'),
+            fullName: body.fullName || (id.startsWith('cand-') ? 'Ứng viên mới' : 'Khách hàng'),
             phone: validPhone,
             email: validEmail,
             leadStatus: body.leadStatus || 'NEW',
@@ -1054,7 +1054,7 @@ export class CustomerService {
                     customerName: newCust.fullName,
                     newStage: (body.leadStage || 'STAGE_NEW') as string,
                     previousStage: 'STAGE_NEW',
-                    updatedBy: body.updatedBy || 'Hß╗ç thß╗æng CRM',
+                    updatedBy: body.updatedBy || 'Hệ thống CRM',
                     workspaceId: newCust.workspaceId || undefined,
                 });
             } catch { }
@@ -1101,7 +1101,7 @@ export class CustomerService {
                         phoneNormalized: normalizedPhone,
                         actorId: updatedBy,
                         mergeType: 'AUTO_PHONE_MATCH',
-                        reason: 'Tß╗▒ ─æß╗Öng gß╗Öp kh├ích h├áng theo S─ÉT',
+                        reason: 'Tự động gộp khách hàng theo SĐT',
                         workspaceId: headerWsId,
                     });
                     this.logger.log(`[CUS-04] Auto-merged contact ${currentContact.id} into ${collisionCheck.existingContact.id} via phone ${normalizedPhone}`);
@@ -1114,7 +1114,7 @@ export class CustomerService {
                 }).catch(() => { });
             }
         } catch (mergeErr) {
-            this.logger.warn(`L╞░u ├╜ khi xß╗¡ l├╜ gß╗Öp S─ÉT: ${(mergeErr as Error).message}`);
+            this.logger.warn(`Lưu ý khi xử lý gộp SĐT: ${(mergeErr as Error).message}`);
         }
         return null;
     }
@@ -1124,9 +1124,9 @@ export class CustomerService {
     }
 
     /**
-     * ß║¿n danh h├│a th├┤ng tin c├í nh├ón kh├ích h├áng, tin nhß║»n v├á lead theo Nghß╗ï ─æß╗ïnh 13/2023/N─É-CP.
-     * Bß║úo to├án 100% sß╗æ liß╗çu tß╗òng hß╗úp (KPI, phß╗àu tuyß╗ân sinh, doanh thu).
-     * Sau khi ß║⌐n danh: kh├┤ng c├▓n t├¬n hay S─ÉT n├áo c├│ thß╗â truy vß║┐t ra ng╞░ß╗¥i ─æ├│.
+     * Ẩn danh hóa thông tin cá nhân khách hàng, tin nhắn và lead theo Nghị định 13/2023/NĐ-CP.
+     * Bảo toàn 100% số liệu tổng hợp (KPI, phễu tuyển sinh, doanh thu).
+     * Sau khi ẩn danh: không còn tên hay SĐT nào có thể truy vết ra người đó.
      */
     async anonymizeCustomer(customerId: string, actorId?: string, reason?: string, workspaceId?: string) {
         const customer = await this.prisma.customer.findUnique({
@@ -1142,16 +1142,16 @@ export class CustomerService {
 
         // Khách hàng thuộc workspace khác được coi như không tồn tại
         if (!customer || (workspaceId && customer.workspaceId !== workspaceId)) {
-            throw new NotFoundException(`Kh├┤ng t├¼m thß║Ñy kh├ích h├áng vß╗¢i ID ${customerId}`);
+            throw new NotFoundException(`Không tìm thấy khách hàng với ID ${customerId}`);
         }
 
         const originalName = customer.fullName;
         const originalPhone = customer.phone;
         const anonToken = customer.id.replace(/-/g, '').slice(0, 6).toUpperCase();
-        const anonName = `Kh├ích h├áng ß║⌐n danh #${anonToken}`;
+        const anonName = `Khách hàng ẩn danh #${anonToken}`;
         const anonPhone = '09********';
 
-        // 1. Cß║¡p nhß║¡t ß║⌐n danh Customer
+        // 1. Cập nhật ẩn danh Customer
         const updatedCustomer = await this.prisma.customer.update({
             where: { id: customerId },
             data: {
@@ -1161,56 +1161,56 @@ export class CustomerService {
                 email: null,
                 avatarUrl: null,
                 channelIdentities: Prisma.JsonNull,
-                notes: `Dß╗» liß╗çu c├í nh├ón ─æ├ú ─æ╞░ß╗úc ß║⌐n danh theo Nghß╗ï ─æß╗ïnh 13/2023/N─É-CP (L├╜ do: ${reason || 'Y├¬u cß║ºu tß╗½ chß╗º thß╗â dß╗» liß╗çu'}).`,
+                notes: `Dữ liệu cá nhân đã được ẩn danh theo Nghị định 13/2023/NĐ-CP (Lý do: ${reason || 'Yêu cầu từ chủ thể dữ liệu'}).`,
             },
         });
 
-        // 2. ß║¿n danh Contact li├¬n kß║┐t nß║┐u c├│
+        // 2. Ẩn danh Contact liên kết nếu có
         try {
             if (customer.phoneNormalized) {
                 await this.prisma.contact.updateMany({
                     where: { phoneNormalized: customer.phoneNormalized },
                     data: {
-                        displayName: `Li├¬n hß╗ç ß║⌐n danh #${anonToken}`,
+                        displayName: `Liên hệ ẩn danh #${anonToken}`,
                         phoneNormalized: null,
                         email: null,
-                        notes: 'Th├┤ng tin c├í nh├ón ─æ├ú ─æ╞░ß╗úc ß║⌐n danh theo Nghß╗ï ─æß╗ïnh 13/2023/N─É-CP.',
+                        notes: 'Thông tin cá nhân đã được ẩn danh theo Nghị định 13/2023/NĐ-CP.',
                     },
                 });
             }
         } catch { }
 
-        // 3. X├│a hoß║╖c ß║⌐n danh c├íc ChannelIdentity li├¬n kß║┐t
+        // 3. Xóa hoặc ẩn danh các ChannelIdentity liên kết
         try {
             await this.prisma.channelIdentity.deleteMany({
                 where: { customerId: customer.id },
             });
         } catch { }
 
-        // 4. L├ám sß║ích nß╗Öi dung tin nhß║»n v├á ─æoß║ín tr├¡ch hß╗Öi thoß║íi
+        // 4. Làm sạch nội dung tin nhắn và đoạn trích hội thoại
         try {
             const convIds = customer.conversations.map((c) => c.id);
             if (convIds.length > 0) {
-                // Cß║¡p nhß║¡t snippet cß╗ºa hß╗Öi thoß║íi
+                // Cập nhật snippet của hội thoại
                 await this.prisma.conversation.updateMany({
                     where: { id: { in: convIds } },
                     data: {
-                        snippet: '[Hß╗Öi thoß║íi ─æ├ú ─æ╞░ß╗úc ß║⌐n danh theo Nghß╗ï ─æß╗ïnh 13/2023/N─É-CP]',
+                        snippet: '[Hội thoại đã được ẩn danh theo Nghị định 13/2023/NĐ-CP]',
                     },
                 });
 
-                // L├ám sß║ích nß╗Öi dung tin nhß║»n
+                // Làm sạch nội dung tin nhắn
                 for (const conv of customer.conversations) {
                     for (const msg of conv.messages) {
                         let cleanContent = msg.content || '';
                         if (originalPhone && cleanContent) {
-                            cleanContent = cleanContent.replace(new RegExp(originalPhone, 'gi'), '[S─ÉT ─É├â ß║¿N DANH]');
+                            cleanContent = cleanContent.replace(new RegExp(originalPhone, 'gi'), '[SĐT ĐÃ ẨN DANH]');
                         }
                         if (originalName && cleanContent) {
-                            cleanContent = cleanContent.replace(new RegExp(originalName, 'gi'), '[T├èN ─É├â ß║¿N DANH]');
+                            cleanContent = cleanContent.replace(new RegExp(originalName, 'gi'), '[TÊN ĐÃ ẨN DANH]');
                         }
-                        // Qu├⌐t mß╗ìi chuß╗ùi giß╗æng sß╗æ ─æiß╗çn thoß║íi
-                        cleanContent = cleanContent.replace(/(?:\+84|0)[235789][0-9]{8}\b/g, '[S─ÉT ─É├â ß║¿N DANH]');
+                        // Quét mọi chuỗi giống số điện thoại
+                        cleanContent = cleanContent.replace(/(?:\+84|0)[235789][0-9]{8}\b/g, '[SĐT ĐÃ ẨN DANH]');
 
                         await this.prisma.message.update({
                             where: { id: msg.id },
@@ -1223,13 +1223,13 @@ export class CustomerService {
                 }
             }
         } catch (msgErr) {
-            this.logger.warn(`Lß╗ùi khi l├ám sß║ích tin nhß║»n ß║⌐n danh: ${(msgErr as Error).message}`);
+            this.logger.warn(`Lỗi khi làm sạch tin nhắn ẩn danh: ${(msgErr as Error).message}`);
         }
 
-        // 5. Ghi log kiß╗âm to├ín
+        // 5. Ghi log kiểm toán
         this.logger.log(`[PDPD-ANONYMIZE] Customer ${customerId} anonymized successfully by actor ${actorId || 'system'}. Original PII removed.`);
 
-        // 6. Ph├ít s├│ng Realtime ─æß╗â cß║¡p nhß║¡t giao diß╗çn
+        // 6. Phát sóng Realtime để cập nhật giao diện
         if (this.realtime) {
             try {
                 this.realtime.broadcastPipelineChange({
@@ -1237,7 +1237,7 @@ export class CustomerService {
                     customerName: anonName,
                     newStage: (customer.leadStage || 'STAGE_NEW') as string,
                     previousStage: (customer.leadStage || 'STAGE_NEW') as string,
-                    updatedBy: 'Hß╗ç thß╗æng PDPD (Nghß╗ï ─æß╗ïnh 13)',
+                    updatedBy: 'Hệ thống PDPD (Nghị định 13)',
                     workspaceId: customer.workspaceId || undefined,
                 });
             } catch { }
@@ -1247,7 +1247,7 @@ export class CustomerService {
             success: true,
             anonymizedCustomerId: customer.id,
             anonymizedName: anonName,
-            message: '─É├ú ß║⌐n danh h├│a th├ánh c├┤ng th├┤ng tin c├í nh├ón theo Nghß╗ï ─æß╗ïnh 13/2023/N─É-CP.',
+            message: 'Đã ẩn danh hóa thành công thông tin cá nhân theo Nghị định 13/2023/NĐ-CP.',
             retainedMetrics: {
                 leadStatus: customer.leadStatus,
                 leadStage: customer.leadStage,
