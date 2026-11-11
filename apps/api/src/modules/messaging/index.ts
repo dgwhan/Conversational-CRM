@@ -15,4 +15,8 @@ export * from './presentation/webhook.controller.js';
 export * from './presentation/message-import.controller.js';
 export * from './presentation/customer.controller.js';
 export * from './presentation/contact.controller.js';
+export * from './presentation/message-storage.controller.js';
+export * from './application/message-storage.service.js';
+export * from './application/retention-scheduler.service.js';
+export * from './infrastructure/message-storage.repository.js';
 export * from './messaging.module.js';

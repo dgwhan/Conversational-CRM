@@ -19,6 +19,10 @@ import { MessageImportController } from './presentation/message-import.controlle
 import { CustomerController } from './presentation/customer.controller.js';
 import { ContactController } from './presentation/contact.controller.js';
 import { MediaProxyController } from './presentation/media-proxy.controller.js';
+import { MessageStorageController } from './presentation/message-storage.controller.js';
+import { MessageStorageRepository } from './infrastructure/message-storage.repository.js';
+import { MessageStorageService } from './application/message-storage.service.js';
+import { RetentionSchedulerService } from './application/retention-scheduler.service.js';
 import { INBOUND_QUEUE, InboundMessageQueue } from './domain/channel-adapter.port.js';
 import { ManualImportAdapter } from './infrastructure/adapters/manual-import.adapter.js';
 import { ZaloAdapter } from './infrastructure/adapters/zalo.adapter.js';
@@ -79,9 +83,19 @@ const adaptersProvider: Provider = {
         forwardRef(() => ChannelConnectionModule),
         forwardRef(() => ActivityModule),
     ],
-    controllers: [WebhookController, MessageImportController, CustomerController, ContactController, MediaProxyController],
+    controllers: [
+        WebhookController,
+        MessageImportController,
+        CustomerController,
+        ContactController,
+        MediaProxyController,
+        MessageStorageController,
+    ],
     providers: [
         MessageRepository,
+        MessageStorageRepository,
+        MessageStorageService,
+        RetentionSchedulerService,
         ChannelAdapterRegistry,
         ReceiveInboundMessage,
         ProcessMessageReceived,
@@ -110,6 +124,8 @@ const adaptersProvider: Provider = {
         CustomerService,
         CustomerTagService,
         WorkingHoursService,
+        MessageStorageService,
+        RetentionSchedulerService,
         INBOUND_QUEUE,
         CHANNEL_ADAPTERS,
         CUSTOMER_GATEWAY,

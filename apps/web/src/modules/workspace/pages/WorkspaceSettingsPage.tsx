@@ -11,9 +11,10 @@ import {
   CriteriaTab,
   AlertsTab,
   WorkingHoursTab,
+  MessageStorageTab,
 } from '../components/settings/index.js';
 
-type SettingsTabId = 'stages' | 'catalog' | 'terminology' | 'criteria' | 'workingHours' | 'alerts';
+type SettingsTabId = 'stages' | 'catalog' | 'terminology' | 'criteria' | 'workingHours' | 'alerts' | 'storage';
 
 export const WorkspaceSettingsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -64,6 +65,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
     {
       id: 'alerts',
       label: t('workspaceSettings.tabs.alerts', 'Cảnh báo phản hồi'),
+    },
+    {
+      id: 'storage',
+      label: t('workspaceSettings.tabs.storage', 'Lưu trữ & Dọn dẹp tin nhắn'),
     },
   ];
 
@@ -157,6 +162,13 @@ export const WorkspaceSettingsPage: React.FC = () => {
           isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onSave={handleSaveAlerts}
+        />
+      )}
+
+      {activeTab === 'storage' && (
+        <MessageStorageTab
+          workspaceId={config.workspaceId || activeWorkspace?.id}
+          isOwner={isCurrentWorkspaceOwner}
         />
       )}
     </div>

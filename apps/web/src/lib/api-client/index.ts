@@ -5,6 +5,7 @@ import { createWorkspaceApi } from './workspaces.js';
 import { createContactApi } from './contacts.js';
 import { createActivityApi } from './activities.js';
 import { createDealApi } from './deals.js';
+import { createMessageStorageApi } from './messaging-storage.js';
 
 export * from './types.js';
 export * from './core.js';
@@ -14,6 +15,8 @@ export * from './workspaces.js';
 export * from './contacts.js';
 export * from './activities.js';
 export * from './deals.js';
+export * from './messaging-storage.types.js';
+export * from './messaging-storage.js';
 
 export class ApiClient extends BaseApiClient {
   private channels = createChannelApi(this);
@@ -22,6 +25,7 @@ export class ApiClient extends BaseApiClient {
   private contacts = createContactApi(this);
   private activities = createActivityApi(this);
   private deals = createDealApi(this);
+  private messageStorage = createMessageStorageApi(this);
 
   // Sub-modules
   readonly channelApi = this.channels;
@@ -30,6 +34,7 @@ export class ApiClient extends BaseApiClient {
   readonly contactApi = this.contacts;
   readonly activityApi = this.activities;
   readonly dealApi = this.deals;
+  readonly messageStorageApi = this.messageStorage;
 
   // Channel & OAuth APIs
   getAuthorizeUrl = this.channels.getAuthorizeUrl;
@@ -95,6 +100,14 @@ export class ApiClient extends BaseApiClient {
   createDeal = this.deals.createDeal;
   updateDeal = this.deals.updateDeal;
   deleteDeal = this.deals.deleteDeal;
+
+  // Message Storage & Retention APIs
+  getMessageStorageMetrics = this.messageStorage.getMetrics;
+  getMessageStoragePolicy = this.messageStorage.getPolicy;
+  updateMessageStoragePolicy = this.messageStorage.updatePolicy;
+  estimateMessageStoragePurge = this.messageStorage.estimatePurge;
+  purgeStoredMessages = this.messageStorage.purgeMessages;
+  triggerMessageRetentionNow = this.messageStorage.triggerRetentionNow;
 }
 
 export const apiClient = new ApiClient();
