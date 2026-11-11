@@ -7,12 +7,12 @@
  */
 
 export const ORGANIZATION_INFO = {
-  name: '[TÊN ĐƠN VỊ]',
+  name: 'PolarisX Studio',
   tradingName: 'PolarisX Conversational CRM',
-  address: '[ĐỊA CHỈ]',
-  contactEmail: '[EMAIL LIÊN HỆ]',
-  phone: '[SỐ ĐIỆN THOẠI]',
+  address: 'Ninh Kiều, Cần Thơ',
+  contactEmail: 'ngnphcng@gmail.com | duongngochan205@gmail.com',
+  phone: '081 9449218 | 038 8071459',
   dpoEmail: '[EMAIL BẢO VỆ DỮ LIỆU]',
-  website: 'https://polarisx.edu.vn',
-  serviceScope: 'Hệ thống Quản lý Quan hệ Ứng viên & Khách hàng Hội thoại Đa kênh (Conversational CRM)',
+  website: '[Website]',
+  serviceScope: 'Hệ thống Quản lý Quan hệ Khách hàng & Khách hàng Hội thoại Đa kênh (PolarisX Conversational CRM)',
 } as const;
