@@ -5,7 +5,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
   title: 'Điều khoản dịch vụ sử dụng',
   subtitle:
     'Quy định quyền hạn, trách nhiệm và nguyên tắc vận hành hệ thống PolarisX Conversational CRM dành cho các đơn vị và người dùng',
-  version: '2.4.0',
+  version: '1.0.0',
   effectiveDate: '01/01/2026',
   lastUpdated: '10/11/2026',
   documentType: 'terms',

@@ -5,7 +5,7 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
   title: 'Chính sách bảo mật thông tin',
   subtitle:
     'Cam kết bảo vệ dữ liệu cá nhân của ứng viên, học viên và nhân sự vận hành trên nền tảng PolarisX Conversational CRM',
-  version: '2.4.0',
+  version: '1.0.0',
   effectiveDate: '01/01/2026',
   lastUpdated: '10/11/2026',
   documentType: 'privacy',
