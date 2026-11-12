@@ -122,30 +122,35 @@ export function useNotificationCenter(onNavigateTab?: (tab: ActiveNavTab) => voi
   };
 
   const handleItemClick = async (item: NotificationItem) => {
-    if (!item.isRead && isWorkspaceUuid(item.workspaceId)) {
+    const isInvitation = item.type === 'WORKSPACE_INVITATION';
+
+    if (!item.isRead && (isInvitation || isWorkspaceUuid(item.workspaceId))) {
       try {
-        await apiClient.markNotificationRead(item.workspaceId, item.id);
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
-        );
-        setUnreadCount((c) => Math.max(0, c - 1));
+        if (isInvitation) {
+          await apiClient.markUserNotificationRead(item.id);
+        } else {
+          await apiClient.markNotificationRead(item.workspaceId, item.id);
+        }
+        setNotifications((prev) => prev.map((n) =>
+          n.id === item.id ? { ...n, isRead: true } : n,
+        ));
+        setUnreadCount((count) => Math.max(0, count - 1));
       } catch (err) {
         console.warn('Lỗi đánh dấu đã đọc:', err);
       }
     }
 
     // 1. Điều hướng riêng biệt cho Lời mời Workspace sang trang /workspace/invited/:id (Scope riêng biệt)
-    if (item.type === 'WORKSPACE_INVITATION' || item.actionUrl?.includes('/invited/')) {
+    if (isInvitation) {
       setIsOpen(false);
       const inviteId =
         item.metadata?.memberId ||
         item.metadata?.invitationId ||
-        item.actionUrl?.match(/\/invited\/([^/?#]+)/)?.[1] ||
-        item.metadata?.workspaceId;
+        item.actionUrl?.match(/\/invited\/([^/?#]+)/)?.[1];
       if (inviteId) {
         navigate(buildRoute.workspaceInvited(inviteId));
-        return;
       }
+      return;
     }
 
     if (item.actionUrl) {

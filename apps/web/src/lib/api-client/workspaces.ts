@@ -192,6 +192,10 @@ export function createWorkspaceApi(client: BaseApiClient) {
       return client.patch<NotificationItem>(`/v1/workspaces/${workspaceId}/notifications/${id}/read`);
     },
 
+    markUserNotificationRead(id: string) {
+      return client.patch<NotificationItem>(`/v1/notifications/${id}/read`);
+    },
+
     markAllNotificationsRead(workspaceId: string) {
       return client.post<{ count: number }>(`/v1/workspaces/${workspaceId}/notifications/read-all`);
     },

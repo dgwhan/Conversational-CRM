@@ -100,10 +100,10 @@ export class StaffManagementService {
   }
 
   /**
-   * Lấy chi tiết lời mời tham gia workspace (Chống Broken Access Control)
+   * Lấy chi tiết lời mời theo invitationId (Chống Broken Access Control)
    */
-  getInvitationDetails(callerId: string, invitationOrWsId: string) {
-    return getInvitationDetails(this.prisma, callerId, invitationOrWsId);
+  getInvitationDetails(callerId: string, invitationId: string) {
+    return getInvitationDetails(this.prisma, callerId, invitationId);
   }
 
   /**

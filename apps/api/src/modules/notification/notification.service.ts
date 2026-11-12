@@ -246,6 +246,30 @@ export class NotificationService {
     });
   }
 
+  async markPersonalNotificationAsRead(userId: string, id: string): Promise<Notification> {
+    if (!userId || !isUuid(id)) {
+      throw new NotFoundException(`Không tìm thấy thông báo ${id}`);
+    }
+
+    const result = await this.prisma.notification.updateMany({
+      where: { id, userId },
+      data: { isRead: true },
+    });
+
+    if (result.count === 0) {
+      throw new NotFoundException(`Không tìm thấy thông báo ${id}`);
+    }
+
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+    });
+    if (!notification) {
+      throw new NotFoundException(`Không tìm thấy thông báo ${id}`);
+    }
+
+    return notification;
+  }
+
   /**
    * Đánh dấu tất cả thông báo của workspace là đã đọc
    */

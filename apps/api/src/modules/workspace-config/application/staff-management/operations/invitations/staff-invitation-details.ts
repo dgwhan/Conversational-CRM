@@ -9,7 +9,7 @@ import { resolveOwnerId } from '../../../workspace-resolver.js';
 export async function getInvitationDetails(
   prisma: PrismaService,
   callerId: string,
-  invitationOrWsId: string
+  invitationId: string
 ): Promise<{
   id: string;
   workspaceId: string;
@@ -40,17 +40,15 @@ export async function getInvitationDetails(
     throw new NotFoundException('Không tìm thấy lời mời hoặc bạn không có quyền truy cập.');
   }
 
-  if (!invitationOrWsId || /[<>'"\\;`|\s]/.test(invitationOrWsId)) {
+  if (!invitationId || /[<>'"\\;`|\s]/.test(invitationId)) {
     throw new NotFoundException('Không tìm thấy lời mời hoặc bạn không có quyền truy cập.');
   }
 
-  // Tìm kiếm lời mời theo ID WorkspaceMember hoặc workspaceId
+  // Invitation details are addressed by the WorkspaceMember invitation ID, never by workspace ID.
   const member = await prisma.workspaceMember.findFirst({
     where: {
-      OR: [
-        { id: invitationOrWsId },
-        { workspaceId: invitationOrWsId, userId: resolvedCaller },
-      ],
+      id: invitationId,
+      userId: resolvedCaller,
     },
     include: {
       workspace: true,

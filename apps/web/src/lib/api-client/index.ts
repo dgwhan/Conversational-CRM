@@ -84,6 +84,7 @@ export class ApiClient extends BaseApiClient {
   deleteWorkspaceHotline = this.workspaces.deleteWorkspaceHotline;
   getNotifications = this.workspaces.getNotifications;
   markNotificationRead = this.workspaces.markNotificationRead;
+  markUserNotificationRead = this.workspaces.markUserNotificationRead;
   markAllNotificationsRead = this.workspaces.markAllNotificationsRead;
   deleteNotification = this.workspaces.deleteNotification;
   getWorkspaceInvitation = this.workspaces.getWorkspaceInvitation;

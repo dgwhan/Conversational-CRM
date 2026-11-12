@@ -65,3 +65,19 @@ export class NotificationController {
     return this.notificationService.delete(workspaceId, id);
   }
 }
+
+@Controller('v1/notifications')
+export class PersonalNotificationController {
+  constructor(private readonly notificationService: NotificationService) {}
+
+  @Patch(':id/read')
+  async markPersonalAsRead(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    return this.notificationService.markPersonalNotificationAsRead(
+      req?.user?.id,
+      id,
+    );
+  }
+}
