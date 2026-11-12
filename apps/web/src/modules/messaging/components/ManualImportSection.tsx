@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../../components/ui/Card.js';
 import type { ChannelType, ManualImportRow } from '../types/messaging.types.js';
 
+import { useTranslation } from '../../../i18n/index.js';
 interface ManualImportSectionProps {
   rows: ManualImportRow[];
   onAddRow: () => void;
@@ -21,13 +22,14 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
   onSubmit,
   loading,
 }) => {
+  const { t } = useTranslation();
   return (
     <Card className="crm-section-card">
       <CardHeader>
         <div>
-          <CardTitle>Nhập Tay Tin Nhắn Trực Tiếp</CardTitle>
+          <CardTitle>{t('messagingImport.manual.title', 'Nhập Tay Tin Nhắn Trực Tiếp')}</CardTitle>
           <CardDescription>
-            Điền thông tin trực tiếp vào bảng danh sách. Kiểm thực Zod sẽ kiểm tra các trường bắt buộc (Kênh, Người gửi, Thời gian).
+            {t('messagingImport.manual.desc', 'Điền thông tin trực tiếp vào bảng danh sách. Kiểm thực Zod sẽ kiểm tra các trường bắt buộc (Kênh, Người gửi, Thời gian).')}
           </CardDescription>
         </div>
         <Button
@@ -36,7 +38,7 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
           icon={<Plus size={15} />}
           onClick={onAddRow}
         >
-          Thêm dòng mới
+          {t('messagingImport.manual.addRow', 'Thêm dòng mới')}
         </Button>
       </CardHeader>
 
@@ -46,11 +48,11 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
             <thead>
               <tr>
                 <th style={{ width: '50px' }}>STT</th>
-                <th style={{ width: '180px' }}>Kênh tiếp nhận *</th>
-                <th style={{ width: '200px' }}>Người gửi / SĐT *</th>
-                <th>Nội dung tư vấn</th>
-                <th style={{ width: '220px' }}>Thời gian gửi *</th>
-                <th style={{ width: '60px', textAlign: 'center' }}>Xóa</th>
+                <th style={{ width: '180px' }}>{t('messagingImport.cols.channel', 'Kênh tiếp nhận *')}</th>
+                <th style={{ width: '200px' }}>{t('messagingImport.cols.sender', 'Người gửi / SĐT *')}</th>
+                <th>{t('messagingImport.manual.colContent', 'Nội dung tư vấn')}</th>
+                <th style={{ width: '220px' }}>{t('messagingImport.cols.sentAt', 'Thời gian gửi *')}</th>
+                <th style={{ width: '60px', textAlign: 'center' }}>{t('messagingImport.cols.delete', 'Xóa')}</th>
               </tr>
             </thead>
             <tbody>
@@ -68,7 +70,7 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
                       <option value="ZALO">ZALO OA</option>
                       <option value="FACEBOOK">FACEBOOK Messenger</option>
                       <option value="TIKTOK">TIKTOK Channel</option>
-                      <option value="MANUAL_IMPORT">MANUAL IMPORT (Thủ công)</option>
+                      <option value="MANUAL_IMPORT">{t('messagingImport.manual.manualOption', 'MANUAL IMPORT (Thủ công)')}</option>
                     </select>
                   </td>
                   <td>
@@ -86,7 +88,7 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
                       className="form-input"
                       value={row.content}
                       onChange={(e) => onUpdateRow(idx, 'content', e.target.value)}
-                      placeholder="Nội dung tin nhắn tư vấn..."
+                      placeholder={t('messagingImport.manual.contentPlaceholder', 'Nội dung tin nhắn tư vấn...')}
                     />
                   </td>
                   <td>
@@ -104,7 +106,7 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
                       className="btn-icon-danger"
                       onClick={() => onRemoveRow(idx)}
                       disabled={rows.length === 1}
-                      title="Xóa dòng"
+                      title={t('messagingImport.deleteRow', 'Xóa dòng')}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -124,7 +126,7 @@ export const ManualImportSection: React.FC<ManualImportSectionProps> = ({
           loading={loading}
           onClick={onSubmit}
         >
-          {loading ? 'Đang kiểm thực và lưu...' : `Nhập ${rows.length} Dòng Tin Nhắn`}
+          {loading ? t('messagingImport.validatingSaving', 'Đang kiểm thực và lưu...') : t('messagingImport.manual.submit', 'Nhập {n} Dòng Tin Nhắn', { n: rows.length })}
         </Button>
       </CardFooter>
     </Card>

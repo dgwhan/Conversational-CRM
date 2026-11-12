@@ -4,6 +4,7 @@ import {
   standardizeVietnamesePhoneNumber,
   formatVietnamesePhoneNumber,
 } from '../../../lib/phone.js';
+import { translate } from '../../../i18n/translate.js';
 
 export {
   standardizeVietnamesePhoneNumber,
@@ -38,27 +39,31 @@ export const AUTH_VALIDATION_RULES = {
   RESEND_COOLDOWN_SECONDS,
 } as const;
 
+/**
+ * Thông báo validation theo ngôn ngữ hiện tại.
+ * Dùng getter để mỗi lần đọc đều dịch theo locale đang chọn (key: auth.validation.*).
+ */
 export const AUTH_MESSAGES = {
-  EMAIL_REQUIRED: 'Vui lòng nhập email.',
-  EMAIL_INVALID: 'Vui lòng nhập địa chỉ email hợp lệ.',
-  PHONE_REQUIRED: 'Vui lòng nhập số điện thoại.',
-  PHONE_INVALID: 'Số điện thoại phải gồm 10 chữ số.',
-  IDENTIFIER_REQUIRED: 'Vui lòng nhập email hoặc số điện thoại.',
-  IDENTIFIER_INVALID: 'Vui lòng nhập email hoặc số điện thoại hợp lệ.',
-  PASSWORD_REQUIRED: 'Vui lòng nhập mật khẩu.',
-  PASSWORD_MIN_LENGTH: `Mật khẩu phải có ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`,
-  PASSWORD_UPPERCASE: 'Mật khẩu phải có ít nhất 1 chữ hoa.',
-  PASSWORD_LOWERCASE: 'Mật khẩu phải có ít nhất 1 chữ thường.',
-  PASSWORD_NUMBER: 'Mật khẩu phải có ít nhất 1 chữ số.',
-  PASSWORD_SPECIAL: `Mật khẩu phải có ít nhất 1 ký tự đặc biệt (${PASSWORD_SPECIAL_CHAR_LABEL}).`,
-  PASSWORD_MAX_LENGTH: `Mật khẩu không được vượt quá ${PASSWORD_MAX_LENGTH} ký tự.`,
-  CONFIRM_PASSWORD_REQUIRED: 'Vui lòng xác nhận mật khẩu.',
-  CONFIRM_PASSWORD_MISMATCH: 'Mật khẩu xác nhận không trùng khớp.',
-  FULL_NAME_REQUIRED: 'Vui lòng nhập họ và tên.',
-  FULL_NAME_MIN_LENGTH: `Họ và tên phải có ít nhất ${FULL_NAME_MIN_LENGTH} ký tự.`,
-  FULL_NAME_MAX_LENGTH: `Họ và tên không được vượt quá ${FULL_NAME_MAX_LENGTH} ký tự.`,
-  OTP_INVALID: `Nhập đủ ${OTP_LENGTH} chữ số của mã xác minh.`,
-} as const;
+  get EMAIL_REQUIRED() { return translate('auth.validation.emailRequired', 'Vui lòng nhập email.'); },
+  get EMAIL_INVALID() { return translate('auth.validation.emailInvalid', 'Vui lòng nhập địa chỉ email hợp lệ.'); },
+  get PHONE_REQUIRED() { return translate('auth.validation.phoneRequired', 'Vui lòng nhập số điện thoại.'); },
+  get PHONE_INVALID() { return translate('auth.validation.phoneInvalid', 'Số điện thoại phải gồm 10 chữ số.'); },
+  get IDENTIFIER_REQUIRED() { return translate('auth.validation.identifierRequired', 'Vui lòng nhập email hoặc số điện thoại.'); },
+  get IDENTIFIER_INVALID() { return translate('auth.validation.identifierInvalid', 'Vui lòng nhập email hoặc số điện thoại hợp lệ.'); },
+  get PASSWORD_REQUIRED() { return translate('auth.validation.passwordRequired', 'Vui lòng nhập mật khẩu.'); },
+  get PASSWORD_MIN_LENGTH() { return translate('auth.validation.passwordMinLength', 'Mật khẩu phải có ít nhất {n} ký tự.', { n: PASSWORD_MIN_LENGTH }); },
+  get PASSWORD_UPPERCASE() { return translate('auth.validation.passwordUppercase', 'Mật khẩu phải có ít nhất 1 chữ hoa.'); },
+  get PASSWORD_LOWERCASE() { return translate('auth.validation.passwordLowercase', 'Mật khẩu phải có ít nhất 1 chữ thường.'); },
+  get PASSWORD_NUMBER() { return translate('auth.validation.passwordNumber', 'Mật khẩu phải có ít nhất 1 chữ số.'); },
+  get PASSWORD_SPECIAL() { return translate('auth.validation.passwordSpecial', 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt ({chars}).', { chars: PASSWORD_SPECIAL_CHAR_LABEL }); },
+  get PASSWORD_MAX_LENGTH() { return translate('auth.validation.passwordMaxLength', 'Mật khẩu không được vượt quá {n} ký tự.', { n: PASSWORD_MAX_LENGTH }); },
+  get CONFIRM_PASSWORD_REQUIRED() { return translate('auth.validation.confirmPasswordRequired', 'Vui lòng xác nhận mật khẩu.'); },
+  get CONFIRM_PASSWORD_MISMATCH() { return translate('auth.validation.confirmPasswordMismatch', 'Mật khẩu xác nhận không trùng khớp.'); },
+  get FULL_NAME_REQUIRED() { return translate('auth.validation.fullNameRequired', 'Vui lòng nhập họ và tên.'); },
+  get FULL_NAME_MIN_LENGTH() { return translate('auth.validation.fullNameMinLength', 'Họ và tên phải có ít nhất {n} ký tự.', { n: FULL_NAME_MIN_LENGTH }); },
+  get FULL_NAME_MAX_LENGTH() { return translate('auth.validation.fullNameMaxLength', 'Họ và tên không được vượt quá {n} ký tự.', { n: FULL_NAME_MAX_LENGTH }); },
+  get OTP_INVALID() { return translate('auth.validation.otpInvalid', 'Nhập đủ {n} chữ số của mã xác minh.', { n: OTP_LENGTH }); },
+};
 
 export function isEmail(value: string): boolean {
   return EMAIL_FORMAT_PATTERN.test(value.trim());

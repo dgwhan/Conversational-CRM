@@ -1,6 +1,8 @@
 import React from 'react';
 import { Bell } from 'lucide-react';
 
+import { useTranslation } from '../../../i18n/index.js';
+import { translate } from '../../../i18n/translate.js';
 export interface NotificationTriggerProps {
   isOpen: boolean;
   unreadCount: number;
@@ -12,8 +14,9 @@ export const NotificationTrigger: React.FC<NotificationTriggerProps> = ({
   isOpen,
   unreadCount,
   onClick,
-  title = 'Thông báo hệ thống',
+  title = translate('notifications.triggerTitle', 'Thông báo hệ thống'),
 }) => {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -24,7 +27,7 @@ export const NotificationTrigger: React.FC<NotificationTriggerProps> = ({
           : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
       }`}
       title={title}
-      aria-label="Thông báo"
+      aria-label={t('notifications.triggerLabel', 'Thông báo')}
     >
       <Bell size={18} />
       {unreadCount > 0 && (

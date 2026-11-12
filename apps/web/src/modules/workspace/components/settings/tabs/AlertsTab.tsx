@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Save } from 'lucide-react';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 export interface AlertsTabProps {
   unresponsiveAlertMinutes?: number;
   isOwner: boolean;
@@ -15,6 +16,7 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
   isLoading = false,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [minutes, setMinutes] = useState<number>(
     unresponsiveAlertMinutes > 0 ? unresponsiveAlertMinutes : 15
   );
@@ -32,8 +34,8 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
     await onSave(finalMinutes);
     notify.success(
       finalMinutes > 0
-        ? `Đã cập nhật cảnh báo tin nhắn chưa phản hồi sau ${finalMinutes} phút!`
-        : 'Đã tắt cảnh báo tin nhắn chưa phản hồi.'
+        ? t('workspaceSettings.alerts.updated', 'Đã cập nhật cảnh báo tin nhắn chưa phản hồi sau {n} phút!', { n: finalMinutes })
+        : t('workspaceSettings.alerts.disabled', 'Đã tắt cảnh báo tin nhắn chưa phản hồi.')
     );
   };
 
@@ -46,10 +48,10 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
           </div>
           <div>
             <h4 className="m-0 text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Cảnh Báo Tin Nhắn Chưa Phản Hồi (SLA)
+              {t('workspaceSettings.alerts.title', 'Cảnh Báo Tin Nhắn Chưa Phản Hồi (SLA)')}
             </h4>
             <p className="text-[11px] text-slate-500 mt-0.5 mb-0">
-              Tự động gắn cờ cảnh báo trên danh sách tin nhắn Inbox khi khách nhắn tin nhưng tư vấn viên chưa phản hồi sau n phút.
+              {t('workspaceSettings.alerts.desc', 'Tự động gắn cờ cảnh báo trên danh sách tin nhắn Inbox khi khách nhắn tin nhưng tư vấn viên chưa phản hồi sau n phút.')}
             </p>
           </div>
         </div>
@@ -66,10 +68,10 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
             />
             <label htmlFor="enableAlertToggle" className="cursor-pointer">
               <span className="block text-xs font-bold text-slate-800">
-                Bật tính năng cảnh báo tin nhắn chậm phản hồi
+                {t('workspaceSettings.alerts.enable', 'Bật tính năng cảnh báo tin nhắn chậm phản hồi')}
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                Hệ thống đo lường thời gian từ lúc khách gửi tin nhắn cuối cùng nếu chưa có phản hồi từ nhân viên tư vấn.
+                {t('workspaceSettings.alerts.enableDesc', 'Hệ thống đo lường thời gian từ lúc khách gửi tin nhắn cuối cùng nếu chưa có phản hồi từ nhân viên tư vấn.')}
               </span>
             </label>
           </div>
@@ -79,7 +81,7 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Thời gian chờ tối đa trước khi cảnh báo (phút):
+                    {t('workspaceSettings.alerts.maxWait', 'Thời gian chờ tối đa trước khi cảnh báo (phút):')}
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -94,13 +96,13 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
                       disabled={!isOwner}
                       className="w-28 h-8 px-2.5 text-xs font-bold text-slate-800 border border-slate-300 rounded-lg outline-none focus:border-rose-500 bg-white shadow-2xs"
                     />
-                    <span className="text-xs text-slate-600 font-medium">phút</span>
+                    <span className="text-xs text-slate-600 font-medium">{t('workspaceSettings.minutesUnit', 'phút')}</span>
                   </div>
                 </div>
 
                 <div>
                   <span className="block text-[11px] font-medium text-slate-500 mb-1.5">
-                    Gợi ý mốc thời gian nhanh:
+                    {t('workspaceSettings.alerts.quickPresets', 'Gợi ý mốc thời gian nhanh:')}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {[5, 10, 15, 30, 60, 120].map((mins) => (
@@ -115,7 +117,7 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        {mins} phút
+                        {t('workspaceSettings.alerts.minsOption', '{n} phút', { n: mins })}
                       </button>
                     ))}
                   </div>
@@ -124,15 +126,15 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
 
               <div className="flex flex-col justify-center border-t lg:border-t-0 lg:border-l border-rose-200/60 pt-3 lg:pt-0 lg:pl-4">
                 <span className="block text-[11px] font-semibold text-slate-600 mb-1.5">
-                  Hiển thị xem trước trên giao diện Inbox:
+                  {t('workspaceSettings.alerts.preview', 'Hiển thị xem trước trên giao diện Inbox:')}
                 </span>
                 <div className="flex items-center gap-2.5 p-2.5 bg-white rounded-lg border border-rose-200/80 shadow-2xs">
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md leading-none shrink-0">
                     <Clock size={11} className="text-rose-600 animate-pulse" />
-                    Chưa trả lời {minutes}p
+                    {t('workspaceSettings.alerts.previewBadge', 'Chưa trả lời {n}p', { n: minutes })}
                   </span>
                   <span className="text-[11px] text-slate-500">
-                    Gắn cờ đỏ nổi bật và hỗ trợ lọc nhanh hội thoại vượt quá {minutes} phút.
+                    {t('workspaceSettings.alerts.previewDesc', 'Gắn cờ đỏ nổi bật và hỗ trợ lọc nhanh hội thoại vượt quá {n} phút.', { n: minutes })}
                   </span>
                 </div>
               </div>
@@ -147,7 +149,7 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
                 className="h-8 px-4 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
               >
                 <Save size={13} />
-                <span>Lưu Cấu Hình Cảnh Báo</span>
+                <span>{t('workspaceSettings.alerts.save', 'Lưu Cấu Hình Cảnh Báo')}</span>
               </button>
             </div>
           )}

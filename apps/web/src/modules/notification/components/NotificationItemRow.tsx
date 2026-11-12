@@ -75,14 +75,14 @@ export const NotificationItemRow: React.FC<NotificationItemRowProps> = ({
               onClick={(e) => inviteWsId && onAcceptInvite(inviteWsId, item, e)}
               className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-colors shadow-2xs"
             >
-              Chấp nhận
+              {t('notifications.accept', 'Chấp nhận')}
             </button>
             <button
               type="button"
               onClick={(e) => inviteWsId && onDeclineInvite(inviteWsId, item, e)}
               className="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
             >
-              Từ chối
+              {t('notifications.decline', 'Từ chối')}
             </button>
           </div>
         )}

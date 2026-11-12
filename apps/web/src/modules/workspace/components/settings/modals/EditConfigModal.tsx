@@ -4,6 +4,7 @@ import { DOMAIN_OPTIONS, getDomainLabel } from '../../../workspaceConfig.types.j
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import type { ConfigProfileItem } from '../types.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 export interface EditConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,6 +18,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
   profile,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [selectedDomainKey, setSelectedDomainKey] = useState('EDUCATION');
   const [customDomainText, setCustomDomainText] = useState('');
@@ -40,7 +42,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
     e.preventDefault();
     if (!profile) return;
     if (!name.trim()) {
-      notify.warning('Vui lòng nhập tên thiết lập.');
+      notify.warning(t('workspaceSettings.configModal.nameRequired', 'Vui lòng nhập tên thiết lập.'));
       return;
     }
 
@@ -52,7 +54,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
       name: name.trim(),
       domain: finalDomain,
     });
-    notify.success(`Đã cập nhật thiết lập: ${name.trim()} (${getDomainLabel(finalDomain)})`);
+    notify.success(t('workspaceSettings.configModal.updated', 'Đã cập nhật thiết lập: {name} ({domain})', { name: name.trim(), domain: getDomainLabel(finalDomain) }));
     onClose();
   };
 
@@ -65,20 +67,20 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
       variant="flat"
       size="sm"
       showCloseButton
-      title="Chỉnh sửa thông tin thiết lập"
-      description="Cập nhật tên gọi và lĩnh vực mô hình kinh doanh của thiết lập."
+      title={t('workspaceSettings.configModal.editTitle', 'Chỉnh sửa thông tin thiết lập')}
+      description={t('workspaceSettings.configModal.editDesc', 'Cập nhật tên gọi và lĩnh vực mô hình kinh doanh của thiết lập.')}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Tên thiết lập <span className="text-red-500">*</span>
+            {t('workspaceSettings.configModal.nameLabel', 'Tên thiết lập')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="VD: Phễu Bán Hàng Dự Án Mới, Quy Trình Dịch Vụ..."
+            placeholder={t('workspaceSettings.configModal.namePlaceholder', 'VD: Phễu Bán Hàng Dự Án Mới, Quy Trình Dịch Vụ...')}
             className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white transition-all shadow-2xs"
             autoFocus
           />
@@ -86,7 +88,7 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Lĩnh vực / Mô hình kinh doanh
+            {t('workspaceSettings.configModal.domainLabel', 'Lĩnh vực / Mô hình kinh doanh')}
           </label>
           <select
             value={selectedDomainKey}
@@ -104,14 +106,14 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
         {selectedDomainKey === 'CUSTOM' && (
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Tên loại mô hình mới <span className="text-red-500">*</span>
+              {t('workspaceSettings.configModal.customDomainLabel', 'Tên loại mô hình mới')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
               value={customDomainText}
               onChange={(e) => setCustomDomainText(e.target.value)}
-              placeholder="VD: F&B / Nhà hàng, Logistics, Du lịch..."
+              placeholder={t('workspaceSettings.configModal.customDomainPlaceholder', 'VD: F&B / Nhà hàng, Logistics, Du lịch...')}
               className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white shadow-2xs"
             />
           </div>
@@ -124,14 +126,14 @@ export const EditConfigModal: React.FC<EditConfigModalProps> = ({
             size="sm"
             onClick={onClose}
           >
-            Hủy
+            {t('workspaceSettings.cancel', 'Hủy')}
           </Button>
           <Button
             type="submit"
             variant="primary"
             size="sm"
           >
-            Lưu thay đổi
+            {t('workspaceSettings.configModal.saveChanges', 'Lưu thay đổi')}
           </Button>
         </div>
       </form>

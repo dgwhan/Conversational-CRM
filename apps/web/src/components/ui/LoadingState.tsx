@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
+import { translate } from '../../i18n/translate.js';
 export interface LoadingStateProps {
   message?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
@@ -11,7 +12,7 @@ export interface LoadingStateProps {
  * Global Loading State Component for data fetching and tab switching
  */
 export const LoadingState: React.FC<LoadingStateProps> = ({
-  message = 'Đang tải dữ liệu...',
+  message = translate('ui.loadingData', 'Đang tải dữ liệu...'),
   size = 'md',
   className = '',
 }) => {

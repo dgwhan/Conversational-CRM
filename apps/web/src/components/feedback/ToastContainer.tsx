@@ -12,10 +12,12 @@ import {
 import { useToast } from './useToast.js';
 import type { ToastItem } from './ToastTypes.js';
 
+import { useOptionalTranslation } from '../../i18n/index.js';
 export const ToastItemView: React.FC<{ toast: ToastItem; onDismiss: (id: string) => void }> = ({
   toast,
   onDismiss,
 }) => {
+  const { t } = useOptionalTranslation();
   const [showDetails, setShowDetails] = useState(false);
 
   const getIcon = () => {
@@ -44,7 +46,7 @@ export const ToastItemView: React.FC<{ toast: ToastItem; onDismiss: (id: string)
           {toast.location && (
             <div className="toast-location-tag">
               <MapPin size={12} />
-              <span>Nơi phát sinh: <code>{toast.location}</code></span>
+              <span>{t('ui.toastLocation', 'Nơi phát sinh:')} <code>{toast.location}</code></span>
             </div>
           )}
 
@@ -56,7 +58,7 @@ export const ToastItemView: React.FC<{ toast: ToastItem; onDismiss: (id: string)
                 className="toast-details-toggle"
                 onClick={() => setShowDetails(!showDetails)}
               >
-                <span>{showDetails ? 'Ẩn chi tiết kỹ thuật' : 'Xem chi tiết kỹ thuật lỗi'}</span>
+                <span>{showDetails ? t('ui.hideTechDetails', 'Ẩn chi tiết kỹ thuật') : t('ui.showTechDetails', 'Xem chi tiết kỹ thuật lỗi')}</span>
                 {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
 
@@ -75,7 +77,7 @@ export const ToastItemView: React.FC<{ toast: ToastItem; onDismiss: (id: string)
           type="button"
           className="toast-close-btn"
           onClick={() => onDismiss(toast.id)}
-          aria-label="Đóng thông báo"
+          aria-label={t('ui.closeToast', 'Đóng thông báo')}
         >
           <X size={15} />
         </button>

@@ -1,9 +1,10 @@
+import { translate } from '../i18n/translate.js';
 export interface StandardizePhoneOptions {
   throwOnError?: boolean;
 }
 
 export class InvalidPhoneNumberError extends Error {
-  constructor(message: string = 'Số điện thoại không hợp lệ hoặc sai độ dài') {
+  constructor(message: string = translate('ui.phone.invalidDefault', 'Số điện thoại không hợp lệ hoặc sai độ dài')) {
     super(message);
     this.name = 'InvalidPhoneNumberError';
   }
@@ -35,27 +36,27 @@ export function standardizeVietnamesePhoneNumber(
   };
 
   if (typeof input !== 'string') {
-    return reject('Số điện thoại phải là chuỗi ký tự hợp lệ');
+    return reject(translate('ui.phone.mustBeString', 'Số điện thoại phải là chuỗi ký tự hợp lệ'));
   }
 
   const trimmed = input.trim();
   if (!trimmed) {
-    return reject('Số điện thoại không được để trống');
+    return reject(translate('ui.phone.empty', 'Số điện thoại không được để trống'));
   }
 
   const allowedCharsPattern = /^[0-9+\s.\-–—()]+$/;
   if (!allowedCharsPattern.test(trimmed)) {
-    return reject('Số điện thoại chứa ký tự không hợp lệ (chỉ chấp nhận số và dấu phân cách).');
+    return reject(translate('ui.phone.invalidChars', 'Số điện thoại chứa ký tự không hợp lệ (chỉ chấp nhận số và dấu phân cách).'));
   }
 
   const plusOccurrences = (trimmed.match(/\+/g) || []).length;
   if (plusOccurrences > 1) {
-    return reject('Số điện thoại không được chứa nhiều hơn một dấu cộng (+).');
+    return reject(translate('ui.phone.multiplePlus', 'Số điện thoại không được chứa nhiều hơn một dấu cộng (+).'));
   }
   if (plusOccurrences === 1) {
     const firstNonWrapperChar = trimmed.replace(/^[\s(]+/, '')[0];
     if (firstNonWrapperChar !== '+') {
-      return reject('Dấu cộng (+) chỉ được phép đặt ở đầu mã quốc gia.');
+      return reject(translate('ui.phone.plusPosition', 'Dấu cộng (+) chỉ được phép đặt ở đầu mã quốc gia.'));
     }
   }
 
@@ -84,15 +85,15 @@ export function standardizeVietnamesePhoneNumber(
   } else if (clean.startsWith('0')) {
     nationalDigits = clean;
   } else {
-    return reject('Số điện thoại phải bắt đầu bằng 0, 84 hoặc +84.');
+    return reject(translate('ui.phone.badPrefix', 'Số điện thoại phải bắt đầu bằng 0, 84 hoặc +84.'));
   }
 
   if (nationalDigits.length !== 10) {
-    return reject(`Số điện thoại phải gồm 10 chữ số (hiện tại có ${nationalDigits.length} số).`);
+    return reject(translate('ui.phone.wrongLength', 'Số điện thoại phải gồm 10 chữ số (hiện tại có {n} số).', { n: nationalDigits.length }));
   }
 
   if (!VIETNAMESE_PHONE_STANDARD_REGEX.test(nationalDigits)) {
-    return reject('Số điện thoại không hợp lệ sau khi chuẩn hóa.');
+    return reject(translate('ui.phone.invalidAfterNormalize', 'Số điện thoại không hợp lệ sau khi chuẩn hóa.'));
   }
 
   return nationalDigits;

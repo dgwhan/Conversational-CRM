@@ -3,6 +3,8 @@ import { Plus } from 'lucide-react';
 import { Modal } from '../../../../../components/ui/index.js';
 import type { ProductItemConfig } from '../../../workspaceConfig.types.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
+import { translate } from '../../../../../i18n/translate.js';
 export interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -14,10 +16,11 @@ export interface AddProductModalProps {
 export const AddProductModal: React.FC<AddProductModalProps> = ({
   isOpen,
   onClose,
-  productLabel = 'Sản Phẩm / Dịch Vụ',
+  productLabel = translate('workspaceSettings.addProduct.defaultLabel', 'Sản Phẩm / Dịch Vụ'),
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [category, setCategory] = useState('');
@@ -49,8 +52,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Thêm ${productLabel} Mới`}
-      description={`Định cấu hình ${productLabel.toLowerCase()} để gắn vào hồ sơ khách hàng.`}
+      title={t('workspaceSettings.addProduct.title', 'Thêm {label} Mới', { label: productLabel })}
+      description={t('workspaceSettings.addProduct.desc', 'Định cấu hình {label} để gắn vào hồ sơ khách hàng.', { label: productLabel.toLowerCase() })}
       size="md"
       variant="flat"
       showCloseButton={true}
@@ -58,11 +61,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-3.5 pt-2">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Tên gọi *
+            {t('workspaceSettings.addProduct.nameLabel', 'Tên gọi *')}
           </label>
           <input
             type="text"
-            placeholder="VD: Gói dịch vụ tư vấn, Khóa đào tạo..."
+            placeholder={t('workspaceSettings.addProduct.namePlaceholder', 'VD: Gói dịch vụ tư vấn, Khóa đào tạo...')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs"
@@ -73,7 +76,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Mã định danh (Code)
+              {t('workspaceSettings.addProduct.codeLabel', 'Mã định danh (Code)')}
             </label>
             <input
               type="text"
@@ -85,11 +88,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Nhóm / Phân loại
+              {t('workspaceSettings.addProduct.categoryLabel', 'Nhóm / Phân loại')}
             </label>
             <input
               type="text"
-              placeholder="VD: Tiêu chuẩn, Cao cấp, Trọn gói"
+              placeholder={t('workspaceSettings.addProduct.categoryPlaceholder', 'VD: Tiêu chuẩn, Cao cấp, Trọn gói')}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs"
@@ -99,7 +102,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Giá niêm yết mặc định (VNĐ)
+            {t('workspaceSettings.addProduct.priceLabel', 'Giá niêm yết mặc định (VNĐ)')}
           </label>
           <input
             type="number"
@@ -112,11 +115,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Mô tả ngắn
+            {t('workspaceSettings.addProduct.descLabel', 'Mô tả ngắn')}
           </label>
           <textarea
             rows={2}
-            placeholder="Mô tả thông tin quyền lợi gói dịch vụ / sản phẩm..."
+            placeholder={t('workspaceSettings.addProduct.descPlaceholder', 'Mô tả thông tin quyền lợi gói dịch vụ / sản phẩm...')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full p-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs resize-y"
@@ -129,7 +132,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             onClick={onClose}
             className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer"
           >
-            Hủy
+            {t('workspaceSettings.cancel', 'Hủy')}
           </button>
           <button
             type="submit"
@@ -137,7 +140,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             className="h-8 px-4 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Plus size={13} />
-            <span>Thêm Vào Danh Mục</span>
+            <span>{t('workspaceSettings.addProduct.submit', 'Thêm Vào Danh Mục')}</span>
           </button>
         </div>
       </form>

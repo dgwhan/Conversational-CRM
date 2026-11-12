@@ -110,7 +110,7 @@ export function SignUpForm({
       if (submitError instanceof AuthApiError) {
         setError(submitError.message);
       } else {
-        setError('Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.');
+        setError(t('auth.signUpGenericError', 'Có lỗi xảy ra trong quá trình đăng ký. Vui lòng thử lại.'));
       }
     } finally {
       setIsSubmitting(false);
@@ -155,7 +155,7 @@ export function SignUpForm({
 
         {/* Email */}
         <GlassInput
-          label="Email của bạn"
+          label={t('auth.yourEmailLabel', 'Email của bạn')}
           name="email"
           type="email"
           autoComplete="email"
@@ -233,7 +233,7 @@ export function SignUpForm({
           }}
           onBlur={() => setHasBlurredConfirm(true)}
           errorMessage={displayedConfirmError}
-          successMessage={isMatching ? 'Mật khẩu trùng khớp' : undefined}
+          successMessage={isMatching ? t('auth.passwordMatched', 'Mật khẩu trùng khớp') : undefined}
           disabled={isSubmitting}
           required
         />
@@ -268,7 +268,7 @@ export function SignUpForm({
             onClick={onSwitchToLogin}
             className="font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
           >
-            Đăng nhập ngay
+            {t('auth.loginNowLink', 'Đăng nhập ngay')}
           </button>
         </div>
       </form>

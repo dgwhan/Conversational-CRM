@@ -141,11 +141,11 @@ export const MetricCardsGrid: React.FC<MetricCardsGridProps> = ({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 mb-3.5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 mb-3.5">
       {cards.map((card, idx) => (
         <div
           key={idx}
-          className="bg-white rounded-xl p-3 border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-150 flex flex-col justify-between"
+          className="min-w-0 bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-300 transition-all duration-150 flex flex-col justify-between"
         >
           <div className="flex items-center justify-between gap-1.5 mb-2.5">
             <span
@@ -159,7 +159,7 @@ export const MetricCardsGrid: React.FC<MetricCardsGridProps> = ({
             </div>
           </div>
           <div>
-            <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight mb-1 truncate" title={card.value}>
+            <div className="text-base sm:text-xl font-bold text-slate-900 tracking-tight mb-1 truncate" title={card.value}>
               {card.value}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-slate-500" title={card.subtext}>

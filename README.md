@@ -1,4 +1,4 @@
-# CUSC Recruitment CRM
+# POLARISX Recruitment CRM
 
 Hệ thống CRM tuyển sinh đa kênh: gom tin nhắn Facebook Messenger và Zalo (OA và Zalo cá nhân) về một hộp thư chung, tự động tạo và phân loại khách hàng tiềm năng, quản lý phễu tuyển sinh (Kanban), deal, hoạt động chăm sóc và báo cáo. Mỗi đơn vị dùng hệ thống là một **workspace** độc lập với hai vai trò `OWNER` và `STAFF`.
 
@@ -78,7 +78,7 @@ Monorepo pnpm gồm API NestJS (Fastify) và web React, dữ liệu trên Postgr
 ## Cấu trúc thư mục
 
 ```text
-CUSC-Recruitment-CRM/
+PolarisX-Recruitment-CRM/
 ├── apps/
 │   ├── api/                              # Backend NestJS
 │   │   ├── prisma/
@@ -128,7 +128,7 @@ CUSC-Recruitment-CRM/
 
 ```bash
 git clone <repository-url>
-cd CUSC-Recruitment-CRM
+cd PolarisX-Recruitment-CRM
 cp .env.example .env            # PowerShell: Copy-Item .env.example .env
 ```
 
@@ -196,7 +196,7 @@ Cấu hình được kiểm tra bằng Zod khi khởi động ([env.schema.ts](a
 | `APP_BASE_URL` | | `http://localhost:3000` | URL công khai của API. |
 | `JWT_ACCESS_SECRET` | Có | — | Khóa ký Access Token (≥ 32 ký tự; khóa mẫu bị từ chối ở production). |
 | `JWT_ACCESS_TTL` | | `15m` | Thời hạn Access Token (`15m`, `1h`, `900s`...). `JWT_EXPIRES_IN_MINUTES` đã ngừng dùng, chỉ còn hiệu lực khi biến này trống. |
-| `JWT_ISSUER` / `JWT_AUDIENCE` | | `CUSC-Recruitment-CRM` / `CUSC-Recruitment-CRM-Client` | Claim `iss` / `aud`, được kiểm tra khi xác thực token. |
+| `JWT_ISSUER` / `JWT_AUDIENCE` | | `PolarisX-Recruitment-CRM` / `PolarisX-Recruitment-CRM-Client` | Claim `iss` / `aud`, được kiểm tra khi xác thực token. |
 | `REFRESH_TTL_DAYS` | | `7` | Thời hạn refresh token (ngày). |
 | `TOKEN_ENCRYPTION_KEY` | Có | — | Khóa mã hóa AES-256-GCM cho access token của Facebook/Zalo lưu trong DB. |
 | `PASSWORD_RECOVERY_*_KEY` (3 khóa) | Có | — | Khóa HMAC/AES 32 byte (base64) cho luồng khôi phục mật khẩu. |

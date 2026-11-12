@@ -6,6 +6,9 @@ import { StatsStrip } from '../components/StatsStrip.js';
 import { BentoFeatures } from '../components/BentoFeatures.js';
 
 // Lazy-load below-the-fold sections for blazing fast FCP and LCP
+const IndustriesSection = lazy(() =>
+  import('../components/IndustriesSection.js').then((m) => ({ default: m.IndustriesSection }))
+);
 const HowItWorksSection = lazy(() =>
   import('../components/HowItWorksSection.js').then((m) => ({ default: m.HowItWorksSection }))
 );
@@ -64,7 +67,11 @@ export const LandingHomePage: React.FC = () => {
         {/* 4. Bento Grid Features (8 cards) */}
         <BentoFeatures />
 
-        {/* 5-9. Below-the-fold Lazy Loaded Sections */}
+        {/* 5-10. Below-the-fold Lazy Loaded Sections */}
+        <Suspense fallback={<SectionPlaceholder />}>
+          <IndustriesSection />
+        </Suspense>
+
         <Suspense fallback={<SectionPlaceholder />}>
           <HowItWorksSection />
         </Suspense>

@@ -23,6 +23,7 @@ import { ROUTES, buildRoute } from './config/routes.js';
 import type { LoginResponse } from './features/auth/types/auth.types.js';
 import { LeadScoringConfigProvider } from './modules/inbox/context/LeadScoringConfigProvider.js';
 
+import { useTranslation } from './i18n/index.js';
 // Lazy load CRM internal pages and components for high performance initial load
 const LandingHomePage = lazy(() =>
   import('./modules/landing/pages/LandingHomePage.js').then((m) => ({ default: m.LandingHomePage }))
@@ -108,6 +109,7 @@ function ProtectedLayout() {
  * Tăng cường bảo mật: Chặn path traversal & ký tự nguy hiểm trên ID
  */
 function InboxRoute() {
+  const { t } = useTranslation();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
 
@@ -116,7 +118,7 @@ function InboxRoute() {
       <HttpErrorPage
         statusCode={403}
         errorLocation={`Route: /inbox/${conversationId}`}
-        errorMessage="Từ chối quyền truy cập (403): Mã định danh cuộc hội thoại (Conversation ID) không hợp lệ hoặc chứa ký tự bị cấm."
+        errorMessage={t('errors.invalidConversationId', 'Từ chối quyền truy cập (403): Mã định danh cuộc hội thoại (Conversation ID) không hợp lệ hoặc chứa ký tự bị cấm.')}
         onGoHome={() => navigate(ROUTES.INBOX)}
         onRetry={() => window.location.reload()}
       />
@@ -189,6 +191,7 @@ function WorkspaceSettingsDefaultRoute() {
  * Nếu vào sai ID/Slug workspace thì trả về 404 Not Found (không trả về 403)
  */
 function WorkspaceRoute() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
   const { myWorkspaces, isWorkspaceListLoading } = useWorkspaceConfig();
@@ -204,7 +207,7 @@ function WorkspaceRoute() {
         <HttpErrorPage
           statusCode={404}
           errorLocation="Workspace Security Guard"
-          errorMessage="Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập."
+          errorMessage={t('errors.workspaceNotFoundOrDenied', 'Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập.')}
           onGoHome={() => navigate(ROUTES.WORKSPACE_DEFAULT)}
           onRetry={() => window.location.reload()}
         />

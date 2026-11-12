@@ -4,6 +4,7 @@ import type {
   RegisterRequest,
   RegisterResponse,
 } from '../types/auth.types.js';
+import { translate } from '../../../i18n/translate.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -29,7 +30,7 @@ export async function login(input: LoginRequest): Promise<LoginResponse> {
   if (!response.ok) {
     if (response.status === 401) {
       throw new AuthApiError(
-        'Email/số điện thoại hoặc mật khẩu không chính xác.',
+        translate('auth.api.invalidCredentials', 'Email/số điện thoại hoặc mật khẩu không chính xác.'),
         401,
       );
     }
@@ -40,7 +41,7 @@ export async function login(input: LoginRequest): Promise<LoginResponse> {
       'message' in body &&
       typeof body.message === 'string'
         ? body.message
-        : 'Không thể đăng nhập. Vui lòng thử lại.';
+        : translate('auth.api.loginFailed', 'Không thể đăng nhập. Vui lòng thử lại.');
     throw new AuthApiError(message, response.status);
   }
 
@@ -53,7 +54,7 @@ export async function login(input: LoginRequest): Promise<LoginResponse> {
     typeof body.staff !== 'object' ||
     body.staff === null
   ) {
-    throw new AuthApiError('Phản hồi đăng nhập không hợp lệ.', response.status);
+    throw new AuthApiError(translate('auth.api.invalidLoginResponse', 'Phản hồi đăng nhập không hợp lệ.'), response.status);
   }
 
   return body as LoginResponse;
@@ -71,7 +72,7 @@ export async function register(
 
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    let message = 'Không thể đăng ký tài khoản. Vui lòng thử lại.';
+    let message = translate('auth.api.signUpFailed', 'Không thể đăng ký tài khoản. Vui lòng thử lại.');
     if (typeof body === 'object' && body !== null && 'message' in body) {
       if (typeof body.message === 'string') {
         message = body.message;
@@ -91,7 +92,7 @@ export async function register(
     typeof body.staff !== 'object' ||
     body.staff === null
   ) {
-    throw new AuthApiError('Phản hồi đăng ký không hợp lệ.', response.status);
+    throw new AuthApiError(translate('auth.api.invalidSignUpResponse', 'Phản hồi đăng ký không hợp lệ.'), response.status);
   }
 
   return body as RegisterResponse;
@@ -107,7 +108,7 @@ export async function refreshAccessToken(refreshToken?: string): Promise<LoginRe
 
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new AuthApiError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', response.status);
+    throw new AuthApiError(translate('auth.api.sessionExpired', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'), response.status);
   }
 
   return body as LoginResponse;
@@ -139,7 +140,7 @@ export async function getMe(accessToken?: string): Promise<LoginResponse['staff'
   });
 
   if (!response.ok) {
-    throw new AuthApiError('Không thể lấy thông tin người dùng hiện tại.', response.status);
+    throw new AuthApiError(translate('auth.api.fetchMeFailed', 'Không thể lấy thông tin người dùng hiện tại.'), response.status);
   }
 
   return response.json() as Promise<LoginResponse['staff']>;

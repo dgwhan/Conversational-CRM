@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCheck, X } from 'lucide-react';
 
+import { useTranslation } from '../../../i18n/index.js';
 export interface NotificationHeaderProps {
   unreadCount: number;
   title: string;
@@ -18,6 +19,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
   onMarkAllAsRead,
   onClose,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
       <div className="flex flex-col gap-0.5">
@@ -25,7 +27,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           <h3 className="text-xs font-bold text-slate-800 m-0">{title}</h3>
           {unreadCount > 0 && (
             <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-700 rounded-full">
-              {unreadCount} mới
+              {t('notifications.newCount', '{n} mới', { n: unreadCount })}
             </span>
           )}
         </div>
@@ -49,7 +51,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
           type="button"
           onClick={onClose}
           className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100 transition-colors"
-          aria-label="Đóng"
+          aria-label={t('ui.close', 'Đóng')}
         >
           <X size={14} />
         </button>

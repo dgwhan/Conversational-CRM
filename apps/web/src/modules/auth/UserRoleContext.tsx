@@ -6,6 +6,7 @@ import { USER_ROLES } from './userRole.types.js';
 import type { UserRole, UserRoleContextValue } from './userRole.types.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
 
+import { translate } from '../../i18n/translate.js';
 export { USER_ROLES };
 export type { UserRole, UserRoleContextValue } from './userRole.types.js';
 
@@ -94,7 +95,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         sessionStorage.clear();
         localStorage.clear();
       } catch { }
-      notify.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'Phiên làm việc');
+      notify.warning(translate('header.sessionExpired', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'), translate('header.sessionTitle', 'Phiên làm việc'));
       window.location.href = '/login';
     });
 
@@ -149,8 +150,8 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const userObj = newSession.user || newSession.staff;
     notify.success(
-      `Chào mừng ${userObj?.fullName || 'bạn'}!`,
-      'Đăng nhập thành công'
+      translate('header.welcomeUser', 'Chào mừng {name}!', { name: userObj?.fullName || translate('header.welcomeFallbackName', 'bạn') }),
+      translate('header.loginSuccessTitle', 'Đăng nhập thành công')
     );
   }, []);
 
@@ -167,13 +168,13 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch { }
 
     apiClient.post('/auth/logout').catch(() => { });
-    notify.info('Đã đăng xuất khỏi hệ thống.', 'Phiên làm việc');
+    notify.info(translate('header.loggedOut', 'Đã đăng xuất khỏi hệ thống.'), translate('header.sessionTitle', 'Phiên làm việc'));
     window.location.href = '/login';
   }, []);
 
   const toggleRole = useCallback(() => {
     // Không cho phép đảo quyền client-side vì vai trò do Backend kiểm soát
-    notify.warning('Vai trò được xác thực và quản lý từ máy chủ theo từng Không gian làm việc.', 'Phân quyền hệ thống');
+    notify.warning(translate('header.roleServerManaged', 'Vai trò được xác thực và quản lý từ máy chủ theo từng Không gian làm việc.'), translate('header.roleTitle', 'Phân quyền hệ thống'));
   }, []);
 
   return (

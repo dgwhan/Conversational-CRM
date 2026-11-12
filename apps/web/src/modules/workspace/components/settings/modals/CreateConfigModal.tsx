@@ -6,6 +6,7 @@ import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import type { ConfigProfileItem } from '../types.js';
 import type { WorkspaceConfig } from '../../../workspaceConfig.types.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 export interface CreateConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +20,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
   currentActiveConfig,
   onCreate,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [selectedDomainKey, setSelectedDomainKey] = useState<string>('CUSTOM');
   const [customDomainText, setCustomDomainText] = useState('');
@@ -28,7 +30,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      notify.warning('Vui lòng nhập tên thiết lập.');
+      notify.warning(t('workspaceSettings.configModal.nameRequired', 'Vui lòng nhập tên thiết lập.'));
       return;
     }
 
@@ -73,7 +75,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
     };
 
     onCreate(newProfile);
-    notify.success(`Đã tạo bộ thiết lập mới: ${newProfile.name}`);
+    notify.success(t('workspaceSettings.configModal.created', 'Đã tạo bộ thiết lập mới: {name}', { name: newProfile.name }));
     setName('');
     setSelectedDomainKey('CUSTOM');
     setCustomDomainText('');
@@ -87,20 +89,20 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
       variant="flat"
       size="sm"
       showCloseButton
-      title="Thêm bộ thiết lập cấu hình mới"
-      description="Tạo quy trình phễu, thuật ngữ và danh mục sản phẩm mới cho doanh nghiệp."
+      title={t('workspaceSettings.configModal.createTitle', 'Thêm bộ thiết lập cấu hình mới')}
+      description={t('workspaceSettings.configModal.createDesc', 'Tạo quy trình phễu, thuật ngữ và danh mục sản phẩm mới cho doanh nghiệp.')}
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Tên thiết lập <span className="text-red-500">*</span>
+            {t('workspaceSettings.configModal.nameLabel', 'Tên thiết lập')} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="VD: Phễu Bán Hàng Dự Án Mới, Quy Trình Dịch Vụ..."
+            placeholder={t('workspaceSettings.configModal.namePlaceholder', 'VD: Phễu Bán Hàng Dự Án Mới, Quy Trình Dịch Vụ...')}
             className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white transition-all shadow-2xs"
             autoFocus
           />
@@ -108,7 +110,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Lĩnh vực / Mô hình kinh doanh
+            {t('workspaceSettings.configModal.domainLabel', 'Lĩnh vực / Mô hình kinh doanh')}
           </label>
           <select
             value={selectedDomainKey}
@@ -131,14 +133,14 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
         {selectedDomainKey === 'CUSTOM' && (
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Tên loại mô hình mới <span className="text-red-500">*</span>
+              {t('workspaceSettings.configModal.customDomainLabel', 'Tên loại mô hình mới')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               required
               value={customDomainText}
               onChange={(e) => setCustomDomainText(e.target.value)}
-              placeholder="VD: F&B / Nhà hàng, Logistics, Du lịch..."
+              placeholder={t('workspaceSettings.configModal.customDomainPlaceholder', 'VD: F&B / Nhà hàng, Logistics, Du lịch...')}
               className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white shadow-2xs"
             />
           </div>
@@ -146,7 +148,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Dữ liệu khởi tạo ban đầu
+            {t('workspaceSettings.configModal.initialData', 'Dữ liệu khởi tạo ban đầu')}
           </label>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <label className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
@@ -157,7 +159,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 onChange={() => setTemplateSource('current')}
                 className="text-blue-600"
               />
-              <span className="font-medium text-slate-800">Sao chép cấu hình hiện tại</span>
+              <span className="font-medium text-slate-800">{t('workspaceSettings.configModal.copyCurrent', 'Sao chép cấu hình hiện tại')}</span>
             </label>
 
             <label className="flex items-center gap-2 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
@@ -168,7 +170,7 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
                 onChange={() => setTemplateSource('preset')}
                 className="text-blue-600"
               />
-              <span className="font-medium text-slate-800">Nạp mẫu ngành chuẩn</span>
+              <span className="font-medium text-slate-800">{t('workspaceSettings.configModal.loadTemplate', 'Nạp mẫu ngành chuẩn')}</span>
             </label>
           </div>
         </div>
@@ -176,19 +178,19 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
         {templateSource === 'preset' && (
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Chọn mẫu ngành chuẩn
+              {t('workspaceSettings.configModal.chooseTemplate', 'Chọn mẫu ngành chuẩn')}
             </label>
             <select
               value={selectedPresetDomain}
               onChange={(e) => setSelectedPresetDomain(e.target.value as BusinessDomain)}
               className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:border-blue-600 shadow-2xs cursor-pointer"
             >
-              <option value="EDUCATION">Giáo dục & Tuyển sinh</option>
-              <option value="REAL_ESTATE">Bất động sản & Dự án</option>
-              <option value="BEAUTY_SPA">Thẩm mỹ viện & Spa</option>
-              <option value="B2B_SAAS">B2B SaaS & Phần mềm</option>
-              <option value="RETAIL">Bán lẻ & Thương mại</option>
-              <option value="CUSTOM">Doanh nghiệp & Dịch vụ</option>
+              <option value="EDUCATION">{t('workspaceSettings.configModal.domains.education', 'Giáo dục & Tuyển sinh')}</option>
+              <option value="REAL_ESTATE">{t('workspaceSettings.configModal.domains.realEstate', 'Bất động sản & Dự án')}</option>
+              <option value="BEAUTY_SPA">{t('workspaceSettings.configModal.domains.beautySpa', 'Thẩm mỹ viện & Spa')}</option>
+              <option value="B2B_SAAS">{t('workspaceSettings.configModal.domains.b2bSaas', 'B2B SaaS & Phần mềm')}</option>
+              <option value="RETAIL">{t('workspaceSettings.configModal.domains.retail', 'Bán lẻ & Thương mại')}</option>
+              <option value="CUSTOM">{t('workspaceSettings.configModal.domains.custom', 'Doanh nghiệp & Dịch vụ')}</option>
             </select>
           </div>
         )}
@@ -200,14 +202,14 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             size="sm"
             onClick={onClose}
           >
-            Hủy
+            {t('workspaceSettings.cancel', 'Hủy')}
           </Button>
           <Button
             type="submit"
             variant="primary"
             size="sm"
           >
-            Tạo thiết lập
+            {t('workspaceSettings.configModal.createBtn', 'Tạo thiết lập')}
           </Button>
         </div>
       </form>

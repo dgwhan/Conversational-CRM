@@ -7,9 +7,11 @@ import {
   Star,
   CheckCircle,
 } from 'lucide-react';
-import { TESTIMONIALS } from '../constants/landing.constants.js';
+import { useLandingContent } from '../hooks/useLandingContent.js';
 
 export const TestimonialsSection: React.FC = () => {
+  const { testimonials: tm } = useLandingContent();
+  const TESTIMONIALS = tm.items;
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
@@ -22,7 +24,7 @@ export const TestimonialsSection: React.FC = () => {
     }, 5500);
 
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, TESTIMONIALS.length]);
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev === 0 ? TESTIMONIALS.length - 1 : prev - 1));
@@ -32,7 +34,7 @@ export const TestimonialsSection: React.FC = () => {
     setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
   };
 
-  const currentItem = TESTIMONIALS[currentIndex];
+  const currentItem = TESTIMONIALS[currentIndex % TESTIMONIALS.length];
 
   return (
     <section
@@ -48,16 +50,18 @@ export const TestimonialsSection: React.FC = () => {
       <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 backdrop-blur-md mb-4 shadow-sm">
           <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-          <span>Niềm tin từ các tổ chức giáo dục</span>
+          <span>{tm.pill}</span>
         </div>
         <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-          Được tin dùng bởi các trường{' '}
+          {tm.titleLead}{' '}
           <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-            Đại học & Học viện hàng đầu
+            {tm.titleHighlight}
           </span>
         </h2>
         <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-600 dark:text-slate-300">
-          Lắng nghe chia sẻ từ những người trực tiếp vận hành công tác tuyển sinh và tư vấn học viên với Polaris<span className="text-blue-600 dark:text-blue-400 font-bold">X</span>.
+          {tm.subtitleBefore}
+          <span className="text-blue-600 dark:text-blue-400 font-bold">X</span>
+          {tm.subtitleAfter}
         </p>
       </div>
 
@@ -121,7 +125,7 @@ export const TestimonialsSection: React.FC = () => {
                 key={idx}
                 type="button"
                 onClick={() => setCurrentIndex(idx)}
-                aria-label={`Đi tới đánh giá ${idx + 1}`}
+                aria-label={`${tm.goTo} ${idx + 1}`}
                 className={`h-2.5 rounded-full transition-all duration-300 ${
                   currentIndex === idx
                     ? 'w-7 sm:w-8 bg-blue-600 dark:bg-blue-400'
@@ -136,7 +140,7 @@ export const TestimonialsSection: React.FC = () => {
             <button
               type="button"
               onClick={handlePrev}
-              aria-label="Đánh giá trước"
+              aria-label={tm.prev}
               className="p-2 sm:p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
             >
               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -144,7 +148,7 @@ export const TestimonialsSection: React.FC = () => {
             <button
               type="button"
               onClick={handleNext}
-              aria-label="Đánh giá kế tiếp"
+              aria-label={tm.next}
               className="p-2 sm:p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
             >
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />

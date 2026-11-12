@@ -8,6 +8,7 @@ import {
 import { Button } from '../../../components/ui/Button.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../../components/ui/Card.js';
 
+import { useTranslation } from '../../../i18n/index.js';
 interface GoogleSheetIntegrationSectionProps {
   onImportGoogleSheet: (sheetUrl: string) => Promise<void>;
   loading: boolean;
@@ -17,6 +18,7 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
   onImportGoogleSheet,
   loading,
 }) => {
+  const { t } = useTranslation();
   const [sheetUrl, setSheetUrl] = useState(
     'https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit?usp=sharing',
   );
@@ -34,9 +36,9 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
       <Card className="crm-section-card">
         <CardHeader>
           <div>
-            <CardTitle>Đồng Bộ Trực Tiếp Từ Google Sheets</CardTitle>
+            <CardTitle>{t('messagingImport.gsheet.title', 'Đồng Bộ Trực Tiếp Từ Google Sheets')}</CardTitle>
             <CardDescription>
-              Dán đường liên kết bảng tính Google Sheets (được đặt quyền <strong>&quot;Bất kỳ ai có đường liên kết đều có thể xem&quot;</strong>). Hệ thống sẽ tự động xuất dữ liệu, kiểm thực từng dòng bằng Zod và nạp vào CRM.
+              {t('messagingImport.gsheet.descPrefix', 'Dán đường liên kết bảng tính Google Sheets (được đặt quyền')} <strong>&quot;{t('messagingImport.gsheet.anyoneWithLink', 'Bất kỳ ai có đường liên kết đều có thể xem')}&quot;</strong>). {t('messagingImport.gsheet.descSuffix', 'Hệ thống sẽ tự động xuất dữ liệu, kiểm thực từng dòng bằng Zod và nạp vào CRM.')}
             </CardDescription>
           </div>
           <div className="crm-header-actions">
@@ -46,7 +48,7 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
               icon={<ExternalLink size={13} />}
               onClick={() => window.open('https://docs.google.com/spreadsheets/create', '_blank')}
             >
-              Tạo Sheet Mới
+              {t('messagingImport.gsheet.newSheet', 'Tạo Sheet Mới')}
             </Button>
           </div>
         </CardHeader>
@@ -55,7 +57,7 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label form-label-required">
-                Đường link Google Sheet (Cần chứa các cột: kênh, người gửi, nội dung, thời gian):
+                {t('messagingImport.gsheet.linkLabel', 'Đường link Google Sheet (Cần chứa các cột: kênh, người gửi, nội dung, thời gian):')}
               </label>
               <div className="crm-input-with-icon">
                 <Link2 size={16} className="input-icon" />
@@ -69,20 +71,20 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
                 />
               </div>
               <span className="form-help-text">
-                Ví dụ: <code>https://docs.google.com/spreadsheets/d/1.../edit?usp=sharing</code>
+                {t('messagingImport.gsheet.example', 'Ví dụ:')} <code>https://docs.google.com/spreadsheets/d/1.../edit?usp=sharing</code>
               </span>
             </div>
 
             <div className="crm-gsheet-tips">
               <div className="tip-header">
                 <Info size={16} />
-                <span>Yêu cầu định dạng các cột trong Google Sheet:</span>
+                <span>{t('messagingImport.gsheet.formatTitle', 'Yêu cầu định dạng các cột trong Google Sheet:')}</span>
               </div>
               <div className="tip-columns">
-                <span className="tip-col-pill">Cột A: <strong>kênh</strong> (ZALO, FACEBOOK, TIKTOK, MANUAL_IMPORT)</span>
-                <span className="tip-col-pill">Cột B: <strong>người gửi</strong> (SĐT hoặc External ID)</span>
-                <span className="tip-col-pill">Cột C: <strong>nội dung</strong> (Nội dung tin nhắn tư vấn)</span>
-                <span className="tip-col-pill">Cột D: <strong>thời gian</strong> (Định dạng ISO 8601 hoặc ngày giờ)</span>
+                <span className="tip-col-pill">{t('messagingImport.gsheet.colA', 'Cột A:')} <strong>kênh</strong> (ZALO, FACEBOOK, TIKTOK, MANUAL_IMPORT)</span>
+                <span className="tip-col-pill">{t('messagingImport.gsheet.colB', 'Cột B:')} <strong>người gửi</strong> ({t('messagingImport.gsheet.colBHint', 'SĐT hoặc External ID')})</span>
+                <span className="tip-col-pill">{t('messagingImport.gsheet.colC', 'Cột C:')} <strong>nội dung</strong> ({t('messagingImport.gsheet.colCHint', 'Nội dung tin nhắn tư vấn')})</span>
+                <span className="tip-col-pill">{t('messagingImport.gsheet.colD', 'Cột D:')} <strong>thời gian</strong> ({t('messagingImport.gsheet.colDHint', 'Định dạng ISO 8601 hoặc ngày giờ')})</span>
               </div>
             </div>
           </form>
@@ -96,7 +98,7 @@ export const GoogleSheetIntegrationSection: React.FC<GoogleSheetIntegrationSecti
             loading={loading}
             onClick={handleSubmit}
           >
-            {loading ? 'Đang đồng bộ từ Google Sheet...' : 'Đồng Bộ & Import Vào CRM'}
+            {loading ? t('messagingImport.gsheet.syncing', 'Đang đồng bộ từ Google Sheet...') : t('messagingImport.gsheet.sync', 'Đồng Bộ & Import Vào CRM')}
           </Button>
         </CardFooter>
       </Card>

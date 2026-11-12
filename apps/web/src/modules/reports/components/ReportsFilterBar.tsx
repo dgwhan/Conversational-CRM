@@ -79,12 +79,12 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
       </div>
 
       {/* 2. Cụm bộ lọc kênh & Thao tác đồng bộ */}
-      <div className="flex flex-wrap items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
         {/* Dropdown Kênh tiếp nhận */}
-        <div className="relative inline-flex items-center">
+        <div className="relative inline-flex items-center flex-1 min-w-[140px] sm:flex-none">
           <Filter size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
           <select
-            className="h-8 pl-7 pr-8 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-700 shadow-2xs focus:outline-hidden focus:border-slate-300 cursor-pointer appearance-none"
+            className="h-8 w-full pl-7 pr-8 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-700 shadow-2xs focus:outline-hidden focus:border-slate-300 cursor-pointer appearance-none"
             value={selectedChannel}
             onChange={(e) => onChannelChange(e.target.value)}
           >

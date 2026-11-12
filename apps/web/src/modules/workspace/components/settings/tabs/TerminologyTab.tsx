@@ -3,6 +3,7 @@ import { Tag, Save } from 'lucide-react';
 import type { WorkspaceTerminology } from '../../../workspaceConfig.types.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 export interface TerminologyTabProps {
   terminology: WorkspaceTerminology;
   isOwner: boolean;
@@ -16,6 +17,7 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
   isLoading = false,
   onSave,
 }) => {
+  const { t } = useTranslation();
   const [entityName, setEntityName] = useState(terminology.entityName || '');
   const [pipelineName, setPipelineName] = useState(terminology.pipelineName || '');
   const [productLabel, setProductLabel] = useState(terminology.productLabel || '');
@@ -36,7 +38,7 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
       productLabel: productLabel.trim() || terminology.productLabel,
       valueLabel: valueLabel.trim() || terminology.valueLabel,
     });
-    notify.success('Đã lưu cấu hình thuật ngữ hiển thị!');
+    notify.success(t('workspaceSettings.terminology.saved', 'Đã lưu cấu hình thuật ngữ hiển thị!'));
   };
 
   return (
@@ -48,10 +50,10 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
           </div>
           <div>
             <h4 className="m-0 text-xs font-bold text-slate-900 uppercase tracking-wider">
-              Cấu Hình Nhãn Thuật Ngữ Hiển Thị Trên Giao Diện
+              {t('workspaceSettings.terminology.title', 'Cấu Hình Nhãn Thuật Ngữ Hiển Thị Trên Giao Diện')}
             </h4>
             <p className="text-[11px] text-slate-500 mt-0.5 mb-0">
-              Tự động đồng bộ tên gọi hiển thị theo toàn bộ hệ thống quản lý phễu, modal hồ sơ và bảng phân tích.
+              {t('workspaceSettings.terminology.desc', 'Tự động đồng bộ tên gọi hiển thị theo toàn bộ hệ thống quản lý phễu, modal hồ sơ và bảng phân tích.')}
             </p>
           </div>
         </div>
@@ -60,11 +62,11 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tên thực thể khách hàng (Hiển thị tại Cột Hồ Sơ & Modal)
+                {t('workspaceSettings.terminology.entityLabel', 'Tên thực thể khách hàng (Hiển thị tại Cột Hồ Sơ & Modal)')}
               </label>
               <input
                 type="text"
-                placeholder="VD: Thí sinh / Học viên, Khách mua BĐS, Khách hàng"
+                placeholder={t('workspaceSettings.terminology.entityPlaceholder', 'VD: Thí sinh / Học viên, Khách mua BĐS, Khách hàng')}
                 value={entityName}
                 onChange={(e) => setEntityName(e.target.value)}
                 disabled={!isOwner}
@@ -74,11 +76,11 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tên gọi của Bảng Phễu (Bảng Kanban)
+                {t('workspaceSettings.terminology.pipelineLabel', 'Tên gọi của Bảng Phễu (Bảng Kanban)')}
               </label>
               <input
                 type="text"
-                placeholder="VD: Phễu Tuyển Sinh & Đào Tạo, Phễu Bán Hàng"
+                placeholder={t('workspaceSettings.terminology.pipelinePlaceholder', 'VD: Phễu Tuyển Sinh & Đào Tạo, Phễu Bán Hàng')}
                 value={pipelineName}
                 onChange={(e) => setPipelineName(e.target.value)}
                 disabled={!isOwner}
@@ -88,11 +90,11 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tên gọi danh mục kinh doanh (Sản phẩm / Dịch vụ / Khóa học / BĐS...)
+                {t('workspaceSettings.terminology.productLabel', 'Tên gọi danh mục kinh doanh (Sản phẩm / Dịch vụ / Khóa học / BĐS...)')}
               </label>
               <input
                 type="text"
-                placeholder="VD: Sản phẩm / Dịch vụ, Khóa học, Gói liệu trình, Căn hộ / Dự án..."
+                placeholder={t('workspaceSettings.terminology.productPlaceholder', 'VD: Sản phẩm / Dịch vụ, Khóa học, Gói liệu trình, Căn hộ / Dự án...')}
                 value={productLabel}
                 onChange={(e) => setProductLabel(e.target.value)}
                 disabled={!isOwner}
@@ -102,11 +104,11 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Tên gọi Doanh số / Học phí dự kiến
+                {t('workspaceSettings.terminology.valueLabel', 'Tên gọi Doanh số / Học phí dự kiến')}
               </label>
               <input
                 type="text"
-                placeholder="VD: Học phí dự kiến (VNĐ), Giá trị đơn hàng, Giá trị giao dịch"
+                placeholder={t('workspaceSettings.terminology.valuePlaceholder', 'VD: Học phí dự kiến (VNĐ), Giá trị đơn hàng, Giá trị giao dịch')}
                 value={valueLabel}
                 onChange={(e) => setValueLabel(e.target.value)}
                 disabled={!isOwner}
@@ -123,7 +125,7 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
                 className="h-8 px-4 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
               >
                 <Save size={13} />
-                <span>Lưu Cấu Hình Thuật Ngữ</span>
+                <span>{t('workspaceSettings.terminology.save', 'Lưu Cấu Hình Thuật Ngữ')}</span>
               </button>
             </div>
           )}

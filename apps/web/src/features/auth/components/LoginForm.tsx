@@ -82,7 +82,7 @@ export function LoginForm({
       setError(
         cause instanceof AuthApiError
           ? cause.message
-          : 'Không kết nối được máy chủ. Vui lòng kiểm tra kết nối mạng.',
+          : t('auth.serverUnreachable', 'Không kết nối được máy chủ. Vui lòng kiểm tra kết nối mạng.'),
       );
     } finally {
       setIsSubmitting(false);
@@ -94,7 +94,7 @@ export function LoginForm({
       {!hideHeading && (
         <header className="flex flex-col gap-1.5 text-center sm:text-left">
           <h2 className="m-0 font-sans text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
-            Chào mừng trở lại
+            {t('auth.welcomeBack', 'Chào mừng trở lại')}
           </h2>
           <p className="m-0 font-sans text-xs sm:text-sm text-slate-600 leading-relaxed">
             {t('auth.loginSubtitle', 'Đăng nhập để tiếp tục sử dụng hệ thống Conversational CRM.')}
@@ -155,7 +155,7 @@ export function LoginForm({
             disabled={isSubmitting}
             onChange={(event) => setRememberIdentifier(event.target.checked)}
           >
-            Ghi nhớ đăng nhập
+            {t('auth.rememberLogin', 'Ghi nhớ đăng nhập')}
           </GlassCheckbox>
 
           <button
@@ -163,7 +163,7 @@ export function LoginForm({
             type="button"
             onClick={onForgotPassword}
           >
-            Quên mật khẩu?
+            {t('auth.forgotPassword', 'Quên mật khẩu?')}
           </button>
         </div>
 
@@ -192,7 +192,7 @@ export function LoginForm({
               onClick={onSwitchToSignUp}
               className="font-semibold text-[#1A5CFF] hover:text-[#1242bd] hover:underline transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] rounded-sm"
             >
-              Đăng ký ngay
+              {t('auth.signUpNow', 'Đăng ký ngay')}
             </button>
           </div>
         )}
