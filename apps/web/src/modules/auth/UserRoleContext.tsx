@@ -5,13 +5,45 @@ import { apiClient } from '../../lib/api-client/index.js';
 import { USER_ROLES } from './userRole.types.js';
 import type { UserRole, UserRoleContextValue } from './userRole.types.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
+import { AuthApiError, refreshAccessToken } from '../../features/auth/api/auth.api.js';
 
 export { USER_ROLES };
 export type { UserRole, UserRoleContextValue } from './userRole.types.js';
 
 // Truy vấn các khóa định danh lưu trữ từ cấu hình tập trung (.env)
 const AUTH_SESSION_KEY = STORAGE_KEYS.AUTH_SESSION;
+const REMEMBER_ME_KEY = STORAGE_KEYS.AUTH_REMEMBER_ME;
 const ACTIVE_WORKSPACE_KEY = STORAGE_KEYS.ACTIVE_WORKSPACE;
+
+function hasRememberMeEnabled(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function readStoredSession(): LoginResponse | null {
+  try {
+    if (!AUTH_SESSION_KEY) return null;
+    let saved = sessionStorage.getItem(AUTH_SESSION_KEY);
+    if (!saved) {
+      saved = localStorage.getItem(AUTH_SESSION_KEY);
+      if (saved) {
+        sessionStorage.setItem(AUTH_SESSION_KEY, saved);
+        localStorage.removeItem(AUTH_SESSION_KEY);
+      }
+    }
+    if (saved) {
+      const parsed = JSON.parse(saved) as LoginResponse;
+      if (parsed?.accessToken) {
+        apiClient.setAccessToken(parsed.accessToken);
+      }
+      return parsed;
+    }
+  } catch { }
+  return null;
+}
 
 /**
  * Xóa sạch dữ liệu phiên & cache tài khoản khỏi trình duyệt
@@ -34,33 +66,47 @@ function clearAccountCache() {
 const UserRoleContext = createContext<UserRoleContextValue | null>(null);
 
 export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Lấy session từ sessionStorage (cách ly an toàn theo từng tab làm việc)
-  const [session, setSession] = useState<LoginResponse | null>(() => {
-    try {
-      if (!AUTH_SESSION_KEY) return null;
-      let saved = sessionStorage.getItem(AUTH_SESSION_KEY);
-      if (!saved) {
-        saved = localStorage.getItem(AUTH_SESSION_KEY);
-        if (saved) {
-          sessionStorage.setItem(AUTH_SESSION_KEY, saved);
-          localStorage.removeItem(AUTH_SESSION_KEY);
-        }
-      }
-      if (saved) {
-        const parsed = JSON.parse(saved) as LoginResponse;
-        if (parsed?.accessToken) {
-          apiClient.setAccessToken(parsed.accessToken);
-        }
-        return parsed;
-      }
-    } catch { }
-    return null;
-  });
+  const [session, setSession] = useState<LoginResponse | null>(readStoredSession);
+  const [isInitializing, setIsInitializing] = useState(
+    () => !session && hasRememberMeEnabled(),
+  );
 
   // Role được nạp In-Memory từ Backend theo Workspace đang làm việc.
   // Tuyệt đối không lưu / đọc role từ storage để chống Client-Side Privilege Escalation.
   const [role, setRoleState] = useState<UserRole>(USER_ROLES.EMPTY);
   const [workspaceOwnerId, setWorkspaceOwnerId] = useState<string>('');
+
+  useEffect(() => {
+    if (!isInitializing) return;
+
+    let isMounted = true;
+    refreshAccessToken()
+      .then((restoredSession) => {
+        if (!isMounted) return;
+        apiClient.setAccessToken(restoredSession.accessToken);
+        setSession(restoredSession);
+        if (AUTH_SESSION_KEY) {
+          sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(restoredSession));
+        }
+        setIsInitializing(false);
+      })
+      .catch((cause: unknown) => {
+        if (!isMounted) return;
+        if (cause instanceof AuthApiError && cause.status === 401) {
+          try {
+            localStorage.removeItem(REMEMBER_ME_KEY);
+          } catch { }
+          notify.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'Phiên làm việc');
+        } else {
+          notify.warning('Không thể tự động khôi phục phiên đăng nhập. Vui lòng thử lại.', 'Phiên làm việc');
+        }
+        setIsInitializing(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isInitializing]);
 
   // Đồng bộ accessToken sang apiClient mỗi khi session thay đổi
   useEffect(() => {
@@ -131,13 +177,19 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  const login = useCallback((newSession: LoginResponse) => {
+  const login = useCallback((newSession: LoginResponse, rememberMe = false) => {
     clearAccountCache();
 
     apiClient.setAccessToken(newSession.accessToken);
     setSession(newSession);
+    setIsInitializing(false);
 
     try {
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, 'true');
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+      }
       if (AUTH_SESSION_KEY) {
         sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(newSession));
         localStorage.removeItem(AUTH_SESSION_KEY);
@@ -194,6 +246,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ownerId,
         session,
         isAuthenticated,
+        isInitializing,
         login,
         logout,
         setRole,

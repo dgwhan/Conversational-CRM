@@ -76,7 +76,9 @@ export class AuthController {
                 secure: this.configService.getOrThrow<string>("NODE_ENV") === "production",
                 sameSite: "lax",
                 path: REFRESH_COOKIE_PATH,
-                maxAge: result.refreshTokenMaxAgeSeconds,
+                ...(input.rememberMe
+                    ? { maxAge: result.refreshTokenMaxAgeSeconds }
+                    : {}),
             },
         );
 
@@ -105,7 +107,6 @@ export class AuthController {
                 secure: this.configService.getOrThrow<string>("NODE_ENV") === "production",
                 sameSite: "lax",
                 path: REFRESH_COOKIE_PATH,
-                maxAge: result.refreshTokenMaxAgeSeconds,
             },
         );
 
@@ -122,6 +123,7 @@ export class AuthController {
     async refresh(
         @Headers("cookie") cookieHeader: string | undefined,
         @Body("refreshToken") bodyToken: string | undefined,
+        @Body("rememberMe") rememberMe: boolean | undefined,
         @Ip() ip: string,
         @Headers("user-agent") userAgent: string | undefined,
         @Res({ passthrough: true }) response: unknown,
@@ -142,7 +144,9 @@ export class AuthController {
                 secure: this.configService.getOrThrow<string>("NODE_ENV") === "production",
                 sameSite: "lax",
                 path: REFRESH_COOKIE_PATH,
-                maxAge: result.refreshTokenMaxAgeSeconds,
+                ...(rememberMe === true
+                    ? { maxAge: result.refreshTokenMaxAgeSeconds }
+                    : {}),
             },
         );
 

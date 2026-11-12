@@ -4,8 +4,19 @@ import type {
   RegisterRequest,
   RegisterResponse,
 } from '../types/auth.types.js';
+import { STORAGE_KEYS } from '../../../config/storage-keys.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const REMEMBER_ME_KEY = STORAGE_KEYS.AUTH_REMEMBER_ME;
+let refreshRequest: Promise<LoginResponse> | null = null;
+
+function isRememberMeEnabled(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 export class AuthApiError extends Error {
   readonly status: number;
@@ -97,20 +108,51 @@ export async function register(
   return body as RegisterResponse;
 }
 
-export async function refreshAccessToken(refreshToken?: string): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: refreshToken ? JSON.stringify({ refreshToken }) : JSON.stringify({}),
-  });
+export function refreshAccessToken(refreshToken?: string): Promise<LoginResponse> {
+  if (refreshRequest) return refreshRequest;
 
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new AuthApiError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', response.status);
-  }
+  const request = (async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...(refreshToken ? { refreshToken } : {}),
+        rememberMe: isRememberMeEnabled(),
+      }),
+    });
 
-  return body as LoginResponse;
+    const body: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new AuthApiError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', response.status);
+    }
+
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      !('accessToken' in body) ||
+      typeof body.accessToken !== 'string' ||
+      !('user' in body) ||
+      typeof body.user !== 'object' ||
+      body.user === null
+    ) {
+      throw new AuthApiError('Phản hồi làm mới phiên đăng nhập không hợp lệ.', response.status);
+    }
+
+    return body as LoginResponse;
+  })();
+  refreshRequest = request;
+
+  void request.then(
+    () => {
+      if (refreshRequest === request) refreshRequest = null;
+    },
+    () => {
+      if (refreshRequest === request) refreshRequest = null;
+    },
+  );
+
+  return request;
 }
 
 export async function logout(): Promise<void> {

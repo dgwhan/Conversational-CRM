@@ -68,6 +68,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Tăng mỗi khi đổi workspace để mở lại kết nối realtime (ticket gắn với đúng một workspace)
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   useEffect(() => apiClient.onWorkspaceChanged(() => setWorkspaceEpoch((n) => n + 1)), []);
+  const activeWorkspaceId = apiClient.getActiveWorkspaceId();
   const currentStaffName = staffName ? `${staffName} (Bạn)` : 'Bạn';
 
   const [connectionStatus, setConnectionStatus] = useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
@@ -233,9 +234,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Khởi tạo kết nối WebSocket với Backend (kèm SSE fallback, chỉ khi đã đăng nhập)
+  // Khởi tạo realtime chỉ sau khi người dùng có workspace đang hoạt động
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !activeWorkspaceId) {
       setConnectionStatus('DISCONNECTED');
       return;
     }
@@ -510,7 +511,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         eventSourceRef.current.close();
       }
     };
-  }, [handleIncomingMessage, isAuthenticated, workspaceEpoch]);
+  }, [activeWorkspaceId, handleIncomingMessage, isAuthenticated, workspaceEpoch]);
 
   return (
     <RealtimeContext.Provider

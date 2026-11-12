@@ -10,8 +10,24 @@ import { GlassButton } from '../../../components/ui/GlassButton.js';
 import { LoginForm } from '../components/LoginForm.js';
 import { SignUpForm } from '../components/SignUpForm.js';
 
+const { loginMock } = vi.hoisted(() => ({ loginMock: vi.fn() }));
+vi.mock('../api/auth.api.js', () => ({
+  login: loginMock,
+  AuthApiError: class AuthApiError extends Error {
+    status: number;
+
+    constructor(message: string, status: number) {
+      super(message);
+      this.status = status;
+    }
+  },
+}));
+
 afterEach(() => {
   cleanup();
+  loginMock.mockReset();
+  localStorage.clear();
+  sessionStorage.clear();
 });
 
 function renderWithI18n(ui: React.ReactElement) {
@@ -113,12 +129,47 @@ describe('GlassButton Component', () => {
 });
 
 describe('LoginForm Integration', () => {
+  it('sends the remember-me selection with successful login', async () => {
+    const result = {
+      accessToken: 'access-token',
+      user: { id: 'user-1', email: 'user@example.com', fullName: 'User' },
+      staff: { id: 'user-1', email: 'user@example.com', fullName: 'User' },
+    };
+    const handleSuccess = vi.fn();
+    loginMock.mockResolvedValue(result);
+
+    const { container } = renderWithI18n(
+      <LoginForm
+        onSuccess={handleSuccess}
+        onForgotPassword={() => {}}
+      />,
+    );
+
+    fireEvent.change(container.querySelector('input[name="identifier"]')!, {
+      target: { value: 'user@example.com' },
+    });
+    fireEvent.change(container.querySelector('input[type="password"]')!, {
+      target: { value: 'password' },
+    });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await vi.waitFor(() => {
+      expect(loginMock).toHaveBeenCalledWith({
+        identifier: 'user@example.com',
+        password: 'password',
+        rememberMe: true,
+      });
+    });
+    expect(handleSuccess).toHaveBeenCalledWith(result, true);
+  });
+
   it('renders all login fields, buttons, links, and validates required fields', () => {
     const handleSuccess = vi.fn();
     const handleForgotPassword = vi.fn();
     const handleSwitchToSignUp = vi.fn();
 
-    renderWithI18n(
+    const { container } = renderWithI18n(
       <LoginForm
         onSuccess={handleSuccess}
         onForgotPassword={handleForgotPassword}
@@ -130,10 +181,10 @@ describe('LoginForm Integration', () => {
     expect(screen.getByText('Chào mừng trở lại')).toBeDefined();
 
     // Inputs
-    const identifierInput = screen.getByPlaceholderText('Nhập email hoặc số điện thoại');
-    const passwordInput = screen.getByPlaceholderText('Nhập mật khẩu');
-    expect(identifierInput).toBeDefined();
-    expect(passwordInput).toBeDefined();
+    const identifierInput = container.querySelector('input[name="identifier"]');
+    const passwordInput = container.querySelector('input[type="password"]');
+    expect(identifierInput).not.toBeNull();
+    expect(passwordInput).not.toBeNull();
 
     // Checkbox and Links
     expect(screen.getByText('Ghi nhớ đăng nhập')).toBeDefined();

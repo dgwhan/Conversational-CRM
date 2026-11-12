@@ -15,6 +15,7 @@ export type LoginRequest = {
   email?: string;
   phoneNumber?: string;
   password: string;
+  rememberMe?: boolean;
 };
 
 export type LoginResponse = {

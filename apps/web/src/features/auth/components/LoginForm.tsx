@@ -9,11 +9,13 @@ import type { LoginResponse } from '../types/auth.types.js';
 import { AUTH_MESSAGES } from '../validation/auth.validation.js';
 import { useTranslation } from '../../../i18n/index.js';
 import { ShieldAlert } from 'lucide-react';
+import { STORAGE_KEYS } from '../../../config/storage-keys.js';
 
 const REMEMBERED_IDENTIFIER_KEY = 'polarisx.rememberedIdentifier';
+const REMEMBER_ME_KEY = STORAGE_KEYS.AUTH_REMEMBER_ME;
 
 export type LoginFormProps = {
-  onSuccess: (result: LoginResponse) => void;
+  onSuccess: (result: LoginResponse, rememberMe: boolean) => void;
   onForgotPassword: () => void;
   onSwitchToSignUp?: () => void;
   hideHeading?: boolean;
@@ -27,6 +29,17 @@ function readRememberedIdentifier(): string {
   }
 }
 
+function readRememberMe(): boolean {
+  try {
+    return (
+      localStorage.getItem(REMEMBER_ME_KEY) === 'true' ||
+      Boolean(readRememberedIdentifier())
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function LoginForm({
   onSuccess,
   onForgotPassword,
@@ -36,9 +49,7 @@ export function LoginForm({
   const { t } = useTranslation();
   const [identifier, setIdentifier] = useState(readRememberedIdentifier);
   const [password, setPassword] = useState('');
-  const [rememberIdentifier, setRememberIdentifier] = useState(() =>
-    Boolean(readRememberedIdentifier()),
-  );
+  const [rememberMe, setRememberMe] = useState(readRememberMe);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [identifierError, setIdentifierError] = useState('');
@@ -64,20 +75,23 @@ export function LoginForm({
       const result = await login({
         identifier: normalizedIdentifier,
         password,
+        rememberMe,
       });
 
       try {
-        if (rememberIdentifier) {
+        if (rememberMe) {
           localStorage.setItem(REMEMBERED_IDENTIFIER_KEY, normalizedIdentifier);
+          localStorage.setItem(REMEMBER_ME_KEY, 'true');
         } else {
           localStorage.removeItem(REMEMBERED_IDENTIFIER_KEY);
+          localStorage.removeItem(REMEMBER_ME_KEY);
         }
       } catch {
         // Remembrance is optional if browser storage is unavailable.
       }
 
       setPassword('');
-      onSuccess(result);
+      onSuccess(result, rememberMe);
     } catch (cause) {
       setError(
         cause instanceof AuthApiError
@@ -151,11 +165,11 @@ export function LoginForm({
         {/* Checkbox and Forgot Password link */}
         <div className="-mt-1 flex flex-wrap items-center justify-between gap-3 select-none">
           <GlassCheckbox
-            checked={rememberIdentifier}
+            checked={rememberMe}
             disabled={isSubmitting}
-            onChange={(event) => setRememberIdentifier(event.target.checked)}
+            onChange={(event) => setRememberMe(event.target.checked)}
           >
-            Ghi nhớ đăng nhập
+            {t('auth.rememberMe', 'Ghi nhớ đăng nhập')}
           </GlassCheckbox>
 
           <button

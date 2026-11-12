@@ -6,7 +6,16 @@ export const DEFAULT_API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') || '/api';
 
 const AUTH_SESSION_KEY = STORAGE_KEYS.AUTH_SESSION;
+const REMEMBER_ME_KEY = STORAGE_KEYS.AUTH_REMEMBER_ME;
 const ACTIVE_WORKSPACE_KEY = STORAGE_KEYS.ACTIVE_WORKSPACE;
+
+function isRememberMeEnabled(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 export class BaseApiClient {
   protected baseUrl: string = DEFAULT_API_BASE_URL;
@@ -140,6 +149,7 @@ export class BaseApiClient {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
+          body: JSON.stringify({ rememberMe: isRememberMeEnabled() }),
         });
 
         if (!res.ok) {

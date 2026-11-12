@@ -24,7 +24,8 @@ export interface UserRoleContextValue {
   ownerId: string;
   session: LoginResponse | null;
   isAuthenticated: boolean;
-  login: (newSession: LoginResponse) => void;
+  isInitializing: boolean;
+  login: (newSession: LoginResponse, rememberMe?: boolean) => void;
   logout: () => void;
   setRole: (newRole: UserRole, ownerId?: string) => void;
   toggleRole: () => void;

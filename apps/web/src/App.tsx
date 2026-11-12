@@ -71,16 +71,20 @@ const Error404Page = lazy(() =>
  * Route xác thực người dùng (Login / Sign Up)
  */
 function AuthRoute() {
-  const { isAuthenticated, login } = useUserRole();
+  const { isAuthenticated, isInitializing, login } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
 
   const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || ROUTES.REPORTS;
 
-  const handleLoginSuccess = (session: LoginResponse) => {
-    login(session);
+  const handleLoginSuccess = (session: LoginResponse, rememberMe = false) => {
+    login(session, rememberMe);
     navigate(from, { replace: true });
   };
+
+  if (isInitializing) {
+    return <AppSkeleton />;
+  }
 
   if (isAuthenticated) {
     return <Navigate to={ROUTES.REPORTS} replace />;
@@ -93,8 +97,12 @@ function AuthRoute() {
  * Layout bọc cho các route yêu cầu đăng nhập (Protected Routes)
  */
 function ProtectedLayout() {
-  const { isAuthenticated } = useUserRole();
+  const { isAuthenticated, isInitializing } = useUserRole();
   const location = useLocation();
+
+  if (isInitializing) {
+    return <AppSkeleton />;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;

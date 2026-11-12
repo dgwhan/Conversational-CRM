@@ -8,7 +8,7 @@ import { PasswordRecoveryFlow } from '../components/PasswordRecoveryFlow.js';
 import { useTranslation } from '../../../i18n/index.js';
 
 export type AuthPageProps = {
-  onLoginSuccess?: (session: LoginResponse) => void;
+  onLoginSuccess?: (session: LoginResponse, rememberMe?: boolean) => void;
   defaultTab?: AuthTab;
 };
 
@@ -130,7 +130,7 @@ export function AuthPage({
               className={hasInteracted ? 'animate-auth-slide-left' : ''}
             >
               <LoginForm
-                onSuccess={(res) => onLoginSuccess?.(res)}
+                onSuccess={(res, rememberMe) => onLoginSuccess?.(res, rememberMe)}
                 onForgotPassword={() => setIsRecoveryOpen(true)}
                 onSwitchToSignUp={() => handleTabChange(AUTH_TAB.SIGN_UP)}
               />
@@ -155,7 +155,7 @@ export function AuthPage({
                       ...res.staff,
                       mustChangePassword: false,
                     },
-                  })
+                  }, false)
                 }
                 onSwitchToLogin={() => handleTabChange(AUTH_TAB.LOGIN)}
               />

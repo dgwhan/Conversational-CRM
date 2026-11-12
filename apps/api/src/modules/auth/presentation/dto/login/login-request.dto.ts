@@ -6,6 +6,7 @@ export const loginRequestSchema = z
     identifier: z.string().trim().min(1).optional(),
     email: z.string().trim().min(1).optional(),
     phoneNumber: z.string().trim().min(1).optional(),
+    rememberMe: z.boolean().optional().default(false),
     password: z.string().min(1, {
       message: AUTH_VALIDATION.MESSAGES.PASSWORD_REQUIRED,
     }),
