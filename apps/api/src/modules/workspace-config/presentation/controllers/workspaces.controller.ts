@@ -16,6 +16,7 @@ import { WorkspaceConfigService } from '../../application/workspace-config/index
 import { StaffManagementService } from '../../application/staff-management/index.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
+import { WorkspacePermission, WorkspacePermissions } from '../../../../common/decorators/workspace-permissions.decorator.js';
 import { WorkspaceRole } from '../../domain/index.js';
 import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
@@ -132,7 +133,7 @@ export class WorkspacesController {
    * Cập nhật thông tin Không gian làm việc (Tên, Ngành nghề)
    */
   @Patch(':id')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async updateWorkspace(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -177,7 +178,7 @@ export class WorkspacesController {
    * Cập nhật cấu hình của một Workspace cụ thể theo ID
    */
   @Put(':id/config')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async updateWorkspaceConfig(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -201,7 +202,7 @@ export class WorkspacesController {
    * Thêm số Hotline mới cho Không gian làm việc
    */
   @Post(':id/hotlines')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async createHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -217,7 +218,7 @@ export class WorkspacesController {
    * Cập nhật thông tin hoặc trạng thái số Hotline
    */
   @Patch(':id/hotlines/:hotlineId')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async updateHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -234,7 +235,7 @@ export class WorkspacesController {
    * Xóa số Hotline khỏi Không gian làm việc
    */
   @Delete(':id/hotlines/:hotlineId')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async deleteHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -268,7 +269,7 @@ export class WorkspacesController {
    * Mời nhân viên vào Workspace cụ thể
    */
   @Post(':id/members/invite')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async inviteWorkspaceMember(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -340,7 +341,7 @@ export class WorkspacesController {
    * Hủy lời mời đã gửi tới nhân sự
    */
   @Delete(':id/members/invitations/:memberId')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async cancelInvitation(
     @Req() req: any,
     @Param('id') workspaceId: string,

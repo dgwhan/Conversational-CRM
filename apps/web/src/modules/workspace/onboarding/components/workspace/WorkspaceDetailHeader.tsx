@@ -18,6 +18,7 @@ export interface WorkspaceDetailHeaderProps {
   isActive: boolean;
   domainLabel: string;
   canOwnerLeave: boolean;
+  canManageWorkspace?: boolean;
   onBack: () => void;
   onSelectWorkspace: (workspaceId: string) => Promise<void> | void;
   onGoToInbox: (workspaceId: string) => void;
@@ -32,6 +33,7 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
   isActive,
   domainLabel,
   canOwnerLeave,
+  canManageWorkspace = workspace.isOwner,
   onBack,
   onSelectWorkspace,
   onGoToInbox,
@@ -144,13 +146,13 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
         ) : (
           <div className="flex items-center gap-2 group">
             <span
-              onClick={workspace.isOwner ? handleStartEdit : undefined}
-              className={workspace.isOwner ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}
-              title={workspace.isOwner ? 'Nhấn để sửa tên trực tiếp trên dòng này' : undefined}
+              onClick={canManageWorkspace ? handleStartEdit : undefined}
+              className={canManageWorkspace ? 'cursor-pointer hover:text-blue-600 transition-colors' : ''}
+              title={canManageWorkspace ? 'Nhấn để sửa tên trực tiếp trên dòng này' : undefined}
             >
               {workspace.name}
             </span>
-            {workspace.isOwner && (
+            {canManageWorkspace && (
               <button
                 type="button"
                 onClick={handleStartEdit}
@@ -202,7 +204,7 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
             Vào Hộp thư
           </Button>
 
-          {workspace.isOwner && onEditWorkspace && (
+          {canManageWorkspace && onEditWorkspace && (
             <Button
               variant="secondary"
               size="sm"

@@ -37,8 +37,10 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
     staffId, staffEmail, myWorkspaces, channels, isLoadingChannels, syncingChannelId,
     togglingChannelId, contactsCount, isLoadingContacts, effectiveStaffList, activeStaffList,
     resolvedAdminName, canOwnerLeave, handleSyncChannel, handleToggleChannel,
+    canManageWorkspace,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
     handleInviteMember, handleCancelInvitation, handleSaveWorkspaceInfo, handleDeleteWorkspace,
+    handleSetWorkspaceManagerPermission,
   } = detail;
 
   // Tab điều hướng dùng component Tabs hệ thống
@@ -69,6 +71,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
         isActive={isActive}
         domainLabel={domainLabel}
         canOwnerLeave={canOwnerLeave}
+        canManageWorkspace={canManageWorkspace}
         onBack={onBack}
         onSelectWorkspace={onSelectWorkspace}
         onGoToInbox={onGoToInbox}
@@ -104,6 +107,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           contactsCount={contactsCount}
           isLoadingContacts={isLoadingContacts}
           adminName={resolvedAdminName}
+          canManageWorkspace={canManageWorkspace}
           onEditWorkspace={() => setIsEditModalOpen(true)}
           onSaveWorkspaceName={async (newName) => {
             await handleSaveWorkspaceInfo(workspace.id, {
@@ -121,6 +125,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           workspaceId={workspace.id}
           workspaceName={workspace.name}
           isOwner={Boolean(workspace.isOwner)}
+          canManageChannels={canManageWorkspace}
           channels={channels}
           isLoading={isLoadingChannels}
           syncingChannelId={syncingChannelId}
@@ -141,6 +146,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           workspaceId={workspace.id}
           workspaceName={workspace.name}
           isOwner={Boolean(workspace.isOwner)}
+          canManageMembers={canManageWorkspace}
           currentStaffId={staffId}
           currentStaffEmail={staffEmail}
           staffMembers={effectiveStaffList}
@@ -148,6 +154,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           onLeaveWorkspace={handleLeaveWorkspace}
           onInviteMember={handleInviteMember}
           onCancelInvitation={handleCancelInvitation}
+          onSetWorkspaceManagerPermission={handleSetWorkspaceManagerPermission}
         />
       )}
 
@@ -155,6 +162,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
       {modalChannel && (
         <OAuthSimulationModal
           channel={modalChannel}
+          workspaceId={workspace.id}
           isOpen={isConnectModalOpen}
           onClose={() => {
             setIsConnectModalOpen(false);

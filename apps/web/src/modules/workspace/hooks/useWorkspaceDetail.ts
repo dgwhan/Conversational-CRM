@@ -19,6 +19,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,
+    setWorkspaceManagerPermission,
     cancelInvitation,
     updateWorkspaceInfo,
     deleteWorkspace,
@@ -31,6 +32,25 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   const [togglingChannelId, setTogglingChannelId] = useState<string | null>(null);
   const [contactsCount, setContactsCount] = useState<number | null>(null);
   const [isLoadingContacts, setIsLoadingContacts] = useState(true);
+  const [canManageWorkspace, setCanManageWorkspace] = useState(Boolean(workspace.isOwner));
+
+  useEffect(() => {
+    let cancelled = false;
+    setCanManageWorkspace(Boolean(workspace.isOwner));
+    void apiClient.get<{ canManageWorkspace: boolean }>('/workspaces/current/staff/permissions', {
+      skipToast: true,
+      headers: {
+        'x-workspace-id': workspace.id,
+        'x-owner-id': effectiveOwnerId,
+        'x-staff-id': staffId || '',
+      },
+    }).then((permissions) => {
+      if (!cancelled) setCanManageWorkspace(Boolean(permissions.canManageWorkspace));
+    }).catch(() => {
+      if (!cancelled) setCanManageWorkspace(Boolean(workspace.isOwner));
+    });
+    return () => { cancelled = true; };
+  }, [workspace.id, workspace.isOwner, effectiveOwnerId, staffId]);
 
   const loadChannels = useCallback(async () => {
     setIsLoadingChannels(true);
@@ -210,6 +230,15 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     }
   };
 
+  const handleSetWorkspaceManagerPermission = async (memberId: string, enabled: boolean) => {
+    try {
+      await setWorkspaceManagerPermission(memberId, enabled, workspace.id);
+      await fetchStaffList(workspace.id);
+    } catch (error) {
+      notify.error(`Không thể cập nhật quyền: ${(error as Error).message}`);
+    }
+  };
+
   const handleSaveWorkspaceInfo = (workspaceId: string, data: { name: string; domain: string }) =>
     updateWorkspaceInfo(workspaceId, data);
   const handleDeleteWorkspace = async (workspaceId: string) => {
@@ -220,8 +249,9 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   return {
     staffId, staffEmail, myWorkspaces, channels, isLoadingChannels, syncingChannelId,
     togglingChannelId, contactsCount, isLoadingContacts, effectiveStaffList, activeStaffList,
-    resolvedAdminName, canOwnerLeave, loadChannels, handleSyncChannel, handleToggleChannel,
+    resolvedAdminName, canOwnerLeave, canManageWorkspace, loadChannels, handleSyncChannel, handleToggleChannel,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
-    handleInviteMember, handleCancelInvitation, handleSaveWorkspaceInfo, handleDeleteWorkspace,
+    handleInviteMember, handleCancelInvitation, handleSetWorkspaceManagerPermission,
+    handleSaveWorkspaceInfo, handleDeleteWorkspace,
   };
 }

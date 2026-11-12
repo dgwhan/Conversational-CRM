@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { unreadCount } = useRealtime();
-  const { config, activeWorkspaceId } = useWorkspaceConfig();
+  const { config, activeWorkspaceId, canManageWorkspace } = useWorkspaceConfig();
   const { isAgent } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'workspace-settings' as ActiveNavTab,
       label: t('nav.workspaceSettings', 'Quản lý cấu hình'),
       icon: <Sliders size={18} />,
-      restricted: isAgent,
+      restricted: isAgent && !canManageWorkspace,
     },
     {
       id: 'onboarding' as ActiveNavTab,

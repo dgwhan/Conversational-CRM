@@ -7,6 +7,7 @@ import { PrismaService } from '../../src/platform/database/prisma.service.js';
 import { INDUSTRY_PRESETS } from '../../src/modules/workspace-config/domain/workspace-config.presets.js';
 import { JwtService } from '@nestjs/jwt';
 import { DEFAULT_JWT_AUDIENCE, DEFAULT_JWT_ISSUER } from '../../src/platform/config/jwt.config.js';
+import { WorkspaceRolesGuard } from '../../src/common/guards/workspace-roles.guard.js';
 
 const TEST_JWT_SECRET = 'http-spec-jwt-access-secret-0123456789abcdef';
 // Access Token ký thật (guard không còn tin header x-user-role / x-owner-id do client tự khai)
@@ -67,6 +68,8 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
     const moduleRef = await Test.createTestingModule({
       imports: [ConfigModule.forRoot({ isGlobal: true }), WorkspaceConfigModule],
     })
+      .overrideGuard(WorkspaceRolesGuard)
+      .useValue({ canActivate: () => true })
       .overrideProvider(PrismaService)
       .useValue(mockPrisma)
       .compile();
@@ -133,5 +136,20 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
     });
 
     expect(res.statusCode).toBe(200);
+  });
+
+  it('PATCH /api/workspaces/current/staff/:id/permissions is registered', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/workspaces/current/staff/5b4fddab-19a7-4f09-8a17-19417ad13bce/permissions',
+      headers: {
+        authorization: `Bearer ${ownerToken()}`,
+        'content-type': 'application/json',
+      },
+      payload: JSON.stringify({ isWorkspaceManager: 'true' }),
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload).message).toContain('isWorkspaceManager');
   });
 });

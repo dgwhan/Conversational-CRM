@@ -2,17 +2,38 @@ enum AuditAction {
   LOGIN_SUCCESS
   LOGIN_FAILURE
   ROLE_CHANGED
+  WORKSPACE_PERMISSION_CHANGED
   CONTACT_MERGED
   CONTACT_UNMERGED
   CUSTOMER_MERGED
   CUSTOMER_UNMERGED
   MESSAGE_STORAGE_PURGED
+  SHIFT_CREATED
+  SHIFT_UPDATED
+  SHIFT_DEACTIVATED
+  SHIFT_DELETED
+  SHIFT_MEMBER_UPDATED
+  SHIFT_CAPACITY_CHANGED
+  STAFF_ABSENCE_RECORDED
+  STAFF_ABSENCE_ENDED
+  OVERTIME_CONSENT_RECORDED
+  STAFF_ASSIGNMENT_LOCKED
+  STAFF_ASSIGNMENT_UNLOCKED
+  LEAD_AUTO_ASSIGNED
+  LEAD_MANUALLY_ASSIGNED
+  LEAD_CLAIMED
+  LEAD_HANDED_OVER
+  LEAD_QUEUED
+  LEAD_ESCALATED
+  OFFBOARDING_STARTED
+  OFFBOARDING_COMPLETED
 }
 
 model AuditLog {
   id        String      @id @default(uuid()) @db.Uuid
   userId    String?     @map("user_id") @db.Uuid
   actorId   String?     @map("actor_id") @db.Uuid
+  workspaceId String?   @map("workspace_id") @db.Uuid
   action    AuditAction
   ip        String?     @db.VarChar(45)
   userAgent String?     @map("user_agent") @db.VarChar(512)
@@ -20,9 +41,11 @@ model AuditLog {
   createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
   @@index([action])
   @@index([userId])
+  @@index([workspaceId, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@map("audit_logs")
 }

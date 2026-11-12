@@ -22,8 +22,14 @@ export async function cancelInvitation(
   }
 
   const { role } = await getCurrentUserAndRole(prisma, resolvedOwner, targetWs);
-  if (role !== WorkspaceRole.OWNER) {
-    throw new ForbiddenException('Chỉ Chủ sở hữu mới có quyền hủy lời mời.');
+  const callerMembership = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId: targetWs.id, userId: resolvedOwner } },
+    select: { isWorkspaceManager: true, isActive: true, status: true },
+  });
+  const isOwner = targetWs.ownerId === resolvedOwner || role === WorkspaceRole.OWNER;
+  const isWorkspaceManager = callerMembership?.isWorkspaceManager === true && callerMembership.isActive && callerMembership.status === 'ACTIVE';
+  if (!isOwner && !isWorkspaceManager) {
+    throw new ForbiddenException('Bạn chưa được cấp quyền quản lý lời mời trong workspace.');
   }
 
   const member = await prisma.workspaceMember.findFirst({
@@ -39,6 +45,9 @@ export async function cancelInvitation(
 
   if (!member) {
     throw new NotFoundException('Không tìm thấy lời mời đang chờ chấp nhận.');
+  }
+  if (!isOwner && member.role === WorkspaceRole.OWNER) {
+    throw new ForbiddenException('Quản lý workspace không thể hủy lời mời cấp quyền Owner.');
   }
 
   // Xóa bản ghi WorkspaceMember

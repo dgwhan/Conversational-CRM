@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { AssignedStaff } from '../types.js';
 import { useRealtime } from '../../realtime/RealtimeContext.js';
 import { useUserRole } from '../../auth/index.js';
-import { useWorkspaceConfig } from '../../workspace/WorkspaceConfigContext.js';
+import { WORKSPACE_MEMBER_STATUS, useWorkspaceConfig } from '../../workspace/WorkspaceConfigContext.js';
 import {
   ConversationListColumn,
   ChatWindowColumn,
@@ -44,7 +44,10 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
   // 1. Quản lý danh sách nhân sự (lấy chuẩn vai trò thực từ hệ thống: OWNER, STAFF)
   const staffList: AssignedStaff[] = useMemo(() => {
     const isOwnerEffective = Boolean(isOwner || isCurrentWorkspaceOwner);
-    const matchedCurrentMember = staffMembers?.find(
+    const assignableStaffMembers = (staffMembers ?? []).filter(
+      (member) => member.memberStatus === WORKSPACE_MEMBER_STATUS.ACTIVE,
+    );
+    const matchedCurrentMember = assignableStaffMembers.find(
       (m) => m.id === staffId || (staffEmail && m.email === staffEmail)
     );
     const currentUserRole = matchedCurrentMember
@@ -56,9 +59,9 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
         : 'Tư vấn viên';
     const presenceById = new Map(Object.values(staffPresences).map((presence) => [presence.staffId, presence]));
 
-    if (staffMembers?.length) {
+    if (assignableStaffMembers.length) {
       const membersByIdentity = new Map<string, (typeof staffMembers)[number]>();
-      for (const member of staffMembers) {
+      for (const member of assignableStaffMembers) {
         const identity = member.email.trim().toLowerCase() || member.id;
         const existing = membersByIdentity.get(identity);
         if (!existing || (member.role === 'OWNER' && existing.role !== 'OWNER')) {

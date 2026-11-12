@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
   Delete,
+  Patch,
   Param,
   Body,
   Query,
@@ -16,8 +18,10 @@ import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type {
   CreateStaffRequestDto,
   StaffItemResponseDto,
+  UpdateStaffPermissionsRequestDto,
 } from '../dto/index.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
+import { WorkspacePermission, WorkspacePermissions } from '../../../../common/decorators/workspace-permissions.decorator.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 
 @Controller('workspaces/current/staff')
@@ -43,11 +47,43 @@ export class StaffManagementController {
     return this.staffService.getStaffList(callerId, targetWsId);
   }
 
+  @Get('permissions')
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
+  async getPermissions(
+    @Req() req: any,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
+  ) {
+    const callerId = resolveCallerId(req);
+    return this.staffService.getWorkspacePermissions(callerId, queryWsId || headerWsId);
+  }
+
+  @Patch(':id/permissions')
+  @Roles(WorkspaceRole.OWNER)
+  async updateMemberPermissions(
+    @Req() req: any,
+    @Param('id') targetUserId: string,
+    @Body() dto: UpdateStaffPermissionsRequestDto,
+    @Query('workspaceId') queryWsId?: string,
+    @Headers('x-workspace-id') headerWsId?: string,
+  ) {
+    if (typeof dto?.isWorkspaceManager !== 'boolean') {
+      throw new BadRequestException('isWorkspaceManager phải là boolean.');
+    }
+    const callerId = resolveCallerId(req);
+    return this.staffService.setWorkspaceManagerPermission(
+      callerId,
+      targetUserId,
+      dto.isWorkspaceManager,
+      queryWsId || headerWsId,
+    );
+  }
+
   /**
    * Mời nhân viên đã có tài khoản vào Workspace
    */
   @Post()
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async createStaff(
     @Req() req: any,
     @Body() dto: CreateStaffRequestDto,
@@ -83,7 +119,7 @@ export class StaffManagementController {
    * Chủ sở hữu hủy lời mời đã gửi (chưa được chấp nhận)
    */
   @Delete('invitations/:id')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async cancelInvitation(
     @Req() req: any,
     @Param('id') targetId: string,

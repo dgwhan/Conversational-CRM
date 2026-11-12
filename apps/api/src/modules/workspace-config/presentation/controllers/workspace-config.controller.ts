@@ -11,9 +11,8 @@ import {
   Req,
 } from '@nestjs/common';
 import { WorkspaceConfigService } from '../../application/workspace-config/index.js';
-import { Roles } from '../../../../common/decorators/roles.decorator.js';
+import { WorkspacePermission, WorkspacePermissions } from '../../../../common/decorators/workspace-permissions.decorator.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
-import { WorkspaceRole } from '../../domain/index.js';
 import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
 import type {
@@ -70,7 +69,7 @@ export class WorkspaceConfigController {
    * Cập nhật cấu hình workspace theo ownerId (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Put('config')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async updateConfig(
     @Req() req: any,
     @Body() payload: UpdateWorkspaceConfigRequestDto,
@@ -86,7 +85,7 @@ export class WorkspaceConfigController {
    * Áp dụng mẫu ngành nghề 1-click (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/apply-preset')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async applyPreset(
     @Req() req: any,
     @Body() body: ApplyPresetRequestDto,
@@ -107,7 +106,7 @@ export class WorkspaceConfigController {
    * Thêm giai đoạn mới vào phễu (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/stages')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async addStage(
     @Req() req: any,
     @Body() stage: AddPipelineStageRequestDto,
@@ -123,7 +122,7 @@ export class WorkspaceConfigController {
    * Thêm sản phẩm / khóa học / ngành đào tạo mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/products')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async addProduct(
     @Req() req: any,
     @Body() product: AddProductItemRequestDto,
@@ -139,7 +138,7 @@ export class WorkspaceConfigController {
    * Thêm tiêu chí đánh giá / phân loại mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/criteria')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async addCriteria(
     @Req() req: any,
     @Body() criteria: AddCriteriaRequestDto,
@@ -155,7 +154,7 @@ export class WorkspaceConfigController {
    * Xóa tiêu chí (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Delete('config/criteria/:criteriaId')
-  @Roles(WorkspaceRole.OWNER)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
   async deleteCriteria(
     @Req() req: any,
     @Param('criteriaId') criteriaId: string,

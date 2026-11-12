@@ -44,10 +44,20 @@ export async function updateWorkspace(
   }
 
   const isOwner = ws.ownerId === callerId;
+  const managerMembership = isOwner ? null : await prisma.workspaceMember.findFirst({
+    where: {
+      workspaceId,
+      userId: callerId,
+      status: 'ACTIVE',
+      isActive: true,
+      isWorkspaceManager: true,
+    },
+    select: { id: true },
+  });
 
-  if (!isOwner) {
+  if (!isOwner && !managerMembership) {
     throw new ForbiddenException(
-      'Chỉ Chủ sở hữu mới có quyền chỉnh sửa Không gian làm việc này'
+      'Chỉ Owner hoặc Quản lý workspace mới có quyền chỉnh sửa Không gian làm việc này'
     );
   }
 
@@ -93,8 +103,8 @@ export async function updateWorkspace(
     id: updated.id,
     name: updated.name,
     slug: updated.slug,
-    role: WorkspaceRole.OWNER,
-    isOwner: true,
+    role: isOwner ? WorkspaceRole.OWNER : WorkspaceRole.STAFF,
+    isOwner,
     domain: data.domain?.trim() || updated.configuration?.domain,
     ownerId: updated.ownerId,
     ownerName: updated.owner?.fullName,

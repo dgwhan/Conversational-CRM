@@ -12,6 +12,7 @@ import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
 import { ZcaPersonalService } from './zca-personal.service.js';
 import { MessageRepository } from '../../messaging/infrastructure/message.repository.js';
+import { INBOUND_QUEUE, type InboundMessageQueue } from '../../messaging/domain/channel-adapter.port.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { MessageDispatcherService, SendMessageInput, SendMessageResult } from './message-dispatcher.service.js';
 import { ChannelSyncService, ChannelSyncResult } from './channel-sync.service.js';
@@ -41,13 +42,22 @@ export class ChannelManagerService {
     @Optional() @Inject(CUSTOMER_GATEWAY) private readonly customerGateway?: CustomerGateway,
     @Optional() dispatcherService?: MessageDispatcherService,
     @Optional() syncService?: ChannelSyncService,
+    @Optional() @Inject(INBOUND_QUEUE) private readonly inboundQueue?: InboundMessageQueue,
   ) {
     this.dispatcher =
       dispatcherService ||
       new MessageDispatcherService(prisma, encryption, messageRepo, realtime, zcaService);
     this.sync =
       syncService ||
-      new ChannelSyncService(prisma, encryption, messageRepo, realtime, zcaService, customerGateway);
+      new ChannelSyncService(
+        prisma,
+        encryption,
+        this.inboundQueue,
+        messageRepo,
+        realtime,
+        zcaService,
+        customerGateway,
+      );
   }
 
   /**
@@ -425,53 +435,85 @@ export class ChannelManagerService {
       workspaceId?: string;
     },
     staffId: string,
-  ): Promise<void> {
-    if (!staffId) return;
-
-    let conv: any = null;
-    if (input.conversationId && UUID_REGEX.test(input.conversationId)) {
-      conv = await this.prisma.conversation.findUnique({
-        where: { id: input.conversationId },
-        include: {
-          assignedMember: true,
-          customer: true,
-        },
-      });
+  ): Promise<{ channelAccountId: string; recipientId: string }> {
+    if (!staffId) throw new ForbiddenException('Không thể xác định người gửi tin nhắn.');
+    if (!input.conversationId || !UUID_REGEX.test(input.conversationId)) {
+      throw new ForbiddenException('Phải có hội thoại hợp lệ và được phân công trước khi trả lời.');
     }
 
-    if (!conv && input.recipientId) {
-      conv = await this.prisma.conversation.findFirst({
-        where: {
-          ...(input.channelAccountId ? { channelAccountId: input.channelAccountId } : {}),
-          customer: {
-            OR: [
-              { channelIdentities: { path: ['facebook'], equals: input.recipientId } },
-              { channelIdentities: { path: ['zalo', 'id'], equals: input.recipientId } },
-              { channelIdentities: { path: ['socialId'], equals: input.recipientId } },
-            ],
-          },
+    const conv = await this.prisma.conversation.findFirst({
+      where: {
+        id: input.conversationId,
+        ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
+      },
+      include: {
+        assignedMember: true,
+        customer: true,
+        channelAccount: true,
+        messages: {
+          where: { direction: 'INBOUND' },
+          orderBy: { sentAt: 'desc' },
+          take: 1,
+          select: { rawPayload: true },
         },
-        include: {
-          assignedMember: true,
-          customer: true,
-        },
-      });
+      },
+    });
+    if (!conv) throw new NotFoundException('Không tìm thấy hội thoại trong workspace.');
+    if (!conv.assignedMember || conv.assignedMember.userId !== staffId) {
+      throw new ForbiddenException('Bạn chỉ có thể trả lời hội thoại đã được phân công cho mình.');
+    }
+    if (!conv.channelAccountId) {
+      throw new ForbiddenException('Hội thoại chưa gắn với tài khoản kênh để gửi phản hồi.');
+    }
+    if (input.channelAccountId && input.channelAccountId !== conv.channelAccountId) {
+      throw new ForbiddenException('Tài khoản gửi không khớp với tài khoản của hội thoại.');
     }
 
-    if (conv) {
-      const isAssigned =
-        conv.assignedMember?.userId === staffId ||
-        conv.assignedMemberId === staffId ||
-        conv.assignedMember?.id === staffId ||
-        (conv.customer?.channelIdentities as any)?.assignedStaffId === staffId ||
-        (conv.customer?.channelIdentities as any)?.assignedMemberId === staffId;
-
-      if (!isAssigned) {
-        throw new ForbiddenException(
-          'Bạn chỉ có thể phản hồi các cuộc hội thoại được phân công cho mình (403 Forbidden).',
-        );
+    const identityMap = conv.customer?.channelIdentities as Record<string, unknown> | null;
+    const channelKey = String(conv.channelAccount.channel).toLowerCase();
+    const candidates: string[] = [];
+    const normalizeExternalId = (value: string) => {
+      const candidate = value.trim();
+      const parts = candidate.split('_');
+      const last = parts[parts.length - 1];
+      return channelKey === 'facebook' && parts.length > 1 && /^\d+$/.test(last) ? last : candidate;
+    };
+    const addCandidate = (value: unknown) => {
+      if (typeof value !== 'string' || !value.trim()) return;
+      candidates.push(normalizeExternalId(value));
+    };
+    const channelIdentity = identityMap?.[channelKey];
+    if (typeof channelIdentity === 'string') addCandidate(channelIdentity);
+    else if (channelIdentity && typeof channelIdentity === 'object' && !Array.isArray(channelIdentity)) {
+      const identity = channelIdentity as Record<string, unknown>;
+      addCandidate(identity.id);
+      addCandidate(identity.externalUserId);
+      addCandidate(identity.userId);
+    }
+    if (Array.isArray(identityMap)) {
+      for (const entry of identityMap as any[]) {
+        if (String(entry?.channel || '').toLowerCase() === channelKey) addCandidate(entry?.externalUserId || entry?.id);
       }
     }
+    const rawPayload = conv.messages[0]?.rawPayload as Record<string, any> | undefined;
+    const sender = rawPayload?.sender || rawPayload?.from || rawPayload?.user;
+    addCandidate(sender?.id || sender?.userId || rawPayload?.senderExternalId || rawPayload?.fromId);
+    const socialId = identityMap?.socialId;
+    if (typeof socialId === 'string' && socialId !== 'khách' && !socialId.startsWith('cust-')) {
+      addCandidate(socialId);
+    }
+
+    const normalizedInput = input.recipientId.trim();
+    const normalizedInputExternal = normalizeExternalId(normalizedInput);
+    const recipientId = candidates.find((candidate) => candidate === normalizedInputExternal);
+    if (!recipientId && (!conv.customerId || normalizedInput !== conv.customerId)) {
+      throw new ForbiddenException('Người nhận không khớp với khách hàng trong hội thoại.');
+    }
+    const resolvedRecipientId = recipientId || candidates[0];
+    if (!resolvedRecipientId) {
+      throw new ForbiddenException('Không thể xác định tài khoản khách hàng từ hội thoại.');
+    }
+    return { channelAccountId: conv.channelAccountId, recipientId: resolvedRecipientId };
   }
 
   /**

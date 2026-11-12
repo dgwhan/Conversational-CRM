@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   NotFoundException,
   ForbiddenException,
   Logger,
@@ -61,9 +62,14 @@ export async function removeStaff(
 
     const isCallerOwner = currentUserRole === WorkspaceRole.OWNER;
     const isSelfLeave = targetStaffId === currentUser.id;
+    const callerMembership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: targetWs.id, userId: resolvedCaller } },
+      select: { isWorkspaceManager: true, isActive: true, status: true },
+    });
+    const isWorkspaceManager = callerMembership?.isWorkspaceManager === true && callerMembership.isActive && callerMembership.status === 'ACTIVE';
 
     // Nhân viên chỉ được phép tự rời workspace của mình
-    if (!isCallerOwner && !isSelfLeave) {
+    if (!isCallerOwner && !isWorkspaceManager && !isSelfLeave) {
       throw new ForbiddenException(
         'Bạn không có quyền xóa thành viên khác khỏi Không gian làm việc này.'
       );
@@ -86,6 +92,22 @@ export async function removeStaff(
       }
     }
 
+    const targetMembership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: targetWs.id, userId: targetStaffId } },
+      select: { id: true, role: true, isWorkspaceManager: true },
+    });
+    if (!isCallerOwner && !isSelfLeave && (targetStaffId === targetWs.ownerId || targetMembership?.role === WorkspaceRole.OWNER || targetMembership?.isWorkspaceManager)) {
+      throw new ForbiddenException('Quản lý workspace không thể gỡ Owner hoặc Quản lý workspace khác.');
+    }
+    if (targetMembership) {
+      const openConversationCount = await prisma.conversation.count({
+        where: { workspaceId: targetWs.id, assignedMemberId: targetMembership.id, status: 'OPEN' },
+      });
+      if (openConversationCount > 0) {
+        throw new ConflictException(`Cần bàn giao ${openConversationCount} hội thoại đang mở trước khi gỡ nhân viên khỏi workspace.`);
+      }
+    }
+
     // Xóa thành viên khỏi bảng WorkspaceMember
     await prisma.workspaceMember.deleteMany({
       where: {
@@ -104,6 +126,7 @@ export async function removeStaff(
   } catch (err) {
     if (
       err instanceof BadRequestException ||
+      err instanceof ConflictException ||
       err instanceof NotFoundException ||
       err instanceof ForbiddenException
     ) {

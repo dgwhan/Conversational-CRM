@@ -15,6 +15,7 @@ export interface SearchInputProps {
   shortcutHint?: string; // e.g., "/" or "Ctrl+K"
   className?: string;
   inputClassName?: string;
+  iconClassName?: string;
   size?: 'sm' | 'md' | 'lg';
   autoFocus?: boolean;
 }
@@ -35,6 +36,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   shortcutHint,
   className = '',
   inputClassName = '',
+  iconClassName = 'text-slate-400',
   size = 'md',
   autoFocus = false,
 }) => {
@@ -135,7 +137,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {/* Search Icon */}
       <Search
         size={iconSizes[size] ?? 14}
-        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none shrink-0"
+        className={`absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0 ${iconClassName}`}
       />
 
       {/* Input Field */}

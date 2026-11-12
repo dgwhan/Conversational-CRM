@@ -13,7 +13,8 @@ import type { CustomerGateway } from '../../messaging/domain/customer-gateway.po
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
 import { ZcaPersonalService } from './zca-personal.service.js';
-import { MessageRepository, pairInsertedWithEvents } from '../../messaging/infrastructure/message.repository.js';
+import { MessageRepository, pairInsertedWithEvents, type InsertedMessage } from '../../messaging/infrastructure/message.repository.js';
+import { INBOUND_QUEUE, type InboundMessageQueue } from '../../messaging/domain/channel-adapter.port.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { InboundEvent } from '../../messaging/domain/inbound-event.js';
 import { Channel, MessageDirection } from '../../messaging/domain/channel.js';
@@ -41,6 +42,7 @@ export class ChannelSyncService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryption: TokenEncryptionService,
+    @Optional() @Inject(INBOUND_QUEUE) private readonly inboundQueue?: InboundMessageQueue,
     @Optional() private readonly messageRepo?: MessageRepository,
     @Optional() private readonly realtime?: RealtimeService,
     @Optional() private readonly zcaService?: ZcaPersonalService,
@@ -49,6 +51,27 @@ export class ChannelSyncService {
     @Inject(forwardRef(() => WorkingHoursService))
     private readonly workingHoursService?: WorkingHoursService,
   ) {}
+
+  /** Đồng bộ thủ công cũng phải đi qua worker chung để tự phân công các tin inbound mới. */
+  private async enqueueNewInboundMessages(
+    events: readonly InboundEvent[],
+    created: readonly InsertedMessage[],
+  ) {
+    if (created.length === 0) return;
+    const messageIds = pairInsertedWithEvents(events, created)
+      .filter(({ event, item }) => event.direction === MessageDirection.INBOUND && Boolean(item.conversationId))
+      .map(({ item }) => item.id);
+    if (!messageIds.length) return;
+    if (!this.inboundQueue) {
+      throw new Error('Inbound message queue is not configured');
+    }
+
+    try {
+      await this.inboundQueue.enqueue(messageIds);
+    } catch (error) {
+      this.logger.error(`Could not enqueue ${messageIds.length} synced inbound message(s) for lead routing`, error as Error);
+    }
+  }
 
   /**
    * Đồng bộ tin nhắn kênh (Tự động điều phối theo Zalo OA / Zalo Cá nhân hoặc Facebook Fanpage)
@@ -306,6 +329,7 @@ export class ChannelSyncService {
       if (this.messageRepo) {
         const created = await this.messageRepo.insertManyIgnoreDuplicate([event]);
         totalMessagesSynced += created.length;
+        await this.enqueueNewInboundMessages([event], created);
 
         // Bắn sự kiện Realtime WebSocket về Unified Inbox
         if (this.realtime && created.length > 0) {
@@ -688,6 +712,7 @@ export class ChannelSyncService {
       if (events.length > 0 && this.messageRepo) {
         const created = await this.messageRepo.insertManyIgnoreDuplicate(events);
         totalMessagesSynced += created.length;
+        await this.enqueueNewInboundMessages(events, created);
 
         // Bắn sự kiện WebSocket realtime để màn hình Inbox & Kanban cập nhật ngay tức thì
         if (this.realtime) {

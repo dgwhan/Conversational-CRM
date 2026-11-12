@@ -28,6 +28,7 @@ import { notify } from '../../../../components/feedback/toastEmitter.js';
 
 export interface OAuthSimulationModalProps {
   channel: ChannelKey;
+  workspaceId?: string;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (channel: ChannelKey, pages?: DiscoveredPageDto[]) => void;
@@ -37,6 +38,7 @@ type TestStatus = 'IDLE' | 'TESTING' | 'SUCCESS' | 'FAILED';
 
 export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
   channel,
+  workspaceId,
   isOpen,
   onClose,
   onSuccess,
@@ -114,7 +116,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       apiClient
-        .getAuthorizeUrl(channel)
+        .getAuthorizeUrl(channel, undefined, workspaceId)
         .then((res) => {
           if (res?.authorizeUrl) {
             setRealAuthUrl(res.authorizeUrl);
@@ -124,7 +126,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
           // Chưa cấu hình OAuth App ID
         });
     }
-  }, [channel, isOpen]);
+  }, [channel, isOpen, workspaceId]);
 
   // Lắng nghe phản hồi từ cửa sổ Popup OAuth (khi Meta / Zalo redirect về web app)
   useEffect(() => {
@@ -138,6 +140,8 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
             channel,
             event.data.code,
             event.data.state,
+            undefined,
+            workspaceId,
           );
           setIsProcessing(false);
           if (result.pages && result.pages.length > 0) {
@@ -156,7 +160,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
 
     window.addEventListener('message', handleOAuthCallbackMessage);
     return () => window.removeEventListener('message', handleOAuthCallbackMessage);
-  }, [channel, onSuccess, onClose]);
+  }, [channel, workspaceId, onSuccess, onClose]);
 
   // Đếm ngược thời gian hiệu lực của mã QR zca-js
   useEffect(() => {
@@ -178,7 +182,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
 
     const pollInterval = setInterval(async () => {
       try {
-        const latest = await apiClient.getZaloPersonalQrStatus(qrSession.sessionId);
+        const latest = await apiClient.getZaloPersonalQrStatus(qrSession.sessionId, workspaceId);
         if (latest && latest.status !== qrSession.status) {
           setQrSession(latest as any);
           if (latest.status === 'SCANNED') {
@@ -197,13 +201,13 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
     }, 2000);
 
     return () => clearInterval(pollInterval);
-  }, [qrSession]);
+  }, [qrSession, workspaceId]);
 
   // Tạo phiên quét mã QR Đăng nhập Zalo cá nhân qua zca-js
   const handleGenerateZcaQr = async () => {
     setIsGeneratingQr(true);
     try {
-      const res = await apiClient.initZaloPersonalQr();
+      const res = await apiClient.initZaloPersonalQr(workspaceId);
       setQrSession(res);
       setQrCountdown(Math.max(1, Math.round((res.expiresAt - Date.now()) / 1000)));
       setIsGeneratingQr(false);
@@ -220,7 +224,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
     try {
       const res = await apiClient.confirmZaloPersonalQr({
         sessionId: qrSession.sessionId,
-      });
+      }, workspaceId);
       setQrSession(res as any);
       notify.success('Đã xác thực phiên đăng nhập Zalo cá nhân thành công!');
     } catch (err) {
@@ -383,7 +387,7 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
         pageId: pageIdInput.trim() || undefined,
         pageName: pageNameInput.trim() || undefined,
         accessToken: accessTokenInput.trim() || undefined,
-      });
+      }, undefined, undefined, workspaceId);
 
       setIsProcessing(false);
 
@@ -447,11 +451,12 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
     setTestMessageResult(null);
 
     try {
-      const res = await apiClient.sendMessage({
+      const res = await apiClient.sendChannelTestMessage({
         channel,
         recipientId: testRecipientId.trim(),
         content: testMessageText.trim(),
         channelAccountId: testResult?.page?.externalAccountId,
+        workspaceId,
       });
 
       setIsSendingTestMessage(false);

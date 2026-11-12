@@ -7,7 +7,6 @@ import type {
 import { CLIENT_INDUSTRY_PRESETS } from './workspacePresets.js';
 import { notify } from '../../components/feedback/toastEmitter.js';
 import { useUserRole } from '../auth/UserRoleContext.js';
-import { USER_ROLES } from '../auth/userRole.types.js';
 import { apiClient } from '../../lib/api-client/index.js';
 import { getWorkspaceConfigStorageKey } from './workspace-config-storage.js';
 import {
@@ -54,6 +53,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
   const effectiveOwnerId = ownerId || (isOwner ? staffId : '');
 
   const [config, setConfig] = useState<WorkspaceConfig>(initialDefaultConfig);
+  const [canManageWorkspace, setCanManageWorkspace] = useState(false);
 
   useEffect(() => {
     setConfig(initialDefaultConfig);
@@ -122,10 +122,33 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
     },
   });
 
+  useEffect(() => {
+    const workspaceId = workspaceManager.activeWorkspaceId;
+    if (!isAuthenticated || !workspaceId) {
+      setCanManageWorkspace(false);
+      return;
+    }
+    let cancelled = false;
+    setCanManageWorkspace(Boolean(workspaceManager.activeWorkspace?.isOwner));
+    void apiClient.get<{ canManageWorkspace: boolean }>('/workspaces/current/staff/permissions', {
+      skipToast: true,
+      headers: {
+        'x-workspace-id': workspaceId,
+        'x-owner-id': effectiveOwnerId,
+        'x-staff-id': staffId || '',
+      },
+    }).then((permissions) => {
+      if (!cancelled) setCanManageWorkspace(Boolean(permissions.canManageWorkspace));
+    }).catch(() => {
+      if (!cancelled) setCanManageWorkspace(Boolean(workspaceManager.activeWorkspace?.isOwner));
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, effectiveOwnerId, staffId, workspaceManager.activeWorkspaceId, workspaceManager.activeWorkspace?.isOwner]);
+
   // Cập nhật cấu hình lên backend
   const updateConfig = async (patch: Partial<WorkspaceConfig>) => {
-    if (!workspaceManager.isCurrentWorkspaceOwner) {
-      notify.warning('Chỉ Chủ doanh nghiệp (Owner/Admin) mới có quyền chỉnh sửa cấu hình Workspace.', 'Bảo Mật RBAC');
+    if (!canManageWorkspace) {
+      notify.warning('Bạn chưa được cấp quyền quản lý cấu hình workspace.', 'Bảo Mật RBAC');
       return;
     }
 
@@ -142,7 +165,6 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
     try {
       const remoteConfig = await apiClient.put<WorkspaceConfig>('/workspaces/current/config', patch, {
         headers: {
-          'x-user-role': USER_ROLES.OWNER,
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
           'x-workspace-id': workspaceManager.activeWorkspaceId || config.workspaceId || '',
@@ -161,8 +183,8 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Áp dụng Preset mẫu theo ngành
   const applyPreset = async (domain: BusinessDomain, customName?: string) => {
-    if (!workspaceManager.isCurrentWorkspaceOwner) {
-      notify.warning('Chỉ Chủ sở hữu mới có quyền thay đổi mẫu ngành của Không gian làm việc.');
+    if (!canManageWorkspace) {
+      notify.warning('Bạn chưa được cấp quyền quản lý cấu hình workspace.');
       return;
     }
     const preset = CLIENT_INDUSTRY_PRESETS[domain] || CLIENT_INDUSTRY_PRESETS.EDUCATION;
@@ -189,7 +211,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
   });
 
   const resetToDefault = async () => {
-    if (!workspaceManager.isCurrentWorkspaceOwner) return;
+    if (!canManageWorkspace) return;
     await applyPreset('EDUCATION');
     notify.success('Đã khôi phục cấu hình CRM tiêu chuẩn.');
   };
@@ -209,6 +231,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
         fetchStaffList: staffManager.fetchStaffList,
         createStaffMember: staffManager.createStaffMember,
         deleteStaffMember: staffManager.deleteStaffMember,
+        setWorkspaceManagerPermission: staffManager.setWorkspaceManagerPermission,
         cancelInvitation: staffManager.cancelInvitation,
         acceptInvitation: staffManager.acceptInvitation,
         declineInvitation: staffManager.declineInvitation,
@@ -218,6 +241,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
         activeWorkspaceId: workspaceManager.activeWorkspaceId,
         activeWorkspace: workspaceManager.activeWorkspace,
         isCurrentWorkspaceOwner: workspaceManager.isCurrentWorkspaceOwner,
+        canManageWorkspace,
         switchWorkspace: workspaceManager.switchWorkspace,
         fetchMyWorkspaces: workspaceManager.fetchMyWorkspaces,
         createWorkspace: workspaceManager.createWorkspace,
@@ -251,13 +275,15 @@ const defaultFallbackContext: WorkspaceConfigContextType = {
   fetchStaffList: async () => [],
   createStaffMember: async () => {},
   deleteStaffMember: async () => {},
+  setWorkspaceManagerPermission: async () => {},
   cancelInvitation: async () => {},
   acceptInvitation: async () => {},
   declineInvitation: async () => {},
   myWorkspaces: [],
   activeWorkspaceId: '',
   activeWorkspace: null,
-  isCurrentWorkspaceOwner: true,
+  isCurrentWorkspaceOwner: false,
+  canManageWorkspace: false,
   switchWorkspace: async () => {},
   fetchMyWorkspaces: async () => [],
   createWorkspace: async () => null,

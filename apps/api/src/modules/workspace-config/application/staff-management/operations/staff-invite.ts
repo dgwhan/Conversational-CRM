@@ -63,11 +63,19 @@ export async function createStaff(
     const { currentUser, role: currentUserRole } =
       await getCurrentUserAndRole(prisma, resolvedOwner, ownerWorkspace);
 
-    // KIỂM TRA QUYỀN: Chỉ Chủ sở hữu (OWNER) mới có quyền mời thành viên vào Không gian làm việc
-    if (currentUserRole !== WorkspaceRole.OWNER) {
+    const currentMembership = await prisma.workspaceMember.findUnique({
+      where: { workspaceId_userId: { workspaceId: ownerWorkspace.id, userId: resolvedOwner } },
+      select: { isWorkspaceManager: true, isActive: true, status: true },
+    });
+    const isWorkspaceManager = currentMembership?.isWorkspaceManager === true && currentMembership.isActive && currentMembership.status === 'ACTIVE';
+    const isOwner = ownerWorkspace.ownerId === resolvedOwner || currentUserRole === WorkspaceRole.OWNER;
+    if (!isOwner && !isWorkspaceManager) {
       throw new ForbiddenException(
-        'Chỉ Chủ sở hữu (OWNER) mới có quyền mời thành viên vào Không gian làm việc.'
+        'Bạn chưa được cấp quyền quản lý thành viên trong workspace.'
       );
+    }
+    if (!isOwner && dto.role === WorkspaceRole.OWNER) {
+      throw new ForbiddenException('Quản lý workspace chỉ được mời nhân viên tư vấn, không được cấp quyền Owner.');
     }
 
     // Tìm kiếm theo Email hoặc Số điện thoại qua magic string 'user' trên Prisma

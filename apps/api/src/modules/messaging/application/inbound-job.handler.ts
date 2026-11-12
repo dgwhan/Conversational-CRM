@@ -3,6 +3,7 @@ import type { InboundJobData } from "../domain/channel-adapter.port.js";
 import { MessageRepository } from "../infrastructure/message.repository.js";
 import { InboundMessageSideEffects } from "./inbound-message-side-effects.service.js";
 import { ProcessMessageReceived } from "./process-message-received.usecase.js";
+import { LeadRoutingService } from '../../lead-routing/lead-routing.service.js';
 
 /**
  * Xử lý một job inbound (chạy trong worker, ngoài request webhook):
@@ -18,6 +19,7 @@ export class InboundJobHandler {
         private readonly processUseCase: ProcessMessageReceived,
         @Optional() private readonly messages?: MessageRepository,
         @Optional() private readonly sideEffects?: InboundMessageSideEffects,
+        @Optional() private readonly leadRouting?: LeadRoutingService,
     ) {}
 
     async handle(job: InboundJobData, options: { firstAttempt: boolean }): Promise<void> {
@@ -38,5 +40,9 @@ export class InboundJobHandler {
         }
 
         await this.processUseCase.execute(job.messageId);
+        if (this.messages && this.leadRouting) {
+            const routeContext = await this.messages.findConversationRouteContext(job.messageId);
+            if (routeContext) await this.leadRouting.routeNewConversation(routeContext.conversationId, routeContext.workspaceId);
+        }
     }
 }

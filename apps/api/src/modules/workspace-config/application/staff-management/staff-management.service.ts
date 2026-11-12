@@ -15,6 +15,7 @@ import {
 import { getStaffList } from './operations/staff-query.js';
 import { createStaff } from './operations/staff-invite.js';
 import { removeStaff } from './operations/staff-removal.js';
+import { getWorkspacePermissions, setWorkspaceManagerPermission } from './operations/staff-permissions.js';
 import {
   getInvitationDetails,
   acceptInvitation,
@@ -75,6 +76,19 @@ export class StaffManagementService {
     workspaceId?: string
   ): Promise<StaffItemResponse[]> {
     return getStaffList(this.prisma, callerId, workspaceId);
+  }
+
+  getWorkspacePermissions(callerId: string, workspaceId?: string) {
+    return getWorkspacePermissions(this.prisma, callerId, workspaceId);
+  }
+
+  setWorkspaceManagerPermission(
+    callerId: string,
+    targetUserId: string,
+    isWorkspaceManager: boolean,
+    workspaceId?: string,
+  ) {
+    return setWorkspaceManagerPermission(this.prisma, callerId, targetUserId, isWorkspaceManager, workspaceId);
   }
 
   /**

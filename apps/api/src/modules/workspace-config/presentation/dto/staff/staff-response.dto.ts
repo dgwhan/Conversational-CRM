@@ -10,6 +10,8 @@ export interface StaffItemResponseDto {
   status: UserStatus;
   memberStatus?: WorkspaceMemberStatus;
   memberId?: string;
+  assignmentLocked?: boolean;
+  isWorkspaceManager?: boolean;
   invitedAt?: Date | null;
   joinedAt?: Date | null;
   invitedBy?: { id: string; fullName: string; email: string } | null;

@@ -21,6 +21,10 @@ export interface ToggleStaffLockRequestDto {
   lock: boolean;
 }
 
+export interface UpdateStaffPermissionsRequestDto {
+  isWorkspaceManager: boolean;
+}
+
 // Aliases for compatibility
 export type CreateStaffDto = CreateStaffRequestDto;
 export type UpdateStaffDto = UpdateStaffRequestDto;

@@ -107,6 +107,7 @@ model Conversation {
     customer              Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
     assignedMember        WorkspaceMember?    @relation(fields: [assignedMemberId], references: [id], onDelete: SetNull)
     messages              Message[]
+    leadQueueEntry        LeadQueueEntry?
 
     @@index([workspaceId, lastMessageAt])
     @@index([channelAccountId])

@@ -2,6 +2,7 @@ import { Module, Provider, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaModule } from '../../platform/database/prisma.module.js';
 import { RealtimeModule } from '../realtime/realtime.module.js';
+import { LeadRoutingModule } from '../lead-routing/lead-routing.module.js';
 import { AuditModule } from '../audit/audit.module.js';
 import { WorkspaceConfigModule } from '../workspace-config/workspace-config.module.js';
 import { ChannelConnectionModule } from '../channel-connection/channel-connection.module.js';
@@ -81,6 +82,7 @@ const adaptersProvider: Provider = {
     imports: [
         PrismaModule,
         RealtimeModule,
+        LeadRoutingModule,
         AuditModule,
         WorkspaceConfigModule,
         forwardRef(() => ChannelConnectionModule),

@@ -8,6 +8,9 @@ import { standardizeVietnamesePhoneNumber } from '../../customers/domain/phone-s
 import { matchesUnaccent } from '../../customers/domain/unaccent.js';
 import { deduplicateTags } from '../domain/tag-mapping/index.js';
 import { ActivityService } from '../../activities/activity.service.js';
+import { AuditAction } from '@prisma/client';
+import { AuditService } from '../../audit/audit.service.js';
+import { LeadRoutingService } from '../../lead-routing/lead-routing.service.js';
 
 export function isTestAppointmentStage(stage?: string | null): boolean {
     if (!stage) return false;
@@ -67,6 +70,8 @@ export class CustomerService {
         @Optional() private readonly mergeService?: ContactMergeService,
         @Optional() tagService?: CustomerTagService,
         @Optional() private readonly activityService?: ActivityService,
+        @Optional() private readonly audit?: AuditService,
+        @Optional() private readonly leadRouting?: LeadRoutingService,
     ) {
         this.tagService = tagService || new CustomerTagService(prisma);
     }
@@ -628,6 +633,7 @@ export class CustomerService {
         staffId?: string | null,
         staffName?: string | null,
         workspaceId?: string,
+        actorId?: string,
     ) {
         let resolvedMemberId: string | null = null;
         let targetWsId = workspaceId && UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
@@ -654,35 +660,57 @@ export class CustomerService {
 
         resolvedMemberId = await this.resolveWorkspaceMemberId(staffId, targetWsId);
 
-        if (conv) {
-            await this.prisma.conversation.update({
-                where: { id: conv.id },
-                data: { assignedMemberId: resolvedMemberId },
+        if (resolvedMemberId) {
+            const validMember = await this.prisma.workspaceMember.findFirst({
+                where: {
+                    id: resolvedMemberId,
+                    ...(targetWsId ? { workspaceId: targetWsId } : {}),
+                    status: 'ACTIVE',
+                    isActive: true,
+                    assignmentLocked: false,
+                    user: { status: 'ACTIVE' },
+                },
+                select: { id: true, userId: true },
             });
+            if (!validMember) throw new BadRequestException('Nhân viên không hoạt động hoặc đang bị khóa nhận lead.');
+        }
 
-            if (conv.customer) {
-                const currentIdentities = (conv.customer.channelIdentities as any) || {};
-                await this.prisma.customer.update({
-                    where: { id: conv.customer.id },
-                    data: {
-                        channelIdentities: {
-                            ...currentIdentities,
-                            assignedStaffId: staffId || null,
-                            assignedStaffName: staffName || null,
-                            assignedMemberId: resolvedMemberId,
-                        },
-                    },
+        const previousAssignments: Array<{ conversationId: string; assignedMemberId: string | null }> = [];
+        let assignmentCapacityStatus: { openConversations: number; effectiveCapacity: number; overCapacity: boolean } | undefined;
+        await this.prisma.$transaction(async (tx) => {
+            if (resolvedMemberId && targetWsId) {
+                await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM workspace_members WHERE id = ${resolvedMemberId}::uuid FOR UPDATE`);
+                const currentAssignee = await tx.workspaceMember.findFirst({
+                    where: { id: resolvedMemberId, workspaceId: targetWsId, status: 'ACTIVE', isActive: true, assignmentLocked: false, user: { status: 'ACTIVE' } },
+                    select: { id: true },
                 });
+                if (!currentAssignee) throw new BadRequestException('Nhân viên không hoạt động hoặc đang bị khóa nhận lead.');
             }
-        } else {
-            // Synthetic conversationId or lookup by channel identities
-            const parts = conversationId.split('_');
-            const channel = parts[0]?.toUpperCase();
-            const senderExternalId = parts.length >= 3 ? parts.slice(2).join('_') : (parts.length === 2 ? parts[1] : null);
-
-            let customer: any = null;
-            if (senderExternalId) {
-                customer = await this.prisma.customer.findFirst({
+            if (conv) {
+                const latest = await tx.conversation.findFirst({ where: { id: conv.id, ...(targetWsId ? { workspaceId: targetWsId } : {}) } });
+                if (!latest) throw new NotFoundException('Cuộc hội thoại không tồn tại.');
+                previousAssignments.push({ conversationId: latest.id, assignedMemberId: latest.assignedMemberId });
+                await tx.conversation.update({ where: { id: latest.id }, data: { assignedMemberId: resolvedMemberId } });
+                if (latest.customerId && conv.customer) {
+                    const currentIdentities = (conv.customer.channelIdentities as any) || {};
+                    await tx.customer.update({
+                        where: { id: conv.customer.id },
+                        data: {
+                            channelIdentities: {
+                                ...currentIdentities,
+                                assignedStaffId: staffId || null,
+                                assignedStaffName: staffName || null,
+                                assignedMemberId: resolvedMemberId,
+                            },
+                        },
+                    });
+                }
+            } else {
+                // Synthetic conversationId or lookup by channel identities.
+                const parts = conversationId.split('_');
+                const channel = parts[0]?.toUpperCase();
+                const senderExternalId = parts.length >= 3 ? parts.slice(2).join('_') : (parts.length === 2 ? parts[1] : null);
+                const customer = senderExternalId ? await tx.customer.findFirst({
                     where: {
                         ...(targetWsId ? { workspaceId: targetWsId } : {}),
                         OR: [
@@ -693,31 +721,42 @@ export class CustomerService {
                             { channelIdentities: { path: ['zalo'], equals: senderExternalId } },
                         ],
                     },
-                });
+                }) : null;
+                if (customer) {
+                    const conversations = await tx.conversation.findMany({
+                        where: { customerId: customer.id, ...(targetWsId ? { workspaceId: targetWsId } : {}) },
+                        select: { id: true, assignedMemberId: true },
+                    });
+                    previousAssignments.push(...conversations.map((item) => ({ conversationId: item.id, assignedMemberId: item.assignedMemberId })));
+                    const currentIdentities = (customer.channelIdentities as any) || {};
+                    await tx.customer.update({
+                        where: { id: customer.id },
+                        data: { channelIdentities: { ...currentIdentities, assignedStaffId: staffId || null, assignedStaffName: staffName || null, assignedMemberId: resolvedMemberId } },
+                    });
+                    await tx.conversation.updateMany({
+                        where: { customerId: customer.id, ...(targetWsId ? { workspaceId: targetWsId } : {}) },
+                        data: { assignedMemberId: resolvedMemberId },
+                    });
+                }
             }
 
-            if (customer) {
-                const currentIdentities = (customer.channelIdentities as any) || {};
-                await this.prisma.customer.update({
-                    where: { id: customer.id },
-                    data: {
-                        channelIdentities: {
-                            ...currentIdentities,
-                            assignedStaffId: staffId || null,
-                            assignedStaffName: staffName || null,
-                            assignedMemberId: resolvedMemberId,
-                        },
-                    },
-                });
-                await this.prisma.conversation.updateMany({
-                    where: {
-                        customerId: customer.id,
-                        ...(targetWsId ? { workspaceId: targetWsId } : {}),
-                    },
-                    data: { assignedMemberId: resolvedMemberId },
+            if (resolvedMemberId && targetWsId) {
+                await this.leadRouting?.markCurrentShiftUsage(tx, targetWsId, resolvedMemberId);
+                assignmentCapacityStatus = await this.leadRouting?.getCapacitySummary(targetWsId, resolvedMemberId, tx);
+            }
+
+            if (this.audit && targetWsId) {
+                await this.audit.recordBusinessEvent(tx, {
+                    action: AuditAction.LEAD_MANUALLY_ASSIGNED,
+                    workspaceId: targetWsId,
+                    actorId: actorId ?? null,
+                    metadata: { conversationId, previousAssignments, newAssigneeMemberId: resolvedMemberId, capacityStatus: assignmentCapacityStatus ?? null, source: 'OWNER_MANUAL_ASSIGNMENT' },
                 });
             }
-        }
+        });
+
+        if (targetWsId) this.realtime?.emit('conversation:assigned', { conversationId, assignedMemberId: resolvedMemberId }, targetWsId);
+        const capacityStatus = assignmentCapacityStatus;
 
         return {
             success: true,
@@ -725,6 +764,7 @@ export class CustomerService {
             assignedMemberId: resolvedMemberId,
             assignedStaffId: staffId || null,
             assignedStaffName: staffName || null,
+            ...capacityStatus,
         };
     }
 

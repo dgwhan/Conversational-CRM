@@ -2,10 +2,10 @@ import type { BaseApiClient } from './core.js';
 
 export function createChannelApi(client: BaseApiClient) {
   return {
-    getAuthorizeUrl(channel: string, redirectUri?: string) {
+    getAuthorizeUrl(channel: string, redirectUri?: string, workspaceId?: string) {
       return client.get<{ authorizeUrl: string; state: string; channel: string }>(
         `/oauth/${channel.toLowerCase()}/authorize-url`,
-        { params: { redirectUri } },
+        { params: { redirectUri }, headers: workspaceId ? { 'x-workspace-id': workspaceId } : {} },
       );
     },
 
@@ -23,6 +23,7 @@ export function createChannelApi(client: BaseApiClient) {
           },
       state?: string,
       redirectUri?: string,
+      workspaceId?: string,
     ) {
       const body =
         typeof codeOrPayload === 'string'
@@ -43,7 +44,9 @@ export function createChannelApi(client: BaseApiClient) {
           channel: string;
           accessToken: string;
         }>;
-      }>(`/oauth/${channel.toLowerCase()}/exchange-token`, body);
+      }>(`/oauth/${channel.toLowerCase()}/exchange-token`, body, {
+        headers: workspaceId ? { 'x-workspace-id': workspaceId } : {},
+      });
     },
 
     activateChannels(pages: Record<string, unknown>[], workspaceId?: string, ownerId?: string) {
@@ -115,21 +118,35 @@ export function createChannelApi(client: BaseApiClient) {
       });
     },
 
+    sendChannelTestMessage(data: {
+      channel: string;
+      recipientId: string;
+      content: string;
+      channelAccountId?: string;
+      workspaceId?: string;
+    }) {
+      return client.post<{ success: boolean; messageId: string; sentAt: string }>(
+        '/channels/test-send',
+        data,
+        { headers: data.workspaceId ? { 'x-workspace-id': data.workspaceId } : {} },
+      );
+    },
+
     markFacebookConversationSeen(conversationId: string) {
       return client.post<{ success: boolean }>('/channels/mark-seen', { conversationId });
     },
 
-    initZaloPersonalQr() {
+    initZaloPersonalQr(workspaceId?: string) {
       return client.post<{
         sessionId: string;
         qrCodeUrl: string;
         status: 'PENDING' | 'SCANNED' | 'SUCCESS' | 'EXPIRED';
         createdAt: number;
         expiresAt: number;
-      }>('/channels/zalo-personal/qr-init', {});
+      }>('/channels/zalo-personal/qr-init', {}, { headers: workspaceId ? { 'x-workspace-id': workspaceId } : {} });
     },
 
-    getZaloPersonalQrStatus(sessionId: string) {
+    getZaloPersonalQrStatus(sessionId: string, workspaceId?: string) {
       return client.get<{
         sessionId: string;
         status: 'PENDING' | 'SCANNED' | 'SUCCESS' | 'EXPIRED';
@@ -144,6 +161,7 @@ export function createChannelApi(client: BaseApiClient) {
         };
       }>('/channels/zalo-personal/qr-status', {
         params: { sessionId },
+        headers: workspaceId ? { 'x-workspace-id': workspaceId } : {},
       });
     },
 
@@ -153,7 +171,7 @@ export function createChannelApi(client: BaseApiClient) {
       phone?: string;
       avatarUrl?: string;
       externalAccountId?: string;
-    }) {
+    }, workspaceId?: string) {
       return client.post<{
         sessionId: string;
         status: 'SUCCESS' | 'EXPIRED';
@@ -165,10 +183,10 @@ export function createChannelApi(client: BaseApiClient) {
           phone?: string;
           accessToken: string;
         };
-      }>('/channels/zalo-personal/qr-confirm', data);
+      }>('/channels/zalo-personal/qr-confirm', data, { headers: workspaceId ? { 'x-workspace-id': workspaceId } : {} });
     },
 
-    getZaloSafetyConfig() {
+    getZaloSafetyConfig(workspaceId?: string) {
       return client.get<{
         enabled: boolean;
         minIntervalMs: number;
@@ -176,10 +194,10 @@ export function createChannelApi(client: BaseApiClient) {
         maxMessagesPerMinute: number;
         maxStrangerPerDay: number;
         autoCooldownMinutes: number;
-      }>('/channels/zalo-personal/safety-config');
+      }>('/channels/zalo-personal/safety-config', { headers: workspaceId ? { 'x-workspace-id': workspaceId } : {} });
     },
 
-    updateZaloSafetyConfig(config: Record<string, unknown>) {
+    updateZaloSafetyConfig(config: Record<string, unknown>, workspaceId?: string) {
       return client.patch<{
         enabled: boolean;
         minIntervalMs: number;
@@ -187,7 +205,7 @@ export function createChannelApi(client: BaseApiClient) {
         maxMessagesPerMinute: number;
         maxStrangerPerDay: number;
         autoCooldownMinutes: number;
-      }>('/channels/zalo-personal/safety-config', config);
+      }>('/channels/zalo-personal/safety-config', config, { headers: workspaceId ? { 'x-workspace-id': workspaceId } : {} });
     },
   };
 }

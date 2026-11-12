@@ -5,6 +5,7 @@ export * from './SearchInput.js';
 export * from './EmptyState.js';
 export * from './LoadingState.js';
 export * from './Button.js';
+export * from './ActionOverflowMenu.js';
 export * from './Input.js';
 export * from './Select.js';
 export * from './Badge.js';

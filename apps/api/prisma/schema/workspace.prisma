@@ -14,6 +14,38 @@ enum WorkspaceMemberStatus {
     @@map("workspace_member_status")
 }
 
+enum AvailabilityExceptionType {
+    UNEXPECTED_LEAVE
+    OVERTIME_CONSENT
+
+    @@map("availability_exception_type")
+}
+
+enum AvailabilityExceptionStatus {
+    ACTIVE
+    ENDED
+    CANCELLED
+
+    @@map("availability_exception_status")
+}
+
+enum LeadQueueReason {
+    NO_CAPACITY
+    NO_ACTIVE_SHIFT
+    UNEXPECTED_LEAVE
+    HANDOVER_REQUIRED
+
+    @@map("lead_queue_reason")
+}
+
+enum LeadQueueStatus {
+    WAITING
+    ASSIGNED
+    CANCELLED
+
+    @@map("lead_queue_status")
+}
+
 model Workspace {
     id          String              @id @default(uuid()) @db.Uuid
     name        String              @db.VarChar(255)
@@ -32,6 +64,10 @@ model Workspace {
     notifications   Notification[]
     activities      Activity[]
     deals           Deal[]
+    workShifts      WorkShift[]
+    availabilityExceptions StaffAvailabilityException[]
+    leadQueueEntries LeadQueueEntry[]
+    auditLogs       AuditLog[]
 
     @@index([ownerId])
     @@map("workspaces")
@@ -65,6 +101,8 @@ model WorkspaceMember {
     role        WorkspaceMemberRole   @default(STAFF)
     status      WorkspaceMemberStatus @default(PENDING) @map("status")
     isActive    Boolean               @default(true) @map("is_active")
+    isWorkspaceManager Boolean         @default(false) @map("is_workspace_manager")
+    assignmentLocked Boolean           @default(false) @map("assignment_locked")
     invitedById String?               @map("invited_by_id") @db.Uuid
     invitedAt   DateTime              @default(now()) @map("invited_at") @db.Timestamptz(3)
     joinedAt    DateTime?             @map("joined_at") @db.Timestamptz(3)
@@ -77,6 +115,8 @@ model WorkspaceMember {
     assignedConversations Conversation[]
     activities            Activity[]
     assignedDeals         Deal[]
+    shiftAssignments      WorkShiftMember[]
+    availabilityExceptions StaffAvailabilityException[]
 
     @@unique([workspaceId, userId])
     @@index([workspaceId, status])
@@ -84,4 +124,93 @@ model WorkspaceMember {
     @@index([workspaceId])
     @@index([userId])
     @@map("workspace_members")
+}
+
+model WorkShift {
+    id          String   @id @default(uuid()) @db.Uuid
+    workspaceId String   @map("workspace_id") @db.Uuid
+    name        String   @db.VarChar(120)
+    startTime   String   @map("start_time") @db.VarChar(5)
+    endTime     String   @map("end_time") @db.VarChar(5)
+    timezone    String   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+    weekdays   Int[]    @default([])
+    isActive    Boolean  @default(true) @map("is_active")
+    usedAt      DateTime? @map("used_at") @db.Timestamptz(3)
+    createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    members   WorkShiftMember[]
+    availabilityExceptions StaffAvailabilityException[]
+
+    @@index([workspaceId, isActive])
+    @@map("work_shifts")
+}
+
+model WorkShiftMember {
+    id                String   @id @default(uuid()) @db.Uuid
+    shiftId           String   @map("shift_id") @db.Uuid
+    workspaceMemberId String   @map("workspace_member_id") @db.Uuid
+    leadCapacity      Int      @default(10) @map("lead_capacity")
+    isShiftManager    Boolean  @default(false) @map("is_shift_manager")
+    lastAssignedAt    DateTime? @map("last_assigned_at") @db.Timestamptz(3)
+    createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    shift           WorkShift      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+    workspaceMember WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+
+    @@unique([shiftId, workspaceMemberId])
+    @@index([workspaceMemberId])
+    @@map("work_shift_members")
+}
+
+model StaffAvailabilityException {
+    id                String   @id @default(uuid()) @db.Uuid
+    workspaceId       String   @map("workspace_id") @db.Uuid
+    workspaceMemberId String   @map("workspace_member_id") @db.Uuid
+    shiftId           String?  @map("shift_id") @db.Uuid
+    type              AvailabilityExceptionType
+    startsAt          DateTime @map("starts_at") @db.Timestamptz(3)
+    endsAt            DateTime? @map("ends_at") @db.Timestamptz(3)
+    status            AvailabilityExceptionStatus @default(ACTIVE)
+    reasonCode        String?  @map("reason_code") @db.VarChar(64)
+    note              String?  @db.VarChar(500)
+    requestedById     String   @map("requested_by_id") @db.Uuid
+    approvedById      String?  @map("approved_by_id") @db.Uuid
+    consentAt         DateTime? @map("consent_at") @db.Timestamptz(3)
+    createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace       Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    workspaceMember WorkspaceMember @relation(fields: [workspaceMemberId], references: [id], onDelete: Cascade)
+    shift           WorkShift?      @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+
+    @@index([workspaceId, status, startsAt])
+    @@index([workspaceMemberId, status, startsAt])
+    @@index([shiftId, status, startsAt])
+    @@map("staff_availability_exceptions")
+}
+
+model LeadQueueEntry {
+    id               String   @id @default(uuid()) @db.Uuid
+    workspaceId      String   @map("workspace_id") @db.Uuid
+    conversationId   String   @unique @map("conversation_id") @db.Uuid
+    reason           LeadQueueReason
+    priority         Int      @default(0)
+    status           LeadQueueStatus @default(WAITING)
+    queuedAt         DateTime @default(now()) @map("queued_at") @db.Timestamptz(3)
+    escalationLevel  Int      @default(0) @map("escalation_level")
+    lastEscalatedAt  DateTime? @map("last_escalated_at") @db.Timestamptz(3)
+    assignedAt       DateTime? @map("assigned_at") @db.Timestamptz(3)
+    assignedById     String?  @map("assigned_by_id") @db.Uuid
+    resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(3)
+    createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+    @@index([workspaceId, status, priority, queuedAt])
+    @@map("lead_queue_entries")
 }

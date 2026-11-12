@@ -42,7 +42,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },
@@ -67,7 +66,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },
@@ -77,7 +75,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },
@@ -134,7 +131,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },
@@ -164,7 +160,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },
@@ -174,7 +169,6 @@ export function createWorkspaceApi(client: BaseApiClient) {
         headers: {
           ...(staffId ? { 'x-staff-id': staffId } : {}),
           ...(ownerId ? { 'x-owner-id': ownerId } : {}),
-          'x-user-role': 'OWNER',
         },
       });
     },

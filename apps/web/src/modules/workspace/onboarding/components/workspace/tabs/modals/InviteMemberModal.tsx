@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Button } from '../../../../../../../components/ui/index.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
 import { StaffRole } from '../../../../../../../features/auth/constants/auth.constants.js';
@@ -7,16 +7,22 @@ export interface InviteMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
   onInviteMember: (identifier: string, role: StaffRole) => Promise<void>;
+  allowOwnerRole?: boolean;
 }
 
 export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   isOpen,
   onClose,
   onInviteMember,
+  allowOwnerRole = true,
 }) => {
   const [identifier, setIdentifier] = useState('');
   const [inviteRole, setInviteRole] = useState<StaffRole>(StaffRole.STAFF);
   const [isInviting, setIsInviting] = useState(false);
+
+  useEffect(() => {
+    if (!allowOwnerRole) setInviteRole(StaffRole.STAFF);
+  }, [allowOwnerRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +33,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     }
     setIsInviting(true);
     try {
-      await onInviteMember(cleanId, inviteRole);
+      await onInviteMember(cleanId, allowOwnerRole ? inviteRole : StaffRole.STAFF);
       setIdentifier('');
       onClose();
     } catch {
@@ -71,7 +77,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
             className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
           >
             <option value={StaffRole.STAFF}>Nhân viên tư vấn (STAFF)</option>
-            <option value={StaffRole.OWNER}>Chủ sở hữu / Quản lý (OWNER)</option>
+            {allowOwnerRole && <option value={StaffRole.OWNER}>Chủ sở hữu / Quản lý (OWNER)</option>}
           </select>
         </div>
 

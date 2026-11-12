@@ -41,7 +41,6 @@ export const useWorkspaceStaffManagement = ({
           headers: {
             'x-owner-id': effectiveOwnerId,
             'x-staff-id': staffId || '',
-            'x-user-role': isCurrentWorkspaceOwner ? USER_ROLES.OWNER : USER_ROLES.STAFF,
             'x-workspace-id': wsToFetch,
           },
         });
@@ -58,10 +57,10 @@ export const useWorkspaceStaffManagement = ({
   );
 
   useEffect(() => {
-    if (isAuthenticated && isCurrentWorkspaceOwner && (effectiveOwnerId || staffId)) {
+    if (isAuthenticated && (effectiveOwnerId || staffId)) {
       fetchStaffList();
     }
-  }, [isAuthenticated, isCurrentWorkspaceOwner, effectiveOwnerId, staffId, fetchStaffList]);
+  }, [isAuthenticated, effectiveOwnerId, staffId, fetchStaffList]);
 
   const createStaffMember = async (
     data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },
@@ -73,7 +72,6 @@ export const useWorkspaceStaffManagement = ({
         headers: {
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
-          'x-user-role': USER_ROLES.OWNER,
           'x-workspace-id': wsId,
         },
       });
@@ -93,7 +91,6 @@ export const useWorkspaceStaffManagement = ({
         headers: {
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
-          'x-user-role': isCurrentWorkspaceOwner ? USER_ROLES.OWNER : USER_ROLES.STAFF,
           'x-workspace-id': wsId,
         },
       });
@@ -109,6 +106,25 @@ export const useWorkspaceStaffManagement = ({
     }
   };
 
+  const setWorkspaceManagerPermission = async (targetId: string, enabled: boolean, targetWsId?: string) => {
+    const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+    const result = await apiClient.patch<{ isWorkspaceManager: boolean }>(
+      `/workspaces/current/staff/${targetId}/permissions`,
+      { isWorkspaceManager: enabled },
+      {
+        headers: {
+          'x-workspace-id': wsId,
+          'x-owner-id': effectiveOwnerId,
+          'x-staff-id': staffId || '',
+        },
+      },
+    );
+    setStaffMembers((prev) => prev.map((member) =>
+      member.id === targetId ? { ...member, isWorkspaceManager: result.isWorkspaceManager } : member,
+    ));
+    notify.success(enabled ? 'Đã cấp quyền Quản lý workspace.' : 'Đã thu hồi quyền Quản lý workspace.');
+  };
+
   const cancelInvitation = async (targetId: string, targetWsId?: string) => {
     const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
     try {
@@ -116,7 +132,6 @@ export const useWorkspaceStaffManagement = ({
         headers: {
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
-          'x-user-role': USER_ROLES.OWNER,
           'x-workspace-id': wsId,
         },
       });
@@ -184,6 +199,7 @@ export const useWorkspaceStaffManagement = ({
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,
+    setWorkspaceManagerPermission,
     cancelInvitation,
     acceptInvitation,
     declineInvitation,

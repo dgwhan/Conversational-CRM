@@ -1,6 +1,7 @@
 export * from './types.js';
 export * from './WorkspaceSettingsHeader.js';
 export * from './WorkingHoursTab.js';
+export * from './shift-management/index.js';
 export * from './tabs/index.js';
 export * from './modals/StageModal.js';
 export * from './modals/AddProductModal.js';

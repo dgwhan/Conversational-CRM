@@ -1,4 +1,3 @@
-export * from './WorkspaceListView.js';
 export * from './WorkspaceDetailHeader.js';
 export * from './WorkspaceWizardView.js';
 export * from './WorkspaceWizardHeader.js';

@@ -8,6 +8,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, AppRole } from '../decorators/roles.decorator.js';
+import {
+  WORKSPACE_PERMISSIONS_KEY,
+  type WorkspacePermission,
+} from '../decorators/workspace-permissions.decorator.js';
 import { WORKSPACE_ROLES } from '../../contracts/roles.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import { extractUserFromAuthHeader } from '../../modules/workspace-config/application/workspace-resolver.js';
@@ -49,6 +53,11 @@ export class WorkspaceRolesGuard implements CanActivate {
       context.getClass(),
     ]);
     const hasRoleRequirement = Array.isArray(requiredRoles) && requiredRoles.length > 0;
+    const requiredPermissions = this.reflector.getAllAndOverride<WorkspacePermission[]>(
+      WORKSPACE_PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    const hasPermissionRequirement = Array.isArray(requiredPermissions) && requiredPermissions.length > 0;
 
     // 2. Workspace đích
     let workspace: { id?: string; role?: string; status?: string } | undefined = request.workspace;
@@ -96,20 +105,51 @@ export class WorkspaceRolesGuard implements CanActivate {
     }
 
     // Endpoint không yêu cầu role cụ thể: chỉ cần đã đăng nhập (và là thành viên nếu URL chỉ định workspace)
-    if (!hasRoleRequirement) {
+    if (!hasRoleRequirement && !hasPermissionRequirement) {
       return true;
     }
 
     // Endpoint cho phép mọi vai trò (vd: tạo workspace đầu tiên khi chưa thuộc workspace nào)
-    if (!targetRef && WORKSPACE_ROLES.every((r) => requiredRoles!.includes(r))) {
+    if (hasRoleRequirement && !hasPermissionRequirement && !targetRef && WORKSPACE_ROLES.every((r) => requiredRoles!.includes(r))) {
       return true;
     }
 
     const userRole = workspace?.role as AppRole | undefined;
-    if (!userRole || !requiredRoles!.includes(userRole)) {
+    if (hasRoleRequirement && (!userRole || !requiredRoles!.includes(userRole))) {
       throw new ForbiddenException(
         `Bạn không có quyền thực hiện thao tác này. Chức năng này chỉ dành cho: ${requiredRoles!.join(', ')} (Hiện tại bạn là: ${userRole ?? 'không thuộc không gian làm việc nào'}).`,
       );
+    }
+
+    if (hasPermissionRequirement) {
+      if (!workspace?.id || !this.prisma) {
+        throw new ForbiddenException('Không thể xác định quyền trong workspace hiện tại.');
+      }
+      const target = await this.prisma.workspace.findUnique({
+        where: { id: workspace.id },
+        select: {
+          ownerId: true,
+          members: {
+            where: { userId, isActive: true, status: 'ACTIVE' },
+            select: { role: true, isWorkspaceManager: true },
+            take: 1,
+          },
+        },
+      });
+      const membership = target?.members[0];
+      const isOwner = target?.ownerId === userId || membership?.role === 'OWNER';
+      const isWorkspaceManager = membership?.isWorkspaceManager === true;
+      const allowed = requiredPermissions!.every((permission) => {
+        switch (permission) {
+          case 'MANAGE_WORKSPACE':
+            return isOwner || isWorkspaceManager;
+          default:
+            return false;
+        }
+      });
+      if (!allowed) {
+        throw new ForbiddenException('Bạn chưa được cấp quyền quản lý workspace này.');
+      }
     }
 
     return true;

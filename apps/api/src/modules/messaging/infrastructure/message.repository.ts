@@ -111,6 +111,15 @@ export class MessageRepository implements OnModuleInit {
         });
     }
 
+    async findConversationRouteContext(messageId: string): Promise<{ conversationId: string; workspaceId: string } | null> {
+        const message = await this.prisma.message.findUnique({
+            where: { id: messageId },
+            select: { direction: true, conversation: { select: { id: true, workspaceId: true } } },
+        });
+        if (message?.direction !== MessageDirection.INBOUND || !message.conversation?.workspaceId) return null;
+        return { conversationId: message.conversation.id, workspaceId: message.conversation.workspaceId };
+    }
+
     async markProcessed(id: string, processedAt: Date = new Date()): Promise<void> {
         await this.prisma.message.update({
             where: { id },

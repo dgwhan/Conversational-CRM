@@ -124,17 +124,18 @@ export const useChatMessagingActions = ({
   setConversations,
   staffName,
 }: UseChatMessagingActionsProps) => {
-  const { isOwner, staffId } = useUserRole();
+  const { staffId } = useUserRole();
 
   const handleSendMessage = async (text: string, attachments?: MessageAttachment[]) => {
     if (!currentConv) return;
 
-    // Role STAFF chỉ xem và phản hồi được hội thoại mà mình được phân công
-    if (!isOwner && staffId) {
+    // Mọi vai trò, kể cả Owner, phải được gán vào hội thoại trước khi trả lời.
+    if (staffId) {
       const assigned = currentConv.assignedStaff;
       const isAssigned =
         assigned?.id === staffId ||
         assigned?.memberId === staffId ||
+        (assigned as any)?.userId === staffId ||
         (assigned?.name && staffName && assigned.name.trim().toLowerCase() === staffName.trim().toLowerCase());
 
       if (!isAssigned) {

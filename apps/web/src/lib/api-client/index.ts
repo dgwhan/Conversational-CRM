@@ -49,6 +49,7 @@ export class ApiClient extends BaseApiClient {
   disconnectChannel = this.channels.disconnectChannel;
   syncChannel = this.channels.syncChannel;
   sendMessage = this.channels.sendMessage;
+  sendChannelTestMessage = this.channels.sendChannelTestMessage;
   markFacebookConversationSeen = this.channels.markFacebookConversationSeen;
   initZaloPersonalQr = this.channels.initZaloPersonalQr;
   getZaloPersonalQrStatus = this.channels.getZaloPersonalQrStatus;

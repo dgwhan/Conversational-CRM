@@ -1,16 +1,15 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
-import { useUserRole } from './UserRoleContext.js';
-import { USER_ROLES } from './userRole.types.js';
 import { HttpErrorPage } from '../../pages/errors/HttpErrorPage.js';
 import { AppSkeleton } from '../../components/ui/AppSkeleton.js';
 import { ROUTES, buildRoute } from '../../config/routes.js';
+import { apiClient } from '../../lib/api-client/index.js';
 
 import { useTranslation } from '../../i18n/index.js';
 export interface WorkspaceAccessGuardProps {
   children?: React.ReactNode;
-  /** Yêu cầu bắt buộc phải có vai trò Owner/Admin đối với workspace này (Mặc định: false) */
+  /** Yêu cầu Owner hoặc Workspace Manager của workspace này (Mặc định: false) */
   requireOwner?: boolean;
 }
 
@@ -22,7 +21,10 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { myWorkspaces, activeWorkspaceId, switchWorkspace, isWorkspaceListLoading } = useWorkspaceConfig();
-  const { isOwner: globalIsOwner } = useUserRole();
+  const [permissionCheck, setPermissionCheck] = useState<{ workspaceId: string; allowed: boolean | null }>({
+    workspaceId: '',
+    allowed: null,
+  });
 
   // 1. Kiểm tra tham số ID hợp lệ (chống ký tự đặc biệt, path traversal, injection)
   const isInvalidIdFormat = !id || /[<>'"\\;`|\s]/.test(id);
@@ -44,6 +46,24 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
       switchWorkspace(targetWorkspace.id);
     }
   }, [targetWorkspace, activeWorkspaceId, switchWorkspace]);
+
+  useEffect(() => {
+    if (!requireOwner || !targetWorkspace) {
+      setPermissionCheck({ workspaceId: targetWorkspace?.id ?? '', allowed: null });
+      return;
+    }
+    let cancelled = false;
+    setPermissionCheck({ workspaceId: targetWorkspace.id, allowed: null });
+    void apiClient.get<{ canManageWorkspace: boolean }>('/workspaces/current/staff/permissions', {
+      skipToast: true,
+      headers: { 'x-workspace-id': targetWorkspace.id },
+    }).then((permissions) => {
+      if (!cancelled) setPermissionCheck({ workspaceId: targetWorkspace.id, allowed: Boolean(permissions.canManageWorkspace) });
+    }).catch(() => {
+      if (!cancelled) setPermissionCheck({ workspaceId: targetWorkspace.id, allowed: false });
+    });
+    return () => { cancelled = true; };
+  }, [requireOwner, targetWorkspace?.id]);
 
   if (isWorkspaceListLoading) {
     return <AppSkeleton />;
@@ -83,16 +103,12 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
     );
   }
 
-  // Kiểm tra Function Level Authorization (BFLA / RBAC)
-  // Nếu route yêu cầu quyền Chủ sở hữu (requireOwner = true) nhưng người dùng không phải Owner:
-  // Trả về 404 Not Found đồng nhất (không trả về 403 và không làm lộ tên/thông tin workspace)
+  // Kiểm tra quyền quản lý workspace từ API, không suy quyền từ vai trò STAFF/OWNER ở client.
   if (requireOwner && targetWorkspace) {
-    const isOwnerOfTarget =
-      targetWorkspace.isOwner === true ||
-      targetWorkspace.role === USER_ROLES.OWNER ||
-      (targetWorkspace.id === activeWorkspaceId && globalIsOwner);
-
-    if (!isOwnerOfTarget) {
+    if (permissionCheck.workspaceId !== targetWorkspace.id || permissionCheck.allowed === null) {
+      return <AppSkeleton />;
+    }
+    if (!permissionCheck.allowed) {
       return (
         <HttpErrorPage
           statusCode={404}

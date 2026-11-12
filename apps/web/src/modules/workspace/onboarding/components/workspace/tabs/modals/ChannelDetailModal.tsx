@@ -6,7 +6,7 @@ import {
   getChannelStatus,
   getTransparentWebhookStatus,
 } from '../../workspace.config.js';
-import type { ConnectedChannelItem } from '../WorkspaceChannelsTab.js';
+import type { ConnectedChannelItem } from '../workspace-channels/types.js';
 
 export interface ChannelDetailModalProps {
   channel: ConnectedChannelItem | null;
@@ -14,6 +14,7 @@ export interface ChannelDetailModalProps {
   onOpenConnectModal: (channelKey: ChannelKey) => void;
   onSyncChannel: (channelId: string) => void;
   onDisconnectChannel: (channelId: string, displayName: string) => void;
+  canDisconnect?: boolean;
   isSyncing?: boolean;
 }
 
@@ -23,6 +24,7 @@ export const ChannelDetailModal: React.FC<ChannelDetailModalProps> = ({
   onOpenConnectModal,
   onSyncChannel,
   onDisconnectChannel,
+  canDisconnect = true,
   isSyncing = false,
 }) => {
   if (!channel) return null;
@@ -145,7 +147,7 @@ export const ChannelDetailModal: React.FC<ChannelDetailModalProps> = ({
             </button>
           </div>
 
-          <button
+          {canDisconnect && <button
             type="button"
             onClick={() => {
               const id = channel.id;
@@ -157,7 +159,7 @@ export const ChannelDetailModal: React.FC<ChannelDetailModalProps> = ({
           >
             <Trash2 size={13} />
             <span>Ngắt kết nối</span>
-          </button>
+          </button>}
         </div>
       </div>
     </Modal>

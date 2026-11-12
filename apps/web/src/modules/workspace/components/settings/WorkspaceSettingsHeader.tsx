@@ -17,6 +17,7 @@ export interface WorkspaceSettingsHeaderProps {
   domain: BusinessDomain | string;
   activeWorkspace: WorkspaceItem | null;
   isOwner: boolean;
+  canManageWorkspace?: boolean;
   isLoading?: boolean;
   onApplyPreset: (domain: BusinessDomain) => void;
   onResetDefault: () => void;
@@ -27,6 +28,7 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
   domain,
   activeWorkspace,
   isOwner,
+  canManageWorkspace = isOwner,
   isLoading = false,
   onApplyPreset,
   onResetDefault,
@@ -60,7 +62,7 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
             }`}
           >
             <Shield size={11} />
-            {isOwner ? t('workspaceSettings.owner', 'Chủ sở hữu') : t('workspaceSettings.member', 'Thành viên')}
+            {isOwner ? t('workspaceSettings.owner', 'Chủ sở hữu') : canManageWorkspace ? 'Quản lý workspace' : t('workspaceSettings.member', 'Thành viên')}
           </span>
         </div>
         <p className="text-xs text-slate-500 m-0 mt-0.5 leading-relaxed">
@@ -68,7 +70,7 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
         </p>
       </div>
 
-      {isOwner && (
+      {canManageWorkspace && (
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Preset Selector Dropdown */}
           <div className="relative">
