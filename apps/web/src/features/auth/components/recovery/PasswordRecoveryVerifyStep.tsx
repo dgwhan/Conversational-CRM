@@ -73,7 +73,7 @@ export function PasswordRecoveryVerifyStep({
     event.preventDefault();
 
     if (otp.length < OTP_LENGTH) {
-      setError(`Vui lòng nhập đủ ${OTP_LENGTH} chữ số của mã xác minh.`);
+      setError(t('auth.otpIncomplete', 'Vui lòng nhập đủ {n} chữ số của mã xác minh.', { n: OTP_LENGTH }));
       const firstEmptyIndex = digits.findIndex((digit) => !digit);
       otpInputs.current[firstEmptyIndex === -1 ? 0 : firstEmptyIndex]?.focus();
       return;
@@ -163,7 +163,7 @@ export function PasswordRecoveryVerifyStep({
           <div
             className="grid grid-cols-6 gap-2 sm:gap-3"
             role="group"
-            aria-label="Mã xác minh gồm 6 chữ số"
+            aria-label={t('auth.otpGroupLabel', 'Mã xác minh gồm {n} chữ số', { n: OTP_LENGTH })}
           >
             {digits.map((digit, index) => (
               <input
@@ -171,7 +171,7 @@ export function PasswordRecoveryVerifyStep({
                 ref={(element) => {
                   otpInputs.current[index] = element;
                 }}
-                aria-label={`Chữ số ${index + 1} của mã xác minh`}
+                aria-label={t('auth.otpDigitLabel', 'Chữ số {n} của mã xác minh', { n: index + 1 })}
                 aria-invalid={error ? true : undefined}
                 autoComplete={index === 0 ? 'one-time-code' : 'off'}
                 className="glass-field-input h-12 min-w-0 rounded-xl border border-slate-300 bg-white/80 text-center font-sans text-lg sm:text-xl font-bold text-slate-900 outline-none focus:border-[#1A5CFF] focus:ring-3 focus:ring-[#1A5CFF]/20 focus:bg-white disabled:cursor-not-allowed disabled:opacity-50 transition-all"

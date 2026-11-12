@@ -18,7 +18,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { messagingApi } from '../api/messaging.api.js';
 import type { ChannelType, SavedMessage } from '../types/messaging.types.js';
 
+import { useTranslation } from '../../../i18n/index.js';
 export const SavedMessagesTable: React.FC = () => {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<SavedMessage[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -109,10 +111,10 @@ export const SavedMessagesTable: React.FC = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Database size={20} style={{ color: 'var(--color-primary)' }} />
-              <CardTitle>Dữ Liệu Tin Nhắn Đã Lưu Trong Hệ Thống ({total} tin nhắn)</CardTitle>
+              <CardTitle>{t('messagingImport.saved.title', 'Dữ Liệu Tin Nhắn Đã Lưu Trong Hệ Thống ({n} tin nhắn)', { n: total })}</CardTitle>
             </div>
             <CardDescription>
-              Toàn bộ tin nhắn thu thập đa kênh (Zalo, Facebook, TikTok, Nhập thủ công) đã được lưu vĩnh viễn trong cơ sở dữ liệu PostgreSQL.
+              {t('messagingImport.saved.desc', 'Toàn bộ tin nhắn thu thập đa kênh (Zalo, Facebook, TikTok, Nhập thủ công) đã được lưu vĩnh viễn trong cơ sở dữ liệu PostgreSQL.')}
             </CardDescription>
           </div>
           <Button
@@ -122,7 +124,7 @@ export const SavedMessagesTable: React.FC = () => {
             onClick={handleRefresh}
             loading={loading}
           >
-            Làm mới
+            {t('messagingImport.saved.refresh', 'Làm mới')}
           </Button>
         </CardHeader>
 
@@ -136,9 +138,9 @@ export const SavedMessagesTable: React.FC = () => {
                   setSearchTerm(val);
                   setPage(1);
                 }}
-                placeholder="Tìm kiếm nội dung hoặc mã tin nhắn..."
+                placeholder={t('messagingImport.saved.searchPlaceholder', 'Tìm kiếm nội dung hoặc mã tin nhắn...')}
                 size="sm"
-                className="w-full min-w-[280px]"
+                className="w-full min-w-0 sm:min-w-[280px]"
               />
             </div>
 
@@ -152,7 +154,7 @@ export const SavedMessagesTable: React.FC = () => {
                   setPage(1);
                 }}
               >
-                <option value="">Tất cả các kênh</option>
+                <option value="">{t('messagingImport.saved.allChannels', 'Tất cả các kênh')}</option>
                 <option value="ZALO">ZALO OA</option>
                 <option value="FACEBOOK">FACEBOOK Messenger</option>
                 <option value="TIKTOK">TIKTOK Channel</option>
@@ -166,20 +168,20 @@ export const SavedMessagesTable: React.FC = () => {
             <table className="crm-table">
               <thead>
                 <tr>
-                  <th style={{ width: '110px' }}>Kênh</th>
-                  <th style={{ width: '160px' }}>Tài khoản tiếp nhận</th>
-                  <th style={{ width: '130px' }}>Chiều tin</th>
-                  <th>Nội dung tin nhắn</th>
-                  <th style={{ width: '170px' }}>Thời gian gửi</th>
-                  <th style={{ width: '130px' }}>Trạng thái xử lý</th>
-                  <th style={{ width: '80px', textAlign: 'center' }}>Chi tiết</th>
+                  <th style={{ width: '110px' }}>{t('messagingImport.saved.colChannel', 'Kênh')}</th>
+                  <th style={{ width: '160px' }}>{t('messagingImport.saved.colAccount', 'Tài khoản tiếp nhận')}</th>
+                  <th style={{ width: '130px' }}>{t('messagingImport.saved.colDirection', 'Chiều tin')}</th>
+                  <th>{t('messagingImport.saved.colContent', 'Nội dung tin nhắn')}</th>
+                  <th style={{ width: '170px' }}>{t('messagingImport.saved.colSentAt', 'Thời gian gửi')}</th>
+                  <th style={{ width: '130px' }}>{t('messagingImport.saved.colStatus', 'Trạng thái xử lý')}</th>
+                  <th style={{ width: '80px', textAlign: 'center' }}>{t('messagingImport.saved.colDetail', 'Chi tiết')}</th>
                 </tr>
               </thead>
               <tbody>
                 {messages.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '36px', color: 'var(--color-text-muted)' }}>
-                      {loading ? 'Đang tải dữ liệu tin nhắn...' : 'Chưa có tin nhắn nào trong cơ sở dữ liệu. Hãy import hoặc gửi webhook để nạp dữ liệu!'}
+                      {loading ? t('messagingImport.saved.loading', 'Đang tải dữ liệu tin nhắn...') : t('messagingImport.saved.empty', 'Chưa có tin nhắn nào trong cơ sở dữ liệu. Hãy import hoặc gửi webhook để nạp dữ liệu!')}
                     </td>
                   </tr>
                 ) : (
@@ -188,7 +190,7 @@ export const SavedMessagesTable: React.FC = () => {
                       <td>{getChannelBadge(msg.channel)}</td>
                       <td>
                         <span style={{ fontWeight: 500 }}>
-                          {msg.channelAccount?.displayName || msg.channelAccount?.externalAccountId || 'Tài khoản mặc định'}
+                          {msg.channelAccount?.displayName || msg.channelAccount?.externalAccountId || t('messagingImport.saved.defaultAccount', 'Tài khoản mặc định')}
                         </span>
                       </td>
                       <td>
@@ -199,7 +201,7 @@ export const SavedMessagesTable: React.FC = () => {
                       </td>
                       <td>
                         <div className="message-content-cell">
-                          {msg.content || <em style={{ color: 'var(--color-text-subtle)' }}>(Không có nội dung văn bản)</em>}
+                          {msg.content || <em style={{ color: 'var(--color-text-subtle)' }}>{t('messagingImport.saved.noText', '(Không có nội dung văn bản)')}</em>}
                         </div>
                       </td>
                       <td>
@@ -211,12 +213,12 @@ export const SavedMessagesTable: React.FC = () => {
                         {msg.processedAt ? (
                           <span className="status-badge status-processed">
                             <CheckCircle2 size={13} />
-                            Đã xử lý
+                            {t('messagingImport.saved.processed', 'Đã xử lý')}
                           </span>
                         ) : (
                           <span className="status-badge status-pending">
                             <Clock size={13} />
-                            Chờ Worker
+                            {t('messagingImport.saved.pending', 'Chờ Worker')}
                           </span>
                         )}
                       </td>
@@ -241,7 +243,7 @@ export const SavedMessagesTable: React.FC = () => {
           {totalPages > 1 && (
             <div className="crm-pagination-bar">
               <span className="pagination-info">
-                Hiển thị trang <strong>{page}</strong> / <strong>{totalPages}</strong> ({total} dòng)
+                {t('messagingImport.saved.pagePrefix', 'Hiển thị trang')} <strong>{page}</strong> / <strong>{totalPages}</strong> ({t('messagingImport.saved.rowsCount', '{n} dòng', { n: total })})
               </span>
               <div className="pagination-buttons">
                 <Button
@@ -251,7 +253,7 @@ export const SavedMessagesTable: React.FC = () => {
                   icon={<ChevronLeft size={14} />}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  Trước
+                  {t('messagingImport.saved.prev', 'Trước')}
                 </Button>
                 <Button
                   variant="secondary"
@@ -261,7 +263,7 @@ export const SavedMessagesTable: React.FC = () => {
                   iconPosition="right"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  Sau
+                  {t('messagingImport.saved.next', 'Sau')}
                 </Button>
               </div>
             </div>
@@ -275,7 +277,7 @@ export const SavedMessagesTable: React.FC = () => {
           <div className="crm-modal" onClick={(e) => e.stopPropagation()}>
             <div className="crm-modal-header">
               <div className="crm-modal-title">
-                Chi Tiết Bản Ghi Tin Nhắn (ID: <code>{selectedMessage.id}</code>)
+                {t('messagingImport.saved.detailTitle', 'Chi Tiết Bản Ghi Tin Nhắn')} (ID: <code>{selectedMessage.id}</code>)
               </div>
               <button
                 type="button"
@@ -288,12 +290,12 @@ export const SavedMessagesTable: React.FC = () => {
             <div className="crm-modal-body">
               <div className="meta-grid">
                 <div><strong>External ID:</strong> <code>{selectedMessage.externalMessageId}</code></div>
-                <div><strong>Kênh:</strong> {selectedMessage.channel}</div>
-                <div><strong>Thời gian gửi:</strong> {formatDate(selectedMessage.sentAt)}</div>
-                <div><strong>Thời gian tạo hệ thống:</strong> {formatDate(selectedMessage.createdAt)}</div>
+                <div><strong>{t('messagingImport.saved.channelLabel', 'Kênh:')}</strong> {selectedMessage.channel}</div>
+                <div><strong>{t('messagingImport.saved.sentAtLabel', 'Thời gian gửi:')}</strong> {formatDate(selectedMessage.sentAt)}</div>
+                <div><strong>{t('messagingImport.saved.createdAtLabel', 'Thời gian tạo hệ thống:')}</strong> {formatDate(selectedMessage.createdAt)}</div>
               </div>
               <div style={{ marginTop: '14px' }}>
-                <label className="form-label">Toàn bộ Raw JSON Payload:</label>
+                <label className="form-label">{t('messagingImport.saved.rawLabel', 'Toàn bộ Raw JSON Payload:')}</label>
                 <pre className="crm-modal-code">
                   {JSON.stringify(selectedMessage.rawPayload, null, 2)}
                 </pre>
@@ -305,7 +307,7 @@ export const SavedMessagesTable: React.FC = () => {
                 size="sm"
                 onClick={() => setSelectedMessage(null)}
               >
-                Đóng
+                {t('ui.close', 'Đóng')}
               </Button>
             </div>
           </div>

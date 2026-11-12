@@ -405,6 +405,11 @@
   transition: border-color 0.15s ease;
 }
 
+/* Selects with a leading icon (pl-7) need room for it; plain CSS above beats the Tailwind utility */
+.kanban-filter-select.pl-7 {
+  padding-left: 28px;
+}
+
 .kanban-filter-select:hover {
   border-color: #cbd5e1;
 }

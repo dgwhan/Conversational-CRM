@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, Clock, Sparkles } from 'lucide-react';
-import { PROCESS_STEPS } from '../constants/landing.constants.js';
+import { useLandingContent } from '../hooks/useLandingContent.js';
 import { MascotCusi } from './characters/MascotCusi.js';
 import {
   MessengerBird,
@@ -10,6 +10,8 @@ import {
 } from './characters/SupportCharacters.js';
 
 export const HowItWorksSection: React.FC = () => {
+  const { how } = useLandingContent();
+
   return (
     <section id="how-it-works" className="relative py-24 sm:py-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
       {/* Background ambient lighting */}
@@ -19,17 +21,18 @@ export const HowItWorksSection: React.FC = () => {
       <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 backdrop-blur-md mb-4 shadow-sm">
           <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-          <span>Quy trình vận hành thông minh</span>
+          <span>{how.pill}</span>
         </div>
         <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          Từ tin nhắn đầu tiên đến{' '}
+          {how.titleLead}{' '}
           <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-            học viên nhập học
+            {how.titleHighlight}
           </span>
         </h2>
         <p className="mt-4 text-base sm:text-lg text-slate-600 dark:text-slate-300">
-          Chỉ với 4 bước tự động hóa khép kín, Polaris<span className="text-blue-600 dark:text-blue-400 font-bold">X</span> CRM
-          giúp bộ phận tư vấn tuyển sinh nâng cao năng suất gấp 3 lần và triệt tiêu hoàn toàn độ trễ tiếp xúc.
+          {how.subtitleBefore}
+          <span className="text-blue-600 dark:text-blue-400 font-bold">X</span>
+          {how.subtitleAfter}
         </p>
       </div>
 
@@ -61,7 +64,7 @@ export const HowItWorksSection: React.FC = () => {
 
         {/* 4 Steps Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 relative z-10">
-          {PROCESS_STEPS.map((item, index) => {
+          {how.steps.map((item, index) => {
             return (
               <motion.div
                 key={item.step}
@@ -73,14 +76,14 @@ export const HowItWorksSection: React.FC = () => {
               >
                 {/* Step badge */}
                 <div className="absolute -top-3 left-6 px-3 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20">
-                  Bước 0{item.step}
+                  {how.stepLabel} 0{item.step}
                 </div>
 
                 {/* Character preview container */}
                 <div className="h-28 flex items-center justify-center mb-4 mt-2">
                   {item.step === 1 && (
                     <div className="relative p-2 rounded-2xl bg-sky-50/80 dark:bg-sky-950/30 border border-sky-200/50 dark:border-sky-800/50 group-hover:scale-105 transition-transform duration-300">
-                      <MessengerBird size={80} className="drop-shadow-md" />
+                      <MessengerBird size={80} className="drop-shadow-md" ariaLabel={how.characterLabels.messenger} />
                     </div>
                   )}
                   {item.step === 2 && (
@@ -95,12 +98,12 @@ export const HowItWorksSection: React.FC = () => {
                   )}
                   {item.step === 3 && (
                     <div className="relative p-2 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/50 group-hover:scale-105 transition-transform duration-300">
-                      <RecruiterCharacter size={80} className="drop-shadow-md" />
+                      <RecruiterCharacter size={80} className="drop-shadow-md" ariaLabel={how.characterLabels.agent} />
                     </div>
                   )}
                   {item.step === 4 && (
                     <div className="relative p-2 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50 group-hover:scale-105 transition-transform duration-300">
-                      <StudentCharacter size={80} className="drop-shadow-md" />
+                      <StudentCharacter size={80} className="drop-shadow-md" ariaLabel={how.characterLabels.customer} />
                     </div>
                   )}
                 </div>
@@ -149,10 +152,10 @@ export const HowItWorksSection: React.FC = () => {
           </div>
           <div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-              Cam kết SLA phản hồi &lt; 5 phút
+              {how.slaTitle}
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              Cảnh báo tự động về Telegram khi tư vấn viên chưa tương tác với khách hàng sau 15 phút.
+              {how.slaDescription}
             </p>
           </div>
         </div>
@@ -160,7 +163,7 @@ export const HowItWorksSection: React.FC = () => {
           href="#live-demo"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white/80 dark:bg-slate-800/80 border border-blue-200/60 dark:border-blue-700/60 hover:bg-blue-50 dark:hover:bg-slate-700/50 transition-colors shadow-sm whitespace-nowrap"
         >
-          Xem trải nghiệm thực tế
+          {how.slaCta}
           <ArrowRight className="w-3.5 h-3.5" />
         </a>
       </motion.div>

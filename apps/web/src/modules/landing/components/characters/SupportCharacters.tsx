@@ -4,9 +4,10 @@ import React from 'react';
  * 1. Chú chim đưa thư thông báo PolarisX (Messenger Bird)
  * Đại diện cho hệ thống Webhook & Cảnh báo tức thì Telegram/Email.
  */
-export const MessengerBird: React.FC<{ size?: number; className?: string }> = ({
+export const MessengerBird: React.FC<{ size?: number; className?: string; ariaLabel?: string }> = ({
   size = 64,
   className = '',
+  ariaLabel,
 }) => {
   return (
     <svg
@@ -17,7 +18,7 @@ export const MessengerBird: React.FC<{ size?: number; className?: string }> = ({
       xmlns="http://www.w3.org/2000/svg"
       className={`select-none ${className}`}
       role="img"
-      aria-label="Chim đưa thư PolarisX"
+      aria-label={ariaLabel ?? "PolarisX messenger bird"}
     >
       <ellipse cx="50" cy="52" rx="30" ry="24" fill="#0EA5E9" />
       <circle cx="68" cy="40" r="16" fill="#38BDF8" />
@@ -40,9 +41,10 @@ export const MessengerBird: React.FC<{ size?: number; className?: string }> = ({
 /**
  * 2. Nữ tư vấn viên tuyển sinh (Recruiter Character)
  */
-export const RecruiterCharacter: React.FC<{ size?: number; className?: string }> = ({
+export const RecruiterCharacter: React.FC<{ size?: number; className?: string; ariaLabel?: string }> = ({
   size = 76,
   className = '',
+  ariaLabel,
 }) => {
   return (
     <svg
@@ -53,7 +55,7 @@ export const RecruiterCharacter: React.FC<{ size?: number; className?: string }>
       xmlns="http://www.w3.org/2000/svg"
       className={`select-none ${className}`}
       role="img"
-      aria-label="Tư vấn viên tuyển sinh"
+      aria-label={ariaLabel ?? "Sales rep"}
     >
       <circle cx="50" cy="95" r="35" fill="#4338CA" />
       {/* Khuôn mặt */}
@@ -76,9 +78,10 @@ export const RecruiterCharacter: React.FC<{ size?: number; className?: string }>
 /**
  * 3. Thí sinh / Học viên (Student Character)
  */
-export const StudentCharacter: React.FC<{ size?: number; className?: string }> = ({
+export const StudentCharacter: React.FC<{ size?: number; className?: string; ariaLabel?: string }> = ({
   size = 76,
   className = '',
+  ariaLabel,
 }) => {
   return (
     <svg
@@ -89,7 +92,7 @@ export const StudentCharacter: React.FC<{ size?: number; className?: string }> =
       xmlns="http://www.w3.org/2000/svg"
       className={`select-none ${className}`}
       role="img"
-      aria-label="Thí sinh tuyển sinh"
+      aria-label={ariaLabel ?? "Customer"}
     >
       <circle cx="50" cy="95" r="35" fill="#0284C7" />
       {/* Khuôn mặt */}

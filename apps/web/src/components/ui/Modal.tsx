@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Button, type ButtonProps } from './Button.js';
 
+import { useOptionalTranslation } from '../../i18n/index.js';
 export type ModalAction = {
   label: string;
   onClick: () => void;
@@ -46,6 +47,7 @@ export function Modal({
   className = '',
   variant = 'rounded',
 }: ModalProps) {
+  const { t } = useOptionalTranslation();
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -155,7 +157,7 @@ export function Modal({
                 </div>
                 {showCloseButton && onClose && (
                   <button
-                    aria-label="Đóng popup"
+                    aria-label={t('ui.closePopup', 'Đóng popup')}
                     className="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 shrink-0"
                     onClick={onClose}
                     type="button"
@@ -190,7 +192,7 @@ export function Modal({
                     onClick={primaryAction.onClick}
                     className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-none border-none cursor-pointer disabled:opacity-50"
                   >
-                    {primaryAction.loading ? 'Đang xử lý...' : primaryAction.label}
+                    {primaryAction.loading ? t('ui.processing', 'Đang xử lý...') : primaryAction.label}
                   </button>
                 )}
               </div>
@@ -200,7 +202,7 @@ export function Modal({
           <>
             {showCloseButton && onClose && (
               <button
-                aria-label="Đóng popup"
+                aria-label={t('ui.closePopup', 'Đóng popup')}
                 className="absolute top-4 right-4 rounded-lg p-1.5 text-text-secondary hover:bg-bg-page hover:text-text-primary transition-colors cursor-pointer z-10"
                 onClick={onClose}
                 type="button"

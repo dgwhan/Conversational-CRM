@@ -60,7 +60,7 @@ export const StaffLeaderboard: React.FC<StaffLeaderboardProps> = ({
   const displayValue = valueLabel || t('reports.revenueCol', 'Doanh Thu');
 
   return (
-    <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs">
+    <div className="min-w-0 bg-white rounded-xl p-3 sm:p-4 border border-slate-200/80 shadow-xs">
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
@@ -69,8 +69,8 @@ export const StaffLeaderboard: React.FC<StaffLeaderboardProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+        <table className="w-full min-w-[720px] text-left text-sm whitespace-nowrap">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-semibold text-slate-600 uppercase tracking-wider">
               <th className="py-3 px-3 text-center w-12">{t('reports.rankCol', 'Hạng')}</th>

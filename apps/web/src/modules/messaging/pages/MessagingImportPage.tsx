@@ -13,9 +13,11 @@ import { ImportResultsSummary } from '../components/ImportResultsSummary.js';
 import { ImportErrorTable } from '../components/ImportErrorTable.js';
 import type { ManualImportRow } from '../types/messaging.types.js';
 
+import { useTranslation } from '../../../i18n/index.js';
 export type TabKey = 'grid' | 'csv' | 'manual' | 'gsheet' | 'saved';
 
 export const MessagingImportPage: React.FC = () => {
+  const { t } = useTranslation();
   const [currentTab, setCurrentTab] = useState<TabKey>('grid');
 
   const {
@@ -40,7 +42,7 @@ export const MessagingImportPage: React.FC = () => {
   } = useMessageImport();
 
   const { config } = useWorkspaceConfig();
-  const customerLabel = config?.terminology?.entityName || 'Khách Hàng';
+  const customerLabel = config?.terminology?.entityName || t('messagingImport.defaultCustomer', 'Khách Hàng');
 
   const handleImportGridRows = async (rows: ManualImportRow[]) => {
     await submitCustomRows(rows);
@@ -49,27 +51,27 @@ export const MessagingImportPage: React.FC = () => {
   const tabItems: TabItem<TabKey>[] = [
     {
       id: 'grid',
-      label: 'Bảng Tính In-App Grid (Ctrl+V)',
+      label: t('messagingImport.tabs.grid', 'Bảng Tính In-App Grid (Ctrl+V)'),
       icon: <TableProperties size={14} />,
     },
     {
       id: 'csv',
-      label: 'Import File CSV',
+      label: t('messagingImport.tabs.csv', 'Import File CSV'),
       icon: <FileSpreadsheet size={14} />,
     },
     {
       id: 'manual',
-      label: 'Nhập Tay Cơ Bản',
+      label: t('messagingImport.tabs.manual', 'Nhập Tay Cơ Bản'),
       icon: <PenLine size={14} />,
     },
     {
       id: 'gsheet',
-      label: 'Đồng Bộ Google Sheet',
+      label: t('messagingImport.tabs.gsheet', 'Đồng Bộ Google Sheet'),
       icon: <Sheet size={14} />,
     },
     {
       id: 'saved',
-      label: 'Tin Nhắn Đã Lưu (Database)',
+      label: t('messagingImport.tabs.saved', 'Tin Nhắn Đã Lưu (Database)'),
       icon: <Database size={14} />,
     },
   ];
@@ -79,11 +81,11 @@ export const MessagingImportPage: React.FC = () => {
       {/* 1. Header Đồng Bộ Hệ Thống */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/80">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 m-0">
-            Quản Lý & Tiếp Nhận Tin Nhắn
+          <h1 className="text-base sm:text-xl font-bold tracking-tight text-slate-900 m-0">
+            {t('messagingImport.pageTitle', 'Quản Lý & Tiếp Nhận Tin Nhắn')}
           </h1>
           <p className="text-xs text-slate-500 m-0 mt-0.5 leading-relaxed">
-            Bảng tính trực quan hỗ trợ copy/paste từ Google Sheets & Excel, kiểm thực nghiêm ngặt qua Zod và quản lý toàn bộ kho dữ liệu tin nhắn tư vấn {customerLabel.toLowerCase()}.
+            {t('messagingImport.pageDesc', 'Bảng tính trực quan hỗ trợ copy/paste từ Google Sheets & Excel, kiểm thực nghiêm ngặt qua Zod và quản lý toàn bộ kho dữ liệu tin nhắn tư vấn {customer}.', { customer: customerLabel.toLowerCase() })}
           </p>
         </div>
       </div>
@@ -92,7 +94,7 @@ export const MessagingImportPage: React.FC = () => {
       {errorMessage && (
         <Alert
           variant="danger"
-          title="Thông báo lỗi"
+          title={t('messagingImport.errorTitle', 'Thông báo lỗi')}
           onClose={() => setErrorMessage(null)}
           className="mb-2"
         >
@@ -157,7 +159,7 @@ export const MessagingImportPage: React.FC = () => {
         <div className="space-y-3 pt-2" id="results">
           <div className="flex items-center gap-2 pb-2 border-b border-slate-200">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Kết quả xử lý và kiểm thực
+              {t('messagingImport.resultsTitle', 'Kết quả xử lý và kiểm thực')}
             </span>
           </div>
 

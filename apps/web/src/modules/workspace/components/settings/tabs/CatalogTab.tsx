@@ -5,6 +5,8 @@ import { EmptyState } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { AddProductModal } from '../modals/AddProductModal.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
+import { translate } from '../../../../../i18n/translate.js';
 export interface CatalogTabProps {
   catalog: ProductItemConfig[];
   productLabel?: string;
@@ -16,22 +18,23 @@ export interface CatalogTabProps {
 
 export const CatalogTab: React.FC<CatalogTabProps> = ({
   catalog,
-  productLabel = 'Sản Phẩm & Dịch Vụ',
+  productLabel = translate('workspaceSettings.catalog.defaultLabel', 'Sản Phẩm & Dịch Vụ'),
   isOwner,
   isLoading = false,
   onAddProduct,
   onDeleteProduct,
 }) => {
+  const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSaveProduct = async (productData: Omit<ProductItemConfig, 'id'>) => {
     await onAddProduct(productData);
-    notify.success(`Đã thêm ${productLabel.toLowerCase()} mới thành công!`);
+    notify.success(t('workspaceSettings.catalog.added', 'Đã thêm {label} mới thành công!', { label: productLabel.toLowerCase() }));
   };
 
   const handleDelete = async (prodId: string) => {
     await onDeleteProduct(prodId);
-    notify.success(`Đã xóa ${productLabel.toLowerCase()}!`);
+    notify.success(t('workspaceSettings.catalog.deleted', 'Đã xóa {label}!', { label: productLabel.toLowerCase() }));
   };
 
   return (
@@ -40,10 +43,10 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
         <div>
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">
-            Danh Sách {productLabel} ({catalog.length})
+            {t('workspaceSettings.catalog.title', 'Danh Sách {label} ({n})', { label: productLabel, n: catalog.length })}
           </h3>
           <p className="text-[11px] text-slate-500 m-0">
-            Bảng giá niêm yết và phân loại danh mục kinh doanh trực thuộc không gian làm việc này
+            {t('workspaceSettings.catalog.desc', 'Bảng giá niêm yết và phân loại danh mục kinh doanh trực thuộc không gian làm việc này')}
           </p>
         </div>
         {isOwner && (
@@ -54,7 +57,7 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
             className="h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
           >
             <Plus size={14} />
-            <span>Thêm {productLabel.toLowerCase()}</span>
+            <span>{t('workspaceSettings.catalog.add', 'Thêm {label}', { label: productLabel.toLowerCase() })}</span>
           </button>
         )}
       </div>
@@ -63,19 +66,19 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
       <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs w-full">
         {catalog.length === 0 ? (
           <EmptyState
-            title={`Chưa có ${productLabel.toLowerCase()} nào`}
-            description="Hãy nhấn nút Thêm ở trên để tạo sản phẩm, khóa học hoặc dịch vụ kinh doanh mới."
+            title={t('workspaceSettings.catalog.emptyTitle', 'Chưa có {label} nào', { label: productLabel.toLowerCase() })}
+            description={t('workspaceSettings.catalog.emptyDesc', 'Hãy nhấn nút Thêm ở trên để tạo sản phẩm, khóa học hoặc dịch vụ kinh doanh mới.')}
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-xs">
+            <table className="w-full min-w-[560px] border-collapse text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-200/80 bg-slate-50/50 text-slate-500 font-semibold text-[11px]">
-                  <th className="px-4 py-2.5">Tên mục</th>
-                  <th className="px-4 py-2.5">Mã định danh</th>
-                  <th className="px-4 py-2.5">Nhóm / Danh mục</th>
-                  <th className="px-4 py-2.5 text-right">Giá niêm yết</th>
-                  {isOwner && <th className="px-4 py-2.5 text-center w-16">Thao tác</th>}
+                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colName', 'Tên mục')}</th>
+                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colCode', 'Mã định danh')}</th>
+                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colCategory', 'Nhóm / Danh mục')}</th>
+                  <th className="px-4 py-2.5 text-right">{t('workspaceSettings.catalog.colPrice', 'Giá niêm yết')}</th>
+                  {isOwner && <th className="px-4 py-2.5 text-center w-16">{t('workspaceSettings.catalog.colActions', 'Thao tác')}</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -106,7 +109,7 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
                           type="button"
                           onClick={() => handleDelete(prod.id)}
                           disabled={isLoading}
-                          title="Xóa mục"
+                          title={t('workspaceSettings.catalog.deleteItem', 'Xóa mục')}
                           className="h-6 w-6 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-rose-200 disabled:opacity-30"
                         >
                           <Trash2 size={13} />

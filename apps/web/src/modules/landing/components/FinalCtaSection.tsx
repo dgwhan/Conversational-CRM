@@ -1,9 +1,14 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ArrowRight, CheckCircle2, Sparkles, Shield, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { MascotCusi } from './characters/MascotCusi.js';
+import { useLandingContent } from '../hooks/useLandingContent.js';
+import { ROUTES } from '../../../config/routes.js';
 
 export const FinalCtaSection: React.FC = () => {
+  const { cta } = useLandingContent();
+
   return (
     <section className="relative py-14 sm:py-20 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
       {/* Container with high-impact gradient glass */}
@@ -33,47 +38,47 @@ export const FinalCtaSection: React.FC = () => {
           <div className="lg:col-span-8 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-white/15 border border-white/20 backdrop-blur-md mb-4 sm:mb-6 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
-              <span>Sẵn sàng chuyển đổi số cùng PolarisX</span>
+              <span>{cta.pill}</span>
             </div>
 
             <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight">
-              Bứt phá chỉ tiêu tuyển sinh ngay hôm nay
+              {cta.title}
             </h2>
 
             <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg text-blue-100 max-w-2xl leading-relaxed">
-              Trải nghiệm hệ thống CRM hội thoại đa kênh hoàn chỉnh: gom tin nhắn tự động, phân loại tức thì và tăng tốc độ chốt học viên lên gấp 3 lần.
+              {cta.subtitle}
             </p>
 
             {/* Checklist features */}
             <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-4 justify-center lg:justify-start text-xs font-medium text-blue-100">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-cyan-300 shrink-0" />
-                <span>Triển khai nhanh dưới 24h</span>
+                <span>{cta.checklist[0]}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-cyan-300 shrink-0" />
-                <span>Bảo mật RBAC & BOLA</span>
+                <span>{cta.checklist[1]}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 <Zap className="w-4 h-4 text-cyan-300 shrink-0" />
-                <span>Hỗ trợ kỹ thuật 24/7 Telegram</span>
+                <span>{cta.checklist[2]}</span>
               </span>
             </div>
 
             {/* CTA Buttons */}
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 w-full sm:w-auto">
-              <a
-                href="/login"
+              <Link
+                to={ROUTES.LOGIN}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl text-xs sm:text-sm font-bold bg-white text-blue-700 hover:bg-blue-50 shadow-lg shadow-black/10 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
-                <span>Bắt đầu dùng thử miễn phí</span>
+                <span>{cta.primary}</span>
                 <ArrowRight className="w-4 h-4" />
-              </a>
+              </Link>
               <a
                 href="#features"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-colors"
               >
-                Tìm hiểu thêm các tính năng
+                {cta.secondary}
               </a>
             </div>
           </div>
@@ -91,7 +96,7 @@ export const FinalCtaSection: React.FC = () => {
                 mood="celebrating"
                 size={180}
                 showSpeechBubble={true}
-                speechText="Sẵn sàng bứt phá! 🎉"
+                speechText={cta.mascot}
                 className="drop-shadow-2xl"
               />
             </motion.div>

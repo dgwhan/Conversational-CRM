@@ -2,6 +2,7 @@ import { notify } from '../../components/feedback/toastEmitter.js';
 import { ApiError, type ApiRequestOptions } from './types.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
 
+import { translate } from '../../i18n/translate.js';
 export const DEFAULT_API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string)?.replace(/\/+$/, '') || '/api';
 
@@ -233,7 +234,7 @@ export class BaseApiClient {
       if (refreshed) response = await doFetch(refreshed);
     }
     if (!response.ok) {
-      throw new ApiError(`Không thể tải tệp (HTTP ${response.status})`, response.status, `GET ${endpoint}`, 'GET');
+      throw new ApiError(translate('ui.api.downloadFailed', 'Không thể tải tệp (HTTP {status})', { status: response.status }), response.status, `GET ${endpoint}`, 'GET');
     }
     return response.blob();
   }
@@ -288,7 +289,7 @@ export class BaseApiClient {
       });
     } catch (networkError: unknown) {
       const err = new ApiError(
-        `Không thể kết nối đến máy chủ API (${this.baseUrl}). Vui lòng kiểm tra server Backend.`,
+        translate('ui.api.cannotConnect', 'Không thể kết nối đến máy chủ API ({url}). Vui lòng kiểm tra server Backend.', { url: this.baseUrl }),
         0,
         `${method} ${endpoint}`,
         method,
@@ -296,7 +297,7 @@ export class BaseApiClient {
       );
 
       if (!skipToast) {
-        notify.error(err.message, 'Lỗi kết nối mạng (Network Error)', {
+        notify.error(err.message, translate('ui.api.networkErrorTitle', 'Lỗi kết nối mạng (Network Error)'), {
           location: `${method} ${endpoint}`,
           details: networkError,
         });
@@ -332,7 +333,7 @@ export class BaseApiClient {
       : await response.text().catch(() => null);
 
     if (!response.ok) {
-      let errorMessage = `Yêu cầu thất bại với mã HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage = translate('ui.api.requestFailed', 'Yêu cầu thất bại với mã HTTP {status}: {text}', { status: response.status, text: response.statusText });
 
       if (responseData && typeof responseData === 'object') {
         const body = responseData as Record<string, unknown>;
@@ -352,7 +353,7 @@ export class BaseApiClient {
       );
 
       if (!skipToast) {
-        const errorTitle = `Lỗi HTTP ${response.status} (${response.statusText || 'Error'})`;
+        const errorTitle = translate('ui.api.httpErrorTitle', 'Lỗi HTTP {status} ({text})', { status: response.status, text: response.statusText || 'Error' });
         notify.error(errorMessage, errorTitle, {
           location: `${method} ${endpoint}`,
           details: responseData,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 
+import { useOptionalTranslation } from '../../i18n/index.js';
+import { translate } from '../../i18n/translate.js';
 export interface SearchInputProps {
   value?: string;
   defaultValue?: string;
@@ -26,7 +28,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   defaultValue = '',
   onChange,
   onSearch,
-  placeholder = 'Tìm kiếm...',
+  placeholder = translate('ui.searchPlaceholder', 'Tìm kiếm...'),
   debounceMs = 0,
   isLoading = false,
   disabled = false,
@@ -36,6 +38,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   size = 'md',
   autoFocus = false,
 }) => {
+  const { t } = useOptionalTranslation();
   const isControlled = controlledValue !== undefined;
   const [internalValue, setInternalValue] = useState(defaultValue);
   const currentValue = isControlled ? controlledValue : internalValue;
@@ -161,7 +164,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
             type="button"
             onClick={handleClear}
             disabled={disabled}
-            aria-label="Xóa nội dung tìm kiếm"
+            aria-label={t('ui.clearSearch', 'Xóa nội dung tìm kiếm')}
             className="text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0.5 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors"
           >
             <X size={13} />

@@ -31,6 +31,7 @@ import {
   Layers,
 } from 'lucide-react';
 
+import { translate } from '../../i18n/translate.js';
 interface AdmissionKanbanBoardProps {
   onOpenChat?: (conversationId?: string) => void;
   onNavigateToCalendar?: () => void;
@@ -103,16 +104,16 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
           updated.unshift({
             id: event.customerId || `cand-${Date.now()}`,
             fullName: event.customerName,
-            phone: event.phone || 'Chưa có SĐT',
-            email: event.email || 'Chưa có Email',
+            phone: event.phone || translate('kanban.noPhone', 'Chưa có SĐT'),
+            email: event.email || translate('kanban.noEmail', 'Chưa có Email'),
             avatarUrl: avatar,
             channel: (event.channel as ChannelType) || 'ZALO',
-            channelAccountName: event.channelAccountName || 'Kênh trực tuyến',
+            channelAccountName: event.channelAccountName || translate('kanban.onlineChannel', 'Kênh trực tuyến'),
             stage: stageToSet || (firstStageId as LeadStage),
             estimatedTuition: event.estimatedValue || 0,
             priority: 'MEDIUM',
             interestCourses: event.interestCourses || [],
-            lastActivityAt: 'Vừa xong',
+            lastActivityAt: translate('common.justNow', 'Vừa xong'),
             notesCount: 0,
             tags: event.tags || ['Lead'],
             conversationId: event.conversationId,
@@ -122,8 +123,8 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
       });
 
       notify.info(
-        `${event.updatedBy || 'Tư vấn viên'} đã chuyển "${event.customerName}" sang giai đoạn "${matchedStage?.name || event.newStage}".`,
-        'Đồng bộ Phễu Realtime'
+        translate('kanban.realtimeMoved', '{who} đã chuyển "{name}" sang giai đoạn "{stage}".', { who: event.updatedBy || translate('kanban.defaultUpdater', 'Tư vấn viên'), name: event.customerName, stage: matchedStage?.name || event.newStage }),
+        translate('kanban.realtimeSyncTitle', 'Đồng bộ Phễu Realtime')
       );
     });
     return unsubscribe;
@@ -188,16 +189,16 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
           updated.unshift({
             id: customerId || `cand-${Date.now()}`,
             fullName: fullName,
-            phone: customEvent.detail.phone || 'Chưa có SĐT',
-            email: customEvent.detail.email || 'Chưa có Email',
+            phone: customEvent.detail.phone || translate('kanban.noPhone', 'Chưa có SĐT'),
+            email: customEvent.detail.email || translate('kanban.noEmail', 'Chưa có Email'),
             avatarUrl: customEvent.detail.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0284c7&color=fff&bold=true`,
             channel: customEvent.detail.channel || 'ZALO',
-            channelAccountName: customEvent.detail.channelAccountName || 'Kênh trực tuyến',
+            channelAccountName: customEvent.detail.channelAccountName || translate('kanban.onlineChannel', 'Kênh trực tuyến'),
             stage: targetStage || (firstStageId as LeadStage),
             estimatedTuition: customEvent.detail.estimatedTuition || 0,
             priority: 'MEDIUM',
             interestCourses: customEvent.detail.interestCourses || [],
-            lastActivityAt: 'Vừa xong',
+            lastActivityAt: translate('common.justNow', 'Vừa xong'),
             notesCount: 0,
             tags: customEvent.detail.tags || ['Lead'],
             conversationId: conversationId,
@@ -240,16 +241,16 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
             const resolvedStage = matchedConfig ? (matchedConfig.id as LeadStage) : ((dbStage as LeadStage) || existing?.stage || (firstStageId as LeadStage));
             const avatar = cust.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cust.fullName)}&background=0284c7&color=fff&bold=true`;
             const chType = (latestConv?.channelAccount?.channel as ChannelType) || (identities.channel as ChannelType) || 'ZALO';
-            const chName = latestConv?.channelAccount?.displayName || `Kênh ${chType}`;
+            const chName = latestConv?.channelAccount?.displayName || translate('kanban.channelPrefix', 'Kênh {name}', { name: chType });
             const timeStr = latestConv?.lastMessageAt
               ? new Date(latestConv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : (existing?.lastActivityAt || 'Vừa xong');
+              : (existing?.lastActivityAt || translate('common.justNow', 'Vừa xong'));
 
             return {
               id: cust.id,
               fullName: cust.fullName,
-              phone: cust.phone || existing?.phone || 'Chưa có SĐT',
-              email: cust.email || existing?.email || 'Chưa có Email',
+              phone: cust.phone || existing?.phone || translate('kanban.noPhone', 'Chưa có SĐT'),
+              email: cust.email || existing?.email || translate('kanban.noEmail', 'Chưa có Email'),
               avatarUrl: avatar,
               channel: chType,
               channelAccountName: chName,
@@ -291,7 +292,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
           if (exists) {
             return prev.map((c) =>
               (msg.conversationId && c.conversationId === msg.conversationId) || c.fullName === msg.senderName
-                ? { ...c, lastActivityAt: 'Vừa xong' }
+                ? { ...c, lastActivityAt: translate('common.justNow', 'Vừa xong') }
                 : c
             );
           }
@@ -318,14 +319,14 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               const resolvedStage = matchedConfig ? (matchedConfig.id as LeadStage) : ((dbStage as LeadStage) || existing?.stage || (firstStageId as LeadStage));
               const avatar = cust.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cust.fullName)}&background=0284c7&color=fff&bold=true`;
               const chType = (latestConv?.channelAccount?.channel as ChannelType) || (identities.channel as ChannelType) || 'ZALO';
-              const chName = latestConv?.channelAccount?.displayName || `Kênh ${chType}`;
-              const timeStr = latestConv?.lastMessageAt ? new Date(latestConv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+              const chName = latestConv?.channelAccount?.displayName || translate('kanban.channelPrefix', 'Kênh {name}', { name: chType });
+              const timeStr = latestConv?.lastMessageAt ? new Date(latestConv.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : translate('common.justNow', 'Vừa xong');
 
               return {
                 id: cust.id,
                 fullName: cust.fullName,
-                phone: cust.phone || existing?.phone || 'Chưa có SĐT',
-                email: cust.email || existing?.email || 'Chưa có Email',
+                phone: cust.phone || existing?.phone || translate('kanban.noPhone', 'Chưa có SĐT'),
+                email: cust.email || existing?.email || translate('kanban.noEmail', 'Chưa có Email'),
                 avatarUrl: avatar,
                 channel: chType,
                 channelAccountName: chName,
@@ -384,8 +385,8 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     }
 
     notify.success(
-      `Đã gán ${config.terminology.productLabel.toLowerCase()} cho "${editingProductCandidate.fullName}".`,
-      'Cập nhật thành công'
+      t('kanban.productAssigned', 'Đã gán {label} cho "{name}".', { label: config.terminology.productLabel.toLowerCase(), name: editingProductCandidate.fullName }),
+      t('kanban.updateSuccessTitle', 'Cập nhật thành công')
     );
   };
 
@@ -399,7 +400,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     e.stopPropagation();
     navigator.clipboard.writeText(phone);
     setCopiedId(candId);
-    notify.success(`Đã sao chép SĐT: ${phone}`);
+    notify.success(t('kanban.phoneCopied', 'Đã sao chép SĐT: {phone}', { phone }));
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -437,7 +438,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
 
     // Role STAFF chỉ được chỉnh sửa trạng thái khách hàng mà mình phụ trách
     if (!isOwner && staffId && candidate.assignedStaffId && candidate.assignedStaffId !== staffId) {
-      notify.error('Bạn chỉ có quyền chỉnh sửa trạng thái khách hàng mà mình phụ trách (403 Forbidden).', 'Không có quyền');
+      notify.error(t('kanban.staffOwnOnly', 'Bạn chỉ có quyền chỉnh sửa trạng thái khách hàng mà mình phụ trách (403 Forbidden).'), t('kanban.noPermissionTitle', 'Không có quyền'));
       return;
     }
 
@@ -473,7 +474,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
           ? {
             ...c,
             stage: nextStage,
-            lastActivityAt: 'Vừa xong',
+            lastActivityAt: translate('common.justNow', 'Vừa xong'),
           }
           : c
       )
@@ -520,8 +521,8 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     }
 
     notify.success(
-      `Đã chuyển "${candidate.fullName}" sang giai đoạn "${targetStageConfig?.name || nextStage}".`,
-      `Cập nhật ${config.terminology.pipelineName}`
+      t('kanban.movedTo', 'Đã chuyển "{name}" sang giai đoạn "{stage}".', { name: candidate.fullName, stage: targetStageConfig?.name || nextStage }),
+      t('kanban.updatePipelineTitle', 'Cập nhật {pipeline}', { pipeline: config.terminology.pipelineName })
     );
   };
 
@@ -580,10 +581,11 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
 
   const pageTitle = React.useMemo(() => {
     const wsName = activeWorkspace?.name || config.workspaceName || '';
-    const rawPipeline = config.terminology?.pipelineName || 'Phễu Tuyển Sinh & Đào Tạo';
-    const pipelineName = rawPipeline.startsWith('Phễu')
+    const rawPipeline = config.terminology?.pipelineName || t('header.kanbanTab', 'Phễu Tuyển sinh');
+    const pipelinePrefix = t('kanban.pipelinePrefix', 'Phễu');
+    const pipelineName = !pipelinePrefix || rawPipeline.toLowerCase().startsWith(pipelinePrefix.toLowerCase())
       ? rawPipeline
-      : `Phễu ${rawPipeline}`;
+      : `${pipelinePrefix} ${rawPipeline}`;
 
     if (wsName) {
       if (pipelineName.toLowerCase().includes(wsName.toLowerCase())) {
@@ -593,31 +595,31 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     }
 
     return pipelineName;
-  }, [activeWorkspace?.name, config.workspaceName, config.terminology?.pipelineName]);
+  }, [activeWorkspace?.name, config.workspaceName, config.terminology?.pipelineName, t]);
 
   return (
     <div className="kanban-pipeline-wrapper">
       {/* 0. HEADER TIÊU ĐỀ TRANG - Flat section chuẩn SaaS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight break-words">
             {pageTitle}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Quản lý và chuyển đổi {config.terminology.entityName.toLowerCase()} theo các giai đoạn quy trình
+            {t('kanban.pageSubtitle', 'Quản lý và chuyển đổi {entity} theo các giai đoạn quy trình', { entity: config.terminology.entityName.toLowerCase() })}
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0 self-start sm:self-auto">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>{locale === 'en' ? 'Realtime Live' : 'Dữ liệu thời gian thực'}</span>
+          <span>{t('kanban.realtimeBadge', 'Dữ liệu thời gian thực')}</span>
         </div>
       </div>
 
       {/* 1. THANH CHỈ SỐ KPI TỔNG QUAN - Đồng bộ MetricCardsGrid chuẩn hệ thống */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 shrink-0">
+      <div className="kanban-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 shrink-0">
         {/* Card 1: Tổng khách hàng */}
-        <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <div className="min-w-0 bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
             <span className="text-xs font-medium text-slate-500 truncate" title={`${t('kanban.statTotalPrefix', 'Tổng')} ${config.terminology.entityName}`}>
               {t('kanban.statTotalPrefix', 'Tổng')} {config.terminology.entityName.split('/')[0].trim()}
@@ -626,56 +628,56 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               <Users size={16} className="text-blue-600" />
             </div>
           </div>
-          <div className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          <div className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
             {totalLeads}
           </div>
         </div>
 
         {/* Card 2: Tiếp nhận mới */}
-        <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <div className="min-w-0 bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
-            <span className="text-xs font-medium text-slate-500 truncate" title={firstStage?.name || 'Tiếp nhận Mới'}>
-              {firstStage?.name || 'Tiếp nhận Mới'}
+            <span className="text-xs font-medium text-slate-500 truncate" title={firstStage?.name || t('kanban.newIntakeFallback', 'Tiếp nhận Mới')}>
+              {firstStage?.name || t('kanban.newIntakeFallback', 'Tiếp nhận Mới')}
             </span>
             <div className="w-7 h-7 rounded-lg border border-slate-200/80 bg-slate-50/80 flex items-center justify-center shrink-0">
               <Sparkles size={16} className="text-sky-600" />
             </div>
           </div>
-          <div className="text-lg sm:text-xl font-bold text-sky-600 tracking-tight">
+          <div className="text-base sm:text-xl font-bold text-sky-600 tracking-tight truncate">
             {newLeadCount}
           </div>
         </div>
 
         {/* Card 3: Giá trị phễu dự kiến */}
-        <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <div className="min-w-0 bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
-            <span className="text-xs font-medium text-slate-500 truncate" title={isOwner ? `${config.terminology.valueLabel} (Toàn DN)` : `${config.terminology.valueLabel} (Bạn chăm sóc)`}>
+            <span className="text-xs font-medium text-slate-500 truncate" title={isOwner ? t('kanban.valueWholeBusiness', '{label} (Toàn DN)', { label: config.terminology.valueLabel }) : t('kanban.valueMine', '{label} (Bạn chăm sóc)', { label: config.terminology.valueLabel })}>
               {isOwner
-                ? `${config.terminology.valueLabel.replace(/\s*\(VNĐ\)/gi, '').trim()} (Toàn DN)`
-                : `${config.terminology.valueLabel.replace(/\s*\(VNĐ\)/gi, '').trim()} (Bạn chăm sóc)`}
+                ? t('kanban.valueWholeBusiness', '{label} (Toàn DN)', { label: config.terminology.valueLabel.replace(/\s*\(VNĐ\)/gi, '').trim() })
+                : t('kanban.valueMine', '{label} (Bạn chăm sóc)', { label: config.terminology.valueLabel.replace(/\s*\(VNĐ\)/gi, '').trim() })}
             </span>
             <div className="w-7 h-7 rounded-lg border border-slate-200/80 bg-slate-50/80 flex items-center justify-center shrink-0">
               <DollarSign size={16} className="text-amber-600" />
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
               {formatCurrency(isOwner ? totalTuition : myTuition)}
             </span>
             {isAgent && (
               <span
                 className="inline-flex items-center gap-1 text-[11px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-md"
-                title="Theo chính sách bảo mật RBAC, tổng doanh số toàn doanh nghiệp chỉ hiển thị cho Chủ doanh nghiệp."
+                title={t('kanban.rbacHiddenTotalTitle', 'Theo chính sách bảo mật RBAC, tổng doanh số toàn doanh nghiệp chỉ hiển thị cho Chủ doanh nghiệp.')}
               >
                 <Lock size={10} />
-                <span>Ẩn tổng trường</span>
+                <span>{t('kanban.rbacHiddenTotal', 'Ẩn tổng trường')}</span>
               </span>
             )}
           </div>
         </div>
 
         {/* Card 4: Chốt thành công */}
-        <div className="bg-white rounded-xl p-3 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
+        <div className="min-w-0 bg-white rounded-xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between">
           <div className="flex items-center justify-between gap-1.5 mb-2">
             <span className="text-xs font-medium text-slate-500 truncate">
               {t('kanban.statWonPrefix', 'Chốt thành công')}</span>
@@ -683,8 +685,8 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               <Award size={16} className="text-emerald-600" />
             </div>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-lg sm:text-xl font-bold text-emerald-600 tracking-tight">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5">
+            <span className="text-base sm:text-xl font-bold text-emerald-600 tracking-tight truncate">
               {wonCount}
             </span>
             <span className="text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
@@ -719,9 +721,9 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               <option value="ALL">{t('kanban.allChannels', 'Tất cả nguồn kênh')}</option>
               <option value="FACEBOOK">Facebook Messenger</option>
               <option value="ZALO">Zalo OA</option>
-              <option value="ZALO_PERSONAL">Zalo Cá nhân (Tư vấn)</option>
+              <option value="ZALO_PERSONAL">{t('kanban.channelZaloPersonalFull', 'Zalo Cá nhân (Tư vấn)')}</option>
               <option value="TIKTOK">TikTok Channel</option>
-              <option value="MANUAL">Nhập trực tiếp / Hotline</option>
+              <option value="MANUAL">{t('kanban.channelManualFull', 'Nhập trực tiếp / Hotline')}</option>
             </select>
           </div>
 
@@ -767,7 +769,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
               type="button"
               className="kanban-config-btn"
               onClick={onNavigateToSettings}
-              title="Tùy biến các giai đoạn phễu và danh mục sản phẩm cho Workspace"
+              title={t('kanban.configTooltip', 'Tùy biến các giai đoạn phễu và danh mục sản phẩm cho Workspace')}
             >
               <Sliders size={13} />
               <span>{t('kanban.configPipelineBtn', 'Cấu hình Phễu')}</span>
@@ -850,9 +852,9 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                           <span className={`channel-badge-pill ${candidate.channel.toLowerCase()}`}>
                             {candidate.channel === 'FACEBOOK' && 'FB Messenger'}
                             {candidate.channel === 'ZALO' && 'Zalo OA'}
-                            {candidate.channel === 'ZALO_PERSONAL' && 'Zalo Cá nhân'}
+                            {candidate.channel === 'ZALO_PERSONAL' && t('kanban.channelZaloPersonal', 'Zalo Cá nhân')}
                             {candidate.channel === 'TIKTOK' && 'TikTok'}
-                            {candidate.channel === 'MANUAL' && 'Trực tiếp'}
+                            {candidate.channel === 'MANUAL' && t('kanban.channelManual', 'Trực tiếp')}
                           </span>
                           {candidate.intake && (
                             <span className="card-intake-badge px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -904,7 +906,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                               e.stopPropagation();
                               setEditingProductCandidate(candidate);
                             }}
-                            title={`Nhấp để gán lại hoặc chỉnh sửa ${config.terminology.productLabel.toLowerCase()}`}
+                            title={t('kanban.reassignProductTitle', 'Nhấp để gán lại hoặc chỉnh sửa {label}', { label: config.terminology.productLabel.toLowerCase() })}
                             style={{
                               cursor: 'pointer',
                               display: 'flex',
@@ -928,7 +930,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                               e.stopPropagation();
                               setEditingProductCandidate(candidate);
                             }}
-                            title={`Gán ${config.terminology.productLabel.toLowerCase()} cho ứng viên này`}
+                            title={t('kanban.assignProductToCandidate', 'Gán {label} cho ứng viên này', { label: config.terminology.productLabel.toLowerCase() })}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -947,7 +949,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                             }}
                           >
                             <Plus size={12} />
-                            <span>+ Gán {config.terminology.productLabel.split('/')[0].trim()}</span>
+                            <span>{t('kanban.assignProductBtn', '+ Gán {label}', { label: config.terminology.productLabel.split('/')[0].trim() })}</span>
                           </button>
                         )}
 
@@ -957,7 +959,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
                             e.stopPropagation();
                             setEditingProductCandidate(candidate);
                           }}
-                          title={`Nhấp để điều chỉnh ${config.terminology.valueLabel.toLowerCase()}`}
+                          title={t('kanban.adjustValueTitle', 'Nhấp để điều chỉnh {label}', { label: config.terminology.valueLabel.toLowerCase() })}
                           style={{ cursor: 'pointer' }}
                         >
                           <span className="tuition-label">{config.terminology.valueLabel}:</span>

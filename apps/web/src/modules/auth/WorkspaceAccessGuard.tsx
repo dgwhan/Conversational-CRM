@@ -7,6 +7,7 @@ import { HttpErrorPage } from '../../pages/errors/HttpErrorPage.js';
 import { AppSkeleton } from '../../components/ui/AppSkeleton.js';
 import { ROUTES, buildRoute } from '../../config/routes.js';
 
+import { useTranslation } from '../../i18n/index.js';
 export interface WorkspaceAccessGuardProps {
   children?: React.ReactNode;
   /** Yêu cầu bắt buộc phải có vai trò Owner/Admin đối với workspace này (Mặc định: false) */
@@ -17,6 +18,7 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
   children,
   requireOwner = false,
 }) => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { myWorkspaces, activeWorkspaceId, switchWorkspace, isWorkspaceListLoading } = useWorkspaceConfig();
@@ -58,7 +60,7 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
       <HttpErrorPage
         statusCode={404}
         errorLocation="Workspace Security Guard"
-        errorMessage="Không tìm thấy Không gian làm việc hoặc đường dẫn không hợp lệ."
+        errorMessage={t('errors.workspaceNotFoundOrInvalid', 'Không tìm thấy Không gian làm việc hoặc đường dẫn không hợp lệ.')}
         onGoHome={() => navigate(ROUTES.WORKSPACE_SETTINGS_DEFAULT)}
         onRetry={() => window.location.reload()}
       />
@@ -74,7 +76,7 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
       <HttpErrorPage
         statusCode={404}
         errorLocation="Workspace Security Guard"
-        errorMessage="Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập."
+        errorMessage={t('errors.workspaceNotFoundOrDenied', 'Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập.')}
         onGoHome={() => navigate(ROUTES.WORKSPACE_SETTINGS_DEFAULT)}
         onRetry={() => window.location.reload()}
       />
@@ -95,7 +97,7 @@ export const WorkspaceAccessGuard: React.FC<WorkspaceAccessGuardProps> = ({
         <HttpErrorPage
           statusCode={404}
           errorLocation="Workspace Security Guard"
-          errorMessage="Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập."
+          errorMessage={t('errors.workspaceNotFoundOrDenied', 'Không tìm thấy Không gian làm việc hoặc bạn không có quyền truy cập.')}
           onGoHome={() => navigate(ROUTES.WORKSPACE_SETTINGS_DEFAULT)}
           onRetry={() => window.location.reload()}
         />

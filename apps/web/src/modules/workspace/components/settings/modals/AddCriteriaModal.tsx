@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { Modal } from '../../../../../components/ui/index.js';
 import type { LeadQualificationCriteria } from '../../../workspaceConfig.types.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 export interface AddCriteriaModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,6 +17,7 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [type, setType] = useState<'TEXT' | 'SELECT' | 'NUMBER' | 'BOOLEAN'>('TEXT');
   const [options, setOptions] = useState('');
@@ -51,8 +53,8 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm Tiêu Chí Đánh Giá Mới"
-      description="Định cấu hình các câu hỏi, tiêu chí phân loại để nhân viên tư vấn thu thập từ khách hàng."
+      title={t('workspaceSettings.addCriteria.title', 'Thêm Tiêu Chí Đánh Giá Mới')}
+      description={t('workspaceSettings.addCriteria.desc', 'Định cấu hình các câu hỏi, tiêu chí phân loại để nhân viên tư vấn thu thập từ khách hàng.')}
       size="md"
       variant="flat"
       showCloseButton={true}
@@ -60,11 +62,11 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-3.5 pt-2">
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Tên tiêu chí *
+            {t('workspaceSettings.addCriteria.nameLabel', 'Tên tiêu chí *')}
           </label>
           <input
             type="text"
-            placeholder="VD: Trình độ học vấn, Tầm tài chính..."
+            placeholder={t('workspaceSettings.addCriteria.namePlaceholder', 'VD: Trình độ học vấn, Tầm tài chính...')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs"
@@ -74,28 +76,28 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Kiểu dữ liệu
+            {t('workspaceSettings.addCriteria.typeLabel', 'Kiểu dữ liệu')}
           </label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as any)}
             className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 shadow-2xs cursor-pointer"
           >
-            <option value="TEXT">Văn bản (Text)</option>
-            <option value="SELECT">Chọn một (Dropdown Select)</option>
-            <option value="NUMBER">Số liệu (Number)</option>
-            <option value="BOOLEAN">Có / Không (Boolean)</option>
+            <option value="TEXT">{t('workspaceSettings.addCriteria.typeText', 'Văn bản (Text)')}</option>
+            <option value="SELECT">{t('workspaceSettings.addCriteria.typeSelect', 'Chọn một (Dropdown Select)')}</option>
+            <option value="NUMBER">{t('workspaceSettings.addCriteria.typeNumber', 'Số liệu (Number)')}</option>
+            <option value="BOOLEAN">{t('workspaceSettings.addCriteria.typeBoolean', 'Có / Không (Boolean)')}</option>
           </select>
         </div>
 
         {type === 'SELECT' && (
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Các tùy chọn (phân cách bằng dấu phẩy)
+              {t('workspaceSettings.addCriteria.optionsLabel', 'Các tùy chọn (phân cách bằng dấu phẩy)')}
             </label>
             <input
               type="text"
-              placeholder="VD: THPT, Trung cấp, Đại học, Đi làm"
+              placeholder={t('workspaceSettings.addCriteria.optionsPlaceholder', 'VD: THPT, Trung cấp, Đại học, Đi làm')}
               value={options}
               onChange={(e) => setOptions(e.target.value)}
               className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs"
@@ -112,7 +114,7 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
           <label htmlFor="critRequiredModal" className="text-xs text-slate-700 cursor-pointer">
-            Tiêu chuẩn bắt buộc phải thu thập
+            {t('workspaceSettings.addCriteria.required', 'Tiêu chuẩn bắt buộc phải thu thập')}
           </label>
         </div>
 
@@ -122,7 +124,7 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
             onClick={onClose}
             className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer"
           >
-            Hủy
+            {t('workspaceSettings.cancel', 'Hủy')}
           </button>
           <button
             type="submit"
@@ -130,7 +132,7 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
             className="h-8 px-4 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
           >
             <Plus size={13} />
-            <span>Thêm Tiêu Chí</span>
+            <span>{t('workspaceSettings.addCriteria.submit', 'Thêm Tiêu Chí')}</span>
           </button>
         </div>
       </form>

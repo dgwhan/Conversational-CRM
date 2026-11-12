@@ -152,7 +152,7 @@ export const LeadTrendChart: React.FC<LeadTrendChartProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex flex-col h-full">
+    <div className="min-w-0 bg-white rounded-xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex flex-col h-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800">

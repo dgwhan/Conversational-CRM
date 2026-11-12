@@ -73,7 +73,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
     },
     {
       id: 'leadScoring',
-      label: 'Chấm điểm Lead',
+      label: t('workspaceSettings.tabs.leadScoring', 'Chấm điểm Lead'),
     },
   ];
 
@@ -90,10 +90,10 @@ export const WorkspaceSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-3 sm:p-4 max-w-[1600px] mx-auto min-h-full space-y-3.5 sm:space-y-4">
+    <div className="crm-workspace-settings-page min-w-0 p-3 sm:p-4 max-w-[1600px] mx-auto min-h-full space-y-3.5 sm:space-y-4">
       {/* 1. Header Không Gian Làm Việc Đồng Bộ */}
       <WorkspaceSettingsHeader
-        workspaceName={config.workspaceName || activeWorkspace?.name || 'Không Gian Làm Việc'}
+        workspaceName={config.workspaceName || activeWorkspace?.name || t('workspaceSettings.defaultWorkspaceName', 'Không Gian Làm Việc')}
         domain={config.domain || 'EDUCATION'}
         activeWorkspace={activeWorkspace}
         isOwner={isCurrentWorkspaceOwner}

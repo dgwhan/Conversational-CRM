@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { EyeIcon, EyeOffIcon, LockIcon } from '../icons/AuthIcons.js';
 import { GlassInput } from './GlassInput.js';
 
+import { useOptionalTranslation } from '../../i18n/index.js';
+import { translate } from '../../i18n/translate.js';
 export type GlassPasswordFieldProps = {
   id?: string;
   label?: ReactNode;
@@ -25,7 +27,7 @@ export type GlassPasswordFieldProps = {
  */
 export function GlassPasswordField({
   id,
-  label = 'Mật khẩu',
+  label = translate('auth.passwordFieldLabel', 'Mật khẩu'),
   headerRight,
   name = 'password',
   autoComplete = 'current-password',
@@ -34,11 +36,12 @@ export function GlassPasswordField({
   onBlur,
   errorMessage,
   successMessage,
-  placeholder = 'Nhập mật khẩu',
+  placeholder = translate('auth.passwordFieldPlaceholder', 'Nhập mật khẩu'),
   disabled,
   required = true,
   containerClassName,
 }: GlassPasswordFieldProps) {
+  const { t } = useOptionalTranslation();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -57,7 +60,7 @@ export function GlassPasswordField({
       trailingAdornment={
         <button
           type="button"
-          aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+          aria-label={visible ? t('auth.hidePassword', 'Ẩn mật khẩu') : t('auth.showPassword', 'Hiện mật khẩu')}
           aria-pressed={visible}
           disabled={disabled}
           onClick={() => setVisible((cur) => !cur)}

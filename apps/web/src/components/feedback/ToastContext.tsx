@@ -3,6 +3,7 @@ import type { ToastItem, ToastOptions, ToastType } from './ToastTypes.js';
 import { ToastContext } from './useToast.js';
 import { registerToastEmitter } from './toastEmitter.js';
 
+import { translate } from '../../i18n/translate.js';
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -51,7 +52,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const error = useCallback(
     (msg: React.ReactNode, title?: string, opts?: ToastOptions) =>
-      show('error', msg, { title: title || 'Lỗi xử lý', ...opts }),
+      show('error', msg, { title: title || translate('ui.errorTitleDefault', 'Lỗi xử lý'), ...opts }),
     [show],
   );
 

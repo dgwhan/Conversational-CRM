@@ -145,7 +145,7 @@ export function PasswordRecoveryResetStep({
               <p className="font-sans text-xs sm:text-sm text-red-700" role="alert">
                 {error}
               </p>
-              {error.includes('hết hạn') && (
+              {(error.includes('hết hạn') || error.toLowerCase().includes('expired')) && (
                 <button
                   className="font-sans text-xs font-semibold text-[#1A5CFF] underline hover:text-[#1242bd]"
                   onClick={onBackToRequest}

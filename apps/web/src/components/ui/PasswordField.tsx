@@ -6,6 +6,8 @@ import {
 } from "../icons/AuthIcons.js";
 import { TextField } from "./TextField.js";
 
+import { useOptionalTranslation } from '../../i18n/index.js';
+import { translate } from '../../i18n/translate.js';
 type PasswordFieldProps = {
   id?: string;
   label?: ReactNode;
@@ -23,7 +25,7 @@ type PasswordFieldProps = {
 
 export function PasswordField({
   id,
-  label = "Mật khẩu",
+  label = translate('auth.passwordFieldLabel', 'Mật khẩu'),
   headerRight,
   name = "password",
   autoComplete = "current-password",
@@ -32,9 +34,10 @@ export function PasswordField({
   onBlur,
   errorMessage,
   successMessage,
-  placeholder = "Nhập mật khẩu",
+  placeholder = translate('auth.passwordFieldPlaceholder', 'Nhập mật khẩu'),
   disabled,
 }: PasswordFieldProps) {
+  const { t } = useOptionalTranslation();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -54,7 +57,7 @@ export function PasswordField({
         <button
           className="grid size-8 place-items-center rounded-sm text-text-secondary hover:bg-bg-page disabled:cursor-not-allowed disabled:opacity-50"
           type="button"
-          aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+          aria-label={visible ? t('auth.hidePassword', 'Ẩn mật khẩu') : t('auth.showPassword', 'Hiện mật khẩu')}
           aria-pressed={visible}
           disabled={disabled}
           onClick={() => setVisible((current) => !current)}

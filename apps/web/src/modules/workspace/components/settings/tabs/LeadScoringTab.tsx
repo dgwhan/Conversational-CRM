@@ -9,6 +9,7 @@ import type {
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import { useLeadScoringConfig } from '../../../../inbox/context/leadScoringConfig.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
 interface LeadScoringTabProps {
   isOwner: boolean;
 }
@@ -57,16 +58,19 @@ const blankRule: RuleDraft = {
 };
 
 const numericSettingGroups: Array<{
+  id: string;
   title: string;
   description: string;
   keys: NumericSettingKey[];
 }> = [
   {
+    id: 'thresholds',
     title: 'Ngưỡng phân loại',
     description: 'Điểm tối thiểu để xếp Lead vào từng hạng.',
     keys: ['hotMinScore', 'warmMinScore', 'coldMinScore'],
   },
   {
+    id: 'bonusDecay',
     title: 'Điểm thưởng và giảm theo thời gian',
     description: 'Điểm cộng khi có số điện thoại và mức giảm khi khách không hoạt động.',
     keys: [
@@ -78,6 +82,7 @@ const numericSettingGroups: Array<{
     ],
   },
   {
+    id: 'exclusion',
     title: 'Loại trừ và xử lý trường hợp chưa rõ',
     description: 'Cấu hình luật loại trừ và cách xử lý tin nhắn sát ngưỡng.',
     keys: [
@@ -114,6 +119,7 @@ function ruleDraft(rule: KeywordRuleItem): RuleDraft {
 }
 
 export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
+  const { t } = useTranslation();
   const { rules, settings, isLoading, reload } = useLeadScoringConfig();
   const [newRule, setNewRule] = useState<RuleDraft>(blankRule);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
@@ -138,7 +144,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
   const handleCreateRule = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newRule.group.trim() || !newRule.keyword.trim()) {
-      notify.error('Nhập nhóm và từ khóa trước khi thêm tiêu chí.');
+      notify.error(t('workspaceSettings.leadScoring.needGroupKeyword', 'Nhập nhóm và từ khóa trước khi thêm tiêu chí.'));
       return;
     }
 
@@ -146,9 +152,9 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
     try {
       await apiClient.createKeywordRule({ ...newRule, group: newRule.group.trim(), keyword: newRule.keyword.trim() });
       setNewRule(blankRule);
-      if (await reload()) notify.success('Đã thêm tiêu chí chấm điểm.');
+      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleAdded', 'Đã thêm tiêu chí chấm điểm.'));
     } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : 'Không thể thêm tiêu chí chấm điểm.');
+      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleAddError', 'Không thể thêm tiêu chí chấm điểm.'));
     } finally {
       setIsSavingRule(false);
     }
@@ -156,7 +162,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
 
   const handleUpdateRule = async (id: string) => {
     if (!editingRule.group.trim() || !editingRule.keyword.trim()) {
-      notify.error('Nhóm và từ khóa không được để trống.');
+      notify.error(t('workspaceSettings.leadScoring.groupKeywordRequired', 'Nhóm và từ khóa không được để trống.'));
       return;
     }
 
@@ -168,23 +174,23 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
         keyword: editingRule.keyword.trim(),
       });
       setEditingRuleId(null);
-      if (await reload()) notify.success('Đã cập nhật tiêu chí chấm điểm.');
+      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleUpdated', 'Đã cập nhật tiêu chí chấm điểm.'));
     } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : 'Không thể cập nhật tiêu chí chấm điểm.');
+      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleUpdateError', 'Không thể cập nhật tiêu chí chấm điểm.'));
     } finally {
       setIsSavingRule(false);
     }
   };
 
   const handleDeleteRule = async (rule: KeywordRuleItem) => {
-    if (!window.confirm(`Xóa tiêu chí "${rule.keyword}"?`)) return;
+    if (!window.confirm(t('workspaceSettings.leadScoring.confirmDelete', 'Xóa tiêu chí "{keyword}"?', { keyword: rule.keyword }))) return;
 
     setIsSavingRule(true);
     try {
       await apiClient.deleteKeywordRule(rule.id);
-      if (await reload()) notify.success('Đã xóa tiêu chí chấm điểm.');
+      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleDeleted', 'Đã xóa tiêu chí chấm điểm.'));
     } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : 'Không thể xóa tiêu chí chấm điểm.');
+      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleDeleteError', 'Không thể xóa tiêu chí chấm điểm.'));
     } finally {
       setIsSavingRule(false);
     }
@@ -196,9 +202,9 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
     setIsSavingSettings(true);
     try {
       await apiClient.updateLeadScoringSettings(settingsDraft);
-      if (await reload()) notify.success('Đã lưu cấu hình chấm điểm.');
+      if (await reload()) notify.success(t('workspaceSettings.leadScoring.settingsSaved', 'Đã lưu cấu hình chấm điểm.'));
     } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : 'Không thể lưu cấu hình chấm điểm.');
+      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.settingsSaveError', 'Không thể lưu cấu hình chấm điểm.'));
     } finally {
       setIsSavingSettings(false);
     }
@@ -207,7 +213,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-        Đang tải cấu hình chấm điểm...
+        {t('workspaceSettings.leadScoring.loading', 'Đang tải cấu hình chấm điểm...')}
       </div>
     );
   }
@@ -215,7 +221,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
   if (!settingsDraft) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        Không tải được cấu hình chấm điểm. Hãy tải lại trang hoặc kiểm tra quyền truy cập workspace.
+        {t('workspaceSettings.leadScoring.loadError', 'Không tải được cấu hình chấm điểm. Hãy tải lại trang hoặc kiểm tra quyền truy cập workspace.')}
       </div>
     );
   }
@@ -225,17 +231,17 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
       <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="mb-4">
           <h2 className="m-0 text-base font-semibold text-slate-900">
-            Tiêu chí nhận diện
-            <InfoTip text="Tạo từ khóa, nhóm và trọng số riêng. Khi nội dung tin nhắn khớp từ khóa, trọng số sẽ được dùng để tính điểm Lead." />
+            {t('workspaceSettings.leadScoring.rulesTitle', 'Tiêu chí nhận diện')}
+            <InfoTip text={t('workspaceSettings.leadScoring.rulesTip', 'Tạo từ khóa, nhóm và trọng số riêng. Khi nội dung tin nhắn khớp từ khóa, trọng số sẽ được dùng để tính điểm Lead.')} />
           </h2>
           <p className="mt-1 mb-0 text-sm text-slate-500">
-            Tạo nhóm, từ khóa và trọng số theo cách khách hàng của bạn trao đổi. Không có bộ từ khóa mẫu được áp dụng tự động.
+            {t('workspaceSettings.leadScoring.rulesDesc', 'Tạo nhóm, từ khóa và trọng số theo cách khách hàng của bạn trao đổi. Không có bộ từ khóa mẫu được áp dụng tự động.')}
           </p>
         </div>
 
         <form onSubmit={handleCreateRule} className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-12">
           <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-slate-600">Nhóm tùy chỉnh</span>
+            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.customGroup', 'Nhóm tùy chỉnh')}</span>
             <input
               value={newRule.group}
               onChange={(event) => updateRuleDraft(newRule, setNewRule, 'group', event.target.value)}
@@ -246,7 +252,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
             />
           </label>
           <label className="space-y-1 md:col-span-3">
-            <span className="text-xs font-medium text-slate-600">Từ khóa / cụm từ</span>
+            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.keyword', 'Từ khóa / cụm từ')}</span>
             <input
               value={newRule.keyword}
               onChange={(event) => updateRuleDraft(newRule, setNewRule, 'keyword', event.target.value)}
@@ -257,7 +263,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
             />
           </label>
           <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-slate-600">Trọng số</span>
+            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.weight', 'Trọng số')}</span>
             <input
               type="number"
               step="1"
@@ -269,7 +275,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
             />
           </label>
           <label className="space-y-1 md:col-span-4">
-            <span className="text-xs font-medium text-slate-600">Mô tả</span>
+            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.description', 'Mô tả')}</span>
             <input
               value={newRule.description}
               onChange={(event) => updateRuleDraft(newRule, setNewRule, 'description', event.target.value)}
@@ -286,14 +292,14 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                 onChange={(event) => updateRuleDraft(newRule, setNewRule, 'isActive', event.target.checked)}
                 disabled={!isOwner || isSavingRule}
               />
-              Đang áp dụng
+              {t('workspaceSettings.leadScoring.active', 'Đang áp dụng')}
             </label>
             <button
               type="submit"
               disabled={!isOwner || isSavingRule}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Thêm tiêu chí
+              {t('workspaceSettings.leadScoring.addRule', 'Thêm tiêu chí')}
             </button>
           </div>
         </form>
@@ -302,11 +308,11 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
           <table className="w-full min-w-[720px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs text-slate-500">
-                <th className="px-2 py-2 font-medium">Nhóm</th>
-                <th className="px-2 py-2 font-medium">Từ khóa</th>
-                <th className="px-2 py-2 font-medium">Trọng số</th>
-                <th className="px-2 py-2 font-medium">Trạng thái</th>
-                <th className="px-2 py-2 text-right font-medium">Thao tác</th>
+                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colGroup', 'Nhóm')}</th>
+                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colKeyword', 'Từ khóa')}</th>
+                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colWeight', 'Trọng số')}</th>
+                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colStatus', 'Trạng thái')}</th>
+                <th className="px-2 py-2 text-right font-medium">{t('workspaceSettings.leadScoring.colActions', 'Thao tác')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -337,7 +343,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                             value={editingRule.description || ''}
                             onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'description', event.target.value)}
                             className="w-full rounded border border-slate-300 px-2 py-1.5 text-xs"
-                            placeholder="Mô tả"
+                            placeholder={t('workspaceSettings.leadScoring.description', 'Mô tả')}
                             maxLength={500}
                           />
                         </div>
@@ -371,11 +377,11 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                             checked={editingRule.isActive}
                             onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'isActive', event.target.checked)}
                           />
-                          Áp dụng
+                          {t('workspaceSettings.leadScoring.apply', 'Áp dụng')}
                         </label>
                       ) : (
                         <span className={rule.isActive ? 'text-emerald-700' : 'text-slate-400'}>
-                          {rule.isActive ? 'Đang áp dụng' : 'Đã tắt'}
+                          {rule.isActive ? t('workspaceSettings.leadScoring.active', 'Đang áp dụng') : t('workspaceSettings.leadScoring.off', 'Đã tắt')}
                         </span>
                       )}
                     </td>
@@ -389,14 +395,14 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                               onClick={() => void handleUpdateRule(rule.id)}
                               className="text-xs font-medium text-blue-700 disabled:opacity-50"
                             >
-                              Lưu
+                              {t('workspaceSettings.leadScoring.save', 'Lưu')}
                             </button>
                             <button
                               type="button"
                               onClick={() => setEditingRuleId(null)}
                               className="text-xs text-slate-500"
                             >
-                              Hủy
+                              {t('workspaceSettings.cancel', 'Hủy')}
                             </button>
                           </>
                         ) : (
@@ -410,7 +416,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                               }}
                               className="text-xs font-medium text-blue-700 disabled:opacity-50"
                             >
-                              Sửa
+                              {t('workspaceSettings.leadScoring.edit', 'Sửa')}
                             </button>
                             <button
                               type="button"
@@ -418,7 +424,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                               onClick={() => void handleDeleteRule(rule)}
                               className="text-xs font-medium text-rose-600 disabled:opacity-50"
                             >
-                              Xóa
+                              {t('workspaceSettings.leadScoring.delete', 'Xóa')}
                             </button>
                           </>
                         )}
@@ -430,7 +436,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
               {rules.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-2 py-8 text-center text-sm text-slate-500">
-                    Chưa có tiêu chí nào. Thêm tiêu chí để bắt đầu chấm điểm theo quy tắc riêng.
+                    {t('workspaceSettings.leadScoring.empty', 'Chưa có tiêu chí nào. Thêm tiêu chí để bắt đầu chấm điểm theo quy tắc riêng.')}
                   </td>
                 </tr>
               )}
@@ -442,11 +448,11 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
       <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
         <div className="mb-4">
           <h2 className="m-0 text-base font-semibold text-slate-900">
-            Ngưỡng và hành vi chấm điểm
-            <InfoTip text="Các thiết lập bên dưới ảnh hưởng đến cách tính điểm, phân hạng và giải thích kết quả của Lead." />
+            {t('workspaceSettings.leadScoring.behaviorTitle', 'Ngưỡng và hành vi chấm điểm')}
+            <InfoTip text={t('workspaceSettings.leadScoring.behaviorTip', 'Các thiết lập bên dưới ảnh hưởng đến cách tính điểm, phân hạng và giải thích kết quả của Lead.')} />
           </h2>
           <p className="mt-1 mb-0 text-sm text-slate-500">
-            Mở từng mục để chỉnh các thiết lập liên quan. Các thay đổi chỉ có hiệu lực sau khi lưu.
+            {t('workspaceSettings.leadScoring.behaviorDesc', 'Mở từng mục để chỉnh các thiết lập liên quan. Các thay đổi chỉ có hiệu lực sau khi lưu.')}
           </p>
         </div>
 
@@ -454,17 +460,17 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
           {numericSettingGroups.map((group, index) => (
             <details key={group.title} open={index === 0} className="rounded-lg border border-slate-200 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-                {group.title}
-                <InfoTip text={group.description} />
+                {t(`workspaceSettings.leadScoring.groups.${group.id}.title`, group.title)}
+                <InfoTip text={t(`workspaceSettings.leadScoring.groups.${group.id}.description`, group.description)} />
               </summary>
-              <p className="mb-3 mt-1 text-xs text-slate-500">{group.description}</p>
+              <p className="mb-3 mt-1 text-xs text-slate-500">{t(`workspaceSettings.leadScoring.groups.${group.id}.description`, group.description)}</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {group.keys.map((key) => {
                   const setting = numericSettings.find((item) => item.key === key);
                   if (!setting) return null;
                   return (
                     <label key={key} className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">{setting.label}</span>
+                      <span className="text-xs font-medium text-slate-600">{t(`workspaceSettings.leadScoring.fields.${setting.key}`, setting.label)}</span>
                       <input
                         type="number"
                         step="1"
@@ -479,7 +485,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                   );
                 })}
               </div>
-              {group.title === 'Loại trừ và xử lý trường hợp chưa rõ' && (
+              {group.id === 'exclusion' && (
                 <>
                   <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
                     <input
@@ -490,12 +496,12 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                       }
                       disabled={!isOwner}
                     />
-                    Bật xử lý tin nhắn sát ngưỡng và tin nhắn ngắn
+                    {t('workspaceSettings.leadScoring.ambiguityToggle', 'Bật xử lý tin nhắn sát ngưỡng và tin nhắn ngắn')}
                   </label>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
                     <label className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">Từ/cụm từ phủ định phía trước</span>
-                      <span className="block text-xs text-slate-400">Mỗi dòng là một cụm được kiểm tra trước từ khóa.</span>
+                      <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.negationBefore', 'Từ/cụm từ phủ định phía trước')}</span>
+                      <span className="block text-xs text-slate-400">{t('workspaceSettings.leadScoring.negationBeforeHint', 'Mỗi dòng là một cụm được kiểm tra trước từ khóa.')}</span>
                       <textarea
                         value={settingsDraft.negationTerms.join('\n')}
                         onChange={(event) =>
@@ -510,8 +516,8 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                       />
                     </label>
                     <label className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">Từ/cụm từ phủ định phía sau</span>
-                      <span className="block text-xs text-slate-400">Mỗi dòng là một cụm được kiểm tra sau từ khóa.</span>
+                      <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.negationAfter', 'Từ/cụm từ phủ định phía sau')}</span>
+                      <span className="block text-xs text-slate-400">{t('workspaceSettings.leadScoring.negationAfterHint', 'Mỗi dòng là một cụm được kiểm tra sau từ khóa.')}</span>
                       <textarea
                         value={settingsDraft.negationPostTerms.join('\n')}
                         onChange={(event) =>
@@ -532,15 +538,15 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
           ))}
           <details className="rounded-lg border border-slate-200 p-3">
             <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-              Tên hạng và khuyến nghị
-              <InfoTip text="Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead." />
+              {t('workspaceSettings.leadScoring.tiersTitle', 'Tên hạng và khuyến nghị')}
+              <InfoTip text={t('workspaceSettings.leadScoring.tiersTip', 'Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead.')} />
             </summary>
-            <p className="mb-3 mt-1 text-xs text-slate-500">Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead.</p>
+            <p className="mb-3 mt-1 text-xs text-slate-500">{t('workspaceSettings.leadScoring.tiersTip', 'Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead.')}</p>
             <div className="space-y-3">
           {tiers.map((tier) => (
             <div key={tier} className="grid gap-3 rounded-lg border border-slate-100 p-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">Tên hạng {tier}</span>
+                <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.tierName', 'Tên hạng {tier}', { tier })}</span>
                 <input
                   value={settingsDraft.tierLabels[tier]}
                   onChange={(event) =>
@@ -555,7 +561,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
                 />
               </label>
               <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">Khuyến nghị cho hạng {tier}</span>
+                <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.tierRecommendation', 'Khuyến nghị cho hạng {tier}', { tier })}</span>
                 <textarea
                   value={settingsDraft.tierRecommendations[tier]}
                   onChange={(event) =>
@@ -583,7 +589,7 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
             onClick={() => void handleSaveSettings()}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSavingSettings ? 'Đang lưu...' : 'Lưu cấu hình'}
+            {isSavingSettings ? t('workspaceSettings.storage.saving', 'Đang lưu...') : t('workspaceSettings.leadScoring.saveSettings', 'Lưu cấu hình')}
           </button>
         </div>
       </section>

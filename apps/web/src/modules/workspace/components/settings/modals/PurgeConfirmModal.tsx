@@ -15,6 +15,8 @@ import type {
   PurgeMessagesResponse,
 } from '../../../../../lib/api-client/messaging-storage.types.js';
 
+import { useTranslation } from '../../../../../i18n/index.js';
+import { translate } from '../../../../../i18n/translate.js';
 interface PurgeConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,6 +30,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
   workspaceId,
   onSuccess,
 }) => {
+  const { t } = useTranslation();
   const [retentionMonths, setRetentionMonths] = useState<number>(12);
   const [slimPayloadOnly, setSlimPayloadOnly] = useState<boolean>(true);
   const [channel, setChannel] = useState<string>('ALL');
@@ -62,7 +65,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         }
       } catch (err: any) {
         if (isMounted) {
-          setErrorMsg(err.message || 'Không thể tính toán ước tính dung lượng');
+          setErrorMsg(err.message || translate('workspaceSettings.purge.estimateError', 'Không thể tính toán ước tính dung lượng'));
         }
       } finally {
         if (isMounted) setIsEstimating(false);
@@ -78,7 +81,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
 
   const handleExecutePurge = async () => {
     if (!slimPayloadOnly && confirmText.trim().toUpperCase() !== 'XOA') {
-      setErrorMsg('Vui lòng nhập chữ "XOA" để xác nhận xóa toàn bộ tin nhắn.');
+      setErrorMsg(translate('workspaceSettings.purge.typeXoa', 'Vui lòng nhập chữ "XOA" để xác nhận xóa toàn bộ tin nhắn.'));
       return;
     }
 
@@ -96,7 +99,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
       onSuccess(res);
       onClose();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Có lỗi xảy ra trong quá trình dọn dẹp tin nhắn');
+      setErrorMsg(err.message || translate('workspaceSettings.purge.purgeError', 'Có lỗi xảy ra trong quá trình dọn dẹp tin nhắn'));
     } finally {
       setIsPurging(false);
     }
@@ -106,7 +109,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={isPurging ? () => {} : onClose}
-      title="Dọn Dẹp Lưu Trữ Tin Nhắn Cũ"
+      title={t('workspaceSettings.purge.title', 'Dọn Dẹp Lưu Trữ Tin Nhắn Cũ')}
       size="lg"
     >
       <div className="space-y-5 py-2">
@@ -114,10 +117,9 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="text-sm text-amber-900 dark:text-amber-200 space-y-1">
-            <p className="font-semibold">Lưu ý quản trị hệ thống</p>
+            <p className="font-semibold">{t('workspaceSettings.purge.adminNote', 'Lưu ý quản trị hệ thống')}</p>
             <p className="text-xs leading-relaxed text-amber-800/90 dark:text-amber-300/80">
-              Thao tác này sẽ xử lý các tin nhắn đã quá hạn theo chính sách để giải phóng bộ nhớ và chống phình Database PostgreSQL.
-              Dữ liệu được xử lý ngầm theo từng mẻ nhỏ (Batch 1,000 dòng) để không làm gián đoạn các luồng tư vấn khách hàng.
+              {t('workspaceSettings.purge.adminNoteDesc', 'Thao tác này sẽ xử lý các tin nhắn đã quá hạn theo chính sách để giải phóng bộ nhớ và chống phình Database PostgreSQL. Dữ liệu được xử lý ngầm theo từng mẻ nhỏ (Batch 1,000 dòng) để không làm gián đoạn các luồng tư vấn khách hàng.')}
             </p>
           </div>
         </div>
@@ -126,7 +128,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-indigo-500" /> Mốc thời gian lưu trữ
+              <Calendar className="w-3.5 h-3.5 text-indigo-500" /> {t('workspaceSettings.purge.cutoffLabel', 'Mốc thời gian lưu trữ')}
             </label>
             <select
               disabled={isPurging}
@@ -134,16 +136,16 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
               onChange={(e) => setRetentionMonths(Number(e.target.value))}
               className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
             >
-              <option value={3}>Cũ hơn 3 tháng</option>
-              <option value={6}>Cũ hơn 6 tháng</option>
-              <option value={12}>Cũ hơn 12 tháng (Khuyến nghị chuẩn)</option>
-              <option value={24}>Cũ hơn 24 tháng</option>
+              <option value={3}>{t('workspaceSettings.purge.older3', 'Cũ hơn 3 tháng')}</option>
+              <option value={6}>{t('workspaceSettings.purge.older6', 'Cũ hơn 6 tháng')}</option>
+              <option value={12}>{t('workspaceSettings.purge.older12', 'Cũ hơn 12 tháng (Khuyến nghị chuẩn)')}</option>
+              <option value={24}>{t('workspaceSettings.purge.older24', 'Cũ hơn 24 tháng')}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-              <Filter className="w-3.5 h-3.5 text-indigo-500" /> Kênh giao tiếp
+              <Filter className="w-3.5 h-3.5 text-indigo-500" /> {t('workspaceSettings.purge.channelLabel', 'Kênh giao tiếp')}
             </label>
             <select
               disabled={isPurging}
@@ -151,11 +153,11 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
               onChange={(e) => setChannel(e.target.value)}
               className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">Tất cả các kênh</option>
+              <option value="ALL">{t('workspaceSettings.purge.allChannels', 'Tất cả các kênh')}</option>
               <option value="ZALO">Zalo OA</option>
               <option value="FACEBOOK">Facebook Messenger</option>
               <option value="TIKTOK">TikTok</option>
-              <option value="MANUAL_IMPORT">Nhập thủ công / CSV</option>
+              <option value="MANUAL_IMPORT">{t('workspaceSettings.storage.manualImport', 'Nhập thủ công / CSV')}</option>
             </select>
           </div>
         </div>
@@ -163,7 +165,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         {/* Chế độ dọn dẹp */}
         <div className="space-y-3">
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Phương thức dọn dẹp dung lượng
+            {t('workspaceSettings.purge.methodLabel', 'Phương thức dọn dẹp dung lượng')}
           </label>
 
           <div
@@ -184,15 +186,14 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Dọn dẹp Raw Payload thô (Khuyên dùng)
+                  {t('workspaceSettings.purge.slimTitle', 'Dọn dẹp Raw Payload thô (Khuyên dùng)')}
                 </span>
                 <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
-                  TIẾT KIỆM 80% DUNG LƯỢNG
+                  {t('workspaceSettings.purge.slimBadge', 'TIẾT KIỆM 80% DUNG LƯỢNG')}
                 </span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Giữ nguyên văn bản tin nhắn chat và lịch sử tư vấn khách hàng. Chỉ loại bỏ trường webhook thô (raw JSON)
-                chiếm phần lớn dung lượng bảng TOAST trong cơ sở dữ liệu.
+                {t('workspaceSettings.purge.slimDesc', 'Giữ nguyên văn bản tin nhắn chat và lịch sử tư vấn khách hàng. Chỉ loại bỏ trường webhook thô (raw JSON) chiếm phần lớn dung lượng bảng TOAST trong cơ sở dữ liệu.')}
               </p>
             </div>
           </div>
@@ -215,14 +216,14 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                  Xóa hoàn toàn tin nhắn quá hạn (Hard Delete)
+                  {t('workspaceSettings.purge.hardTitle', 'Xóa hoàn toàn tin nhắn quá hạn (Hard Delete)')}
                 </span>
                 <span className="px-2 py-0.5 text-[10px] font-bold tracking-wide rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
-                  KHÔNG THỂ KHÔI PHỤC
+                  {t('workspaceSettings.purge.hardBadge', 'KHÔNG THỂ KHÔI PHỤC')}
                 </span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                Xóa vĩnh viễn toàn bộ các bản ghi tin nhắn và tệp đính kèm cũ hơn mốc đã chọn.
+                {t('workspaceSettings.purge.hardDesc', 'Xóa vĩnh viễn toàn bộ các bản ghi tin nhắn và tệp đính kèm cũ hơn mốc đã chọn.')}
               </p>
             </div>
           </div>
@@ -238,7 +239,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
               disabled={isPurging}
               className="rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span>Chỉ áp dụng cho các cuộc hội thoại đã đóng/giải quyết xong (RESOLVED)</span>
+            <span>{t('workspaceSettings.purge.resolvedOnly', 'Chỉ áp dụng cho các cuộc hội thoại đã đóng/giải quyết xong (RESOLVED)')}</span>
           </label>
           <label className="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer">
             <input
@@ -248,7 +249,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
               disabled={isPurging}
               className="rounded text-indigo-600 focus:ring-indigo-500"
             />
-            <span>Dọn dẹp các hội thoại mồ côi (không còn tin nhắn nào) sau khi dọn</span>
+            <span>{t('workspaceSettings.purge.orphans', 'Dọn dẹp các hội thoại mồ côi (không còn tin nhắn nào) sau khi dọn')}</span>
           </label>
         </div>
 
@@ -256,36 +257,36 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         <div className="bg-slate-900 text-slate-100 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <HardDrive className="w-4 h-4 text-emerald-400" /> Kết quả ước tính trước (Dry Run)
+              <HardDrive className="w-4 h-4 text-emerald-400" /> {t('workspaceSettings.purge.dryRun', 'Kết quả ước tính trước (Dry Run)')}
             </span>
             {isEstimating ? (
               <span className="text-xs text-indigo-300 flex items-center gap-1 animate-pulse">
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang tính toán...
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> {t('workspaceSettings.purge.calculating', 'Đang tính toán...')}
               </span>
             ) : (
               <span className="text-xs text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Khớp chính xác
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t('workspaceSettings.purge.exactMatch', 'Khớp chính xác')}
               </span>
             )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Số tin nhắn ảnh hưởng</span>
+              <span className="text-[11px] text-slate-400 block mb-0.5">{t('workspaceSettings.purge.affected', 'Số tin nhắn ảnh hưởng')}</span>
               <span className="text-lg font-bold text-white">
                 {estimate?.matchedMessagesCount?.toLocaleString('vi-VN') || 0}
               </span>
             </div>
 
             <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Dung lượng giải phóng</span>
+              <span className="text-[11px] text-slate-400 block mb-0.5">{t('workspaceSettings.purge.freed', 'Dung lượng giải phóng')}</span>
               <span className="text-lg font-bold text-emerald-400">
                 {estimate?.estimatedFreedFormatted || '0 B'}
               </span>
             </div>
 
             <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700 col-span-2 sm:col-span-1">
-              <span className="text-[11px] text-slate-400 block mb-0.5">Mốc thời gian cắt</span>
+              <span className="text-[11px] text-slate-400 block mb-0.5">{t('workspaceSettings.purge.cutoffDate', 'Mốc thời gian cắt')}</span>
               <span className="text-xs font-semibold text-slate-300">
                 {estimate?.cutoffDate ? new Date(estimate.cutoffDate).toLocaleDateString('vi-VN') : '—'}
               </span>
@@ -297,7 +298,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
         {!slimPayloadOnly && (
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-3.5 space-y-2">
             <label className="block text-xs font-bold text-red-900 dark:text-red-300">
-              Xác nhận xóa vĩnh viễn dữ liệu (Gõ chữ "XOA" vào ô dưới đây)
+              {t('workspaceSettings.purge.confirmLabel', 'Xác nhận xóa vĩnh viễn dữ liệu (Gõ chữ "XOA" vào ô dưới đây)')}
             </label>
             <input
               type="text"
@@ -324,7 +325,7 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
             onClick={onClose}
             disabled={isPurging}
           >
-            Hủy bỏ
+            {t('workspaceSettings.purge.cancel', 'Hủy bỏ')}
           </Button>
           <Button
             variant={slimPayloadOnly ? 'primary' : 'danger'}
@@ -340,13 +341,13 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
             {isPurging ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin" />
-                <span>Đang xử lý dọn dẹp theo batch...</span>
+                <span>{t('workspaceSettings.purge.processing', 'Đang xử lý dọn dẹp theo batch...')}</span>
               </>
             ) : (
               <>
                 <Trash2 className="w-4 h-4" />
                 <span>
-                  {slimPayloadOnly ? 'Thực hiện dọn dẹp Payload' : 'Xác nhận xóa tin nhắn'}
+                  {slimPayloadOnly ? t('workspaceSettings.purge.runSlim', 'Thực hiện dọn dẹp Payload') : t('workspaceSettings.purge.runHard', 'Xác nhận xóa tin nhắn')}
                 </span>
               </>
             )}

@@ -83,9 +83,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'kanban' as ActiveNavTab,
-      label: (config.terminology.pipelineName || 'Phễu Tuyển Sinh & Đào Tạo')
+      label: (config.terminology.pipelineName || t('header.kanbanTab', 'Phễu Tuyển sinh'))
         .replace(/\s*(CUSC|PolarisX)/gi, '')
-        .trim() || 'Phễu Tuyển Sinh & Đào Tạo',
+        .trim() || t('header.kanbanTab', 'Phễu Tuyển sinh'),
       icon: <LayoutGrid size={18} />,
     },
     {

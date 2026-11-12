@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home, Copy, Check } from 'lucide-react';
 import { Button } from '../components/ui/Button.js';
 
+import { translate, getActiveLocale } from '../i18n/translate.js';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -89,33 +90,33 @@ Component Stack: ${errorInfo?.componentStack}`;
             </div>
 
             <h1 className="error-card-title">
-              {isChunkLoadFailed ? 'Hệ Thống Đã Được Cập Nhật Phiên Bản Mới' : 'Đã Xảy Ra Lỗi Giao Diện Hệ Thống'}
+              {isChunkLoadFailed ? translate('errors.boundaryUpdatedTitle', 'Hệ Thống Đã Được Cập Nhật Phiên Bản Mới') : translate('errors.boundaryCrashTitle', 'Đã Xảy Ra Lỗi Giao Diện Hệ Thống')}
             </h1>
             <p className="error-card-desc">
               {isChunkLoadFailed
-                ? 'Hệ thống vừa hoàn tất triển khai phiên bản mới trên máy chủ. Trình duyệt của bạn đang giữ bản đệm (cache) cũ, vui lòng bấm "Tải lại trang" để cập nhật ngay.'
-                : 'Ứng dụng phát hiện sự cố không mong muốn trong quá trình kết xuất dữ liệu. Thông tin chi tiết kỹ thuật bên dưới giúp lập trình viên xác định chính xác vị trí bị lỗi.'}
+                ? translate('errors.boundaryUpdatedDesc', 'Hệ thống vừa hoàn tất triển khai phiên bản mới trên máy chủ. Trình duyệt của bạn đang giữ bản đệm (cache) cũ, vui lòng bấm "Tải lại trang" để cập nhật ngay.')
+                : translate('errors.boundaryCrashDesc', 'Ứng dụng phát hiện sự cố không mong muốn trong quá trình kết xuất dữ liệu. Thông tin chi tiết kỹ thuật bên dưới giúp lập trình viên xác định chính xác vị trí bị lỗi.')}
             </p>
 
             {/* Vị trí và thông điệp lỗi */}
             <div className="error-diagnostic-panel">
               <div className="diagnostic-row">
-                <span className="diagnostic-label">Thông điệp lỗi:</span>
+                <span className="diagnostic-label">{translate('errors.boundaryMessageLabel', 'Thông điệp lỗi:')}</span>
                 <span className="diagnostic-value text-danger font-bold">
-                  {error?.message || 'Lỗi không xác định'}
+                  {error?.message || translate('errors.boundaryUnknown', 'Lỗi không xác định')}
                 </span>
               </div>
               <div className="diagnostic-row">
-                <span className="diagnostic-label">Thời gian phát sinh:</span>
+                <span className="diagnostic-label">{translate('errors.boundaryTimeLabel', 'Thời gian phát sinh:')}</span>
                 <span className="diagnostic-value">
-                  {new Date().toLocaleString('vi-VN')}
+                  {new Date().toLocaleString(getActiveLocale() === 'en' ? 'en-US' : 'vi-VN')}
                 </span>
               </div>
             </div>
 
             {/* Stack trace chi tiết */}
             <div className="error-stack-wrapper">
-              <label className="form-label">Chi tiết Stack Trace & Vị trí Component:</label>
+              <label className="form-label">{translate('errors.boundaryStackLabel', 'Chi tiết Stack Trace & Vị trí Component:')}</label>
               <pre className="error-stack-pre">
                 {error?.stack}
                 {errorInfo?.componentStack}
@@ -129,21 +130,21 @@ Component Stack: ${errorInfo?.componentStack}`;
                 icon={<RefreshCw size={15} />}
                 onClick={this.handleReload}
               >
-                Tải lại trang
+                {translate('errors.boundaryReload', 'Tải lại trang')}
               </Button>
               <Button
                 variant="secondary"
                 icon={<Home size={15} />}
                 onClick={this.handleGoHome}
               >
-                Về Trang Chủ
+                {translate('errors.boundaryGoHome', 'Về Trang Chủ')}
               </Button>
               <Button
                 variant="outline"
                 icon={copied ? <Check size={15} className="text-success" /> : <Copy size={15} />}
                 onClick={this.handleCopyError}
               >
-                {copied ? 'Đã sao chép báo cáo' : 'Sao chép chi tiết lỗi'}
+                {copied ? translate('errors.boundaryCopied', 'Đã sao chép báo cáo') : translate('errors.boundaryCopy', 'Sao chép chi tiết lỗi')}
               </Button>
             </div>
           </div>

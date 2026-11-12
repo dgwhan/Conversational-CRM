@@ -5,7 +5,10 @@ import { SignUpForm } from '../components/SignUpForm.js';
 import { AUTH_TAB, type AuthTab } from '../constants/auth.constants.js';
 import type { LoginResponse } from '../types/auth.types.js';
 import { PasswordRecoveryFlow } from '../components/PasswordRecoveryFlow.js';
-import { useTranslation } from '../../../i18n/index.js';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { useTranslation, LanguageSwitcher } from '../../../i18n/index.js';
+import { ROUTES } from '../../../config/routes.js';
 
 export type AuthPageProps = {
   onLoginSuccess?: (session: LoginResponse, rememberMe?: boolean) => void;
@@ -34,7 +37,20 @@ export function AuthPage({
   const isSignUpActive = activeTab === AUTH_TAB.SIGN_UP;
 
   return (
-    <AuthLayout>
+    <AuthLayout
+      topBar={
+        <>
+          <Link
+            to={ROUTES.HOME}
+            className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white/85 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:text-[#1A5CFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] sm:text-sm"
+          >
+            <ArrowLeft size={15} className="shrink-0" aria-hidden="true" />
+            <span className="truncate">{t('auth.backToHome', 'Quay lại trang chủ')}</span>
+          </Link>
+          <LanguageSwitcher />
+        </>
+      }
+    >
       {/* Logo in a frosted glass rounded container with subtle brand glow */}
       <div className="flex flex-col items-center justify-center mb-6">
         <div className="relative p-2.5 rounded-2xl bg-white/85 border border-white shadow-[0_4px_16px_rgba(26,92,255,0.12),0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-md flex items-center justify-center">

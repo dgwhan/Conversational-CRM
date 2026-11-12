@@ -107,12 +107,12 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
           </div>
           <div>
             <h3 className="text-xs font-bold m-0 mb-1 text-slate-900">
-              {searchQuery ? 'Không tìm thấy thiết lập phù hợp' : 'Chưa có bộ thiết lập cấu hình nào'}
+              {searchQuery ? t('workspaceSettings.config.noMatch', 'Không tìm thấy thiết lập phù hợp') : t('workspaceSettings.config.empty', 'Chưa có bộ thiết lập cấu hình nào')}
             </h3>
             <p className="text-[11px] text-slate-500 m-0 max-w-md">
               {searchQuery
-                ? `Không có kết quả nào khớp với "${searchQuery}". Vui lòng thử từ khóa khác.`
-                : 'Tạo bộ thiết lập quy trình đầu tiên để chuẩn hóa phễu và thuật ngữ phù hợp cho doanh nghiệp.'}
+                ? t('workspaceSettings.config.noMatchDesc', 'Không có kết quả nào khớp với "{q}". Vui lòng thử từ khóa khác.', { q: searchQuery })
+                : t('workspaceSettings.config.emptyDesc', 'Tạo bộ thiết lập quy trình đầu tiên để chuẩn hóa phễu và thuật ngữ phù hợp cho doanh nghiệp.')}
             </p>
           </div>
           {!searchQuery && isOwner && (
@@ -122,7 +122,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
               className="h-8 px-3 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
             >
               <Plus size={14} />
-              <span>Thêm thiết lập</span>
+              <span>{t('workspaceSettings.addNewConfig', 'Thêm thiết lập')}</span>
             </button>
           )}
         </div>
@@ -155,7 +155,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                     {isActive && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80">
                         <CheckCircle2 size={11} />
-                        <span>Đang áp dụng</span>
+                        <span>{t('workspaceSettings.config.applied', 'Đang áp dụng')}</span>
                       </span>
                     )}
                   </div>
@@ -163,19 +163,19 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                   {/* Thuật ngữ thiết lập */}
                   <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span>
-                      <strong className="text-slate-700">Thực thể:</strong> {terminology.entityName}
+                      <strong className="text-slate-700">{t('workspaceSettings.config.entity', 'Thực thể:')}</strong> {terminology.entityName}
                     </span>
                     <span className="text-slate-300">•</span>
                     <span>
-                      <strong className="text-slate-700">Phễu:</strong> {terminology.pipelineName}
+                      <strong className="text-slate-700">{t('workspaceSettings.config.pipeline', 'Phễu:')}</strong> {terminology.pipelineName}
                     </span>
                     <span className="text-slate-300">•</span>
                     <span>
-                      <strong className="text-slate-700">Danh mục:</strong> {terminology.productLabel}
+                      <strong className="text-slate-700">{t('workspaceSettings.config.catalog', 'Danh mục:')}</strong> {terminology.productLabel}
                     </span>
                     <span className="text-slate-300">•</span>
                     <span>
-                      <strong className="text-slate-700">Doanh số:</strong> {terminology.valueLabel}
+                      <strong className="text-slate-700">{t('workspaceSettings.config.value', 'Doanh số:')}</strong> {terminology.valueLabel}
                     </span>
                   </div>
 
@@ -183,7 +183,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                   <div className="flex items-center gap-3 text-[11px] text-slate-400">
                     <span className="inline-flex items-center gap-1">
                       <Layers size={12} className="text-slate-400" />
-                      <span>{pipelineStages.length} giai đoạn phễu</span>
+                      <span>{t('workspaceSettings.config.stagesCount', '{n} giai đoạn phễu', { n: pipelineStages.length })}</span>
                     </span>
                     <span>•</span>
                     <span className="inline-flex items-center gap-1">
@@ -193,7 +193,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                     <span>•</span>
                     <span className="inline-flex items-center gap-1">
                       <SlidersHorizontal size={12} className="text-slate-400" />
-                      <span>{criteria.length} tiêu chí</span>
+                      <span>{t('workspaceSettings.config.criteriaCount', '{n} tiêu chí', { n: criteria.length })}</span>
                     </span>
                   </div>
                 </div>
@@ -205,9 +205,9 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                       type="button"
                       onClick={() => onSelectApply(item)}
                       className="h-7 px-3 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer transition-colors"
-                      title="Áp dụng bộ thiết lập này cho Workspace"
+                      title={t('workspaceSettings.config.applyTooltip', 'Áp dụng bộ thiết lập này cho Workspace')}
                     >
-                      Chọn áp dụng
+                      {t('workspaceSettings.config.apply', 'Chọn áp dụng')}
                     </button>
                   )}
 
@@ -215,9 +215,9 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                     type="button"
                     onClick={() => onViewDetail(item)}
                     className="h-7 px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg inline-flex items-center gap-1 transition-colors cursor-pointer border border-transparent hover:border-blue-200"
-                    title="Xem và chỉnh sửa chi tiết các giai đoạn, sản phẩm, thuật ngữ"
+                    title={t('workspaceSettings.config.detailTooltip', 'Xem và chỉnh sửa chi tiết các giai đoạn, sản phẩm, thuật ngữ')}
                   >
-                    <span>Chi tiết thiết lập</span>
+                    <span>{t('workspaceSettings.config.details', 'Chi tiết thiết lập')}</span>
                     <ArrowUpRight size={13} />
                   </button>
 
@@ -226,7 +226,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                       <button
                         type="button"
                         onClick={() => onEdit(item)}
-                        title="Đổi tên hoặc mô hình"
+                        title={t('workspaceSettings.config.renameTooltip', 'Đổi tên hoặc mô hình')}
                         className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
                       >
                         <Edit2 size={13} />
@@ -235,7 +235,7 @@ export const ConfigListPage: React.FC<ConfigListPageProps> = ({
                       <button
                         type="button"
                         onClick={() => onDelete(item)}
-                        title="Xóa thiết lập này"
+                        title={t('workspaceSettings.config.deleteTooltip', 'Xóa thiết lập này')}
                         className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
                       >
                         <Trash2 size={13} />

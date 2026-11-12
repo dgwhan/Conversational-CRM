@@ -15,6 +15,8 @@ import { Button } from '../../../components/ui/Button.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../../components/ui/Card.js';
 import type { ChannelType, ManualImportRow } from '../types/messaging.types.js';
 
+import { useTranslation } from '../../../i18n/index.js';
+import { translate } from '../../../i18n/translate.js';
 export interface GridRow {
   id: string;
   channel: string;
@@ -31,6 +33,7 @@ interface SpreadsheetGridProps {
 const VALID_CHANNELS: ChannelType[] = ['ZALO', 'FACEBOOK', 'TIKTOK', 'MANUAL_IMPORT'];
 
 export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, loading }) => {
+  const { t } = useTranslation();
   const [rows, setRows] = useState<GridRow[]>([
     {
       id: 'row-1',
@@ -65,15 +68,15 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
 
     const ch = row.channel.trim().toUpperCase();
     if (!VALID_CHANNELS.includes(ch as ChannelType)) {
-      errors.channel = 'Kênh phải là: ZALO, FACEBOOK, TIKTOK, MANUAL_IMPORT';
+      errors.channel = translate('messagingImport.grid.channelInvalid', 'Kênh phải là: ZALO, FACEBOOK, TIKTOK, MANUAL_IMPORT');
     }
 
     if (!row.sender || row.sender.trim().length === 0) {
-      errors.sender = 'Người gửi không được để trống';
+      errors.sender = translate('messagingImport.grid.senderRequired', 'Người gửi không được để trống');
     }
 
     if (!row.sentAt || isNaN(new Date(row.sentAt).getTime())) {
-      errors.sentAt = 'Thời gian không đúng định dạng ngày giờ';
+      errors.sentAt = translate('messagingImport.grid.sentAtInvalid', 'Thời gian không đúng định dạng ngày giờ');
     }
 
     return {
@@ -157,7 +160,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
 
     if (newRows.length > 0) {
       setRows((prev) => [...prev, ...newRows]);
-      setPasteNotification(`Đã dán thành công ${newRows.length} dòng từ Google Sheet / Excel!`);
+      setPasteNotification(translate('messagingImport.grid.pasted', 'Đã dán thành công {n} dòng từ Google Sheet / Excel!', { n: newRows.length }));
       setTimeout(() => setPasteNotification(null), 4000);
     }
   }, []);
@@ -237,7 +240,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
   // Gửi các dòng đã kiểm thực sang CRM
   const handleSaveToCrm = async () => {
     if (rows.length === 0) {
-      alert('Bảng chưa có dữ liệu!');
+      alert(translate('messagingImport.grid.emptyAlert', 'Bảng chưa có dữ liệu!'));
       return;
     }
 
@@ -265,10 +268,10 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileSpreadsheet size={20} style={{ color: 'var(--color-primary)' }} />
-            <CardTitle>Bảng Tính Trực Tiếp Trên Web (In-App Spreadsheet Grid)</CardTitle>
+            <CardTitle>{t('messagingImport.grid.title', 'Bảng Tính Trực Tiếp Trên Web (In-App Spreadsheet Grid)')}</CardTitle>
           </div>
           <CardDescription>
-            Hỗ trợ <strong>Ctrl + V</strong> dán hàng loạt ô từ Excel/Google Sheets, chỉnh sửa trực tiếp từng ô (cell-editing), tự động kiểm thực bằng Zod.
+            {t('messagingImport.grid.descPrefix', 'Hỗ trợ')} <strong>Ctrl + V</strong> {t('messagingImport.grid.descSuffix', 'dán hàng loạt ô từ Excel/Google Sheets, chỉnh sửa trực tiếp từng ô (cell-editing), tự động kiểm thực bằng Zod.')}
           </CardDescription>
         </div>
 
@@ -279,7 +282,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
             icon={<Sparkles size={14} />}
             onClick={loadSampleData}
           >
-            Nạp 10 dòng mẫu
+            {t('messagingImport.grid.load10', 'Nạp 10 dòng mẫu')}
           </Button>
           <Button
             variant="secondary"
@@ -287,7 +290,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
             icon={<Plus size={14} />}
             onClick={() => addRows(1)}
           >
-            +1 Dòng
+            {t('messagingImport.grid.add1', '+1 Dòng')}
           </Button>
           <Button
             variant="secondary"
@@ -295,7 +298,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
             icon={<Plus size={14} />}
             onClick={() => addRows(5)}
           >
-            +5 Dòng
+            {t('messagingImport.grid.add5', '+5 Dòng')}
           </Button>
           <Button
             variant="ghost"
@@ -303,7 +306,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
             icon={<Trash2 size={14} />}
             onClick={() => setRows([])}
           >
-            Xóa hết
+            {t('messagingImport.grid.clearAll', 'Xóa hết')}
           </Button>
         </div>
       </CardHeader>
@@ -321,22 +324,22 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
         <div className="crm-grid-statusbar">
           <div className="statusbar-stats">
             <span className="stat-item">
-              Tổng số dòng: <strong>{rows.length}</strong>
+              {t('messagingImport.grid.totalRows', 'Tổng số dòng:')} <strong>{rows.length}</strong>
             </span>
             <span className="stat-item text-success">
               <CheckCircle2 size={14} />
-              Hợp lệ: <strong>{stats.valid}</strong>
+              {t('messagingImport.grid.validLabel', 'Hợp lệ:')} <strong>{stats.valid}</strong>
             </span>
             {stats.invalid > 0 && (
               <span className="stat-item text-danger">
                 <AlertCircle size={14} />
-                Cần sửa: <strong>{stats.invalid}</strong>
+                {t('messagingImport.grid.invalidLabel', 'Cần sửa:')} <strong>{stats.invalid}</strong>
               </span>
             )}
           </div>
           <div className="statusbar-hint">
             <Info size={14} />
-            <span>Mẹo: Bạn có thể chọn vùng ô trong Google Sheet, nhấn <strong>Ctrl + C</strong> rồi nhấp vào bảng này nhấn <strong>Ctrl + V</strong>.</span>
+            <span>{t('messagingImport.grid.tipPrefix', 'Mẹo: Bạn có thể chọn vùng ô trong Google Sheet, nhấn')} <strong>Ctrl + C</strong> {t('messagingImport.grid.tipMiddle', 'rồi nhấp vào bảng này nhấn')} <strong>Ctrl + V</strong>.</span>
           </div>
         </div>
 
@@ -351,19 +354,19 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
             <thead>
               <tr>
                 <th className="th-index">#</th>
-                <th className="th-channel">Kênh tiếp nhận *</th>
-                <th className="th-sender">Người gửi / SĐT *</th>
-                <th className="th-content">Nội dung tin nhắn</th>
-                <th className="th-time">Thời gian gửi *</th>
-                <th className="th-status">Kiểm thực Zod</th>
-                <th className="th-action">Xoá</th>
+                <th className="th-channel">{t('messagingImport.cols.channel', 'Kênh tiếp nhận *')}</th>
+                <th className="th-sender">{t('messagingImport.cols.sender', 'Người gửi / SĐT *')}</th>
+                <th className="th-content">{t('messagingImport.grid.colContent', 'Nội dung tin nhắn')}</th>
+                <th className="th-time">{t('messagingImport.cols.sentAt', 'Thời gian gửi *')}</th>
+                <th className="th-status">{t('messagingImport.grid.colValidation', 'Kiểm thực Zod')}</th>
+                <th className="th-action">{t('messagingImport.grid.colDelete', 'Xoá')}</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="td-empty">
-                    Bảng trống. Hãy nhấn nút <strong>&quot;+1 Dòng&quot;</strong>, <strong>&quot;Nạp 10 dòng mẫu&quot;</strong> hoặc nhấn <strong>Ctrl + V</strong> để dán từ Google Sheet!
+                    {t('messagingImport.grid.emptyPrefix', 'Bảng trống. Hãy nhấn nút')} <strong>&quot;{t('messagingImport.grid.add1', '+1 Dòng')}&quot;</strong>, <strong>&quot;{t('messagingImport.grid.load10', 'Nạp 10 dòng mẫu')}&quot;</strong> {t('messagingImport.grid.emptyOr', 'hoặc nhấn')} <strong>Ctrl + V</strong> {t('messagingImport.grid.emptySuffix', 'để dán từ Google Sheet!')}
                   </td>
                 </tr>
               ) : (
@@ -392,7 +395,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                             <option value="TIKTOK">TIKTOK</option>
                             <option value="MANUAL_IMPORT">MANUAL_IMPORT</option>
                             {!VALID_CHANNELS.includes(row.channel.toUpperCase() as ChannelType) && (
-                              <option value={row.channel}>{row.channel} (Không hợp lệ)</option>
+                              <option value={row.channel}>{row.channel} ({t('messagingImport.grid.invalidOption', 'Không hợp lệ')})</option>
                             )}
                           </select>
                         </div>
@@ -408,7 +411,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                           type="text"
                           className="cell-input"
                           value={row.sender}
-                          placeholder="Nhập SĐT / ID người gửi..."
+                          placeholder={t('messagingImport.grid.senderPlaceholder', 'Nhập SĐT / ID người gửi...')}
                           onChange={(e) => updateCell(rowIdx, 'sender', e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, rowIdx, 'sender')}
                         />
@@ -424,7 +427,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                           type="text"
                           className="cell-input"
                           value={row.content}
-                          placeholder="Nội dung trao đổi..."
+                          placeholder={t('messagingImport.grid.contentPlaceholder', 'Nội dung trao đổi...')}
                           onChange={(e) => updateCell(rowIdx, 'content', e.target.value)}
                           onKeyDown={(e) => handleKeyDown(e, rowIdx, 'content')}
                         />
@@ -445,7 +448,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                           <button
                             type="button"
                             className="btn-set-now"
-                            title="Đặt thành thời gian hiện tại"
+                            title={t('messagingImport.grid.setNow', 'Đặt thành thời gian hiện tại')}
                             onClick={() => updateCell(rowIdx, 'sentAt', new Date().toISOString())}
                           >
                             <Calendar size={13} />
@@ -461,12 +464,12 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                         {val.isValid ? (
                           <span className="badge badge-success">
                             <CheckCircle2 size={12} />
-                            Hợp lệ
+                            {t('messagingImport.grid.valid', 'Hợp lệ')}
                           </span>
                         ) : (
                           <span className="badge badge-danger" title={Object.values(val.errors).join(', ')}>
                             <AlertCircle size={12} />
-                            Lỗi dữ liệu
+                            {t('messagingImport.grid.invalid', 'Lỗi dữ liệu')}
                           </span>
                         )}
                       </td>
@@ -477,7 +480,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
                           type="button"
                           className="btn-icon-danger"
                           onClick={() => deleteRow(rowIdx)}
-                          title="Xóa dòng này"
+                          title={t('messagingImport.grid.deleteThisRow', 'Xóa dòng này')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -494,7 +497,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
       <CardFooter>
         <div className="crm-footer-summary">
           <span>
-            Sẵn sàng import <strong>{stats.valid}</strong> dòng hợp lệ vào cơ sở dữ liệu.
+            {t('messagingImport.grid.readyPrefix', 'Sẵn sàng import')} <strong>{stats.valid}</strong> {t('messagingImport.grid.readySuffix', 'dòng hợp lệ vào cơ sở dữ liệu.')}
           </span>
         </div>
         <Button
@@ -505,7 +508,7 @@ export const SpreadsheetGrid: React.FC<SpreadsheetGridProps> = ({ onImportRows, 
           disabled={rows.length === 0}
           onClick={handleSaveToCrm}
         >
-          {loading ? 'Đang kiểm thực và lưu...' : `Lưu & Import ${rows.length} Dòng Vào CRM`}
+          {loading ? t('messagingImport.validatingSaving', 'Đang kiểm thực và lưu...') : t('messagingImport.grid.submit', 'Lưu & Import {n} Dòng Vào CRM', { n: rows.length })}
         </Button>
       </CardFooter>
     </Card>

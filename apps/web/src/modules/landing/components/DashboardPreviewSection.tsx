@@ -8,9 +8,21 @@ import {
   DollarSign,
   ShieldCheck,
 } from 'lucide-react';
+import { useLandingContent } from '../hooks/useLandingContent.js';
+
+const PRODUCT_BAR_STYLE = [
+  { height: '85%', color: 'from-blue-600 to-indigo-600' },
+  { height: '72%', color: 'from-indigo-600 to-purple-600' },
+  { height: '56%', color: 'from-purple-600 to-pink-600' },
+  { height: '80%', color: 'from-cyan-600 to-blue-600' },
+];
+
+const CHANNEL_SHARES = ['45% (2.169)', '35% (1.687)', '15% (723)', '5% (241)'];
+const CHANNEL_DOTS = ['bg-blue-600', 'bg-sky-500', 'bg-purple-500', 'bg-emerald-500'];
 
 export const DashboardPreviewSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'trends' | 'funnel' | 'channels'>('trends');
+  const { dashboard: d } = useLandingContent();
 
   return (
     <section id="dashboard-preview" className="relative py-16 sm:py-28 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
@@ -21,16 +33,16 @@ export const DashboardPreviewSection: React.FC = () => {
       <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-800/50 backdrop-blur-md mb-4 shadow-sm">
           <BarChart3 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-          <span>Báo cáo & Phân tích chuyên sâu</span>
+          <span>{d.pill}</span>
         </div>
         <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-          Kiểm soát toàn diện hiệu suất qua{' '}
+          {d.titleLead}{' '}
           <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-            Bảng điều khiển trực quan
+            {d.titleHighlight}
           </span>
         </h2>
         <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-600 dark:text-slate-300">
-          Mọi dữ liệu từ số lượng lead mới, tỷ lệ chốt hồ sơ, phân bổ theo kênh tới năng suất của từng tư vấn viên đều được cập nhật theo thời gian thực.
+          {d.subtitle}
         </p>
       </div>
 
@@ -38,55 +50,55 @@ export const DashboardPreviewSection: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-8">
         <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Tổng Leads tháng</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.kpis[0].label}</span>
             <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">4.820</div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{d.kpis[0].value}</div>
           <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
             <TrendingUp className="w-3 h-3 shrink-0" />
-            <span>+28.4% so với tháng trước</span>
+            <span>{d.kpis[0].note}</span>
           </div>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đã chốt nhập học</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.kpis[1].label}</span>
             <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">1.145</div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{d.kpis[1].value}</div>
           <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-semibold">
             <TrendingUp className="w-3 h-3 shrink-0" />
-            <span>Tỷ lệ chuyển đổi: 23.7%</span>
+            <span>{d.kpis[1].note}</span>
           </div>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Học phí thực thu</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.kpis[2].label}</span>
             <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">8.65 tỷ</div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{d.kpis[2].value}</div>
           <div className="mt-1 text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 font-semibold">
-            <span>Đạt 112% chỉ tiêu</span>
+            <span>{d.kpis[2].note}</span>
           </div>
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đạt chuẩn SLA 15m</span>
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.kpis[3].label}</span>
             <div className="w-8 h-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">98.2%</div>
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">{d.kpis[3].value}</div>
           <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            <span>TB phản hồi: 2.4 phút</span>
+            <span>{d.kpis[3].note}</span>
           </div>
         </div>
       </div>
@@ -97,10 +109,10 @@ export const DashboardPreviewSection: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 sm:pb-6 border-b border-slate-200/60 dark:border-slate-800/60">
           <div>
             <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-              Báo cáo hiệu quả phễu tiếp nhận và phân bổ đa kênh
+              {d.chartTitle}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Dữ liệu tổng hợp tự động từ 3 cổng kết nối chính
+              {d.chartSubtitle}
             </p>
           </div>
           <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto max-w-full scrollbar-none w-full sm:w-auto">
@@ -113,8 +125,8 @@ export const DashboardPreviewSection: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              <span className="sm:hidden">Xu hướng</span>
-              <span className="hidden sm:inline">Xu hướng Leads (Line)</span>
+              <span className="sm:hidden">{d.tabs.trends.short}</span>
+              <span className="hidden sm:inline">{d.tabs.trends.long}</span>
             </button>
             <button
               type="button"
@@ -125,8 +137,8 @@ export const DashboardPreviewSection: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              <span className="sm:hidden">Ngành học</span>
-              <span className="hidden sm:inline">Ngành học (Bar)</span>
+              <span className="sm:hidden">{d.tabs.products.short}</span>
+              <span className="hidden sm:inline">{d.tabs.products.long}</span>
             </button>
             <button
               type="button"
@@ -137,8 +149,8 @@ export const DashboardPreviewSection: React.FC = () => {
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              <span className="sm:hidden">Tỷ trọng</span>
-              <span className="hidden sm:inline">Tỷ trọng kênh (Donut)</span>
+              <span className="sm:hidden">{d.tabs.channels.short}</span>
+              <span className="hidden sm:inline">{d.tabs.channels.long}</span>
             </button>
           </div>
         </div>
@@ -196,13 +208,9 @@ export const DashboardPreviewSection: React.FC = () => {
               </svg>
             </div>
             <div className="flex justify-between text-[11px] sm:text-xs text-slate-400 font-medium px-1 sm:px-2 pt-2">
-              <span>T2</span>
-              <span>T3</span>
-              <span>T4</span>
-              <span>T5</span>
-              <span>T6</span>
-              <span>T7</span>
-              <span>CN</span>
+              {d.weekdays.map((day) => (
+                <span key={day}>{day}</span>
+              ))}
             </div>
           </div>
         )}
@@ -211,12 +219,7 @@ export const DashboardPreviewSection: React.FC = () => {
         {activeTab === 'funnel' && (
           <div className="pt-4 sm:pt-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 h-64 sm:h-72 items-end pb-2 sm:pb-4">
-              {[
-                { name: 'Lập trình Web/App', value: '1.420', height: '85%', color: 'from-blue-600 to-indigo-600' },
-                { name: 'Thiết kế Đồ họa', value: '1.180', height: '72%', color: 'from-indigo-600 to-purple-600' },
-                { name: 'An ninh Mạng', value: '890', height: '56%', color: 'from-purple-600 to-pink-600' },
-                { name: 'Digital Marketing', value: '1.330', height: '80%', color: 'from-cyan-600 to-blue-600' },
-              ].map((bar, i) => (
+              {d.products.map((product, i) => ({ ...product, ...PRODUCT_BAR_STYLE[i] })).map((bar, i) => (
                 <div key={i} className="flex flex-col items-center h-full justify-end">
                   <span className="text-xs font-bold text-slate-800 dark:text-white mb-1 sm:mb-2">{bar.value}</span>
                   <div className="w-full max-w-[60px] sm:max-w-[80px] bg-slate-100 dark:bg-slate-800 rounded-t-xl overflow-hidden flex items-end h-40 sm:h-48">
@@ -289,32 +292,19 @@ export const DashboardPreviewSection: React.FC = () => {
                 />
               </svg>
               <div className="absolute text-center">
-                <span className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">4.820</span>
-                <p className="text-[9px] sm:text-[10px] text-slate-400">Tổng Leads</p>
+                <span className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">{d.kpis[0].value}</span>
+                <p className="text-[9px] sm:text-[10px] text-slate-400">{d.totalLeads}</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-2.5 sm:gap-3 w-full sm:w-auto">
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="w-3 h-3 rounded-full bg-blue-600 shrink-0" />
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Facebook Fanpage:</span>
-                <span className="font-bold text-slate-900 dark:text-white ml-auto sm:ml-0">45% (2.169)</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="w-3 h-3 rounded-full bg-sky-500 shrink-0" />
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Zalo OA & Chat:</span>
-                <span className="font-bold text-slate-900 dark:text-white ml-auto sm:ml-0">35% (1.687)</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="w-3 h-3 rounded-full bg-purple-500 shrink-0" />
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Excel / Sự kiện:</span>
-                <span className="font-bold text-slate-900 dark:text-white ml-auto sm:ml-0">15% (723)</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
-                <span className="text-slate-700 dark:text-slate-300 font-medium">Khác (Website, Hotline):</span>
-                <span className="font-bold text-slate-900 dark:text-white ml-auto sm:ml-0">5% (241)</span>
-              </div>
+              {d.channelLegend.map((label, i) => (
+                <div key={label} className="flex items-center gap-2.5 text-xs">
+                  <span className={`w-3 h-3 rounded-full shrink-0 ${CHANNEL_DOTS[i]}`} />
+                  <span className="text-slate-700 dark:text-slate-300 font-medium">{label}</span>
+                  <span className="font-bold text-slate-900 dark:text-white ml-auto sm:ml-0">{CHANNEL_SHARES[i]}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

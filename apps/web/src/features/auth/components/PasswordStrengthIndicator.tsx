@@ -4,6 +4,7 @@ import {
   PASSWORD_SPECIAL_CHAR_LABEL,
   type PasswordStrength,
 } from '../validation/auth.validation.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 export type PasswordStrengthIndicatorProps = {
   strength: PasswordStrength;
@@ -17,30 +18,31 @@ export function PasswordStrengthIndicator({
   strength,
   className = '',
 }: PasswordStrengthIndicatorProps) {
+  const { t } = useTranslation();
   const criteria = [
     {
       id: 'min-length',
-      label: `Tối thiểu ${PASSWORD_MIN_LENGTH} ký tự`,
+      label: t('auth.strength.minLength', 'Tối thiểu {n} ký tự', { n: PASSWORD_MIN_LENGTH }),
       passed: strength.hasMinLength,
     },
     {
       id: 'uppercase',
-      label: 'Ít nhất 1 chữ hoa',
+      label: t('auth.strength.uppercase', 'Ít nhất 1 chữ hoa'),
       passed: strength.hasUppercase,
     },
     {
       id: 'lowercase',
-      label: 'Ít nhất 1 chữ thường',
+      label: t('auth.strength.lowercase', 'Ít nhất 1 chữ thường'),
       passed: strength.hasLowercase,
     },
     {
       id: 'number',
-      label: 'Ít nhất 1 số',
+      label: t('auth.strength.number', 'Ít nhất 1 số'),
       passed: strength.hasNumber,
     },
     {
       id: 'special',
-      label: `Ít nhất 1 ký tự đặc biệt (${PASSWORD_SPECIAL_CHAR_LABEL})`,
+      label: t('auth.strength.special', 'Ít nhất 1 ký tự đặc biệt ({chars})', { chars: PASSWORD_SPECIAL_CHAR_LABEL }),
       passed: strength.hasSpecial,
     },
   ];
@@ -51,7 +53,7 @@ export function PasswordStrengthIndicator({
     >
       {/* Tiêu đề quy tắc */}
       <p className="font-sans text-xs font-medium text-slate-700">
-        Mật khẩu phải bao gồm:
+        {t('auth.strength.mustInclude', 'Mật khẩu phải bao gồm:')}
       </p>
 
       {/* Danh sách 5 tiêu chuẩn xếp dọc */}

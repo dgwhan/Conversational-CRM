@@ -23,7 +23,7 @@ import type {
 
 export const ReportsDashboardPage: React.FC = () => {
   const { config, activeWorkspaceId, activeWorkspace } = useWorkspaceConfig();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [selectedRange, setSelectedRange] = useState<TimeRangeFilter>('30days');
   const [selectedChannel, setSelectedChannel] = useState<string>('ALL');
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -34,43 +34,43 @@ export const ReportsDashboardPage: React.FC = () => {
     return (
       reportsData?.terminology ||
       config.terminology || {
-        entityName: 'Khách hàng',
-        pipelineName: 'Phễu Chuyển Đổi',
-        productLabel: 'Sản phẩm / Dịch vụ',
-        valueLabel: 'Giá trị dự kiến (VNĐ)',
+        entityName: t('reports.defaultTerminology.entityName', 'Khách hàng'),
+        pipelineName: t('reports.defaultTerminology.pipelineName', 'Phễu Chuyển Đổi'),
+        productLabel: t('reports.defaultTerminology.productLabel', 'Sản phẩm / Dịch vụ'),
+        valueLabel: t('reports.defaultTerminology.valueLabel', 'Giá trị dự kiến (VNĐ)'),
       }
     );
-  }, [reportsData?.terminology, config.terminology]);
+  }, [reportsData?.terminology, config.terminology, t]);
 
   const wonLabel = useMemo(() => {
     switch (currentDomain) {
       case 'REAL_ESTATE':
-        return 'Chốt Cọc';
+        return t('reports.wonLabels.realEstate', 'Chốt Cọc');
       case 'BEAUTY_SPA':
-        return 'Chốt Liệu Trình';
+        return t('reports.wonLabels.beautySpa', 'Chốt Liệu Trình');
       case 'RETAIL':
-        return 'Đơn Hàng';
+        return t('reports.wonLabels.retail', 'Đơn Hàng');
       case 'B2B_SAAS':
-        return 'Hợp Đồng';
+        return t('reports.wonLabels.b2bSaas', 'Hợp Đồng');
       case 'EDUCATION':
       default:
-        return 'Nhập Học';
+        return t('reports.wonLabels.education', 'Nhập Học');
     }
-  }, [currentDomain]);
+  }, [currentDomain, t]);
 
   const pageTitle = useMemo(() => {
     const rawName = activeWorkspace?.name || config.workspaceName || '';
 
     if (rawName) {
-      return `Báo Cáo & Thống Kê - ${rawName}`;
+      return t('reports.titleWithWorkspace', 'Báo Cáo & Thống Kê - {name}', { name: rawName });
     }
 
-    const pipelineClean = (currentTerminology.pipelineName || 'Tuyển Sinh')
+    const pipelineClean = (currentTerminology.pipelineName || t('reports.defaultPipelineShort', 'Tuyển Sinh'))
       .replace(/^Phễu\s*/i, '')
       .trim();
 
-    return `Báo Cáo & Thống Kê ${pipelineClean || 'Tuyển Sinh'}`;
-  }, [activeWorkspace?.name, config.workspaceName, currentTerminology.pipelineName]);
+    return t('reports.titleWithPipeline', 'Báo Cáo & Thống Kê {pipeline}', { pipeline: pipelineClean || t('reports.defaultPipelineShort', 'Tuyển Sinh') });
+  }, [activeWorkspace?.name, config.workspaceName, currentTerminology.pipelineName, t]);
 
   // Sinh các mốc thời gian với số liệu mặc định 0 nếu chưa có dữ liệu giao dịch
   const generateTrendData = useCallback((range: TimeRangeFilter): TrendDataPoint[] => {
@@ -113,19 +113,19 @@ export const ReportsDashboardPage: React.FC = () => {
     const stages = config.pipelineStages && config.pipelineStages.length > 0
       ? config.pipelineStages
       : [
-          { id: 'NEW', name: 'Khách mới tiếp cận', subtitle: '', color: '#0284c7', order: 0, isWon: false, isLost: false },
-          { id: 'QUALIFIED', name: 'Đã xác nhận nhu cầu', subtitle: '', color: '#0d9488', order: 1, isWon: false, isLost: false },
-          { id: 'CONSULTING', name: 'Đang tư vấn chuyên sâu', subtitle: '', color: '#d97706', order: 2, isWon: false, isLost: false },
+          { id: 'NEW', name: t('reports.fallbackStages.new', 'Khách mới tiếp cận'), subtitle: '', color: '#0284c7', order: 0, isWon: false, isLost: false },
+          { id: 'QUALIFIED', name: t('reports.fallbackStages.qualified', 'Đã xác nhận nhu cầu'), subtitle: '', color: '#0d9488', order: 1, isWon: false, isLost: false },
+          { id: 'CONSULTING', name: t('reports.fallbackStages.consulting', 'Đang tư vấn chuyên sâu'), subtitle: '', color: '#d97706', order: 2, isWon: false, isLost: false },
           { id: 'WON', name: wonLabel, subtitle: '', color: '#16a34a', order: 3, isWon: true, isLost: false },
-          { id: 'LOST', name: 'Hủy / Thất bại', subtitle: '', color: '#64748b', order: 4, isWon: false, isLost: true },
+          { id: 'LOST', name: t('reports.fallbackStages.lost', 'Hủy / Thất bại'), subtitle: '', color: '#64748b', order: 4, isWon: false, isLost: true },
         ];
 
     const catalog = config.productCatalog && config.productCatalog.length > 0
       ? config.productCatalog
       : [
-          { id: '1', name: 'Sản phẩm chủ lực A', defaultPrice: 15000000 },
-          { id: '2', name: 'Sản phẩm cao cấp B', defaultPrice: 25000000 },
-          { id: '3', name: 'Gói dịch vụ tiêu chuẩn C', defaultPrice: 8000000 },
+          { id: '1', name: t('reports.fallbackProducts.a', 'Sản phẩm chủ lực A'), defaultPrice: 15000000 },
+          { id: '2', name: t('reports.fallbackProducts.b', 'Sản phẩm cao cấp B'), defaultPrice: 25000000 },
+          { id: '3', name: t('reports.fallbackProducts.c', 'Gói dịch vụ tiêu chuẩn C'), defaultPrice: 8000000 },
         ];
 
     // Nếu localStorage trống, không tạo dữ liệu giả
@@ -202,7 +202,7 @@ export const ReportsDashboardPage: React.FC = () => {
       const val = Number(c.estimatedValue || c.estimatedTuition) || 15000000;
       const cStage = (c.stage || 'NEW').toString();
       const ch = c.channel || 'FACEBOOK';
-      const staffName = c.assignedStaffName || 'Chưa phân công';
+      const staffName = c.assignedStaffName || t('reports.unassigned', 'Chưa phân công');
       const items: string[] =
         c.products && c.products.length > 0
           ? c.products
@@ -275,9 +275,9 @@ export const ReportsDashboardPage: React.FC = () => {
 
     const channels: ChannelReport[] = [
       { channel: 'FACEBOOK', label: 'Facebook Messenger', count: channelMap['FACEBOOK']?.count || 0, value: channelMap['FACEBOOK']?.value || 0, color: '#1877f2' },
-      { channel: 'ZALO', label: 'Zalo OA / Cá nhân', count: channelMap['ZALO']?.count || 0, value: channelMap['ZALO']?.value || 0, color: '#0068ff' },
+      { channel: 'ZALO', label: t('reports.channelLabels.zalo', 'Zalo OA / Cá nhân'), count: channelMap['ZALO']?.count || 0, value: channelMap['ZALO']?.value || 0, color: '#0068ff' },
       { channel: 'TIKTOK', label: 'TikTok Lead Gen', count: channelMap['TIKTOK']?.count || 0, value: channelMap['TIKTOK']?.value || 0, color: '#0f172a' },
-      { channel: 'MANUAL', label: 'Hotline / Trực tiếp', count: channelMap['MANUAL']?.count || 0, value: channelMap['MANUAL']?.value || 0, color: '#10b981' },
+      { channel: 'MANUAL', label: t('reports.channelLabels.manual', 'Hotline / Trực tiếp'), count: channelMap['MANUAL']?.count || 0, value: channelMap['MANUAL']?.value || 0, color: '#10b981' },
     ];
 
     const products: ProductReport[] = Object.entries(itemMap)
@@ -299,7 +299,7 @@ export const ReportsDashboardPage: React.FC = () => {
         revenue: item.revenue,
         conversionRate:
           item.leadsCount > 0 ? Number(((item.wonCount / item.leadsCount) * 100).toFixed(1)) : 0,
-        avgResponseTime: '0 phút',
+        avgResponseTime: t('reports.zeroMinutes', '0 phút'),
       }))
       .sort((a, b) => b.wonCount - a.wonCount || b.revenue - a.revenue);
 
@@ -396,38 +396,38 @@ export const ReportsDashboardPage: React.FC = () => {
 
     const term = currentTerminology;
     let csvContent = '\uFEFF'; // UTF-8 BOM để Excel hiển thị đúng dấu tiếng Việt
-    csvContent += `BÁO CÁO THỐNG KÊ DOANH NGHIỆP - POLARISX CRM (${pageTitle})\n`;
-    csvContent += `Thời gian xuất: ${new Date().toLocaleString('vi-VN')}\n`;
-    csvContent += `Chu kỳ lọc: ${selectedRange} | Kênh: ${selectedChannel}\n\n`;
+    csvContent += `${t('reports.csv.header', 'BÁO CÁO THỐNG KÊ DOANH NGHIỆP - POLARISX CRM ({title})', { title: pageTitle })}\n`;
+    csvContent += `${t('reports.csv.exportedAt', 'Thời gian xuất: {time}', { time: new Date().toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN') })}\n`;
+    csvContent += `${t('reports.csv.filter', 'Chu kỳ lọc: {range} | Kênh: {channel}', { range: selectedRange, channel: selectedChannel })}\n\n`;
 
     // 1. Chỉ số tổng quan
-    csvContent += '--- CHỈ SỐ TỔNG QUAN ---\n';
-    csvContent += `Tổng ${term.entityName} tiếp nhận,${reportsData.overview.totalLeads}\n`;
-    csvContent += `Số lượng ${wonLabel},${reportsData.overview.wonCount ?? reportsData.overview.enrolledCount}\n`;
-    csvContent += `Tỷ lệ chuyển đổi thành công,${reportsData.overview.conversionRate}%\n`;
-    csvContent += `Doanh thu thực thu (VNĐ),${reportsData.overview.totalCollectedValue ?? reportsData.overview.totalCollectedTuition}\n`;
-    csvContent += `Giá trị phễu dự kiến (VNĐ),${reportsData.overview.totalEstimatedValue ?? reportsData.overview.totalEstimatedTuition}\n`;
-    csvContent += `Tốc độ phản hồi trung bình (phút),${reportsData.overview.avgResponseTimeMinutes}\n\n`;
+    csvContent += `${t('reports.csv.overviewSection', '--- CHỈ SỐ TỔNG QUAN ---')}\n`;
+    csvContent += `${t('reports.csv.totalReceived', 'Tổng {entity} tiếp nhận', { entity: term.entityName })},${reportsData.overview.totalLeads}\n`;
+    csvContent += `${t('reports.csv.wonCount', 'Số lượng {won}', { won: wonLabel })},${reportsData.overview.wonCount ?? reportsData.overview.enrolledCount}\n`;
+    csvContent += `${t('reports.csv.conversionRate', 'Tỷ lệ chuyển đổi thành công')},${reportsData.overview.conversionRate}%\n`;
+    csvContent += `${t('reports.csv.collected', 'Doanh thu thực thu (VNĐ)')},${reportsData.overview.totalCollectedValue ?? reportsData.overview.totalCollectedTuition}\n`;
+    csvContent += `${t('reports.csv.estimated', 'Giá trị phễu dự kiến (VNĐ)')},${reportsData.overview.totalEstimatedValue ?? reportsData.overview.totalEstimatedTuition}\n`;
+    csvContent += `${t('reports.csv.avgResponse', 'Tốc độ phản hồi trung bình (phút)')},${reportsData.overview.avgResponseTimeMinutes}\n\n`;
 
     // 2. Phễu chuyển đổi
-    csvContent += `--- GIAI ĐOẠN PHỄU (${term.pipelineName}) ---\n`;
-    csvContent += `Mã giai đoạn,Tên giai đoạn,Số lượng ${term.entityName}\n`;
+    csvContent += `${t('reports.csv.funnelSection', '--- GIAI ĐOẠN PHỄU ({pipeline}) ---', { pipeline: term.pipelineName })}\n`;
+    csvContent += `${t('reports.csv.funnelColumns', 'Mã giai đoạn,Tên giai đoạn,Số lượng {entity}', { entity: term.entityName })}\n`;
     reportsData.funnelStages.forEach((s) => {
       csvContent += `"${s.id}","${s.label}",${s.count}\n`;
     });
     csvContent += '\n';
 
     // 3. Phân bổ nguồn kênh
-    csvContent += '--- PHÂN BỔ THEO KÊNH TIẾP NHẬN ---\n';
-    csvContent += `Kênh,Tên hiển thị,Số lượng ${term.entityName}\n`;
+    csvContent += `${t('reports.csv.channelSection', '--- PHÂN BỔ THEO KÊNH TIẾP NHẬN ---')}\n`;
+    csvContent += `${t('reports.csv.channelColumns', 'Kênh,Tên hiển thị,Số lượng {entity}', { entity: term.entityName })}\n`;
     reportsData.channels.forEach((c) => {
       csvContent += `"${c.channel}","${c.label}",${c.count}\n`;
     });
     csvContent += '\n';
 
     // 4. Bảng xếp hạng tư vấn viên
-    csvContent += '--- HIỆU SUẤT TƯ VẤN VIÊN / SALES ---\n';
-    csvContent += `Tư vấn viên,${term.entityName} tiếp nhận,${wonLabel},Tỷ lệ chuyển đổi (%),${term.valueLabel} mang về (VNĐ),Tốc độ phản hồi\n`;
+    csvContent += `${t('reports.csv.staffSection', '--- HIỆU SUẤT TƯ VẤN VIÊN / SALES ---')}\n`;
+    csvContent += `${t('reports.csv.staffColumns', 'Tư vấn viên,{entity} tiếp nhận,{won},Tỷ lệ chuyển đổi (%),{value} mang về (VNĐ),Tốc độ phản hồi', { entity: term.entityName, won: wonLabel, value: term.valueLabel })}\n`;
     reportsData.staffList.forEach((st) => {
       const won = st.wonCount ?? st.enrolledCount ?? 0;
       csvContent += `"${st.name}",${st.leadsCount},${won},${st.conversionRate}%,${st.revenue},"${st.avgResponseTime}"\n`;
@@ -443,7 +443,7 @@ export const ReportsDashboardPage: React.FC = () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    notify.success('Đã tải xuống file CSV báo cáo thống kê thành công!', 'Xuất báo cáo');
+    notify.success(t('reports.exportSuccess', 'Đã tải xuống file CSV báo cáo thống kê thành công!'), t('reports.exportTitle2', 'Xuất báo cáo'));
   };
 
   return (
@@ -451,14 +451,14 @@ export const ReportsDashboardPage: React.FC = () => {
       {/* Header khu vực báo cáo - Flat section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
         <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight break-words">
             {pageTitle}
           </h1>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0 self-start sm:self-auto">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Dữ liệu thời gian thực</span>
+          <span>{t('reports.realtimeBadge', 'Dữ liệu thời gian thực')}</span>
         </div>
       </div>
 
@@ -476,7 +476,7 @@ export const ReportsDashboardPage: React.FC = () => {
       />
 
       {reportsData ? (
-        <div className="space-y-3.5">
+        <div className="space-y-3.5 min-w-0">
           {/* 1. Hàng thẻ chỉ số đo lường chính (KPI Cards) */}
           <MetricCardsGrid
             metrics={reportsData.overview}
@@ -486,7 +486,7 @@ export const ReportsDashboardPage: React.FC = () => {
 
           {/* 2. Biểu đồ Phễu Chuyển Đổi & Biểu đồ Nguồn Kênh */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               <FunnelChart
                 stages={reportsData.funnelStages}
                 pipelineName={currentTerminology.pipelineName}
@@ -500,7 +500,7 @@ export const ReportsDashboardPage: React.FC = () => {
 
           {/* 3. Biểu đồ Xu hướng Tăng Trưởng & Phổ Biến Sản Phẩm */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 min-w-0">
               <LeadTrendChart
                 trends={reportsData.trends}
                 entityName={currentTerminology.entityName}

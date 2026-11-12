@@ -30,7 +30,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
         <h1 className="error-title">{t('errors.page404Title', 'Không Tìm Thấy Trang Yêu Cầu')}</h1>
 
         <p className="error-desc">
-          Đường dẫn <code>{path}</code> không tồn tại trên hệ thống Conversational CRM, đã bị thay đổi địa chỉ hoặc đã bị xóa.
+          {t('errors.page404DescPrefix', 'Đường dẫn')} <code>{path}</code> {t('errors.page404DescSuffix', 'không tồn tại trên hệ thống Conversational CRM, đã bị thay đổi địa chỉ hoặc đã bị xóa.')}
         </p>
 
         {/* Bảng chẩn đoán vị trí */}
@@ -41,7 +41,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
           </div>
           <ul className="diagnostic-list">
             <li>{t('errors.suggestUrlCheck', 'Kiểm tra lại tính chính xác của đường dẫn URL trên thanh địa chỉ trình duyệt.')}</li>
-            <li>Nếu bạn đang tìm tính năng Import tin nhắn, vui lòng truy cập menu <strong>Tin nhắn Tư vấn (MSG-06)</strong>.</li>
+            <li>{t('errors.suggestImportPrefix', 'Nếu bạn đang tìm tính năng Import tin nhắn, vui lòng truy cập menu')} <strong>{t('errors.suggestImportMenu', 'Tin nhắn Tư vấn (MSG-06)')}</strong>.</li>
             <li>{t('errors.suggestContactAdmin', 'Liên hệ quản trị viên hệ thống nếu sự cố vẫn tiếp diễn.')}</li>
           </ul>
         </div>
@@ -54,7 +54,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
             icon={<Home size={16} />}
             onClick={onGoHome}
           >
-            Về Trang Chủ CRM
+            {t('errors.goHomeCrm', 'Về Trang Chủ CRM')}
           </Button>
           <Button
             variant="secondary"
@@ -62,7 +62,7 @@ export const Error404Page: React.FC<Error404PageProps> = ({
             icon={<ArrowLeft size={16} />}
             onClick={onGoBack}
           >
-            Quay Lại Trang Trước
+            {t('errors.goBackPrevious', 'Quay Lại Trang Trước')}
           </Button>
         </div>
       </div>

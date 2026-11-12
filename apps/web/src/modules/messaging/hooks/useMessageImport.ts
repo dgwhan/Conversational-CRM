@@ -6,6 +6,7 @@ import type {
   ManualImportRow,
 } from '../types/messaging.types.js';
 
+import { translate } from '../../../i18n/translate.js';
 export function useMessageImport() {
   const [activeTab, setActiveTab] = useState<'csv' | 'manual'>('csv');
   const [csvContent, setCsvContent] = useState<string>('');
@@ -45,7 +46,7 @@ export function useMessageImport() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (err) {
-      setErrorMessage((err as Error).message || 'Không thể tải file mẫu');
+      setErrorMessage((err as Error).message || translate('messagingImport.hook.sampleError', 'Không thể tải file mẫu'));
     }
   };
 
@@ -99,7 +100,7 @@ export function useMessageImport() {
    */
   const submitCsvImport = async () => {
     if (!csvContent.trim()) {
-      setErrorMessage('Vui lòng nhập nội dung CSV hoặc chọn file từ máy tính.');
+      setErrorMessage(translate('messagingImport.hook.csvRequired', 'Vui lòng nhập nội dung CSV hoặc chọn file từ máy tính.'));
       return;
     }
 
@@ -111,7 +112,7 @@ export function useMessageImport() {
       const data = await messagingApi.importCsv(csvContent);
       setResult(data);
     } catch (err) {
-      setErrorMessage((err as Error).message || 'Lỗi khi gọi API import CSV');
+      setErrorMessage((err as Error).message || translate('messagingImport.hook.csvApiError', 'Lỗi khi gọi API import CSV'));
     } finally {
       setLoading(false);
     }
@@ -149,7 +150,7 @@ export function useMessageImport() {
    */
   const submitManualImport = async () => {
     if (manualRows.length === 0) {
-      setErrorMessage('Danh sách nhập tay không được để trống.');
+      setErrorMessage(translate('messagingImport.hook.manualEmpty', 'Danh sách nhập tay không được để trống.'));
       return;
     }
 
@@ -161,7 +162,7 @@ export function useMessageImport() {
       const data = await messagingApi.importManual(manualRows);
       setResult(data);
     } catch (err) {
-      setErrorMessage((err as Error).message || 'Lỗi khi gọi API nhập tay');
+      setErrorMessage((err as Error).message || translate('messagingImport.hook.manualApiError', 'Lỗi khi gọi API nhập tay'));
     } finally {
       setLoading(false);
     }
@@ -179,7 +180,7 @@ export function useMessageImport() {
       const data = await messagingApi.importGoogleSheet(sheetUrl);
       setResult(data);
     } catch (err) {
-      setErrorMessage((err as Error).message || 'Lỗi khi đồng bộ từ Google Sheet');
+      setErrorMessage((err as Error).message || translate('messagingImport.hook.gsheetError', 'Lỗi khi đồng bộ từ Google Sheet'));
     } finally {
       setLoading(false);
     }
@@ -197,7 +198,7 @@ export function useMessageImport() {
       const data = await messagingApi.importManual(rows);
       setResult(data);
     } catch (err) {
-      setErrorMessage((err as Error).message || 'Lỗi khi lưu bảng dữ liệu');
+      setErrorMessage((err as Error).message || translate('messagingImport.hook.gridError', 'Lỗi khi lưu bảng dữ liệu'));
     } finally {
       setLoading(false);
     }

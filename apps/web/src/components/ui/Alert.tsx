@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Info, X, AlertTriangle } from 'lucide-react';
 
+import { useOptionalTranslation } from '../../i18n/index.js';
 export interface AlertProps {
   variant?: 'info' | 'success' | 'warning' | 'danger';
   title?: string;
@@ -16,6 +17,7 @@ export const Alert: React.FC<AlertProps> = ({
   onClose,
   className = '',
 }) => {
+  const { t } = useOptionalTranslation();
   const getIcon = () => {
     switch (variant) {
       case 'success':
@@ -38,7 +40,7 @@ export const Alert: React.FC<AlertProps> = ({
         <div className="alert-message">{children}</div>
       </div>
       {onClose && (
-        <button type="button" className="alert-close-btn" onClick={onClose} aria-label="Đóng">
+        <button type="button" className="alert-close-btn" onClick={onClose} aria-label={t('ui.close', 'Đóng')}>
           <X size={16} />
         </button>
       )}

@@ -201,10 +201,10 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
             </div>
             <div>
               <h3 style={{ margin: 1, fontSize: '17px', fontWeight: 600, color: '#0f172a' }}>
-                Gán {productLabel}
+                {t('ui.assignProduct.title', 'Gán {label}', { label: productLabel })}
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748b' }}>
-                Khách hàng: <strong style={{ color: '#0284c7' }}>{customerName}</strong>
+                {t('ui.assignProduct.customerPrefix', 'Khách hàng:')} <strong style={{ color: '#0284c7' }}>{customerName}</strong>
               </p>
             </div>
           </div>
@@ -222,7 +222,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
             }}
-            title="Đóng"
+            title={t('ui.close', 'Đóng')}
           >
             <X size={20} />
           </button>
@@ -236,7 +236,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder={`Tìm kiếm trong danh mục ${productLabel.toLowerCase()} (không dấu)...`}
+                placeholder={t('ui.assignProduct.searchPlaceholder', 'Tìm kiếm trong danh mục {label} (không dấu)...', { label: productLabel.toLowerCase() })}
                 size="md"
                 className="w-full"
               />
@@ -298,7 +298,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                   fontSize: '13px',
                 }}
               >
-                Không tìm thấy {productLabel.toLowerCase()} nào phù hợp với từ khóa.
+                {t('ui.assignProduct.noMatch', 'Không tìm thấy {label} nào phù hợp với từ khóa.', { label: productLabel.toLowerCase() })}
               </div>
             ) : (
               <div
@@ -404,7 +404,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
           >
             <input
               type="text"
-              placeholder={`Hoặc nhập ${productLabel.toLowerCase()} khác nếu có...`}
+              placeholder={t('ui.assignProduct.customPlaceholder', 'Hoặc nhập {label} khác nếu có...', { label: productLabel.toLowerCase() })}
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
               style={{
@@ -451,7 +451,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                   marginBottom: '8px',
                 }}
               >
-                CÁC MỤC ĐÃ GÁN CHO KHÁCH HÀNG:
+                {t('ui.assignProduct.assignedHeading', 'CÁC MỤC ĐÃ GÁN CHO KHÁCH HÀNG:')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {selected.map((item) => {
@@ -490,7 +490,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                         }}
-                        title="Xóa mục này"
+                        title={t('ui.assignProduct.removeItem', 'Xóa mục này')}
                       >
                         <X size={12} />
                       </button>
@@ -529,7 +529,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                 <span>{valueLabel}</span>
               </div>
               <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                Tự động tính từ danh mục hoặc tùy chỉnh số tiền theo thực tế tư vấn
+                {t('ui.assignProduct.autoCalcHint', 'Tự động tính từ danh mục hoặc tùy chỉnh số tiền theo thực tế tư vấn')}
               </p>
             </div>
 
@@ -551,7 +551,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
                   outline: 'none',
                 }}
               />
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>VNĐ</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>{t('ui.assignProduct.currency', 'VNĐ')}</span>
             </div>
           </div>
         </div>
@@ -581,7 +581,7 @@ export const AssignProductModal: React.FC<AssignProductModalProps> = ({
               cursor: 'pointer',
             }}
           >
-            Hủy
+            {t('ui.assignProduct.cancel', 'Hủy')}
           </button>
           <button
             type="button"

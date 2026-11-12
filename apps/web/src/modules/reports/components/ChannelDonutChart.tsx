@@ -62,7 +62,7 @@ export const ChannelDonutChart: React.FC<ChannelDonutChartProps> = ({ channels }
   };
 
   return (
-    <div className="bg-white rounded-xl p-3.5 sm:p-4 border border-slate-200/80 shadow-xs flex flex-col h-full">
+    <div className="min-w-0 bg-white rounded-xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between mb-2.5">
         <div>
           <h3 className="text-base font-bold text-slate-800">
