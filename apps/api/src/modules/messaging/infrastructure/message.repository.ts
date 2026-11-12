@@ -44,6 +44,21 @@ export function pairInsertedWithEvents<E extends { channel: string; externalMess
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (val?: string | null): val is string => Boolean(val && UUID_REGEX.test(val));
+const INVALID_EXTERNAL_IDS = new Set(['', 'unknown', 'unknown-sender', 'page-admin', 'anonymous', 'undefined', 'null']);
+/** Trả về ID người dùng ngoài (PSID/Zalo user id) hợp lệ, hoặc null nếu là giá trị placeholder. */
+const normalizeExternalUserId = (val: unknown): string | null => {
+    if (val === null || val === undefined) return null;
+    const str = String(val).trim();
+    return INVALID_EXTERNAL_IDS.has(str.toLowerCase()) ? null : str;
+};
+const CONVERSATION_LOOKUP_SELECT = {
+    id: true,
+    customerId: true,
+    tags: true,
+    lastMessageAt: true,
+    lastCustomerMessageAt: true,
+} satisfies Prisma.ConversationSelect;
+type ConversationLookup = Prisma.ConversationGetPayload<{ select: typeof CONVERSATION_LOOKUP_SELECT }>;
 const normalizeWorkspaceId = (workspaceId?: string): string | undefined =>
     workspaceId && UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
 
@@ -417,33 +432,19 @@ export class MessageRepository implements OnModuleInit {
                         }
                     }
 
-                    let customerId = raw.customerId || null;
+                    const externalUserId = normalizeExternalUserId(customerExternalId);
+                    const customerId: string | null = isUuid(raw.customerId)
+                        ? raw.customerId
+                        : await this.findCustomerIdByExternalUser(e.channel, externalUserId);
 
-                    // Tìm customer theo channelIdentities
-                    if (!customerId && customerExternalId && customerExternalId !== 'unknown') {
-                        const cust = await this.prisma.customer.findFirst({
-                            where: {
-                                OR: [
-                                    { channelIdentities: { path: [e.channel.toLowerCase()], equals: String(customerExternalId) } },
-                                    { channelIdentities: { path: [e.channel.toLowerCase(), 'id'], equals: String(customerExternalId) } },
-                                    { channelIdentities: { path: ['socialId'], equals: String(customerExternalId) } },
-                                ],
-                            },
-                            select: { id: true },
-                        });
-                        if (cust) {
-                            customerId = cust.id;
-                        }
+                    // Không xác định được người gửi lẫn customer → không gắn tin vào hội thoại nào,
+                    // tránh trộn tin của người khác vào hội thoại đầu tiên của Page.
+                    if (!customerId && !externalUserId) {
+                        throw new Error('Cannot resolve conversation owner');
                     }
 
-                    // Tìm cuộc hội thoại đã có
-                    let conv = await this.prisma.conversation.findFirst({
-                        where: {
-                            channelAccountId: accountId,
-                            ...(customerId ? { customerId } : {}),
-                        },
-                        select: { id: true, tags: true, lastMessageAt: true, lastCustomerMessageAt: true },
-                    });
+                    // Tìm cuộc hội thoại đã có (luôn lọc theo Page + người gửi)
+                    let conv = await this.findConversationForSender(accountId, customerId, externalUserId);
 
                     const isOutOfOrder = Boolean(
                         conv?.lastMessageAt && messageSentAt.getTime() < new Date(conv.lastMessageAt).getTime()
@@ -495,13 +496,15 @@ export class MessageRepository implements OnModuleInit {
                                 lastCustomerMessageAt: !isOutbound ? messageSentAt : undefined,
                                 tags: finalTags,
                             },
-                            select: { id: true, tags: true, lastMessageAt: true, lastCustomerMessageAt: true },
+                            select: CONVERSATION_LOOKUP_SELECT,
                         });
                     } else {
                         // Cập nhật lại snippet, lastMessageAt và tags của Conversation (bảo vệ chống ghi đè lùi nếu tin nhắn out-of-order)
                         await this.prisma.conversation.update({
                             where: { id: conv.id },
                             data: {
+                                // Hội thoại tạo trước khi có Customer → gắn Customer khi đã xác định được
+                                ...(customerId && !conv.customerId ? { customerId } : {}),
                                 ...(isLatestCustomerMessage ? { lastCustomerMessageAt: messageSentAt } : {}),
                                 ...(isOutOfOrder ? {} : {
                                     snippet: e.content || undefined,
@@ -582,6 +585,67 @@ export class MessageRepository implements OnModuleInit {
         }) as Promise<InsertedMessage[]>;
     }
 
+    /** Tìm Customer theo ID người dùng ngoài của kênh (bảng channel_identities hoặc JSON channelIdentities). */
+    private async findCustomerIdByExternalUser(channel: Channel, externalUserId: string | null): Promise<string | null> {
+        if (!externalUserId) return null;
+        const channelKey = String(channel).toLowerCase();
+        const cust = await this.prisma.customer.findFirst({
+            where: {
+                OR: [
+                    { identities: { some: { channel: channel as any, externalUserId } } },
+                    { channelIdentities: { path: [channelKey], equals: externalUserId } },
+                    { channelIdentities: { path: [channelKey, 'id'], equals: externalUserId } },
+                    { channelIdentities: { path: ['socialId'], equals: externalUserId } },
+                ],
+            },
+            select: { id: true },
+        });
+        return cust?.id ?? null;
+    }
+
+    /**
+     * Tìm hội thoại của đúng người gửi trên một Page/OA.
+     * - Có customerId: tìm theo (channelAccountId, customerId).
+     * - Chưa có hoặc chưa thấy: tìm hội thoại chưa gắn Customer mà tin nhắn bên trong thuộc cùng externalUserId
+     *   (sender của tin đến, recipient của tin đi).
+     * Tuyệt đối không fallback về hội thoại bất kỳ của Page.
+     */
+    private async findConversationForSender(
+        channelAccountId: string,
+        customerId: string | null,
+        externalUserId: string | null,
+    ): Promise<ConversationLookup | null> {
+        if (customerId) {
+            const byCustomer = await this.prisma.conversation.findFirst({
+                where: { channelAccountId, customerId },
+                orderBy: { lastMessageAt: 'desc' },
+                select: CONVERSATION_LOOKUP_SELECT,
+            });
+            if (byCustomer) return byCustomer;
+        }
+
+        if (!externalUserId) return null;
+
+        const payloadMatches: Prisma.MessageWhereInput[] = [
+            { rawPayload: { path: ['senderExternalId'], equals: externalUserId } },
+            { rawPayload: { path: ['sender', 'id'], equals: externalUserId } },
+            { rawPayload: { path: ['sender'], equals: externalUserId } },
+            { rawPayload: { path: ['from', 'id'], equals: externalUserId } },
+            { direction: MessageDirection.OUTBOUND, rawPayload: { path: ['recipient', 'id'], equals: externalUserId } },
+            { direction: MessageDirection.OUTBOUND, rawPayload: { path: ['to', 'data', '0', 'id'], equals: externalUserId } },
+        ];
+
+        return this.prisma.conversation.findFirst({
+            where: {
+                channelAccountId,
+                customerId: null,
+                messages: { some: { OR: payloadMatches } },
+            },
+            orderBy: { lastMessageAt: 'desc' },
+            select: CONVERSATION_LOOKUP_SELECT,
+        });
+    }
+
     /**
      * Tự động quét và cập nhật các cột conversation_id, processed_at, attachments
      * bị null cho các tin nhắn đã tồn tại trong CSDL
@@ -605,29 +669,24 @@ export class MessageRepository implements OnModuleInit {
                     ? (raw.recipient?.id || raw.to?.data?.[0]?.id || raw.to?.id)
                     : (raw.senderExternalId || raw.sender?.id || raw.from?.id);
 
-                let customerId = raw.customerId || null;
-                if (!customerId && customerExternalId) {
-                    const cust = await this.prisma.customer.findFirst({
-                        where: {
-                            OR: [
-                                { channelIdentities: { path: [msg.channel.toLowerCase()], equals: String(customerExternalId) } },
-                                { channelIdentities: { path: [msg.channel.toLowerCase(), 'id'], equals: String(customerExternalId) } },
-                                { channelIdentities: { path: ['socialId'], equals: String(customerExternalId) } },
-                            ],
-                        },
-                        select: { id: true },
-                    });
-                    if (cust) customerId = cust.id;
-                }
+                const externalUserId = normalizeExternalUserId(customerExternalId);
+                const customerId: string | null = isUuid(raw.customerId)
+                    ? raw.customerId
+                    : await this.findCustomerIdByExternalUser(msg.channel as Channel, externalUserId);
 
-                // Tìm hoặc tạo conversation
-                let conv = await this.prisma.conversation.findFirst({
-                    where: {
-                        channelAccountId: msg.channelAccountId,
-                        ...(customerId ? { customerId } : {}),
-                    },
-                    select: { id: true },
-                });
+                // Không xác định được người gửi → bỏ qua, không gắn bừa vào hội thoại của Page
+                if (!customerId && !externalUserId) continue;
+
+                // Tìm hoặc tạo conversation (lọc theo Page + người gửi)
+                let conv = await this.findConversationForSender(
+                    msg.channelAccountId,
+                    customerId,
+                    externalUserId,
+                );
+
+                if (conv && customerId && !conv.customerId) {
+                    await this.prisma.conversation.update({ where: { id: conv.id }, data: { customerId } });
+                }
 
                 if (!conv) {
                     const tagResult = resolveTagMappings({
@@ -644,7 +703,7 @@ export class MessageRepository implements OnModuleInit {
                             lastMessageAt: msg.sentAt,
                             tags: tagResult.finalTags,
                         },
-                        select: { id: true },
+                        select: CONVERSATION_LOOKUP_SELECT,
                     });
                 }
 
