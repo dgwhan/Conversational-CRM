@@ -10,6 +10,12 @@ import {
   DayWorkingSchedule,
 } from '../../../contracts/workspace-config.js';
 import { Channel, MessageDirection } from '../domain/channel.js';
+import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
+
+/** Tin đến trễ hơn ngưỡng này (đồng bộ lịch sử, webhook retry muộn) thì không auto-reply/gắn tag nữa. */
+const MAX_INBOUND_AGE_MS = 30 * 60 * 1000;
+/** Thời gian giữ khóa tối đa cho một lượt gửi auto-reply. */
+const AUTO_REPLY_LOCK_TTL_MS = 30 * 1000;
 
 const isUuid = (val?: string | null): val is string =>
   Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
@@ -47,7 +53,21 @@ export class WorkingHoursService {
     @Inject(forwardRef(() => MessageDispatcherService))
     private readonly injectedDispatcher?: any,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional() private readonly locks?: DistributedLockService,
   ) {}
+
+  /** Chạy task độc quyền theo key; không có lock service thì dùng khóa trong tiến trình. */
+  private readonly localLocks = new Set<string>();
+  private async runExclusive<T>(key: string, task: () => Promise<T>): Promise<T | undefined> {
+    if (this.locks) return this.locks.runExclusive(key, AUTO_REPLY_LOCK_TTL_MS, task);
+    if (this.localLocks.has(key)) return undefined;
+    this.localLocks.add(key);
+    try {
+      return await task();
+    } finally {
+      this.localLocks.delete(key);
+    }
+  }
 
   private get dispatcher(): MessageDispatcherService | undefined {
     if (this._dispatcherInstance) return this._dispatcherInstance;
@@ -150,6 +170,19 @@ export class WorkingHoursService {
     const openTime = schedule.openTime || '07:00';
     const closeTime = schedule.closeTime || '17:00';
 
+    // Ca qua đêm (vd 22:00 → 06:00): trong giờ khi >= giờ mở HOẶC < giờ đóng
+    if (openTime > closeTime) {
+      const within = currentTime >= openTime || currentTime < closeTime;
+      return {
+        isWithinHours: within,
+        dayOfWeek: currentDay.dayOfWeek,
+        dayName: currentDay.dayName,
+        currentTime,
+        schedule,
+        reason: within ? 'WITHIN_HOURS' : 'AFTER_CLOSE',
+      };
+    }
+
     if (currentTime < openTime) {
       return {
         isWithinHours: false,
@@ -161,7 +194,8 @@ export class WorkingHoursService {
       };
     }
 
-    if (currentTime > closeTime) {
+    // Đóng cửa đúng tại closeTime (17:00 đã là ngoài giờ)
+    if (currentTime >= closeTime) {
       return {
         isWithinHours: false,
         dayOfWeek: currentDay.dayOfWeek,
@@ -189,6 +223,16 @@ export class WorkingHoursService {
    */
   async processInboundOutOfOffice(input: InboundOutOfOfficeInput): Promise<void> {
     if (!this.prisma) return;
+
+    // Tin cũ (đồng bộ lịch sử / webhook đến muộn) không còn là "khách đang chờ" → không gắn tag, không trả lời tự động
+    const receivedAt =
+      input.sentAt instanceof Date && !isNaN(input.sentAt.getTime()) ? input.sentAt : new Date();
+    if (Date.now() - receivedAt.getTime() > MAX_INBOUND_AGE_MS) {
+      this.logger.debug(
+        `[OUT_OF_OFFICE] Bỏ qua tin ${input.messageId}: gửi lúc ${receivedAt.toISOString()}, quá ${MAX_INBOUND_AGE_MS / 60000} phút.`,
+      );
+      return;
+    }
 
     try {
       // 1. Xác định Conversation, Workspace ID và Channel Account
@@ -229,6 +273,7 @@ export class WorkingHoursService {
                 { channelIdentities: { path: [input.channel.toLowerCase()], equals: input.senderExternalId } },
                 { channelIdentities: { path: [input.channel.toLowerCase(), 'id'], equals: input.senderExternalId } },
                 { channelIdentities: { path: ['socialId'], equals: input.senderExternalId } },
+                { identities: { some: { channel: input.channel as any, externalUserId: input.senderExternalId } } },
               ],
             },
             select: { id: true, workspaceId: true },
@@ -241,6 +286,7 @@ export class WorkingHoursService {
                 customerId: cust.id,
                 ...(resolvedChannelAccountId ? { channelAccountId: resolvedChannelAccountId } : {}),
               },
+              orderBy: { lastMessageAt: 'desc' },
               select: { id: true, tags: true, workspaceId: true, channelAccountId: true, snippet: true },
             });
           }
@@ -275,7 +321,7 @@ export class WorkingHoursService {
       }
 
       // 3. Kiểm tra xem thời điểm nhận tin có ngoài khung giờ làm việc không
-      const checkResult = this.checkIsWorkingHour(input.sentAt || new Date(), workingHours);
+      const checkResult = this.checkIsWorkingHour(receivedAt, workingHours);
       if (checkResult.isWithinHours) {
         // Trong giờ làm việc bình thường -> không kích hoạt auto-reply
         return;
@@ -310,37 +356,49 @@ export class WorkingHoursService {
       }
 
       // 5. TỰ ĐỘNG GỬI LỜI NHẮN (AUTO-REPLY)
-      if (autoReplyText) {
-        // Kiểm tra xem đã gửi auto-reply trong khoảng cooldown chưa (chống spam khách)
-        const convUuid = conv?.id && isUuid(conv.id) ? conv.id : null;
-        let recentAutoReply = null;
-        if (convUuid) {
-          try {
-            recentAutoReply = await this.prisma.message.findFirst({
-              where: {
-                conversationId: convUuid,
-                direction: MessageDirection.OUTBOUND,
-                content: autoReplyText,
-                sentAt: {
-                  gte: new Date(Date.now() - cooldownMs),
+      if (!autoReplyText) return;
+
+      const finalChannelAccountId: string = resolvedChannelAccountId || conv?.channelAccountId || '';
+      const finalConversationId: string | undefined =
+        conv?.id || (isUuid(input.conversationId) ? input.conversationId : undefined);
+      if (!finalChannelAccountId) {
+        this.logger.warn(
+          `[OUT_OF_OFFICE] Không xác định được tài khoản kênh cho ${input.channel}:${input.senderExternalId}, bỏ qua auto-reply.`,
+        );
+        return;
+      }
+
+      // Khóa theo (tài khoản kênh, người gửi): khách gửi dồn nhiều tin cùng lúc thì chỉ một lượt
+      // được kiểm tra cooldown + gửi, tránh race khiến khách nhận nhiều tin trả lời tự động.
+      const lockKey = `auto-reply:${finalChannelAccountId}:${input.senderExternalId}`;
+      await this.runExclusive(lockKey, async () => {
+        // Cooldown: đã có auto-reply cho khách này (theo hội thoại HOẶC theo người nhận trên cùng tài khoản kênh)
+        if (cooldownMs > 0) {
+          const recentAutoReply = await this.prisma!.message.findFirst({
+            where: {
+              direction: MessageDirection.OUTBOUND,
+              content: autoReplyText,
+              sentAt: { gte: new Date(Date.now() - cooldownMs) },
+              OR: [
+                ...(finalConversationId ? [{ conversationId: finalConversationId }] : []),
+                {
+                  channelAccountId: finalChannelAccountId,
+                  rawPayload: { path: ['recipient', 'id'], equals: input.senderExternalId },
                 },
-              },
-            });
-          } catch {}
+              ],
+            },
+            select: { id: true },
+          });
+          if (recentAutoReply) {
+            this.logger.log(
+              `[OUT_OF_OFFICE] Đã gửi tin nhắn tự động trước đó trong vòng ${cooldownMinutes} phút. Bỏ qua chống spam.`,
+            );
+            return;
+          }
         }
 
-        if (recentAutoReply) {
-          this.logger.log(
-            `[OUT_OF_OFFICE] Đã gửi tin nhắn tự động trước đó trong vòng ${cooldownMinutes} phút. Bỏ qua chống spam.`,
-          );
-          return;
-        }
-
-        const finalChannelAccountId = resolvedChannelAccountId || conv?.channelAccountId || '';
-        const finalConversationId = conv?.id || (isUuid(input.conversationId) ? input.conversationId : undefined);
-
-        // Thực hiện gửi tin nhắn tự động
-        if (this.dispatcher && finalChannelAccountId) {
+        if (this.dispatcher) {
+          // Dispatcher tự lưu tin OUTBOUND và tự phát realtime → không broadcast thêm (tránh tin hiện 2 lần)
           try {
             await this.dispatcher.sendMessage({
               channel: input.channel as any,
@@ -358,50 +416,49 @@ export class WorkingHoursService {
               `[OUT_OF_OFFICE] Không thể gửi tin qua Dispatcher: ${(dispatchErr as Error).message}`,
             );
           }
-        } else if (finalChannelAccountId && finalConversationId) {
-          // Fallback: Nếu không có Dispatcher, lưu trực tiếp tin nhắn outbound vào DB và phát Realtime
-          const now = new Date();
-          const autoMsg = await this.prisma.message.create({
-            data: {
-              conversationId: finalConversationId,
-              channelAccountId: finalChannelAccountId,
-              channel: input.channel,
-              direction: MessageDirection.OUTBOUND,
-              content: autoReplyText,
-              sentAt: now,
-              externalMessageId: `auto_reply_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-              rawPayload: {
-                isAutoReply: true,
-                type: 'OUT_OF_OFFICE_REPLY',
-                reason: checkResult.reason,
-              },
-              processedAt: now,
-            },
-          });
-          this.logger.log(
-            `[OUT_OF_OFFICE] Đã lưu tin nhắn phản hồi tự động vào DB: ${autoMsg.id}`,
-          );
+          return;
         }
 
-        // Bắn sự kiện Realtime xuống Frontend Unified Inbox để giao diện cập nhật ngay lập tức
-        if (this.realtime) {
-          try {
-            this.realtime.broadcastNewMessage({
-              id: `auto_reply_${Date.now()}`,
-              conversationId: input.conversationId || conv?.id || `conv_${input.senderExternalId}`,
-              channel: input.channel as any,
-              direction: 'OUTBOUND',
-              content: autoReplyText,
-              senderName: 'Hệ thống tự động',
-              sentAt: new Date().toISOString(),
-              tags: updatedTags.length > 0 ? updatedTags : [outOfOfficeTag],
-              isOutOfOffice: true,
-              outOfOfficeTag,
-              workspaceId: resolvedWorkspaceId || undefined,
-            } as any);
-          } catch {}
-        }
-      }
+        if (!finalConversationId) return;
+
+        // Fallback: không có Dispatcher → lưu trực tiếp tin outbound vào DB và phát Realtime
+        const now = new Date();
+        const autoMsg = await this.prisma!.message.create({
+          data: {
+            conversationId: finalConversationId,
+            channelAccountId: finalChannelAccountId,
+            channel: input.channel,
+            direction: MessageDirection.OUTBOUND,
+            content: autoReplyText,
+            sentAt: now,
+            externalMessageId: `auto_reply_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            rawPayload: {
+              isAutoReply: true,
+              type: 'OUT_OF_OFFICE_REPLY',
+              reason: checkResult.reason,
+              recipient: { id: input.senderExternalId },
+            },
+            processedAt: now,
+          },
+        });
+        this.logger.log(`[OUT_OF_OFFICE] Đã lưu tin nhắn phản hồi tự động vào DB: ${autoMsg.id}`);
+
+        try {
+          this.realtime?.broadcastNewMessage({
+            id: autoMsg.id,
+            conversationId: finalConversationId,
+            channel: input.channel as any,
+            direction: 'OUTBOUND',
+            content: autoReplyText,
+            senderName: 'Hệ thống tự động',
+            sentAt: now.toISOString(),
+            tags: updatedTags.length > 0 ? updatedTags : [outOfOfficeTag],
+            isOutOfOffice: true,
+            outOfOfficeTag,
+            workspaceId: resolvedWorkspaceId || undefined,
+          } as any);
+        } catch {}
+      });
     } catch (err) {
       this.logger.error(
         `[OUT_OF_OFFICE] Lỗi xử lý ngoài giờ làm việc: ${(err as Error).message}`,

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { WorkingHoursService } from './working-hours.service.js';
 import { getDefaultWorkingHoursConfig, WorkingHoursConfig } from '../../../contracts/workspace-config.js';
 import { Channel, MessageDirection } from '../domain/channel.js';
@@ -101,6 +101,24 @@ describe('WorkingHoursService', () => {
       expect(result.reason).toBe('CLOSED_TODAY');
     });
 
+    it('coi đúng giờ đóng cửa (17:00) là ngoài giờ', () => {
+      // 10:00 UTC -> 17:00 giờ VN, Thứ Tư
+      const result = service.checkIsWorkingHour(new Date('2026-11-04T10:00:00Z'), config);
+      expect(result.isWithinHours).toBe(false);
+      expect(result.reason).toBe('AFTER_CLOSE');
+    });
+
+    it('hỗ trợ ca qua đêm (22:00 -> 06:00)', () => {
+      const nightConfig: WorkingHoursConfig = {
+        ...config,
+        schedules: [{ dayOfWeek: 3, dayName: 'Thứ Tư', isOpen: true, openTime: '22:00', closeTime: '06:00' }],
+      };
+      // 23:30 VN Thứ Tư -> trong giờ
+      expect(service.checkIsWorkingHour(new Date('2026-11-04T16:30:00Z'), nightConfig).isWithinHours).toBe(true);
+      // 12:00 VN Thứ Tư -> ngoài giờ
+      expect(service.checkIsWorkingHour(new Date('2026-11-04T05:00:00Z'), nightConfig).isWithinHours).toBe(false);
+    });
+
     it('trả về isWithinHours = true nếu tính năng bị vô hiệu hóa (enabled: false)', () => {
       const disabledConfig = { ...config, enabled: false };
       const date = new Date('2026-11-07T03:00:00Z'); // Thứ Bảy
@@ -111,7 +129,79 @@ describe('WorkingHoursService', () => {
   });
 
   describe('processInboundOutOfOffice', () => {
+    const wednesdayConfig = {
+      workingHours: {
+        enabled: true,
+        timezone: 'Asia/Ho_Chi_Minh',
+        schedules: [{ dayOfWeek: 3, dayName: 'Thứ Tư', isOpen: true, openTime: '07:00', closeTime: '17:00' }],
+        autoReplyMessage: 'Cảm ơn bạn đã nhắn tin ngoài giờ.',
+        outOfOfficeTag: 'HẸN TƯ VẤN SÁNG HÔM SAU',
+        cooldownMinutes: 60,
+      },
+    };
+    const CONV_ID = 'c0000000-0000-0000-0000-000000000123';
+
+    beforeEach(() => {
+      // Các tin trong test được gửi vào ngày cố định -> đặt "bây giờ" ngay sau thời điểm gửi
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-05T13:31:00Z'));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('bỏ qua tin cũ (đồng bộ lịch sử) – không gắn tag, không gửi auto-reply', async () => {
+      mockWorkspaceConfigService.getConfig.mockResolvedValue(wednesdayConfig);
+      mockPrisma.conversation.findUnique.mockResolvedValue({ id: CONV_ID, tags: [], channelAccountId: 'acc-1' });
+
+      await service.processInboundOutOfOffice({
+        messageId: 'old-msg',
+        conversationId: CONV_ID,
+        channel: Channel.FACEBOOK,
+        senderExternalId: 'customer-fb-1',
+        channelAccountId: 'acc-1',
+        sentAt: new Date('2026-11-04T13:00:00Z'), // hơn 1 ngày trước
+      });
+
+      expect(mockPrisma.conversation.update).not.toHaveBeenCalled();
+      expect(mockDispatcher.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('khách gửi dồn nhiều tin cùng lúc chỉ nhận MỘT tin auto-reply', async () => {
+      vi.setSystemTime(new Date('2026-11-04T13:01:00Z'));
+      mockWorkspaceConfigService.getConfig.mockResolvedValue(wednesdayConfig);
+      mockPrisma.conversation.findUnique.mockResolvedValue({ id: CONV_ID, tags: [], channelAccountId: 'acc-1' });
+      mockPrisma.conversation.update.mockResolvedValue({ id: CONV_ID, tags: ['HẸN TƯ VẤN SÁNG HÔM SAU'] });
+
+      // Mô phỏng DB: sau khi dispatcher gửi xong thì tin auto-reply đã tồn tại
+      let sent = false;
+      mockPrisma.message.findFirst.mockImplementation(async () => (sent ? { id: 'auto' } : null));
+      mockDispatcher.sendMessage.mockImplementation(async () => {
+        await new Promise((r) => setTimeout(r, 5));
+        sent = true;
+        return { success: true };
+      });
+
+      const base = {
+        conversationId: CONV_ID,
+        channel: Channel.FACEBOOK,
+        senderExternalId: 'customer-fb-1',
+        channelAccountId: 'acc-1',
+        sentAt: new Date('2026-11-04T13:00:00Z'),
+      };
+      await Promise.all([
+        service.processInboundOutOfOffice({ ...base, messageId: 'm1' }),
+        service.processInboundOutOfOffice({ ...base, messageId: 'm2' }),
+        service.processInboundOutOfOffice({ ...base, messageId: 'm3' }),
+      ]);
+
+      expect(mockDispatcher.sendMessage).toHaveBeenCalledTimes(1);
+      // Dispatcher đã tự phát realtime -> service không broadcast thêm
+      expect(mockRealtime.broadcastNewMessage).not.toHaveBeenCalled();
+    });
+
     it('đánh dấu tag và gửi lời nhắn tự động khi nhận tin ngoài giờ', async () => {
+      vi.setSystemTime(new Date('2026-11-04T13:01:00Z'));
       // Cấu hình workspace
       mockWorkspaceConfigService.getConfig.mockResolvedValue({
         workingHours: {
@@ -169,6 +259,7 @@ describe('WorkingHoursService', () => {
     });
 
     it('không gửi tin lặp lại nếu đã gửi auto-reply trong khoảng thời gian cooldown', async () => {
+      vi.setSystemTime(new Date('2026-11-04T13:01:00Z'));
       mockWorkspaceConfigService.getConfig.mockResolvedValue({
         workingHours: {
           enabled: true,

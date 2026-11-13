@@ -7,6 +7,7 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { WorkingHoursService } from '../../messaging/application/working-hours.service.js';
 import { CUSTOMER_GATEWAY } from '../../messaging/domain/customer-gateway.port.js';
 import type { CustomerGateway } from '../../messaging/domain/customer-gateway.port.js';
@@ -190,8 +191,30 @@ export class ChannelSyncService {
       const customerAvatar =
         item.avatar ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(customerName)}&background=0068FF&color=fff&bold=true`;
-      const lastMsgText = item.last_message?.text || item.snippet || 'Quan tâm thông tin khóa học';
-      const lastMsgTime = item.last_message?.time ? new Date(item.last_message.time) : new Date();
+      const lastMsg = (item.last_message || {}) as Record<string, any>;
+      const lastMsgText = lastMsg.text || item.snippet || 'Quan tâm thông tin khóa học';
+      const parsedTime = lastMsg.time ? new Date(lastMsg.time) : null;
+      const hasRealTime = Boolean(parsedTime && !isNaN(parsedTime.getTime()));
+      const lastMsgTime = hasRealTime ? parsedTime! : new Date();
+
+      // Xác định hướng tin cuối: tin do OA gửi (tư vấn viên nhắn sau cùng) KHÔNG được coi là tin khách gửi đến.
+      // Zalo OA: src = 0 → OA gửi, src = 1 → người dùng gửi; from_id trùng OA id cũng là tin OA.
+      const lastFromId = lastMsg.from_id ?? lastMsg.fromId ?? item.from_id;
+      const lastSrc = lastMsg.src ?? item.src;
+      const isLastFromOa = Boolean(
+        lastMsg.is_echo === true ||
+        String(lastMsg.direction || '').toUpperCase() === 'OUTBOUND' ||
+        (lastFromId != null && String(lastFromId) === String(account.externalAccountId)) ||
+        (lastFromId == null && (lastSrc === 0 || lastSrc === '0')),
+      );
+      const lastDirection = isLastFromOa ? MessageDirection.OUTBOUND : MessageDirection.INBOUND;
+
+      // ID tin ổn định giữa các lần đồng bộ: thiếu message_id thì dựng từ (khách, thời điểm, nội dung)
+      // thay vì Date.now() — tránh mỗi lần sync lại sinh thêm 1 tin "mới" (và kích hoạt auto-reply lại).
+      const stableMessageId =
+        lastMsg.message_id ||
+        lastMsg.msg_id ||
+        `zalo_sync_${account.externalAccountId}_${customerZaloId}_${hasRealTime ? lastMsgTime.getTime() : 'notime'}_${createHash('sha1').update(String(lastMsgText)).digest('hex').slice(0, 12)}`;
 
       // Lưu Customer
       let dbCustomer: any = null;
@@ -284,13 +307,12 @@ export class ChannelSyncService {
       // Lưu Message INBOUND
       const event: InboundEvent = {
         channel: Channel.ZALO,
-        externalMessageId:
-          item.last_message?.message_id || `zalo_in_${Date.now()}_${customerZaloId}`,
+        externalMessageId: String(stableMessageId),
         externalAccountId: account.externalAccountId,
-        senderExternalId: customerZaloId,
+        senderExternalId: isLastFromOa ? account.externalAccountId : customerZaloId,
         content: lastMsgText,
         sentAt: lastMsgTime,
-        direction: MessageDirection.INBOUND,
+        direction: lastDirection,
         conversationId: dbConv?.id,
         processedAt: lastMsgTime,
         rawPayload: {
@@ -300,6 +322,8 @@ export class ChannelSyncService {
           customerId: dbCustomer?.id,
           conversationId: dbConv?.id,
           isPersonal,
+          isSync: true,
+          ...(isLastFromOa ? { recipient: { id: customerZaloId } } : {}),
         },
         workspaceId: targetWsId,
       };
@@ -315,7 +339,7 @@ export class ChannelSyncService {
             id: created[0].id,
             conversationId: convKey,
             channel: 'ZALO',
-            direction: 'INBOUND',
+            direction: lastDirection,
             content: lastMsgText,
             senderName: customerName,
             senderAvatar: customerAvatar,
@@ -336,8 +360,9 @@ export class ChannelSyncService {
             });
           }
 
-          // Xử lý ngoài giờ làm việc nếu tin nhắn mới nhất đến sau giờ làm việc
-          if (this.workingHoursService && created.length > 0) {
+          // Xử lý ngoài giờ làm việc chỉ khi tin cuối là KHÁCH gửi và có thời điểm gửi thật
+          // (thiếu time thì lastMsgTime = now, sẽ bị coi nhầm là tin vừa đến)
+          if (this.workingHoursService && created.length > 0 && !isLastFromOa && hasRealTime) {
             try {
               await this.workingHoursService.processInboundOutOfOffice({
                 messageId: created[0].id,
