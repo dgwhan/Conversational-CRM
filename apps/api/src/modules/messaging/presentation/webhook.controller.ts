@@ -31,7 +31,7 @@ export class ChannelPipe implements PipeTransform<string, Channel> {
     transform(value: string): Channel {
         const normalized = value ? value.toUpperCase().trim() : '';
         if (normalized === Channel.MANUAL_IMPORT) {
-            // Import thủ công chỉ đi qua POST /messages/import (có đăng nhập), không nhận từ webhook công khai
+            // MANUAL_IMPORT chỉ còn cho dữ liệu cũ (chức năng import tin nhắn đã gỡ), không nhận từ webhook công khai
             throw new BadRequestException(`Validation failed: channel "${value}" is not available via webhook`);
         }
         if (normalized && Object.values(Channel).includes(normalized as Channel)) {

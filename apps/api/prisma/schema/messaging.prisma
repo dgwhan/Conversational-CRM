@@ -66,6 +66,10 @@ model Customer {
     channelIdentities    Json?              @map("channel_identities") @db.JsonB
     isMerged             Boolean            @default(false) @map("is_merged")
     mergedIntoCustomerId String?            @map("merged_into_customer_id") @db.Uuid
+    /// Nguồn khách hàng (VD: "Ngày hội tư vấn 2026", "Google Form"); khách đến từ kênh chat để trống
+    source               String?            @db.VarChar(150)
+    /// Lô import đã tạo khách hàng này (dùng để lọc và hoàn tác)
+    importJobId          String?            @map("import_job_id") @db.Uuid
     createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -75,6 +79,7 @@ model Customer {
     mergeLogsTarget      CustomerMergeLog[] @relation("MergeTargetCustomer")
     activities           Activity[]
     deals                Deal[]
+    importJob            CustomerImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
 
     @@index([workspaceId])
     @@index([phone])
@@ -84,7 +89,38 @@ model Customer {
     @@index([leadStage])
     @@index([isMerged])
     @@index([mergedIntoCustomerId])
+    @@index([workspaceId, importJobId])
     @@map("customers")
+}
+
+/// Một lần nhập danh sách khách hàng từ file CSV/XLSX
+model CustomerImportJob {
+    id                String     @id @default(uuid()) @db.Uuid
+    workspaceId       String     @map("workspace_id") @db.Uuid
+    createdById       String?    @map("created_by_id") @db.Uuid
+    createdByName     String?    @map("created_by_name") @db.VarChar(255)
+    fileName          String     @map("file_name") @db.VarChar(255)
+    /// COMPLETED | UNDONE
+    status            String     @default("COMPLETED") @db.VarChar(30)
+    /// SKIP | FILL_EMPTY | OVERWRITE
+    duplicateStrategy String     @map("duplicate_strategy") @db.VarChar(30)
+    source            String?    @db.VarChar(150)
+    totalRows         Int        @default(0) @map("total_rows")
+    createdCount      Int        @default(0) @map("created_count")
+    updatedCount      Int        @default(0) @map("updated_count")
+    skippedCount      Int        @default(0) @map("skipped_count")
+    errorCount        Int        @default(0) @map("error_count")
+    /// Danh sách lỗi theo dòng (tối đa 1000 mục) để tải lại file lỗi
+    errors            Json       @default("[]") @db.JsonB
+    undoneAt          DateTime?  @map("undone_at") @db.Timestamptz(3)
+    undoneCount       Int        @default(0) @map("undone_count")
+    createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+    workspace         Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+    customers         Customer[]
+
+    @@index([workspaceId, createdAt])
+    @@map("customer_import_jobs")
 }
 
 model Conversation {

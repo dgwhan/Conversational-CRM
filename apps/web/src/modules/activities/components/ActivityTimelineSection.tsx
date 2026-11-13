@@ -20,6 +20,8 @@ import {
 } from '../../../lib/api-client/index.js';
 import { ActivityModal } from './ActivityModal.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
+import { confirmDialog } from '../../../components/feedback/confirmDialog.js';
+import { translate } from '../../../i18n/translate.js';
 
 export interface ActivityTimelineSectionProps {
   customerId: string;
@@ -94,7 +96,16 @@ export const ActivityTimelineSection: React.FC<ActivityTimelineSectionProps> = (
 
   const handleDeleteActivity = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động này?')) return;
+    const confirmed = await confirmDialog({
+      tone: 'danger',
+      title: translate('confirmDialog.deleteActivityTitle', 'Xóa hoạt động này?'),
+      message: translate(
+        'confirmDialog.deleteActivityMessage',
+        'Hoạt động sẽ bị xóa khỏi dòng thời gian và không thể khôi phục.',
+      ),
+      confirmText: translate('confirmDialog.deleteConfirm', 'Xóa'),
+    });
+    if (!confirmed) return;
     try {
       await apiClient.deleteActivity(id);
       setActivities((prev) => prev.filter((a) => a.id !== id));

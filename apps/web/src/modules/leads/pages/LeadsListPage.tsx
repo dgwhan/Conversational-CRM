@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
   Filter,
+  FileSpreadsheet,
   Mail,
   MessageSquare,
   Phone,
@@ -19,6 +21,7 @@ import { useTranslation } from '../../../i18n/index.js';
 import { apiClient } from '../../../lib/api-client/index.js';
 import type { CustomerListItem } from '../../../lib/api-client/customers.js';
 import { useWorkspaceConfig } from '../../workspace/WorkspaceConfigContext.js';
+import { ROUTES } from '../../../config/routes.js';
 
 const PAGE_SIZE = 20;
 
@@ -47,15 +50,36 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const importJobId = searchParams.get('importJobId') || '';
+  const navigate = useNavigate();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<string>('POTENTIAL');
+  // Mở từ trang import ("Xem khách mới") thì hiện mọi trạng thái của lô đó
+  const [statusFilter, setStatusFilter] = useState<string>(() => (importJobId ? 'ALL' : 'POTENTIAL'));
   const [stageFilter, setStageFilter] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  /** Chỉ áp dụng kết quả của lần tải mới nhất (tránh response cũ về sau ghi đè bộ lọc mới) */
+  const latestRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (importJobId) {
+      setStatusFilter('ALL');
+      setPage(1);
+    }
+  }, [importJobId]);
+
+  const clearImportFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('importJobId');
+    setSearchParams(next, { replace: true });
+    setPage(1);
+  };
 
   const loadLeads = useCallback(async () => {
+    const requestId = ++latestRequestRef.current;
     setIsLoading(true);
     setErrorMessage('');
     try {
@@ -64,20 +88,23 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
         search: searchTerm.trim() || undefined,
         leadStatus: statusFilter === 'ALL' ? undefined : statusFilter,
         leadStage: stageFilter || undefined,
+        importJobId: importJobId || undefined,
         page,
         limit: PAGE_SIZE,
       });
+      if (requestId !== latestRequestRef.current) return;
       setCustomers(result.items);
       setTotal(result.total);
       setTotalPages(result.totalPages);
     } catch (error) {
+      if (requestId !== latestRequestRef.current) return;
       const message = error instanceof Error ? error.message : t('leads.loadError', 'Không thể tải danh sách Lead.');
       setErrorMessage(message);
       notify.error(message, t('leads.loadErrorTitle', 'Lỗi tải danh sách Lead'));
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestRef.current) setIsLoading(false);
     }
-  }, [activeWorkspaceId, page, searchTerm, stageFilter, statusFilter]);
+  }, [activeWorkspaceId, importJobId, page, searchTerm, stageFilter, statusFilter]);
 
   useEffect(() => {
     loadLeads();
@@ -151,8 +178,31 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
             >
               {t('leads.refresh', 'Làm mới')}
             </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => navigate(ROUTES.LEADS_IMPORT)}
+              icon={<FileSpreadsheet size={14} />}
+              className="shrink-0"
+            >
+              {t('leads.importFromFile', 'Nhập từ file')}
+            </Button>
           </div>
         </div>
+
+        {importJobId && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+            <FileSpreadsheet size={14} className="shrink-0" />
+            <span className="font-semibold">{t('leads.importFilterActive', 'Đang xem khách hàng của một lần nhập file')}</span>
+            <button
+              type="button"
+              onClick={clearImportFilter}
+              className="ml-auto rounded-md px-2 py-1 font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              {t('leads.clearImportFilter', 'Bỏ lọc')}
+            </button>
+          </div>
+        )}
 
         <div className="mt-3 sm:mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex max-w-full gap-1 overflow-x-auto pb-1" role="tablist" aria-label={t('leads.statusFilterLabel', 'Lọc trạng thái Lead')}>
@@ -235,7 +285,7 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
                 const conversation = customer.conversations?.[0];
                 const stage = getStage(customer.leadStage);
                 const status = STATUS_STYLES[customer.leadStatus || 'NEW'] || STATUS_STYLES.NEW;
-                const channel = conversation?.channelAccount?.channel || '—';
+                const channel = conversation?.channelAccount?.channel || (customer.importJobId || customer.source ? t('leads.importedChannel', 'Nhập file') : '—');
                 const course = customer.interestCourses?.[0];
                 const activityDate = conversation?.lastMessageAt || customer.updatedAt;
 
@@ -315,7 +365,7 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
                   const conversation = customer.conversations?.[0];
                   const stage = getStage(customer.leadStage);
                   const status = STATUS_STYLES[customer.leadStatus || 'NEW'] || STATUS_STYLES.NEW;
-                  const channel = conversation?.channelAccount?.channel || '—';
+                  const channel = conversation?.channelAccount?.channel || (customer.importJobId || customer.source ? t('leads.importedChannel', 'Nhập file') : '—');
                   const course = customer.interestCourses?.[0];
                   const activityDate = conversation?.lastMessageAt || customer.updatedAt;
 
@@ -339,9 +389,9 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs font-medium text-slate-700">{channel}</span>
-                        {conversation?.channelAccount?.displayName && (
+                        {(conversation?.channelAccount?.displayName || customer.source) && (
                           <span className="mt-1 block max-w-36 truncate text-[11px] text-slate-400">
-                            {conversation.channelAccount.displayName}
+                            {conversation?.channelAccount?.displayName || customer.source}
                           </span>
                         )}
                       </td>

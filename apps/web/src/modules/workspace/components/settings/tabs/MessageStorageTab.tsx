@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button, Badge } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
+import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import type {
   MessageStorageMetrics,
@@ -112,9 +113,16 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
   };
 
   const handleTriggerRetentionNow = async () => {
-    if (!confirm(translate('workspaceSettings.storage.confirmRunNow', 'Bạn có chắc chắn muốn kích hoạt quy trình tự động dọn dẹp tin nhắn quá hạn 12 tháng ngay bây giờ không?'))) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      tone: 'warning',
+      title: translate('confirmDialog.runCleanupTitle', 'Chạy dọn dẹp ngay?'),
+      message: translate(
+        'workspaceSettings.storage.confirmRunNow',
+        'Bạn có chắc chắn muốn kích hoạt quy trình tự động dọn dẹp tin nhắn quá hạn 12 tháng ngay bây giờ không?',
+      ),
+      confirmText: translate('confirmDialog.runCleanupConfirm', 'Chạy ngay'),
+    });
+    if (!confirmed) return;
 
     setIsTriggeringRetention(true);
     try {

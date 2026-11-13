@@ -48,6 +48,8 @@ export class CustomerController {
         @Query('limit') limitStr?: string,
         @Query('leadStatus') leadStatus?: string,
         @Query('leadStage') leadStage?: string,
+        @Query('importJobId') importJobId?: string,
+        @Query('source') source?: string,
     ) {
         const { role, userId: staffId } = getRequestIdentity(req);
         return this.customerService.getCustomers({
@@ -57,6 +59,8 @@ export class CustomerController {
             limitStr,
             leadStatus,
             leadStage,
+            importJobId,
+            source,
             role,
             staffId,
         });

@@ -10,13 +10,14 @@ import { WorkingHoursService } from './application/working-hours.service.js';
 import { ChannelAdapterRegistry, CHANNEL_ADAPTERS } from './application/channel-adapter.registry.js';
 import { ReceiveInboundMessage } from './application/receive-inbound-message.usecase.js';
 import { ProcessMessageReceived } from './application/process-message-received.usecase.js';
-import { ImportMessagesUseCase } from './application/import-messages.usecase.js';
 import { ContactMergeService } from './application/contact-merge.service.js';
 import { CustomerService } from './application/customer.service.js';
+import { CustomerImportService } from './application/customer-import.service.js';
 import { CustomerTagService } from './application/customer-tag.service.js';
 import { MessageRepository } from './infrastructure/message.repository.js';
 import { WebhookController } from './presentation/webhook.controller.js';
-import { MessageImportController } from './presentation/message-import.controller.js';
+import { MessageController } from './presentation/message.controller.js';
+import { CustomerImportController } from './presentation/customer-import.controller.js';
 import { CustomerController } from './presentation/customer.controller.js';
 import { ContactController } from './presentation/contact.controller.js';
 import { MediaProxyController } from './presentation/media-proxy.controller.js';
@@ -31,7 +32,6 @@ import { UnprocessedMessageSweeper } from './application/unprocessed-message-swe
 import { BullMqInboundQueue } from './infrastructure/bullmq-inbound-queue.js';
 import { InProcessInboundQueue } from './infrastructure/in-process-inbound-queue.js';
 import { RedisService } from '../../platform/redis/redis.service.js';
-import { ManualImportAdapter } from './infrastructure/adapters/manual-import.adapter.js';
 import { ZaloAdapter } from './infrastructure/adapters/zalo.adapter.js';
 import { FacebookAdapter } from './infrastructure/adapters/facebook.adapter.js';
 import { CUSTOMER_GATEWAY } from './domain/customer-gateway.port.js';
@@ -71,10 +71,10 @@ const classificationGatewayProvider: Provider = {
 
 const adaptersProvider: Provider = {
     provide: CHANNEL_ADAPTERS,
-    useFactory: (manual: ManualImportAdapter, zalo: ZaloAdapter, fb: FacebookAdapter) => {
-        return [manual, zalo, fb];
+    useFactory: (zalo: ZaloAdapter, fb: FacebookAdapter) => {
+        return [zalo, fb];
     },
-    inject: [ManualImportAdapter, ZaloAdapter, FacebookAdapter],
+    inject: [ZaloAdapter, FacebookAdapter],
 };
 
 @Module({
@@ -88,7 +88,8 @@ const adaptersProvider: Provider = {
     ],
     controllers: [
         WebhookController,
-        MessageImportController,
+        MessageController,
+        CustomerImportController,
         CustomerController,
         ContactController,
         MediaProxyController,
@@ -105,14 +106,13 @@ const adaptersProvider: Provider = {
         InboundMessageSideEffects,
         InboundJobHandler,
         UnprocessedMessageSweeper,
-        ImportMessagesUseCase,
         ContactMergeService,
         CustomerService,
+        CustomerImportService,
         CustomerTagService,
         WorkingHoursService,
         DefaultCustomerGateway,
         DefaultClassificationGateway,
-        ManualImportAdapter,
         ZaloAdapter,
         FacebookAdapter,
         queueProvider,
@@ -125,9 +125,9 @@ const adaptersProvider: Provider = {
         ChannelAdapterRegistry,
         ReceiveInboundMessage,
         ProcessMessageReceived,
-        ImportMessagesUseCase,
         ContactMergeService,
         CustomerService,
+        CustomerImportService,
         CustomerTagService,
         WorkingHoursService,
         MessageStorageService,

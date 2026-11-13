@@ -3,6 +3,8 @@ import { X, Plus, Trash2, Edit2, Check, RotateCcw, Zap } from 'lucide-react';
 import type { QuickReplyItem } from '../../types.js';
 import { MOCK_QUICK_REPLIES } from '../../mockData.js';
 import { notify } from '../../../../components/feedback/toastEmitter.js';
+import { confirmDialog } from '../../../../components/feedback/confirmDialog.js';
+import { translate } from '../../../../i18n/translate.js';
 import { Button } from '../../../../components/ui/Button.js';
 
 export interface QuickReplyModalProps {
@@ -103,12 +105,20 @@ export const QuickReplyModal: React.FC<QuickReplyModalProps> = ({
     notify.success('Đã thêm tin nhắn nhanh mới thành công!');
   };
 
-  const handleResetDefaults = () => {
-    if (window.confirm('Khôi phục danh sách tin nhắn nhanh về mẫu mặc định?')) {
-      setReplies(MOCK_QUICK_REPLIES);
-      onSaveReplies(MOCK_QUICK_REPLIES);
-      notify.success('Đã khôi phục các mẫu tin nhắn nhanh mặc định.');
-    }
+  const handleResetDefaults = async () => {
+    const confirmed = await confirmDialog({
+      tone: 'warning',
+      title: translate('confirmDialog.resetQuickRepliesTitle', 'Khôi phục tin nhắn nhanh mặc định?'),
+      message: translate(
+        'confirmDialog.resetQuickRepliesMessage',
+        'Danh sách tin nhắn nhanh hiện tại sẽ được thay bằng bộ mẫu mặc định.',
+      ),
+      confirmText: translate('confirmDialog.resetConfirm', 'Khôi phục'),
+    });
+    if (!confirmed) return;
+    setReplies(MOCK_QUICK_REPLIES);
+    onSaveReplies(MOCK_QUICK_REPLIES);
+    notify.success('Đã khôi phục các mẫu tin nhắn nhanh mặc định.');
   };
 
   return (

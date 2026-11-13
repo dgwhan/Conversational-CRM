@@ -34,6 +34,8 @@ export interface CustomerListItem {
   }>;
   createdAt: string;
   updatedAt: string;
+  source?: string | null;
+  importJobId?: string | null;
 }
 
 export function createCustomerApi(client: BaseApiClient) {
@@ -74,6 +76,8 @@ export function createCustomerApi(client: BaseApiClient) {
       limit?: number;
       leadStatus?: string;
       leadStage?: string;
+      importJobId?: string;
+      source?: string;
     }) {
       return client.get<{
         items: CustomerListItem[];

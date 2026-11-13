@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
+import { confirmDialog } from '../../../components/feedback/confirmDialog.js';
+import { translate } from '../../../i18n/translate.js';
 import { useUserRole } from '../../auth/index.js';
 import { StaffRole } from '../../../features/auth/constants/auth.constants.js';
 import {
@@ -107,7 +109,17 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   };
 
   const handleDisconnectChannel = async (channelId: string, channelName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn ngắt kết nối kênh "${channelName}" khỏi Không gian làm việc này?`)) return;
+    const confirmed = await confirmDialog({
+      tone: 'danger',
+      title: translate('confirmDialog.disconnectChannelTitle', 'Ngắt kết nối kênh?'),
+      message: translate(
+        'confirmDialog.disconnectChannelMessage',
+        'Kênh "{name}" sẽ ngừng nhận và gửi tin nhắn trong không gian làm việc này. Bạn có thể kết nối lại bất cứ lúc nào.',
+        { name: channelName },
+      ),
+      confirmText: translate('confirmDialog.disconnectChannelConfirm', 'Ngắt kết nối'),
+    });
+    if (!confirmed) return;
     try {
       await apiClient.disconnectChannel(channelId, workspace.id);
       setChannels((current) => current.filter((channel) => channel.id !== channelId));
@@ -143,10 +155,23 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
       notify.error('Không thể loại bỏ Chủ sở hữu. Không gian làm việc phải có ít nhất 1 Chủ sở hữu.');
       return;
     }
-    const prompt = isTargetOwner
-      ? `Bạn có chắc chắn muốn loại bỏ Chủ sở hữu "${memberName}" khỏi Không gian làm việc này?`
-      : `Bạn có chắc chắn muốn xóa thành viên "${memberName}" khỏi Không gian làm việc này?`;
-    if (!window.confirm(prompt)) return;
+    const confirmed = await confirmDialog({
+      tone: 'danger',
+      title: isTargetOwner
+        ? translate('confirmDialog.removeOwnerTitle', 'Loại bỏ chủ sở hữu?')
+        : translate('confirmDialog.removeMemberTitle', 'Xóa thành viên?'),
+      message: isTargetOwner
+        ? translate(
+            'confirmDialog.removeOwnerMessage',
+            '"{name}" sẽ mất quyền chủ sở hữu và không thể truy cập không gian làm việc này nữa.',
+            { name: memberName },
+          )
+        : translate('confirmDialog.removeMemberMessage', '"{name}" sẽ mất quyền truy cập vào không gian làm việc này.', {
+            name: memberName,
+          }),
+      confirmText: translate('confirmDialog.removeConfirm', 'Xóa khỏi workspace'),
+    });
+    if (!confirmed) return;
     try {
       await deleteStaffMember(memberId, workspace.id);
       notify.success(`Đã loại bỏ "${memberName}" khỏi Không gian làm việc.`);
@@ -161,10 +186,23 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
       notify.error('Không gian làm việc phải có ít nhất 1 Chủ sở hữu. Không thể rời.');
       return;
     }
-    const prompt = workspace.isOwner
-      ? `Bạn có chắc chắn muốn rời khỏi Không gian làm việc "${workspace.name}"? Quyền quản trị chính sẽ được bàn giao cho Chủ sở hữu còn lại.`
-      : `Bạn có chắc chắn muốn rời khỏi Không gian làm việc "${workspace.name}"?`;
-    if (!window.confirm(prompt)) return;
+    const confirmed = await confirmDialog({
+      tone: 'warning',
+      title: translate('confirmDialog.leaveWorkspaceTitle', 'Rời khỏi không gian làm việc?'),
+      message: workspace.isOwner
+        ? translate(
+            'confirmDialog.leaveWorkspaceOwnerMessage',
+            'Bạn sẽ rời khỏi "{name}". Quyền quản trị chính sẽ được bàn giao cho chủ sở hữu còn lại.',
+            { name: workspace.name },
+          )
+        : translate(
+            'confirmDialog.leaveWorkspaceMessage',
+            'Bạn sẽ không thể truy cập "{name}" cho đến khi được mời lại.',
+            { name: workspace.name },
+          ),
+      confirmText: translate('confirmDialog.leaveConfirm', 'Rời workspace'),
+    });
+    if (!confirmed) return;
     const currentMember = effectiveStaffList.find((member) =>
       member.id === staffId || Boolean(member.email && staffEmail && member.email.toLowerCase() === staffEmail.toLowerCase()),
     );
@@ -199,7 +237,18 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   };
 
   const handleCancelInvitation = async (memberId: string, memberName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn hủy lời mời gửi tới "${memberName}"?`)) return;
+    const confirmed = await confirmDialog({
+      tone: 'warning',
+      title: translate('confirmDialog.cancelInviteTitle', 'Hủy lời mời?'),
+      message: translate(
+        'confirmDialog.cancelInviteMessage',
+        'Lời mời gửi tới "{name}" sẽ bị thu hồi và đường dẫn tham gia không còn hiệu lực.',
+        { name: memberName },
+      ),
+      confirmText: translate('confirmDialog.cancelInviteConfirm', 'Hủy lời mời'),
+      cancelText: translate('confirmDialog.keepInvite', 'Giữ lời mời'),
+    });
+    if (!confirmed) return;
     try {
       if (cancelInvitation) await cancelInvitation(memberId, workspace.id);
       else await deleteStaffMember(memberId, workspace.id);

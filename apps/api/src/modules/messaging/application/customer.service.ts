@@ -43,6 +43,10 @@ export interface GetCustomersParams {
     limitStr?: string;
     leadStatus?: string;
     leadStage?: string;
+    /** Lọc khách hàng do một lô import tạo ra */
+    importJobId?: string;
+    /** Lọc theo nguồn khách hàng (khớp chính xác, không phân biệt hoa thường) */
+    source?: string;
     role?: string;
     staffId?: string;
 }
@@ -113,6 +117,14 @@ export class CustomerService {
 
         if (leadStage && leadStage.trim()) {
             where.leadStage = leadStage.trim();
+        }
+
+        if (params.importJobId && UUID_REGEX.test(params.importJobId)) {
+            where.importJobId = params.importJobId;
+        }
+
+        if (params.source && params.source.trim()) {
+            where.source = { equals: params.source.trim(), mode: 'insensitive' };
         }
 
         // Role STAFF: Chỉ xem khách hàng được phân công cho mình (OWNER xem toàn bộ)

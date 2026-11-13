@@ -24,7 +24,7 @@ Module được tổ chức theo 4 lớp độc lập:
    - `BullMqInboundQueue` (có `REDIS_URL`): hàng đợi bền vững Redis BullMQ, `jobId = messageId`, retry 5 lần với Exponential Backoff; worker chạy `InboundJobHandler`. Không có Redis (chỉ dev/test): `InProcessInboundQueue` chạy nền trong tiến trình.
    - `InboundMessageSideEffects`: tác vụ phụ chạy trong worker (đồng bộ customer, realtime, trả lời ngoài giờ), chỉ ở lần thử đầu tiên.
    - `UnprocessedMessageSweeper`: cron mỗi phút đưa lại vào hàng đợi các tin INBOUND còn `processed_at = null` quá 2 phút.
-   - Các Channel Adapters: `ZaloAdapter`, `FacebookAdapter`, `ManualImportAdapter`.
+   - Các Channel Adapters: `ZaloAdapter`, `FacebookAdapter`.
    - Các Gateways: `DefaultCustomerGateway`, `DefaultClassificationGateway`.
 4. **Presentation Layer**:
    - `WebhookController`: REST API endpoint `/api/webhook/:channel` nhận Fastify rawBody.
@@ -35,14 +35,14 @@ Module được tổ chức theo 4 lớp độc lập:
 
 | Mã YC | Tên Yêu cầu | Chi tiết Nghiệp vụ | Tiêu chuẩn Chấp thuận (DoD) |
 | :--- | :--- | :--- | :--- |
-| **BR-01** | **Multi-channel Ingestion** | Tiếp nhận tin nhắn từ Zalo OA, Facebook Page, TikTok Shop/Business, và import thủ công. | Hỗ trợ enum `Channel`: `ZALO`, `FACEBOOK`, `TIKTOK`, `MANUAL_IMPORT`. |
+| **BR-01** | **Multi-channel Ingestion** | Tiếp nhận tin nhắn từ Zalo OA, Facebook Page, TikTok Shop/Business. | Hỗ trợ enum `Channel`: `ZALO`, `FACEBOOK`, `TIKTOK` (`MANUAL_IMPORT` chỉ còn cho dữ liệu cũ). |
 | **BR-02** | **Webhook Signature Verification** | Kiểm tra tính hợp lệ của request qua chữ ký số (VD: `x-hub-signature-256`, `x-zalo-signature`). | Bác bỏ lập tức (HTTP 401 Unauthorized) nếu chữ ký sai hoặc bị can thiệp body; không lưu DB và không push job. |
 | **BR-03** | **Fast Webhook Acknowledgment** | Webhook endpoint chỉ làm nhiệm vụ lưu tin vào DB và enqueue, không thực hiện các logic nặng (phân loại AI, gọi bên thứ ba) trong request HTTP. | Trả về HTTP 200 `{"status": "ok"}` trong < 200ms. |
 | **BR-04** | **Anti-duplicate Ingestion** | Tận dụng ràng buộc `UNIQUE(channel, external_message_id)` và `ON CONFLICT DO NOTHING`. | Gửi cùng 1 sự kiện 10 lần liên tiếp hoặc gửi batch 10 tin trùng lặp chỉ tạo duy nhất 1 dòng tin trong DB và chỉ enqueue đúng 1 job. |
 | **BR-05** | **Channel Account Auto-binding** | Tin nhắn gắn liền với tài khoản kênh quản lý (`ChannelAccount`). Tự động nhận diện hoặc khởi tạo tài khoản nếu chưa có. | Không phát sinh lỗi Foreign Key Constraint `messages_channel_account_id_fkey`. |
 | **BR-06** | **Idempotent Worker Processing** | Xử lý tin nhắn bất biến. Khi Worker tắt giữa chừng rồi bật lại, tin không bị mất và không bị xử lý hai lần. | Nếu `processed_at != null`, Worker bỏ qua ngay lập tức, không gọi lại logic tạo khách hay phân loại. |
 | **BR-07** | **Fault Tolerance & Retry** | Khi xử lý Worker gặp sự cố (AI service timeout, DB lỗi), tự động thử lại. | Cấu hình BullMQ: `attempts = 5`, `backoff = exponential (delay 2000ms)`. |
-| **MSG-06** | **Manual Entry & CSV Import** | Nhập tay và Import CSV tải CSV (kênh, người gửi, nội dung, thời gian), kiểm tra bằng Zod, báo từng dòng lỗi. | Import 100 dòng: các dòng lỗi được liệt kê rõ số dòng và lý do, các dòng hợp lệ được lưu vào DB và enqueue. |
+| **MSG-06** | ~~Manual Entry & CSV Import~~ (đã gỡ) | Chức năng import tin nhắn (trang `/import`, API `/messages/import/*`) đã bị loại bỏ. Nhập dữ liệu chuyển sang **nhập khách hàng** tại `/leads/import` (API `/customers/import`). | — |
 
 ---
 
@@ -239,8 +239,7 @@ apps/api/src/modules/messaging/
 │   ├── in-process-inbound-queue.ts         # Hàng đợi trong tiến trình (dev/test, không Redis)
 │   ├── adapters/                           # Triển khai Channel Adapters
 │   │   ├── zalo.adapter.ts
-│   │   ├── facebook.adapter.ts
-│   │   └── manual-import.adapter.ts
+│   │   └── facebook.adapter.ts
 │   └── gateways/                           # Triển khai Gateway mặc định
 │       ├── default-customer.gateway.ts
 │       └── default-classification.gateway.ts
@@ -276,9 +275,7 @@ export class AppModule {}
 | `message-unique.e2e-spec.ts` | Database E2E | Kiểm tra ràng buộc duy nhất trên PostgreSQL thật với `@@unique([channel, externalMessageId])`. | **PASSED** (2 tests) |
 | `anti-duplicate.e2e-spec.ts` | Database E2E | Gửi cùng 1 sự kiện 10 lần liên tiếp vào hệ thống thật: DB có đúng 1 dòng, Queue có đúng 1 job. | **PASSED** (2 tests) |
 | `worker-idempotency.e2e-spec.ts` | Database E2E | Mô phỏng tắt worker giữa chừng rồi bật lại: tin không mất và không bao giờ bị xử lý 2 lần. | **PASSED** (1 test) |
-| `csv-parser.spec.ts` | Unit Parser | Phân tích cú pháp RFC-4180 CSV, BOM UTF-8, dấu ngoặc kép, tạo file mẫu. | **PASSED** (4 tests) |
-| `import-messages.usecase.spec.ts` | Unit UseCase | Kiểm tra kiểm thực Zod, báo lỗi từng dòng, tiêu chuẩn DoD import 100 dòng. | **PASSED** (4 tests) |
-| `message-import.controller.spec.ts` | Unit Controller | API tải template CSV, import JSON thủ công, import CSV file và kiểm tra lỗi. | **PASSED** (5 tests) |
+| `message.controller.spec.ts` | Unit Controller | `GET /messages`: phân trang, lấy workspace/vai trò từ phiên đăng nhập, trả rỗng khi lỗi. | **PASSED** (3 tests) |
 
 ### 6.2. Lệnh Chạy Toàn bộ Kiểm thử
 
@@ -325,45 +322,6 @@ Chạy lại lệnh cURL trên 10 lần liên tiếp.
 - Mọi request đều trả về `HTTP 200 OK {"status": "ok"}`.
 - Kiểm tra cơ sở dữ liệu: `SELECT count(*) FROM messages WHERE external_message_id = 'msg-import-001'` $\rightarrow$ Trả về đúng **1**.
 - Worker logs chỉ xử lý đúng **1 lần duy nhất**, các lần sau kích hoạt cơ chế `ON CONFLICT DO NOTHING` và không sinh thêm job.
-
-#### Kịch bản 3: Tải file mẫu CSV (MSG-06)
-```bash
-curl -X GET http://localhost:3000/api/messages/import/template -o import_template.csv
-```
-*Kết quả kỳ vọng:* Tải về file `import_template.csv` có header `kênh,người gửi,nội dung,thời gian` và dữ liệu mẫu.
-
-#### Kịch bản 4: Nhập tay tin nhắn kiểm tra bằng Zod (MSG-06)
-```bash
-curl -X POST http://localhost:3000/api/messages/import/manual \
-  -H "Content-Type: application/json" \
-  -d '{
-    "items": [
-      {
-        "kênh": "ZALO",
-        "người gửi": "0912345678",
-        "nội dung": "Tư vấn tuyển sinh khóa Lập trình",
-        "thời gian": "2026-10-24T10:00:00Z"
-      },
-      {
-        "kênh": "INVALID_CHANNEL",
-        "người gửi": "",
-        "nội dung": "Dòng bị lỗi",
-        "thời gian": "invalid_date"
-      }
-    ]
-  }'
-```
-*Kết quả kỳ vọng:* Trả về JSON với `total: 2`, `successCount: 1`, `errorCount: 1`, `errors: [{"row": 2, "reason": "kênh: Kênh không hợp lệ...; người gửi: Người gửi không được để trống; thời gian: Thời gian không đúng định dạng..."}]`.
-
-#### Kịch bản 5: Import file CSV và báo từng dòng lỗi (MSG-06)
-```bash
-curl -X POST http://localhost:3000/api/messages/import/csv \
-  -H "Content-Type: application/json" \
-  -d '{
-    "csvContent": "kênh,người gửi,nội dung,thời gian\nZALO,0901234567,Học phí khóa Web,2026-10-24T08:00:00Z\nFACEBOOK,,Thiếu người gửi,2026-10-24T08:05:00Z"
-  }'
-```
-*Kết quả kỳ vọng:* Trả về thống kê import và danh sách dòng lỗi ghi rõ số dòng (row, csvLine) và lý do kiểm thực từ Zod.
 
 ---
 

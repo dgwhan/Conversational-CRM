@@ -1,6 +1,7 @@
 import { BaseApiClient } from './core.js';
 import { createChannelApi } from './channels.js';
 import { createCustomerApi } from './customers.js';
+import { createCustomerImportApi } from './customer-import.js';
 import { createWorkspaceApi } from './workspaces.js';
 import { createContactApi } from './contacts.js';
 import { createActivityApi } from './activities.js';
@@ -12,6 +13,7 @@ export * from './types.js';
 export * from './core.js';
 export * from './channels.js';
 export * from './customers.js';
+export * from './customer-import.js';
 export * from './workspaces.js';
 export * from './contacts.js';
 export * from './activities.js';
@@ -23,6 +25,7 @@ export * from './keyword-rules.js';
 export class ApiClient extends BaseApiClient {
   private channels = createChannelApi(this);
   private customers = createCustomerApi(this);
+  private customerImport = createCustomerImportApi(this);
   private workspaces = createWorkspaceApi(this);
   private contacts = createContactApi(this);
   private activities = createActivityApi(this);
@@ -33,6 +36,7 @@ export class ApiClient extends BaseApiClient {
   // Sub-modules
   readonly channelApi = this.channels;
   readonly customerApi = this.customers;
+  readonly customerImportApi = this.customerImport;
   readonly workspaceApi = this.workspaces;
   readonly contactApi = this.contacts;
   readonly activityApi = this.activities;
