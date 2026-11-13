@@ -1,5 +1,7 @@
 import React from 'react';
 import type { ChatWindowColumnProps } from '../../types.js';
+import { MediaLibraryModal } from './components/MediaLibraryModal.js';
+import { useUserRole } from '../../../auth/index.js';
 import {
   useChatComposer,
   ChatHeader,
@@ -34,18 +36,21 @@ export const ChatWindowColumn: React.FC<ChatWindowColumnProps> = ({
   const {
     inputText,
     setInputText,
-    isRecording,
+    isSending,
     messagesEndRef,
     isWithin24Hours,
     hoursRemaining,
     handleSend,
     handleKeyDown,
+    handlePaste,
     handleQuickReplySelect,
-    handleSimulateVoice,
-    handleAttachSimulated,
-    handleAttachImageSimulated,
     handleInsertEmoji,
+    outboundChannel,
+    attachments,
+    voice,
+    library,
   } = useChatComposer({ conversation, onSendMessage });
+  const { isOwner } = useUserRole();
 
   return (
     <section className="pancake-col-center flex-1 flex flex-col h-full bg-white border-r border-slate-200/80 min-w-[380px] overflow-hidden">
@@ -78,18 +83,29 @@ export const ChatWindowColumn: React.FC<ChatWindowColumnProps> = ({
       <ChatComposer
         conversation={conversation}
         inputText={inputText}
-        isRecording={isRecording}
+        isSending={isSending}
         isWithin24Hours={isWithin24Hours}
         quickReplies={quickReplies}
+        outboundChannel={outboundChannel}
+        attachments={attachments}
+        voice={voice}
+        onOpenLibrary={library.open}
         onInputChange={setInputText}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onSend={handleSend}
-        onAttachSimulated={handleAttachSimulated}
-        onAttachImageSimulated={handleAttachImageSimulated}
-        onSimulateVoice={handleSimulateVoice}
         onInsertEmoji={handleInsertEmoji}
         onQuickReplySelect={handleQuickReplySelect}
         onOpenQuickReplySettings={onOpenQuickReplySettings}
+      />
+
+      {/* 5. Thư viện tài liệu dùng lại (brochure, bảng học phí…) */}
+      <MediaLibraryModal
+        isOpen={library.isOpen}
+        onClose={library.close}
+        onSelect={attachments.addLibraryAssets}
+        canManage={isOwner}
+        channel={outboundChannel}
       />
     </section>
   );

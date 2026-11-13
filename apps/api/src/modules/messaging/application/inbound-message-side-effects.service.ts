@@ -1,3 +1,4 @@
+import { MediaArchiveService } from './media-archive.service.js';
 import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { Channel } from "../domain/channel.js";
 import type { InboundEvent } from "../domain/inbound-event.js";
@@ -32,9 +33,18 @@ export class InboundMessageSideEffects {
         @Optional() private readonly prisma?: PrismaService,
         @Optional() @Inject(CUSTOMER_GATEWAY) private readonly customers?: CustomerGateway,
         @Optional() private readonly workingHoursService?: WorkingHoursService,
+        @Optional() private readonly mediaArchive?: MediaArchiveService,
     ) { }
 
     async run(event: InboundEvent, item: { id: string; conversationId: string | null }): Promise<void> {
+        // Link CDN (đặc biệt của Zalo) hết hạn sau một thời gian: lưu bản sao ảnh / voice khi link còn sống.
+        // Không chặn các tác vụ phụ khác; lỗi chỉ ghi log.
+        if (this.mediaArchive && event.attachments && event.attachments.length > 0) {
+            this.mediaArchive.archiveMessage(item.id).catch((err: Error) =>
+                this.logger.warn(`Không lưu được media của tin ${item.id}: ${err.message}`),
+            );
+        }
+
         const isOutbound = event.direction === 'OUTBOUND';
         const raw = (event.rawPayload as any) || {};
         // Đối với tin echo/outbound từ Page, khách hàng chính là recipient chứ không phải sender (Page ID)

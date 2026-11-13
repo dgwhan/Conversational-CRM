@@ -15,6 +15,7 @@ import { MessageRepository } from '../../messaging/infrastructure/message.reposi
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { MessageDispatcherService, SendMessageInput, SendMessageResult } from './message-dispatcher.service.js';
 import { ChannelSyncService, ChannelSyncResult } from './channel-sync.service.js';
+import { MediaArchiveService } from '../../messaging/application/media-archive.service.js';
 import { Channel } from '../../messaging/domain/channel.js';
 import type {
   ActivateChannelsBody,
@@ -41,6 +42,7 @@ export class ChannelManagerService {
     @Optional() @Inject(CUSTOMER_GATEWAY) private readonly customerGateway?: CustomerGateway,
     @Optional() dispatcherService?: MessageDispatcherService,
     @Optional() syncService?: ChannelSyncService,
+    @Optional() private readonly mediaArchive?: MediaArchiveService,
   ) {
     this.dispatcher =
       dispatcherService ||
@@ -318,6 +320,8 @@ export class ChannelManagerService {
     }
 
     if (this.prisma.message?.deleteMany) {
+      // Xóa bản sao media trong object storage trước khi xóa tin của kênh
+      await this.mediaArchive?.deleteMediaForMessages({ channelAccountId: exists.id }).catch(() => null);
       await this.prisma.message.deleteMany({
         where: { channelAccountId: exists.id },
       }).catch(() => null);

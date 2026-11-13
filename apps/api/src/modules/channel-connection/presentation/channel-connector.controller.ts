@@ -193,6 +193,8 @@ export class ChannelConnectorController {
       channelAccountId?: string;
       conversationId?: string;
       workspaceId?: string;
+      /** Tệp đã tải lên (POST /messaging/outbound-media) hoặc tài liệu thư viện */
+      attachments?: Array<{ assetId: string }>;
     },
     @Headers('x-workspace-id') headerWorkspaceId?: string,
     @Headers('x-user-role') headerUserRole?: string,
@@ -202,11 +204,20 @@ export class ChannelConnectorController {
     if (!body.recipientId?.trim()) {
       throw new BadRequestException('recipientId (ID người nhận trên kênh) không được để trống');
     }
-    if (!body.content?.trim()) {
+    const attachments = Array.isArray(body.attachments)
+      ? body.attachments
+          .map((a) => ({ assetId: String(a?.assetId ?? '').trim() }))
+          .filter((a) => /^[0-9a-f-]{36}$/i.test(a.assetId))
+      : [];
+    if (!body.content?.trim() && attachments.length === 0) {
       throw new BadRequestException('Nội dung tin nhắn không được để trống');
     }
+    if (attachments.length > 10) {
+      throw new BadRequestException('Mỗi lần gửi tối đa 10 tệp.');
+    }
 
-    const effectiveWorkspaceId = body.workspaceId || headerWorkspaceId;
+    // Ưu tiên workspace đã xác minh từ phiên đăng nhập (tệp đính kèm chỉ được lấy trong workspace này)
+    const effectiveWorkspaceId = req?.workspace?.id || body.workspaceId || headerWorkspaceId;
     const userRole = ((req?.user?.role || headerUserRole || 'OWNER') as string).toUpperCase();
     const staffId = req?.user?.id || headerStaffId;
 
@@ -225,10 +236,11 @@ export class ChannelConnectorController {
     return this.channelManager.sendMessage({
       channel: body.channel || 'ZALO',
       recipientId: body.recipientId.trim(),
-      content: body.content.trim(),
+      content: (body.content ?? '').trim(),
       channelAccountId: body.channelAccountId,
       conversationId: body.conversationId,
       workspaceId: effectiveWorkspaceId,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
   }
 

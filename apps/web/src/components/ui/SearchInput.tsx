@@ -51,16 +51,26 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     }
   }, [isControlled, controlledValue]);
 
-  // Debounced search trigger
+  // Giữ onSearch mới nhất trong ref: nơi dùng thường truyền hàm inline (mỗi lần render một hàm mới),
+  // nếu để trong deps thì mỗi lần render lại kích hoạt tìm kiếm → tải lại → render lại → vòng lặp vô hạn.
+  const onSearchRef = useRef(onSearch);
   useEffect(() => {
-    if (debounceMs <= 0 || !onSearch) return;
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
+  const lastSearchedRef = useRef(currentValue);
+
+  // Debounced search trigger: chỉ chạy khi nội dung ô tìm kiếm thực sự thay đổi
+  useEffect(() => {
+    if (debounceMs <= 0) return;
+    if (currentValue === lastSearchedRef.current) return;
 
     const timer = setTimeout(() => {
-      onSearch(currentValue);
+      lastSearchedRef.current = currentValue;
+      onSearchRef.current?.(currentValue);
     }, debounceMs);
 
     return () => clearTimeout(timer);
-  }, [currentValue, debounceMs, onSearch]);
+  }, [currentValue, debounceMs]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextVal = e.target.value;
@@ -78,6 +88,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       setInternalValue('');
     }
     onChange?.('');
+    lastSearchedRef.current = '';
     onSearch?.('');
     inputRef.current?.focus();
   }, [isControlled, onChange, onSearch]);
@@ -88,6 +99,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       handleClear();
     }
     if (e.key === 'Enter') {
+      lastSearchedRef.current = currentValue;
       onSearch?.(currentValue);
     }
   };

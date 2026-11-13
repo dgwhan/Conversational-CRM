@@ -7,3 +7,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Bản sao media khi MEDIA_STORAGE_DRIVER=local
+apps/api/storage/

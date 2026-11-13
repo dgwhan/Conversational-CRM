@@ -325,6 +325,19 @@ Chạy lại lệnh cURL trên 10 lần liên tiếp.
 
 ---
 
+## 6.4. Media, Nhập khách hàng & Độ tin cậy Inbox
+
+Đã tách thành tài liệu riêng:
+
+- [Media trong hội thoại](./media.md): chuẩn hóa tệp đính kèm chiều đến, lưu bản sao (object storage, WebP), endpoint phát media, gửi ảnh / tài liệu / voice chiều đi, thư viện tài liệu, cấu hình `MEDIA_*`.
+- [Nhập khách hàng từ file](./customer-import.md): thay thế chức năng import tin nhắn cũ (đã gỡ).
+- [Độ tin cậy Unified Inbox](./inbox-reliability.md): ghép hội thoại theo người gửi, trả lời tự động ngoài giờ, đồng bộ Zalo OA / Facebook.
+
+---
+
 ## 7. Tài liệu Kỹ thuật Liên quan
+- [Media trong hội thoại](./media.md)
+- [Nhập khách hàng từ file](./customer-import.md)
+- [Độ tin cậy Unified Inbox](./inbox-reliability.md)
 - [Tài liệu Module Realtime & WebSocket Engine](./realtime-socket.md)
 - [Hộp Lưu Thông Báo (Notification Center) & Giám Sát Thời Hạn Zalo Cá Nhân (zca-js)](./notification-and-zalo-monitor.md)

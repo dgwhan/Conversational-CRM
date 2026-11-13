@@ -173,3 +173,34 @@ model Message {
     @@index([conversationId])
     @@map("messages")
 }
+
+/// Tệp do CRM gửi đi (ảnh / tài liệu / voice) hoặc tài liệu dùng lại trong thư viện. Nhị phân nằm ở object storage.
+model MediaAsset {
+    id           String     @id @default(uuid()) @db.Uuid
+    workspaceId  String     @map("workspace_id") @db.Uuid
+    createdById  String?    @map("created_by_id") @db.Uuid
+    /// OUTBOUND: tải lên để gửi trong hội thoại | LIBRARY: tài liệu dùng lại (brochure, bảng học phí…)
+    purpose      String     @db.VarChar(20)
+    /// PENDING: đã tải lên, chưa gửi | SENT: đã gửi | ACTIVE: tài liệu thư viện
+    status       String     @default("PENDING") @db.VarChar(20)
+    /// IMAGE | FILE | AUDIO | VIDEO
+    kind         String     @db.VarChar(20)
+    title        String?    @db.VarChar(255)
+    fileName     String     @map("file_name") @db.VarChar(255)
+    mimeType     String     @map("mime_type") @db.VarChar(120)
+    sizeBytes    Int        @map("size_bytes")
+    width        Int?
+    height       Int?
+    storageKey   String     @unique @map("storage_key") @db.VarChar(500)
+    /// Cache theo kênh: attachment_id / token của Zalo OA, attachment_id của Facebook (dùng lại khi gửi lần sau)
+    channelRefs  Json       @default("{}") @map("channel_refs") @db.JsonB
+    sentAt       DateTime?  @map("sent_at") @db.Timestamptz(3)
+    createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+    updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+    workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+    @@index([workspaceId, purpose, createdAt])
+    @@index([status, createdAt])
+    @@map("media_assets")
+}

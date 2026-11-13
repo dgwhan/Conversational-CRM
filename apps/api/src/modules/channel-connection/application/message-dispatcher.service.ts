@@ -17,6 +17,15 @@ import { Channel, MessageDirection } from '../../messaging/domain/channel.js';
 import type {
   ChannelType,
 } from '../../../contracts/channel-connection.js';
+import { OutboundMediaService, type OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
+import {
+  OutboundMediaRuleError,
+  assertSendable,
+  type OutboundChannel,
+} from '../../messaging/domain/media/outbound-media-policy.js';
+import { summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
+import type { NormalizedAttachment } from '../../messaging/domain/inbound-event.js';
+import { sendFacebookAttachment, sendZaloOaAttachment } from './outbound-attachment.sender.js';
 
 const isUuid = (val?: string | null): val is string =>
   Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
@@ -28,6 +37,8 @@ export interface SendMessageInput {
   channelAccountId?: string;
   conversationId?: string;
   workspaceId?: string;
+  /** Tệp đã tải lên qua POST /messaging/outbound-media hoặc lấy từ thư viện tài liệu */
+  attachments?: Array<{ assetId: string }>;
 }
 
 export interface SendMessageResult {
@@ -37,6 +48,14 @@ export interface SendMessageResult {
   content: string;
   recipientId: string;
   channel: ChannelType;
+  /** Mỗi tệp được gửi thành một tin riêng trên kênh */
+  attachmentMessages?: Array<{ assetId: string; messageId: string; dbMessageId: string | null }>;
+}
+
+interface ChannelSendResult {
+  externalMessageId: string;
+  rawPayload: Record<string, unknown>;
+  resolvedRecipientId: string;
 }
 
 @Injectable()
@@ -68,6 +87,18 @@ export class MessageDispatcherService {
       } catch {}
     }
     return undefined;
+  }
+
+  private _outboundMedia?: OutboundMediaService | null;
+  /** Dịch vụ tệp gửi đi (thuộc MessagingModule, lấy lười để tránh vòng phụ thuộc module) */
+  private get outboundMedia(): OutboundMediaService | undefined {
+    if (this._outboundMedia !== undefined) return this._outboundMedia ?? undefined;
+    try {
+      this._outboundMedia = this.moduleRef?.get(OutboundMediaService, { strict: false }) ?? null;
+    } catch {
+      this._outboundMedia = null;
+    }
+    return this._outboundMedia ?? undefined;
   }
 
   /**
@@ -186,31 +217,94 @@ export class MessageDispatcherService {
       await this.zcaService.enforceRateLimitAndSafety(account.id, input.recipientId, isPersonalZalo);
     }
 
-    // 3. Tách biệt hoàn toàn xử lý gửi tin nhắn cho từng Kênh (FACEBOOK & ZALO riêng biệt)
-    let sendResult: {
-      externalMessageId: string;
-      rawPayload: Record<string, unknown>;
-      resolvedRecipientId: string;
-    };
+    // 3. Tệp đính kèm: nạp từ kho lưu trữ và kiểm tra khả năng của kênh TRƯỚC khi gửi bất kỳ phần nào
+    const outboundChannel: OutboundChannel =
+      channelEnum === Channel.FACEBOOK ? 'FACEBOOK' : isPersonalZalo ? 'ZALO_PERSONAL' : 'ZALO_OA';
+    const assetIds = (input.attachments ?? []).map((a) => a.assetId).filter(Boolean);
+    let media: OutboundMediaPayload[] = [];
+    if (assetIds.length > 0) {
+      if (!this.outboundMedia) throw new BadRequestException('Máy chủ chưa bật chức năng gửi tệp.');
+      media = await this.outboundMedia.loadForSend(account.workspaceId ?? input.workspaceId ?? '', assetIds);
+      for (const m of media) {
+        try {
+          assertSendable(outboundChannel, m.kind, m.mimeType, m.sizeBytes);
+        } catch (err) {
+          if (err instanceof OutboundMediaRuleError) throw new BadRequestException(`${m.fileName}: ${err.message}`);
+          throw err;
+        }
+      }
+    }
+    const text = (input.content ?? '').trim();
+    if (!text && media.length === 0) {
+      throw new BadRequestException('Tin nhắn trống: cần nội dung hoặc tệp đính kèm.');
+    }
 
-    if (channelEnum === Channel.FACEBOOK || rawChannel.includes('FACEBOOK') || rawChannel.includes('FB')) {
-      sendResult = await this.sendFacebookMessage(account, token, input, isMock);
-    } else if (channelEnum === Channel.ZALO || rawChannel.includes('ZALO')) {
-      sendResult = await this.sendZaloMessage(account, token, input, isPersonalZalo, isMock);
-    } else {
+    const sendVia = (payload: { content: string; media?: OutboundMediaPayload }): Promise<ChannelSendResult> => {
+      const channelInput = { ...input, content: payload.content, media: payload.media };
+      if (channelEnum === Channel.FACEBOOK || rawChannel.includes('FACEBOOK') || rawChannel.includes('FB')) {
+        return this.sendFacebookMessage(account, token, channelInput, isMock);
+      }
+      if (channelEnum === Channel.ZALO || rawChannel.includes('ZALO')) {
+        return this.sendZaloMessage(account, token, channelInput, isPersonalZalo, isMock);
+      }
       const fallbackMsgId = `${String(input.channel).toLowerCase()}_out_${Date.now()}`;
-      sendResult = {
+      return Promise.resolve({
         externalMessageId: fallbackMsgId,
         rawPayload: { recipient: input.recipientId, sent: true },
         resolvedRecipientId: input.recipientId,
-      };
+      });
+    };
+
+    // 4. Gửi phần chữ (nếu có) rồi từng tệp; mỗi phần là một tin riêng trên kênh và trong DB
+    let primary: { result: ChannelSendResult; sentAt: Date } | null = null;
+    if (text) {
+      const result = await sendVia({ content: input.content });
+      const sentAt = new Date();
+      await this.persistOutbound(account, channelEnum, input, result, sentAt, input.content);
+      primary = { result, sentAt };
     }
 
+    const attachmentMessages: NonNullable<SendMessageResult['attachmentMessages']> = [];
+    for (const m of media) {
+      const result = await sendVia({ content: '', media: m });
+      const sentAt = new Date();
+      const attachment = this.outboundMedia!.toMessageAttachment(m, result.externalMessageId);
+      const dbMessageId = await this.persistOutbound(account, channelEnum, input, result, sentAt, '', [attachment]);
+      await this.outboundMedia!
+        .markSent(m, { facebookAttachmentId: (result.rawPayload.facebookAttachmentId as string | undefined) ?? undefined })
+        .catch((err: Error) => this.logger.warn(`Không cập nhật được trạng thái tệp ${m.assetId}: ${err.message}`));
+      attachmentMessages.push({ assetId: m.assetId, messageId: result.externalMessageId, dbMessageId });
+      primary ??= { result, sentAt };
+    }
+
+    const { result: first, sentAt } = primary!;
+    return {
+      success: true,
+      messageId: first.externalMessageId,
+      sentAt,
+      content: input.content,
+      recipientId: first.resolvedRecipientId || input.recipientId,
+      channel: input.channel as ChannelType,
+      ...(attachmentMessages.length > 0 ? { attachmentMessages } : {}),
+    };
+  }
+
+  /**
+   * Lưu tin chiều đi, cập nhật snippet hội thoại và phát realtime.
+   * Trả về id tin trong DB (null nếu webhook echo đã lưu trước).
+   */
+  private async persistOutbound(
+    account: any,
+    channelEnum: Channel,
+    input: SendMessageInput,
+    sendResult: ChannelSendResult,
+    sentAt: Date,
+    content: string,
+    attachments?: NormalizedAttachment[],
+  ): Promise<string | null> {
     const { externalMessageId, rawPayload, resolvedRecipientId } = sendResult;
+    const snippet = content || (attachments?.length ? summarizeAttachments(attachments) ?? '[Tệp đính kèm]' : '');
 
-    const sentAt = new Date();
-
-    // 4. Lưu tin nhắn OUTBOUND vào MessageRepository
     let insertedId: string | null = null;
     let isAlreadyPersistedByWebhook = false;
 
@@ -223,14 +317,15 @@ export class MessageDispatcherService {
             externalMessageId,
             senderExternalId: account.externalAccountId,
             direction: MessageDirection.OUTBOUND,
-            content: input.content,
+            content: snippet,
             sentAt,
             conversationId: isUuid(input.conversationId) ? input.conversationId : undefined,
             processedAt: sentAt,
+            attachments,
             rawPayload: {
               ...rawPayload,
               recipient: { id: resolvedRecipientId || input.recipientId },
-              message: { text: input.content },
+              message: content ? { text: content } : { files: attachments?.map((a) => ({ type: a.type, name: a.name })) },
               conversationKey: input.conversationId,
             },
           },
@@ -240,29 +335,23 @@ export class MessageDispatcherService {
         } else {
           // Bản ghi đã được chèn trước đó (ví dụ Meta webhook echo đến nhanh hơn)
           isAlreadyPersistedByWebhook = true;
+          if (attachments?.length) await this.attachToEchoedMessage(channelEnum, externalMessageId, attachments);
         }
       } catch (err) {
         this.logger.warn(`Could not persist outbound message: ${(err as Error).message}`);
       }
     }
 
-    // 5. Cập nhật snippet và lastMessageAt của Conversation
+    // Cập nhật snippet và lastMessageAt của Conversation
     try {
       let conv = null;
       if (isUuid(input.conversationId)) {
-        conv = await this.prisma.conversation.findUnique({
-          where: { id: input.conversationId },
-        });
+        conv = await this.prisma.conversation.findUnique({ where: { id: input.conversationId } });
       }
       if (!conv && insertedId) {
-        const msg = await this.prisma.message.findUnique({
-          where: { id: insertedId },
-          select: { conversationId: true },
-        });
+        const msg = await this.prisma.message.findUnique({ where: { id: insertedId }, select: { conversationId: true } });
         if (msg?.conversationId) {
-          conv = await this.prisma.conversation.findUnique({
-            where: { id: msg.conversationId },
-          });
+          conv = await this.prisma.conversation.findUnique({ where: { id: msg.conversationId } });
         }
       }
       if (!conv) {
@@ -281,22 +370,14 @@ export class MessageDispatcherService {
           },
         });
       }
-
       if (conv) {
-        await this.prisma.conversation.update({
-          where: { id: conv.id },
-          data: {
-            snippet: input.content,
-            lastMessageAt: sentAt,
-          },
-        });
+        await this.prisma.conversation.update({ where: { id: conv.id }, data: { snippet, lastMessageAt: sentAt } });
       }
     } catch {
       // Non-critical
     }
 
-    // 6. Phát tín hiệu Realtime Socket
-    // Chỉ broadcast nếu webhook echo chưa chèn và broadcast trước đó, tránh nhân đôi tin nhắn ở Frontend
+    // Phát tín hiệu Realtime: chỉ khi webhook echo chưa chèn và broadcast trước đó, tránh nhân đôi tin ở Frontend
     if (this.realtime && !isAlreadyPersistedByWebhook) {
       try {
         this.realtime.broadcastNewMessage({
@@ -304,24 +385,33 @@ export class MessageDispatcherService {
           conversationId: input.conversationId || `conv_${externalMessageId}`,
           channel: input.channel as any,
           direction: 'OUTBOUND',
-          content: input.content,
+          content: snippet,
           senderName: account.displayName,
           sentAt: sentAt.toISOString(),
+          ...(attachments?.length ? { attachments: attachments as any } : {}),
           workspaceId: (account as { workspaceId?: string | null }).workspaceId || input.workspaceId || undefined,
-        });
+        } as any);
       } catch (err) {
         this.logger.warn(`Realtime broadcast failed: ${(err as Error).message}`);
       }
     }
+    return insertedId;
+  }
 
-    return {
-      success: true,
-      messageId: externalMessageId,
-      sentAt,
-      content: input.content,
-      recipientId: resolvedRecipientId || input.recipientId,
-      channel: input.channel as ChannelType,
-    };
+  /** Webhook echo của kênh có thể lưu tin trước khi API trả về: bổ sung bản lưu trữ của tệp vào tin đó. */
+  private async attachToEchoedMessage(channel: Channel, externalMessageId: string, attachments: NormalizedAttachment[]): Promise<void> {
+    try {
+      const existing = await this.prisma.message.findUnique({
+        where: { channel_externalMessageId: { channel, externalMessageId } },
+        select: { id: true, attachments: true },
+      });
+      if (!existing) return;
+      const current = Array.isArray(existing.attachments) ? (existing.attachments as any[]) : [];
+      const merged = attachments.map((att, i) => ({ ...(current[i] ?? {}), ...att, url: current[i]?.url || att.url }));
+      await this.prisma.message.update({ where: { id: existing.id }, data: { attachments: merged as any } });
+    } catch (err) {
+      this.logger.warn(`Không gộp được tệp vào tin echo ${externalMessageId}: ${(err as Error).message}`);
+    }
   }
 
   /**
@@ -463,6 +553,7 @@ export class MessageDispatcherService {
       content: string;
       conversationId?: string;
       workspaceId?: string;
+      media?: OutboundMediaPayload;
     },
     isMock: boolean,
   ): Promise<{
@@ -504,6 +595,15 @@ export class MessageDispatcherService {
       throw new BadRequestException(
         `Không tìm thấy Facebook PSID (Page-Scoped ID) hợp lệ của khách hàng (nhận được: "${resolvedRecipientId}"). Facebook yêu cầu khách hàng phải gửi tin nhắn cho Fanpage trước để tạo PSID (recipient[id] phải là chuỗi số).`,
       );
+    }
+
+    if (input.media) {
+      const sent = await sendFacebookAttachment(token, resolvedRecipientId, input.media);
+      return {
+        externalMessageId: sent.externalMessageId,
+        rawPayload: { ...sent.rawPayload, facebookAttachmentId: sent.facebookAttachmentId },
+        resolvedRecipientId,
+      };
     }
 
     try {
@@ -568,6 +668,7 @@ export class MessageDispatcherService {
       recipientId: string;
       content: string;
       conversationId?: string;
+      media?: OutboundMediaPayload;
     },
     isPersonalZalo: boolean,
     isMock: boolean,
@@ -684,7 +785,7 @@ export class MessageDispatcherService {
           data: { message_id: externalMessageId, recipientId: resolvedRecipientId, content: input.content },
         };
       } else {
-        const personalRes = await this.zcaService.sendPersonalMessage(account, resolvedRecipientId, input.content);
+        const personalRes = await this.zcaService.sendPersonalMessage(account, resolvedRecipientId, input.content, input.media);
         externalMessageId = personalRes.messageId;
         rawPayload = personalRes.rawPayload;
       }
@@ -695,6 +796,10 @@ export class MessageDispatcherService {
         message: 'Success (Mock Simulation)',
         data: { message_id: externalMessageId, recipientId: resolvedRecipientId },
       };
+    } else if (input.media) {
+      const sent = await sendZaloOaAttachment(token, resolvedRecipientId, input.media);
+      externalMessageId = sent.externalMessageId;
+      rawPayload = sent.rawPayload;
     } else {
       try {
         const zaloRes = await fetch('https://openapi.zalo.me/v3.0/oa/message/cs', {

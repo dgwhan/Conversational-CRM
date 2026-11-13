@@ -8,6 +8,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { attachmentsFromRawPayload, summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
 import { WorkingHoursService } from '../../messaging/application/working-hours.service.js';
 import { CUSTOMER_GATEWAY } from '../../messaging/domain/customer-gateway.port.js';
 import type { CustomerGateway } from '../../messaging/domain/customer-gateway.port.js';
@@ -425,7 +426,7 @@ export class ChannelSyncService {
     // Gọi Meta Graph API lấy danh sách cuộc hội thoại và các tin nhắn gần nhất kèm avatar profile & nhãn phân loại (labels)
     const url = `https://graph.facebook.com/v19.0/${encodeURIComponent(
       pageId,
-    )}/conversations?fields=id,updated_time,labels{id,name},participants{id,name,email,picture{url}},messages.limit(30){id,message,created_time,from,to}&access_token=${pageToken}`;
+    )}/conversations?fields=id,updated_time,labels{id,name},participants{id,name,email,picture{url}},messages.limit(30){id,message,created_time,from,to,attachments{id,mime_type,name,size,image_data,video_data,file_url}}&access_token=${pageToken}`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -687,19 +688,21 @@ export class ChannelSyncService {
 
       const events: InboundEvent[] = [];
       for (const m of messagesList) {
-        if (!m.message) continue;
+        // Tin chỉ có ảnh / voice / tệp (không có chữ) vẫn phải đồng bộ
+        const attachments = attachmentsFromRawPayload(String(m.id), m);
+        if (!m.message && attachments.length === 0) continue;
         const isOutbound = m.from?.id === pageId;
         events.push({
           channel: Channel.FACEBOOK,
           externalMessageId: m.id,
           externalAccountId: pageId,
           senderExternalId: m.from?.id || customer?.id || 'unknown',
-          content: m.message,
+          content: m.message || summarizeAttachments(attachments),
           sentAt: new Date(m.created_time),
           direction: isOutbound ? MessageDirection.OUTBOUND : MessageDirection.INBOUND,
           conversationId: dbConv?.id,
           processedAt: new Date(m.created_time),
-          attachments: m.attachments?.data || undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
           rawPayload: {
             ...m,
             customerName,

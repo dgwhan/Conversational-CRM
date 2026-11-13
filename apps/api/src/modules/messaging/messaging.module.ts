@@ -21,6 +21,11 @@ import { CustomerImportController } from './presentation/customer-import.control
 import { CustomerController } from './presentation/customer.controller.js';
 import { ContactController } from './presentation/contact.controller.js';
 import { MediaProxyController } from './presentation/media-proxy.controller.js';
+import { MediaController } from './presentation/media.controller.js';
+import { OutboundMediaController } from './presentation/outbound-media.controller.js';
+import { OutboundMediaService } from './application/outbound-media.service.js';
+import { MediaArchiveService, MEDIA_POLICY, mediaPolicyFromEnv } from './application/media-archive.service.js';
+import { MEDIA_STORAGE, createMediaStorageFromEnv } from './infrastructure/media-storage/media-storage.js';
 import { MessageStorageController } from './presentation/message-storage.controller.js';
 import { MessageStorageRepository } from './infrastructure/message-storage.repository.js';
 import { MessageStorageService } from './application/message-storage.service.js';
@@ -93,6 +98,8 @@ const adaptersProvider: Provider = {
         CustomerController,
         ContactController,
         MediaProxyController,
+        MediaController,
+        OutboundMediaController,
         MessageStorageController,
     ],
     providers: [
@@ -110,6 +117,10 @@ const adaptersProvider: Provider = {
         CustomerService,
         CustomerImportService,
         CustomerTagService,
+        MediaArchiveService,
+        OutboundMediaService,
+        { provide: MEDIA_STORAGE, useFactory: () => createMediaStorageFromEnv() },
+        { provide: MEDIA_POLICY, useFactory: () => mediaPolicyFromEnv() },
         WorkingHoursService,
         DefaultCustomerGateway,
         DefaultClassificationGateway,
@@ -131,6 +142,8 @@ const adaptersProvider: Provider = {
         CustomerTagService,
         WorkingHoursService,
         MessageStorageService,
+        MediaArchiveService,
+        OutboundMediaService,
         RetentionSchedulerService,
         INBOUND_QUEUE,
         CHANNEL_ADAPTERS,

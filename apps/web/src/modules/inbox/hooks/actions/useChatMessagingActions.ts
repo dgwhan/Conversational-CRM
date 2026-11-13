@@ -86,11 +86,10 @@ export const extractZaloRecipientId = (conv: ConversationItem): string => {
 /**
  * Gửi tin nhắn qua FACEBOOK Channel (Meta Graph API)
  */
-const sendFacebookMessage = async (
-  conv: ConversationItem,
-  text: string,
-  _attachments?: MessageAttachment[]
-) => {
+const toAttachmentRefs = (assetIds?: string[]) =>
+  assetIds && assetIds.length > 0 ? { attachments: assetIds.map((assetId) => ({ assetId })) } : {};
+
+const sendFacebookMessage = async (conv: ConversationItem, text: string, assetIds?: string[]) => {
   const recipientId = extractFacebookRecipientId(conv);
   return apiClient.sendMessage({
     channel: 'FACEBOOK',
@@ -98,17 +97,14 @@ const sendFacebookMessage = async (
     content: text,
     conversationId: conv.id,
     channelAccountId: conv.channelAccountId,
+    ...toAttachmentRefs(assetIds),
   });
 };
 
 /**
  * Gửi tin nhắn qua ZALO Channel (Zalo OA hoặc Zalo Cá Nhân)
  */
-const sendZaloMessage = async (
-  conv: ConversationItem,
-  text: string,
-  _attachments?: MessageAttachment[]
-) => {
+const sendZaloMessage = async (conv: ConversationItem, text: string, assetIds?: string[]) => {
   const recipientId = extractZaloRecipientId(conv);
   return apiClient.sendMessage({
     channel: conv.channel,
@@ -116,6 +112,7 @@ const sendZaloMessage = async (
     content: text,
     conversationId: conv.id,
     channelAccountId: conv.channelAccountId,
+    ...toAttachmentRefs(assetIds),
   });
 };
 
@@ -126,8 +123,13 @@ export const useChatMessagingActions = ({
 }: UseChatMessagingActionsProps) => {
   const { isOwner, staffId } = useUserRole();
 
-  const handleSendMessage = async (text: string, attachments?: MessageAttachment[]) => {
-    if (!currentConv) return;
+  /**
+   * Gửi tin (chữ và/hoặc tệp đã tải lên). Trả về true khi gửi thành công.
+   * Máy chủ gửi chữ và từng tệp thành các tin riêng: tin tạm được thay bằng đúng các tin đó (cùng id realtime)
+   * để không bị hiện trùng khi sự kiện realtime về.
+   */
+  const handleSendMessage = async (text: string, attachments?: MessageAttachment[], assetIds?: string[]): Promise<boolean> => {
+    if (!currentConv) return false;
 
     // Role STAFF chỉ xem và phản hồi được hội thoại mà mình được phân công
     if (!isOwner && staffId) {
@@ -139,7 +141,7 @@ export const useChatMessagingActions = ({
 
       if (!isAssigned) {
         notify.error('Bạn chỉ có thể phản hồi các cuộc hội thoại được phân công cho mình (403 Forbidden).', 'Không có quyền');
-        return;
+        return false;
       }
     }
 
@@ -162,7 +164,7 @@ export const useChatMessagingActions = ({
         if (c.id !== currentConv.id) return c;
         return {
           ...c,
-          snippet: text || (attachments ? `[Đính kèm ${attachments.length} tệp]` : ''),
+          snippet: text || (attachments?.length ? `[Đính kèm ${attachments.length} tệp]` : ''),
           lastMessageAt: nowIso,
           messages: deduplicateMessages([...c.messages, newMsg]),
         };
@@ -175,9 +177,9 @@ export const useChatMessagingActions = ({
       const channelUpper = String(currentConv.channel || '').toUpperCase();
 
       if (channelUpper.includes('FACEBOOK') || channelUpper.includes('FB')) {
-        res = await sendFacebookMessage(currentConv, text, attachments);
+        res = await sendFacebookMessage(currentConv, text, assetIds);
       } else if (channelUpper.includes('ZALO')) {
-        res = await sendZaloMessage(currentConv, text, attachments);
+        res = await sendZaloMessage(currentConv, text, assetIds);
       } else {
         res = await apiClient.sendMessage({
           channel: currentConv.channel,
@@ -185,7 +187,43 @@ export const useChatMessagingActions = ({
           content: text,
           conversationId: currentConv.id,
           channelAccountId: currentConv.channelAccountId,
+          ...toAttachmentRefs(assetIds),
         });
+      }
+
+      // Có tệp: thay tin tạm bằng các tin máy chủ đã tạo (tin chữ + mỗi tệp một tin, dùng id trong DB)
+      const attachmentMessages = res.attachmentMessages ?? [];
+      if (attachmentMessages.length > 0) {
+        const textMsg: ChatMessage[] = text
+          ? [{ ...newMsg, id: res.messageId, attachments: undefined, status: 'DELIVERED' as const }]
+          : [];
+        const fileMsgs: ChatMessage[] = attachmentMessages.map((am, i) => {
+          const local = attachments?.[i];
+          return {
+            ...newMsg,
+            id: am.dbMessageId || am.messageId,
+            content: '',
+            status: 'DELIVERED' as const,
+            attachments: local
+              ? [{ ...local, id: `${am.messageId}_0`, storageKey: 'stored' }]
+              : undefined,
+          };
+        });
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id !== currentConv.id
+              ? c
+              : {
+                  ...c,
+                  messages: deduplicateMessages([
+                    ...c.messages.filter((m) => m.id !== tempId),
+                    ...textMsg,
+                    ...fileMsgs,
+                  ]),
+                },
+          ),
+        );
+        return true;
       }
 
       // 3. Cập nhật trạng thái tin nhắn thành DELIVERED và đồng bộ messageId thực tế
@@ -212,11 +250,17 @@ export const useChatMessagingActions = ({
           };
         })
       );
+      return true;
     } catch (err) {
+      // Gửi lỗi: gỡ tin tạm, khung soạn giữ lại tệp để người dùng thử lại
+      setConversations((prev) =>
+        prev.map((c) => (c.id !== currentConv.id ? c : { ...c, messages: c.messages.filter((m) => m.id !== tempId) })),
+      );
       notify.error(
         `Không thể gửi tin nhắn qua ${currentConv.channel}: ${(err as Error).message}`,
         'Lỗi gửi tin'
       );
+      return false;
     }
   };
 

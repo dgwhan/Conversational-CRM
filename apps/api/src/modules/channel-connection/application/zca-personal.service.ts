@@ -7,9 +7,12 @@ import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
 import { NotificationService } from '../../notification/notification.service.js';
-import { NotificationType, NotificationSeverity } from '@prisma/client';
+import { NotificationType, NotificationSeverity, Prisma } from '@prisma/client';
 import { WorkingHoursService } from '../../messaging/application/working-hours.service.js';
 import { Channel } from '../../messaging/domain/channel.js';
+import { normalizeZaloPersonalAttachments, summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
+import { MediaArchiveService } from '../../messaging/application/media-archive.service.js';
+import type { OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
 
 export interface ZcaSafetyConfig {
   enabled: boolean;
@@ -72,6 +75,18 @@ export class ZcaPersonalService implements OnModuleInit {
       } catch {}
     }
     return undefined;
+  }
+
+  /** Dịch vụ lưu bản sao media (thuộc MessagingModule, lấy lười để tránh vòng phụ thuộc module) */
+  private _mediaArchive?: MediaArchiveService | null;
+  private get mediaArchive(): MediaArchiveService | undefined {
+    if (this._mediaArchive !== undefined) return this._mediaArchive ?? undefined;
+    try {
+      this._mediaArchive = this.moduleRef?.get(MediaArchiveService, { strict: false }) ?? null;
+    } catch {
+      this._mediaArchive = null;
+    }
+    return this._mediaArchive ?? undefined;
   }
 
   /**
@@ -384,6 +399,7 @@ export class ZcaPersonalService implements OnModuleInit {
     account: any,
     recipientId: string,
     content: string,
+    media?: OutboundMediaPayload,
   ): Promise<{ messageId: string; rawPayload: any }> {
     const extId = account?.externalAccountId;
     let api = extId ? this.activeApis.get(extId) : null;
@@ -522,11 +538,43 @@ export class ZcaPersonalService implements OnModuleInit {
         );
       }
 
+      /**
+       * Gửi chữ hoặc tệp qua một phiên zca-js:
+       * - Voice: tải lên kho Zalo (uploadAttachment) rồi gửi dạng tin thoại (sendVoice).
+       * - Ảnh / tệp / video: gửi trực tiếp Buffer qua sendMessage({ attachments }).
+       */
+      const deliver = async (client: any): Promise<{ messageId: string; rawPayload: any }> => {
+        if (!media) {
+          const res = await client.sendMessage({ msg: content }, cleanRecipientId, ThreadType.User);
+          return { messageId: String(res?.message?.msgId || `zca_msg_${Date.now()}`), rawPayload: res };
+        }
+        const fileName = /\.[a-z0-9]{2,5}$/i.test(media.fileName) ? media.fileName : `${media.fileName}.bin`;
+        const source = {
+          data: media.buffer,
+          filename: fileName as `${string}.${string}`,
+          metadata: {
+            totalSize: media.buffer.length,
+            ...(media.width && media.height ? { width: media.width, height: media.height } : {}),
+          },
+        };
+        if (media.kind === 'AUDIO' && typeof client.uploadAttachment === 'function' && typeof client.sendVoice === 'function') {
+          const uploaded = await client.uploadAttachment(source, cleanRecipientId, ThreadType.User);
+          const voiceUrl = uploaded?.[0]?.fileUrl;
+          if (voiceUrl) {
+            const voiceRes = await client.sendVoice({ voiceUrl }, cleanRecipientId, ThreadType.User);
+            return { messageId: String(voiceRes?.msgId || `zca_voice_${Date.now()}`), rawPayload: { ...voiceRes, voiceUrl } };
+          }
+        }
+        const res = await client.sendMessage({ msg: content || '', attachments: [source] }, cleanRecipientId, ThreadType.User);
+        return {
+          messageId: String(res?.attachment?.[0]?.msgId || res?.message?.msgId || `zca_att_${Date.now()}`),
+          rawPayload: res,
+        };
+      };
+
       try {
-        this.logger.log(`[zca-js] Gửi tin nhắn tới UID ${cleanRecipientId} qua API cá nhân ${extId}...`);
-        const res = await api.sendMessage({ msg: content }, cleanRecipientId, ThreadType.User);
-        const messageId = String(res?.message?.msgId || `zca_msg_${Date.now()}`);
-        return { messageId, rawPayload: res };
+        this.logger.log(`[zca-js] Gửi ${media ? `tệp ${media.fileName}` : 'tin nhắn'} tới UID ${cleanRecipientId} qua API cá nhân ${extId}...`);
+        return await deliver(api);
       } catch (err) {
         this.logger.warn(`[zca-js] api.sendMessage error: ${(err as Error).message}`);
         // Nếu lỗi phiên đăng nhập hết hạn hoặc bị kick
@@ -562,9 +610,7 @@ export class ZcaPersonalService implements OnModuleInit {
                   if (refreshedApi) {
                     this.activeApis.set(extId, refreshedApi);
                     this.logger.log(`[zca-js] Thử gửi lại tin nhắn tới bạn bè Zalo UID ${cleanRecipientId} sau khi làm mới session...`);
-                    const retryRes = await refreshedApi.sendMessage({ msg: content }, cleanRecipientId, ThreadType.User);
-                    const retryMessageId = String(retryRes?.message?.msgId || `zca_msg_${Date.now()}`);
-                    return { messageId: retryMessageId, rawPayload: retryRes };
+                    return await deliver(refreshedApi);
                   }
                 }
               }
@@ -756,10 +802,17 @@ export class ZcaPersonalService implements OnModuleInit {
     const msgData = message.data || {};
     const externalMessageId = String(msgData.msgId || msgData.cliMsgId || `zca_${Date.now()}`);
 
+    // Ảnh / voice / video / sticker / file của Zalo cá nhân (chỉ lưu metadata + URL, không lưu nhị phân vào DB)
+    const attachments = normalizeZaloPersonalAttachments(externalMessageId, msgData);
+
     // Nội dung tin nhắn
     let content = '';
     if (typeof msgData.content === 'string') {
       content = msgData.content;
+    } else if (attachments.length > 0) {
+      // Ảnh có chú thích thì giữ chú thích, còn lại dùng nhãn tóm tắt ([Hình ảnh], [Tin nhắn thoại]…)
+      const caption = msgData.content?.title || msgData.content?.description;
+      content = (attachments[0].type !== 'FILE' && typeof caption === 'string' && caption.trim()) || summarizeAttachments(attachments) || '';
     } else if (msgData.content && typeof msgData.content === 'object') {
       content =
         msgData.content.title ||
@@ -977,6 +1030,7 @@ export class ZcaPersonalService implements OnModuleInit {
     }
 
     // 4. Lưu Message vào DB
+    let savedMessageId: string | null = null;
     if (this.prisma?.message && channelAccount) {
       const enrichedPayload = {
         ...msgData,
@@ -989,7 +1043,7 @@ export class ZcaPersonalService implements OnModuleInit {
       };
 
       try {
-        await this.prisma.message.upsert({
+        const saved = await this.prisma.message.upsert({
           where: {
             channel_externalMessageId: {
               channel: 'ZALO',
@@ -1010,8 +1064,17 @@ export class ZcaPersonalService implements OnModuleInit {
             externalMessageId,
             sentAt,
             rawPayload: enrichedPayload,
+            ...(attachments.length > 0 ? { attachments: attachments as unknown as Prisma.InputJsonValue } : {}),
           },
+          select: { id: true, attachments: true },
         });
+        savedMessageId = saved.id;
+        // Link CDN của Zalo hết hạn sau một thời gian: lưu bản sao ảnh / voice sang object storage (chạy nền)
+        if (attachments.length > 0 && this.mediaArchive) {
+          this.mediaArchive.archiveMessage(saved.id).catch((err: Error) =>
+            this.logger.warn(`[zca-js] Không lưu được media tin ${externalMessageId}: ${err.message}`),
+          );
+        }
       } catch (err) {
         this.logger.warn(`[zca-js] Lỗi Message upsert: ${(err as Error).message}`);
       }
@@ -1021,11 +1084,12 @@ export class ZcaPersonalService implements OnModuleInit {
     if (this.realtime) {
       try {
         this.realtime.broadcastNewMessage({
-          id: externalMessageId,
+          id: savedMessageId || externalMessageId,
           conversationId: dbConv?.id || `conv_${customerZaloId}`,
           channel: 'ZALO_PERSONAL',
           direction: isSelf ? 'OUTBOUND' : 'INBOUND',
           content,
+          ...(attachments.length > 0 ? { attachments } : {}),
           senderName: isSelf ? `${channelAccount.displayName || 'Tư vấn viên'} (Bạn)` : customerName,
           senderAvatar: isSelf ? channelAccount.avatarUrl : customerAvatar,
           sentAt: sentAt.toISOString(),

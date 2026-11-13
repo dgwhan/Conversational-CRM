@@ -3,6 +3,7 @@ import { Message, Prisma } from "@prisma/client";
 import { PrismaService } from "../../../platform/database/prisma.service.js";
 import { DistributedLockService } from "../../../platform/redis/distributed-lock.service.js";
 import { InboundEvent } from "../domain/inbound-event.js";
+import { attachmentsFromRawPayload } from "../domain/media/attachment-normalizer.js";
 import { Channel, MessageDirection } from "../domain/channel.js";
 import {
     resolveTagMappings,
@@ -530,38 +531,12 @@ export class MessageRepository implements OnModuleInit {
                 }
             }
 
-            // B. Trích xuất attachments
-            let attachments: any = e.attachments || raw.attachments || null;
-            if (!attachments && raw.message?.attachments) {
-                const fbAtts = raw.message.attachments;
-                if (Array.isArray(fbAtts) && fbAtts.length > 0) {
-                    attachments = fbAtts.map((att: any, idx: number) => {
-                        const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
-                        const rawType = String(att.type || 'FILE').toUpperCase();
-                        let type = 'FILE';
-                        if (isSticker) {
-                            type = 'STICKER';
-                        } else if (rawType === 'IMAGE') {
-                            type = 'IMAGE';
-                        } else if (rawType === 'AUDIO') {
-                            type = 'AUDIO';
-                        } else if (rawType === 'VIDEO') {
-                            type = 'VIDEO';
-                        }
-
-                        const url = att.payload?.url || att.url || '';
-                        return {
-                            id: att.id || `att-${Date.now()}-${idx}`,
-                            type,
-                            url,
-                            name: att.payload?.name || att.name || (isSticker ? 'Sticker' : `${type.toLowerCase()}_attachment`),
-                            size: att.payload?.size,
-                            duration: att.payload?.duration,
-                            stickerId: att.payload?.sticker_id,
-                        };
-                    });
-                }
-            }
+            // B. Tệp đính kèm: ưu tiên danh sách adapter đã chuẩn hóa, không có thì suy ra từ payload gốc
+            const normalizedAttachments =
+                e.attachments && e.attachments.length > 0
+                    ? e.attachments
+                    : attachmentsFromRawPayload(e.externalMessageId, e.rawPayload);
+            const attachments = normalizedAttachments.length > 0 ? normalizedAttachments : null;
 
             // C. Trích xuất processedAt (Outbound và Sync đã hoàn thành xử lý)
             let processedAt: Date | null = e.processedAt || null;
@@ -577,7 +552,7 @@ export class MessageRepository implements OnModuleInit {
                 channel: e.channel,
                 direction: e.direction ?? MessageDirection.INBOUND,
                 content: e.content,
-                attachments: attachments ? (attachments as Prisma.InputJsonValue) : undefined,
+                attachments: attachments ? (attachments as unknown as Prisma.InputJsonValue) : undefined,
                 sentAt: messageSentAt,
                 createdAt: messageSentAt,
                 processedAt,
@@ -733,40 +708,13 @@ export class MessageRepository implements OnModuleInit {
             });
 
             for (const msg of nullAttMessages) {
-                const raw = (msg.rawPayload as any) || {};
-                const fbAtts = raw.message?.attachments || raw.attachments?.data || raw.attachments;
-                if (Array.isArray(fbAtts) && fbAtts.length > 0) {
-                    const parsed = fbAtts.map((att: any, idx: number) => {
-                        const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
-                        const rawType = String(att.type || 'FILE').toUpperCase();
-                        let type = 'FILE';
-                        if (isSticker) {
-                            type = 'STICKER';
-                        } else if (rawType === 'IMAGE') {
-                            type = 'IMAGE';
-                        } else if (rawType === 'AUDIO') {
-                            type = 'AUDIO';
-                        } else if (rawType === 'VIDEO') {
-                            type = 'VIDEO';
-                        }
-
-                        return {
-                            id: att.id || `att-${Date.now()}-${idx}`,
-                            type,
-                            url: att.payload?.url || att.url || '',
-                            name: att.payload?.name || att.name || (isSticker ? 'Sticker' : `${type.toLowerCase()}_attachment`),
-                            size: att.payload?.size,
-                            duration: att.payload?.duration,
-                            stickerId: att.payload?.sticker_id,
-                        };
-                    });
-
-                    await this.prisma.message.update({
-                        where: { id: msg.id },
-                        data: { attachments: parsed as Prisma.InputJsonValue },
-                    });
-                    updatedAttachments++;
-                }
+                const parsed = attachmentsFromRawPayload(msg.externalMessageId, msg.rawPayload);
+                // Tin không có đính kèm cũng ghi [] để lần quét sau không lặp lại chính các dòng này
+                await this.prisma.message.update({
+                    where: { id: msg.id },
+                    data: { attachments: parsed as unknown as Prisma.InputJsonValue },
+                });
+                if (parsed.length > 0) updatedAttachments++;
             }
         } catch {
             // Không ngắt app nếu backfill gặp lỗi

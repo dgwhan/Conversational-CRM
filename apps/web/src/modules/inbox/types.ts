@@ -46,6 +46,11 @@ export interface MessageAttachment {
   name?: string;
   size?: string;
   duration?: string;
+  mimeType?: string;
+  /** Đã có bản sao trong object storage của CRM (không phụ thuộc link CDN của kênh) */
+  storageKey?: string;
+  /** Link gốc đã hết hạn và không còn bản sao */
+  expired?: boolean;
 }
 
 export interface ChatMessage {
@@ -181,7 +186,8 @@ export interface ChatWindowColumnProps {
   staffList: AssignedStaff[];
   quickReplies: QuickReplyItem[];
   alertThresholdMinutes?: number;
-  onSendMessage: (text: string, attachments?: MessageAttachment[]) => void;
+  /** Gửi tin: chữ + tệp đã tải lên (assetIds). Trả về false khi gửi thất bại để khung soạn giữ lại tệp. */
+  onSendMessage: (text: string, attachments?: MessageAttachment[], assetIds?: string[]) => void | boolean | Promise<boolean | void>;
   onAssignStaff: (staffId: string) => void;
   onToggleStatus?: () => void;
   onBackToList?: () => void;
