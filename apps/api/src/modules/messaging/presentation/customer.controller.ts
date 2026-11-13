@@ -6,7 +6,6 @@ import {
     Delete,
     Param,
     Body,
-    Headers,
     Query,
     Optional,
     ForbiddenException,
@@ -40,28 +39,17 @@ export class CustomerController {
         }
     }
 
-    /**
-     * Retrieve list of customers within a workspace, supporting pagination, unaccent search, and phone lookup
-     */
-    /**
-     * Retrieve list of customers within a workspace, supporting pagination, unaccent search, and phone lookup
-     */
+    /** Danh sách khách hàng (phân trang, tìm kiếm không dấu, lọc theo trạng thái / giai đoạn). STAFF chỉ thấy khách mình phụ trách. */
     @Get()
     async getCustomers(
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
+        @Req() req: unknown,
         @Query('search') search?: string,
         @Query('page') pageStr?: string,
         @Query('limit') limitStr?: string,
         @Query('leadStatus') leadStatus?: string,
         @Query('leadStage') leadStage?: string,
-        @Headers('x-user-role') headerUserRole?: string,
-        @Headers('x-staff-id') headerStaffId?: string,
-        @Req() req?: any,
     ) {
-        // Danh tính, vai trò và workspace lấy từ token + tư cách thành viên đã xác minh; không tin header của client
         const { role, userId: staffId } = getRequestIdentity(req);
-
         return this.customerService.getCustomers({
             rawWsId: requireWorkspaceId(req),
             search,
@@ -74,93 +62,57 @@ export class CustomerController {
         });
     }
 
-    /**
-     * Retrieve single customer details by ID (including conversations, notes, identities)
-     * Role STAFF: nếu vào khách hàng của người khác sẽ trả về lỗi 403 Forbidden
-     */
-    @Get(':id')
-    async getCustomerById(
-        @Param('id') id: string,
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
-        @Headers('x-user-role') headerUserRole?: string,
-        @Headers('x-staff-id') headerStaffId?: string,
-        @Req() req?: any,
-    ) {
+    /** Tạo khách hàng nhập tay (VD: nút "Thêm" trên Kanban). */
+    @Post()
+    async createCustomer(@Req() req: unknown, @Body() body: UpdateCustomerDto) {
         const { role, userId: staffId } = getRequestIdentity(req);
-        const workspaceId = requireWorkspaceId(req);
-
-        return this.customerService.getCustomerById(id, { role, staffId, workspaceId });
+        return this.customerService.createCustomer(body ?? {}, requireWorkspaceId(req), { role, staffId });
     }
 
-    /**
-     * Đồng bộ phân công nhân sự (staff / workspace_member) cho cuộc hội thoại
-     * Role OWNER toàn quyền, Role STAFF không tự phân công cho người khác (trả về 403)
-     */
+    /** Chi tiết khách hàng. STAFF xem khách của người khác -> 403. */
+    @Get(':id')
+    async getCustomerById(@Req() req: unknown, @Param('id') id: string) {
+        const { role, userId: staffId } = getRequestIdentity(req);
+        return this.customerService.getCustomerById(id, { role, staffId, workspaceId: requireWorkspaceId(req) });
+    }
+
+    /** Phân công nhân sự cho hội thoại (chỉ OWNER). */
     @Patch('conversations/:conversationId/assign')
     async assignConversation(
+        @Req() req: unknown,
         @Param('conversationId') conversationId: string,
         @Body() body: { staffId?: string | null; staffName?: string | null },
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Headers('x-user-role') headerUserRole?: string,
-        @Req() req?: any,
     ) {
-        const { role } = getRequestIdentity(req);
-        if (role !== WorkspaceRole.OWNER) {
-            throw new ForbiddenException(
-                'Nhân viên không có quyền phân công cuộc hội thoại cho người khác (403 Forbidden).',
-            );
+        if (getRequestIdentity(req).role !== WorkspaceRole.OWNER) {
+            throw new ForbiddenException('Nhân viên không có quyền phân công cuộc hội thoại cho người khác (403 Forbidden).');
         }
         return this.customerService.assignConversation(
             conversationId,
-            body.staffId,
-            body.staffName,
+            body?.staffId,
+            body?.staffName,
             requireWorkspaceId(req),
         );
     }
 
-    /**
-     * Update customer profile, recruitment pipeline stage, and lead qualification status.
-     * Role OWNER: toàn quyền chỉnh sửa bất kỳ khách hàng nào
-     * Role STAFF: chỉ được chỉnh sửa khách hàng mình phụ trách (nếu vào của người khác trả về lỗi 403)
-     */
+    /** Cập nhật hồ sơ / giai đoạn / trạng thái lead. STAFF chỉ sửa khách mình phụ trách. */
     @Patch(':id')
-    async updateCustomer(
-        @Param('id') id: string,
-        @Body() body: UpdateCustomerDto,
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Headers('x-user-role') headerUserRole?: string,
-        @Headers('x-staff-id') headerStaffId?: string,
-        @Req() req?: any,
-    ) {
+    async updateCustomer(@Req() req: unknown, @Param('id') id: string, @Body() body: UpdateCustomerDto) {
         const { role, userId: staffId } = getRequestIdentity(req);
-
-        return this.customerService.updateCustomer(id, body, requireWorkspaceId(req), { role, staffId });
+        return this.customerService.updateCustomer(id, body ?? {}, requireWorkspaceId(req), { role, staffId });
     }
 
-    /**
-     * Remove a tag from customer and associated conversations via CRM
-     */
+    /** Gỡ một tag khỏi khách hàng và các hội thoại liên quan. STAFF chỉ thao tác trên khách mình phụ trách. */
     @Delete(':id/tags/:tag')
-    async removeCustomerTag(
-        @Param('id') id: string,
-        @Param('tag') tagToRemove: string,
-        @Req() req?: any,
-    ) {
-        return this.customerService.removeCustomerTag(id, tagToRemove, requireWorkspaceId(req));
+    async removeCustomerTag(@Req() req: unknown, @Param('id') id: string, @Param('tag') tag: string) {
+        const identity = getRequestIdentity(req);
+        const workspaceId = requireWorkspaceId(req);
+        await this.customerService.assertCanModifyCustomer(id, { ...identity, workspaceId });
+        return this.customerService.removeCustomerTag(id, tag, workspaceId);
     }
 
-    /**
-     * Ẩn danh hóa thông tin cá nhân khách hàng, tin nhắn và lead theo Nghị định 13/2023/NĐ-CP
-     */
+    /** Ẩn danh hóa dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP. Không thể hoàn tác: chỉ OWNER. */
     @Post(':id/anonymize')
-    async anonymizeCustomer(
-        @Param('id') id: string,
-        @Body() body: { reason?: string },
-        @Headers('x-staff-id') staffId?: string,
-        @Req() req?: any,
-    ) {
-        // Thao tác xóa PII không thể hoàn tác: chỉ chủ workspace được thực hiện
+    async anonymizeCustomer(@Req() req: unknown, @Param('id') id: string, @Body() body?: { reason?: string }) {
         const identity = getRequestIdentity(req);
         if (identity.role !== WorkspaceRole.OWNER) {
             throw new ForbiddenException('Chỉ chủ workspace mới được ẩn danh hóa khách hàng (403 Forbidden).');

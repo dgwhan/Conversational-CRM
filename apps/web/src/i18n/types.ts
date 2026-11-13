@@ -161,6 +161,9 @@ export interface TranslationDictionary {
     staffOwnOnly: string;
     noPermissionTitle: string;
     movedTo: string;
+    moveFailed: string;
+    saveFailed: string;
+    manualEntry: string;
     updatePipelineTitle: string;
     pipelinePrefix: string;
     pageSubtitle: string;
@@ -232,6 +235,7 @@ export interface TranslationDictionary {
       saveBtn: string;
       nameRequired: string;
       addSuccess: string;
+      addFailed: string;
     };
   };
   deals: {

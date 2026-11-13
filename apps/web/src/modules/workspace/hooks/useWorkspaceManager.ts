@@ -58,8 +58,10 @@ export const useWorkspaceManager = ({
 
   const fetchStaffListRef = useRef(fetchStaffList);
   const syncFromBackendRef = useRef(syncFromBackend);
-  fetchStaffListRef.current = fetchStaffList;
-  syncFromBackendRef.current = syncFromBackend;
+  useEffect(() => {
+    fetchStaffListRef.current = fetchStaffList;
+    syncFromBackendRef.current = syncFromBackend;
+  });
 
   // Lấy danh sách Workspaces của user từ Backend
   const fetchMyWorkspaces = useCallback(async (): Promise<WorkspaceItem[]> => {

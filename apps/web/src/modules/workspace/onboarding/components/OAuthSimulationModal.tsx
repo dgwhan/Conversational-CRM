@@ -31,6 +31,8 @@ export interface OAuthSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (channel: ChannelKey, pages?: DiscoveredPageDto[]) => void;
+  /** Khi gia hạn một kênh Zalo cá nhân có sẵn: phải quét QR bằng đúng tài khoản này */
+  renewTarget?: { externalAccountId: string; displayName: string } | null;
 }
 
 type TestStatus = 'IDLE' | 'TESTING' | 'SUCCESS' | 'FAILED';
@@ -40,9 +42,10 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  renewTarget,
 }) => {
   const { t } = useTranslation();
-  const [connectTab, setConnectTab] = useState<'TUTORIAL' | 'TOKEN' | 'OAUTH'>('TOKEN');
+  const [connectTab, setConnectTab] = useState<'TUTORIAL' | 'TOKEN' | 'OAUTH'>(renewTarget ? 'OAUTH' : 'TOKEN');
   const [isProcessing, setIsProcessing] = useState(false);
   const [realAuthUrl, setRealAuthUrl] = useState<string | null>(null);
 
@@ -232,6 +235,13 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
   const handleActivateZcaAccount = () => {
     if (!qrSession?.account) {
       notify.warning('Chưa có phiên đăng nhập Zalo cá nhân hợp lệ.');
+      return;
+    }
+
+    if (renewTarget && qrSession.account.externalAccountId !== renewTarget.externalAccountId) {
+      notify.warning(
+        `Bạn đang gia hạn "${renewTarget.displayName}" nhưng đã quét bằng tài khoản "${qrSession.account.displayName}". Vui lòng quét lại bằng đúng tài khoản Zalo.`,
+      );
       return;
     }
 
@@ -588,6 +598,11 @@ export const OAuthSimulationModal: React.FC<OAuthSimulationModalProps> = ({
 
         {/* Body Modal */}
         <div className="crm-oauth-body" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '16px 20px' }}>
+          {renewTarget && (
+            <div style={{ marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#eff6ff', color: '#1d4ed8', fontSize: 13 }}>
+              Gia hạn phiên cho <strong>{renewTarget.displayName}</strong> — hãy quét mã QR bằng đúng tài khoản Zalo này.
+            </div>
+          )}
           {/* TAB 1: TUTORIAL LẤY TOKEN */}
           {connectTab === 'TUTORIAL' && (
             <div>

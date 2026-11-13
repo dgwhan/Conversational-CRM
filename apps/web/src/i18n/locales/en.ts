@@ -161,6 +161,9 @@ export const en: TranslationDictionary = {
     staffOwnOnly: 'You can only change the status of customers assigned to you (403 Forbidden).',
     noPermissionTitle: 'Permission denied',
     movedTo: 'Moved "{name}" to stage "{stage}".',
+    moveFailed: 'Could not save the new stage. The change has been reverted.',
+    saveFailed: 'Could not save changes.',
+    manualEntry: 'Manual entry',
     updatePipelineTitle: '{pipeline} updated',
     pipelinePrefix: '',
     pageSubtitle: 'Manage and move {entity} through your pipeline stages',
@@ -232,6 +235,7 @@ export const en: TranslationDictionary = {
       saveBtn: 'Save & Add to Pipeline',
       nameRequired: 'Please enter full name.',
       addSuccess: 'Successfully added to pipeline!',
+      addFailed: 'Could not save the new contact.',
     },
   },
   deals: {

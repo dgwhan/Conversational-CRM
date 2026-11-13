@@ -32,6 +32,7 @@ model Workspace {
     notifications   Notification[]
     activities      Activity[]
     deals           Deal[]
+    contacts        Contact[]
 
     @@index([ownerId])
     @@map("workspaces")
@@ -48,6 +49,8 @@ model WorkspaceConfiguration {
     productCatalog  Json      @default("[]") @map("product_catalog") @db.JsonB
     criteria        Json      @default("[]") @db.JsonB
     leadScoringConfig Json?    @map("lead_scoring_config") @db.JsonB
+    /// Mẫu trả lời nhanh dùng chung cho cả nhóm (null = chưa cấu hình, giao diện dùng mẫu mặc định)
+    quickReplies    Json?     @map("quick_replies") @db.JsonB
     createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 

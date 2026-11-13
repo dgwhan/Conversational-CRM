@@ -49,67 +49,43 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
             expect(await service.resolveWorkspaceMemberId('not-a-uuid', wsId)).toBeNull();
         });
 
-        it('phân giải thành công nếu staffId là WorkspaceMember.id trực tiếp', async () => {
-            mockPrisma.workspaceMember.findUnique.mockResolvedValueOnce({
-                id: memberId,
-                workspaceId: wsId,
-                isActive: true,
-            });
-
-            const result = await service.resolveWorkspaceMemberId(memberId, wsId);
-            expect(result).toBe(memberId);
-            expect(mockPrisma.workspaceMember.findUnique).toHaveBeenCalledWith({
-                where: { id: memberId },
-                select: { id: true, workspaceId: true, isActive: true },
-            });
-        });
-
-        it('phân giải thành công nếu staffId là User.id thuộc WorkspaceMember', async () => {
-            // findUnique theo id trả về null
-            mockPrisma.workspaceMember.findUnique.mockResolvedValueOnce(null);
-            // findUnique theo workspaceId_userId trả về memberId
-            mockPrisma.workspaceMember.findUnique.mockResolvedValueOnce({
-                id: memberId,
-            });
-
-            const result = await service.resolveWorkspaceMemberId(userId, wsId);
-            expect(result).toBe(memberId);
-            expect(mockPrisma.workspaceMember.findUnique).toHaveBeenCalledWith({
+        it('phân giải thành công nếu staffId là WorkspaceMember.id hoặc User.id của thành viên đang hoạt động', async () => {
+            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            expect(await service.resolveWorkspaceMemberId(memberId, wsId)).toBe(memberId);
+            expect(mockPrisma.workspaceMember.findFirst).toHaveBeenCalledWith({
                 where: {
-                    workspaceId_userId: {
-                        workspaceId: wsId,
-                        userId: userId,
-                    },
-                },
-                select: { id: true },
-            });
-        });
-
-        it('tự động tạo WorkspaceMember (auto-provision) nếu User tồn tại trong DB nhưng chưa có trong Workspace', async () => {
-            mockPrisma.workspaceMember.findUnique.mockResolvedValue(null);
-            mockPrisma.user.findUnique.mockResolvedValueOnce({ id: userId });
-            mockPrisma.workspaceMember.create.mockResolvedValueOnce({ id: memberId });
-
-            const result = await service.resolveWorkspaceMemberId(userId, wsId);
-            expect(result).toBe(memberId);
-            expect(mockPrisma.workspaceMember.create).toHaveBeenCalledWith({
-                data: {
                     workspaceId: wsId,
-                    userId: userId,
-                    role: 'STAFF',
                     isActive: true,
+                    status: 'ACTIVE',
+                    OR: [{ id: memberId }, { userId: memberId }],
+                },
+                select: { id: true },
+            });
+
+            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            expect(await service.resolveWorkspaceMemberId(userId, wsId)).toBe(memberId);
+            expect(mockPrisma.workspaceMember.findFirst).toHaveBeenCalledWith({
+                where: {
+                    workspaceId: wsId,
+                    isActive: true,
+                    status: 'ACTIVE',
+                    OR: [{ id: userId }, { userId: userId }],
                 },
                 select: { id: true },
             });
         });
 
-        it('trả về null để bảo vệ khóa ngoại (referential integrity) nếu không tìm thấy User hoặc Member nào', async () => {
-            mockPrisma.workspaceMember.findUnique.mockResolvedValue(null);
-            mockPrisma.user.findUnique.mockResolvedValue(null);
+        it('KHÔNG tự thêm người dùng vào workspace (phải đi qua luồng mời thành viên)', async () => {
+            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce(null);
+            mockPrisma.user.findUnique.mockResolvedValueOnce({ id: userId });
 
-            const unknownId = '99999999-9999-9999-9999-999999999999';
-            const result = await service.resolveWorkspaceMemberId(unknownId, wsId);
-            expect(result).toBeNull();
+            expect(await service.resolveWorkspaceMemberId(userId, wsId)).toBeNull();
+            expect(mockPrisma.workspaceMember.create).not.toHaveBeenCalled();
+        });
+
+        it('trả về null nếu thiếu workspace (không phân giải xuyên tenant)', async () => {
+            expect(await service.resolveWorkspaceMemberId(memberId, undefined)).toBeNull();
+            expect(mockPrisma.workspaceMember.findFirst).not.toHaveBeenCalled();
         });
     });
 
@@ -123,10 +99,7 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                     channelIdentities: {},
                 },
             });
-            mockPrisma.workspaceMember.findUnique.mockResolvedValueOnce({
-                id: memberId,
-                workspaceId: wsId,
-            });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
             mockPrisma.conversation.update.mockResolvedValueOnce({
                 id: convId,
                 assignedMemberId: memberId,
@@ -191,10 +164,7 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                 channelIdentities: {},
                 conversations: [{ id: convId }],
             });
-            mockPrisma.workspaceMember.findUnique.mockResolvedValueOnce({
-                id: memberId,
-                workspaceId: wsId,
-            });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
             mockPrisma.customer.update.mockResolvedValueOnce({
                 id: custId,
                 fullName: 'Khách hàng A',

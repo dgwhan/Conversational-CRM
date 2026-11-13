@@ -65,7 +65,13 @@ export interface WorkspaceChannelsTabProps {
   onSyncChannel: (channelId: string) => Promise<void>;
   onToggleChannel: (channelId: string, currentActive: boolean) => Promise<void>;
   onDisconnectChannel: (channelId: string, displayName: string) => Promise<void>;
-  onOpenConnectModal: (channelKey: ChannelKey) => void;
+  /** renewTarget: gia hạn đúng kênh Zalo đang chọn (QR phải quét bằng chính tài khoản đó) */
+  onOpenConnectModal: (channelKey: ChannelKey, renewTarget?: ConnectRenewTarget) => void;
+}
+
+export interface ConnectRenewTarget {
+  externalAccountId: string;
+  displayName: string;
 }
 
 const PLATFORM_BADGE: Record<string, { label: string; className: string; dot: string }> = {
@@ -283,7 +289,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
                             tokenExpiresAt={ch.tokenExpiresAt}
                             disconnectedAt={ch.disconnectedAt}
                             isActive={ch.isActive}
-                            onRenew={() => onOpenConnectModal('ZALO')}
+                            onRenew={() => onOpenConnectModal('ZALO', { externalAccountId: ch.externalAccountId, displayName: ch.displayName })}
                           />
                         )}
                       </div>
@@ -296,7 +302,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
                           variant="primary"
                           size="sm"
                           icon={<RotateCcw size={13} />}
-                          onClick={() => onOpenConnectModal('ZALO')}
+                          onClick={() => onOpenConnectModal('ZALO', { externalAccountId: ch.externalAccountId, displayName: ch.displayName })}
                           title="Gia hạn ngay phiên Zalo (Làm mới phiên 72h bằng cách quét lại mã QR)"
                         >
                           Gia hạn

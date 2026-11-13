@@ -64,7 +64,7 @@ describe('DefaultCustomerGateway - Find or create customer when a message arrive
         });
 
         expect(mockPrisma.contact.create).toHaveBeenCalledWith({
-            data: { displayName: 'Trần Văn An' },
+            data: { displayName: 'Trần Văn An', workspaceId: null },
         });
 
         expect(mockPrisma.channelIdentity.upsert).toHaveBeenCalledWith({
@@ -147,7 +147,7 @@ describe('DefaultCustomerGateway - Find or create customer when a message arrive
         });
 
         expect(mockPrisma.contact.create).toHaveBeenCalledWith({
-            data: { displayName: 'Nguyễn Văn Profile' },
+            data: { displayName: 'Nguyễn Văn Profile', workspaceId: null },
         });
     });
 
@@ -172,7 +172,7 @@ describe('DefaultCustomerGateway - Find or create customer when a message arrive
         });
 
         expect(mockPrisma.contact.create).toHaveBeenCalledWith({
-            data: { displayName: 'Khách hàng FACEBOOK #4567' },
+            data: { displayName: 'Khách hàng FACEBOOK #4567', workspaceId: null },
         });
     });
 });

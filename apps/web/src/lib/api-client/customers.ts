@@ -1,5 +1,16 @@
 import type { BaseApiClient } from './core.js';
 
+/**
+ * Giao diện hiển thị nhãn như "Chưa có SĐT" / "Chưa có Email" thay cho giá trị trống.
+ * Bỏ các nhãn đó khỏi payload để không ghi đè dữ liệu thật trong DB (giữ nguyên giá trị cũ).
+ */
+function stripPlaceholderContactFields(data: Record<string, unknown>): Record<string, unknown> {
+  const clean = { ...data };
+  if (typeof clean.phone === 'string' && clean.phone.trim() && !/\d/.test(clean.phone)) delete clean.phone;
+  if (typeof clean.email === 'string' && clean.email.trim() && !clean.email.includes('@')) delete clean.email;
+  return clean;
+}
+
 export interface CustomerListItem {
   id: string;
   workspaceId?: string | null;
@@ -76,8 +87,14 @@ export function createCustomerApi(client: BaseApiClient) {
       });
     },
 
+    createCustomer(data: Record<string, unknown>, workspaceId?: string) {
+      return client.post<Record<string, unknown> & { id: string }>('/customers', stripPlaceholderContactFields(data), {
+        headers: workspaceId ? { 'x-workspace-id': workspaceId } : {},
+      });
+    },
+
     updateCustomer(id: string, data: Record<string, unknown>, workspaceId?: string) {
-      return client.patch<Record<string, unknown>>(`/customers/${id}`, data, {
+      return client.patch<Record<string, unknown>>(`/customers/${id}`, stripPlaceholderContactFields(data), {
         headers: workspaceId ? { 'x-workspace-id': workspaceId } : {},
       });
     },

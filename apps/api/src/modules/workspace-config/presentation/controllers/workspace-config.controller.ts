@@ -15,6 +15,12 @@ import { Roles } from '../../../../common/decorators/roles.decorator.js';
 import { WorkspaceRolesGuard } from '../../../../common/guards/workspace-roles.guard.js';
 import { WorkspaceRole } from '../../domain/index.js';
 import { resolveCallerId } from '../../application/workspace-resolver.js';
+import { requireWorkspaceId } from '../../../../common/auth/request-identity.js';
+import { ZodValidationPipe } from '../../../../common/pipes/zod-validation.pipe.js';
+import {
+  quickRepliesSchema,
+  type QuickReply,
+} from '../../application/workspace-config/operations/quick-replies.js';
 import type { WorkspaceConfig } from '../../../../contracts/workspace-config.js';
 import type {
   UpdateWorkspaceConfigRequestDto,
@@ -56,6 +62,21 @@ export class WorkspaceConfigController {
   ): Promise<WorkspaceConfig> {
     const callerId = resolveCallerId(req, ownerId, staffId);
     return this.configService.getConfig(workspaceId || '', callerId);
+  }
+
+  /** Mẫu trả lời nhanh dùng chung của workspace (null = chưa cấu hình). */
+  @Get('quick-replies')
+  async getQuickReplies(@Req() req: unknown): Promise<{ items: QuickReply[] | null }> {
+    return { items: await this.configService.getQuickReplies(requireWorkspaceId(req)) };
+  }
+
+  /** Lưu toàn bộ mẫu trả lời nhanh cho cả nhóm (mọi thành viên đang hoạt động). */
+  @Put('quick-replies')
+  async saveQuickReplies(
+    @Req() req: unknown,
+    @Body('items', new ZodValidationPipe(quickRepliesSchema)) items: QuickReply[],
+  ): Promise<{ items: QuickReply[] }> {
+    return { items: await this.configService.saveQuickReplies(requireWorkspaceId(req), items) };
   }
 
   /**

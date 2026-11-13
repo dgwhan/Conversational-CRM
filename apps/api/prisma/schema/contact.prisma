@@ -1,7 +1,8 @@
 model Contact {
     id                  String            @id @default(uuid()) @db.Uuid
+    workspaceId         String?           @map("workspace_id") @db.Uuid
     displayName         String            @map("display_name") @db.VarChar(255)
-    phoneNormalized     String?           @unique @map("phone_normalized") @db.VarChar(50)
+    phoneNormalized     String?           @map("phone_normalized") @db.VarChar(50)
     email               String?           @db.VarChar(255)
     idCard              String?           @map("id_card") @db.VarChar(50)
     school              String?           @db.VarChar(255)
@@ -13,10 +14,14 @@ model Contact {
     createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+    workspace           Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
     channelIdentities   ChannelIdentity[]
     mergeLogsTarget     ContactMergeLog[] @relation("MergeTargetContact")
     deals               Deal[]
 
+    // SĐT chỉ duy nhất TRONG một workspace: cùng một học viên có thể liên hệ nhiều tổ chức
+    @@unique([workspaceId, phoneNormalized])
+    @@index([workspaceId])
     @@index([isMerged])
     @@index([mergedIntoContactId])
     @@map("contacts")

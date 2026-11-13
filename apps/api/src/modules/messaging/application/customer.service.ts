@@ -1,13 +1,28 @@
-import { Injectable, NotFoundException, ForbiddenException, Optional, Logger, BadRequestException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    ForbiddenException,
+    ConflictException,
+    Optional,
+    Logger,
+    BadRequestException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { RealtimeService } from '../../realtime/realtime.service.js';
 import { ContactMergeService } from './contact-merge.service.js';
 import { CustomerTagService } from './customer-tag.service.js';
-import { standardizeVietnamesePhoneNumber } from '../../customers/domain/phone-standardizer.js';
+import {
+    standardizeVietnamesePhoneNumber,
+    parsePhoneInput,
+    parseEmailInput,
+} from '../../customers/domain/phone-standardizer.js';
 import { matchesUnaccent } from '../../customers/domain/unaccent.js';
 import { deduplicateTags } from '../domain/tag-mapping/index.js';
 import { ActivityService } from '../../activities/activity.service.js';
+import { resolveActiveMemberId } from '../../../common/auth/workspace-membership.js';
+import { assertStaffCanModify } from '../../../common/auth/staff-scope.js';
+import type { RequestIdentity } from '../../../common/auth/request-identity.js';
 
 export function isTestAppointmentStage(stage?: string | null): boolean {
     if (!stage) return false;
@@ -35,8 +50,8 @@ export interface GetCustomersParams {
 export class UpdateCustomerDto {
     fullName?: string;
     notes?: string;
-    phone?: string;
-    email?: string;
+    phone?: string | null;
+    email?: string | null;
     idCard?: string;
     school?: string;
     address?: string;
@@ -355,6 +370,69 @@ export class CustomerService {
     }
 
     /**
+     * Tạo khách hàng nhập tay (VD: nút "Thêm" trên Kanban). Chặn trùng SĐT trong cùng workspace.
+     */
+    async createCustomer(body: UpdateCustomerDto, workspaceId: string, caller?: { role?: string; staffId?: string }) {
+        const fullName = body.fullName?.trim();
+        if (!fullName) {
+            throw new BadRequestException('Họ và tên là bắt buộc.');
+        }
+        if (body.leadStatus != null && !CUSTOMER_LEAD_STATUSES.includes(body.leadStatus as (typeof CUSTOMER_LEAD_STATUSES)[number])) {
+            throw new BadRequestException(`leadStatus không hợp lệ. Giá trị cho phép: ${CUSTOMER_LEAD_STATUSES.join(', ')}.`);
+        }
+        const phoneInput = parsePhoneInput(body.phone);
+        const email = parseEmailInput(body.email) ?? null;
+
+        if (phoneInput?.phoneNormalized) {
+            const duplicate = await this.prisma.customer.findFirst({
+                where: { workspaceId, phoneNormalized: phoneInput.phoneNormalized, isMerged: false },
+                select: { fullName: true },
+            });
+            if (duplicate) {
+                throw new ConflictException(`Số điện thoại đã thuộc khách hàng "${duplicate.fullName}".`);
+            }
+        }
+
+        // STAFF tạo khách thì khách thuộc về chính họ; OWNER có thể phân công cho thành viên khác
+        const assigneeRef = caller?.role === 'STAFF' ? caller.staffId : (body.assignedMemberId ?? body.assignedStaffId);
+        const assignedMemberId = await this.resolveWorkspaceMemberId(assigneeRef, workspaceId);
+        const leadStatus = body.leadStatus || 'NEW';
+        const leadStage = body.leadStage || 'STAGE_NEW';
+
+        const created = await this.prisma.customer.create({
+            data: {
+                workspaceId,
+                fullName,
+                phone: phoneInput?.phone ?? null,
+                phoneNormalized: phoneInput?.phoneNormalized ?? null,
+                email,
+                notes: body.notes?.trim() || null,
+                leadStatus,
+                leadStage,
+                channelIdentities: {
+                    leadStatus,
+                    leadStage,
+                    interestCourses: body.interestCourses ?? [],
+                    estimatedValue: body.estimatedValue ?? 0,
+                    ...(assignedMemberId ? { assignedMemberId, assignedStaffId: assigneeRef } : {}),
+                    ...(body.assignedStaffName ? { assignedStaffName: body.assignedStaffName } : {}),
+                },
+            },
+        });
+
+        this.realtime?.broadcastPipelineChange({
+            customerId: created.id,
+            customerName: created.fullName,
+            newStage: leadStage,
+            previousStage: leadStage,
+            updatedBy: body.updatedBy || 'Tư vấn viên',
+            workspaceId,
+        });
+
+        return this.mapCustomerDto(created);
+    }
+
+    /**
      * Update customer profile, recruitment pipeline stage, and lead qualification status.
      * Automatically broadcasts real-time pipeline changes to connected staff.
      */
@@ -364,6 +442,12 @@ export class CustomerService {
         headerWsId?: string,
         caller?: { role?: string; staffId?: string },
     ) {
+        // Chuẩn hóa SĐT / email một lần; nhãn hiển thị như "Chưa có SĐT" bị từ chối (400)
+        const phoneInput = parsePhoneInput(body.phone);
+        body = { ...body, phone: phoneInput?.phone, email: parseEmailInput(body.email) };
+        if (phoneInput === undefined) delete body.phone;
+        if (body.email === undefined) delete body.email;
+
         if (body.leadStatus != null && !CUSTOMER_LEAD_STATUSES.includes(body.leadStatus as (typeof CUSTOMER_LEAD_STATUSES)[number])) {
             throw new BadRequestException(`leadStatus không hợp lệ. Giá trị cho phép: ${CUSTOMER_LEAD_STATUSES.join(', ')}.`);
         }
@@ -449,7 +533,7 @@ export class CustomerService {
                     ...(headerWsId && UUID_REGEX.test(headerWsId) && !existing.workspaceId ? { workspaceId: headerWsId } : {}),
                     ...(body.fullName ? { fullName: body.fullName } : {}),
                     ...(body.notes !== undefined ? { notes: body.notes } : {}),
-                    ...(body.phone !== undefined ? { phone: body.phone } : {}),
+                    ...(phoneInput ? { phone: phoneInput.phone, phoneNormalized: phoneInput.phoneNormalized } : {}),
                     ...(body.email !== undefined ? { email: body.email } : {}),
                     ...(body.idCard !== undefined ? { idCard: body.idCard } : {}),
                     ...(body.school !== undefined ? { school: body.school } : {}),
@@ -467,7 +551,7 @@ export class CustomerService {
                     ...(headerWsId && UUID_REGEX.test(headerWsId) && !existing.workspaceId ? { workspaceId: headerWsId } : {}),
                     ...(body.fullName ? { fullName: body.fullName } : {}),
                     ...(body.notes !== undefined ? { notes: body.notes } : {}),
-                    ...(body.phone !== undefined ? { phone: body.phone } : {}),
+                    ...(phoneInput ? { phone: phoneInput.phone, phoneNormalized: phoneInput.phoneNormalized } : {}),
                     ...(body.email !== undefined ? { email: body.email } : {}),
                     ...(body.idCard !== undefined ? { idCard: body.idCard } : {}),
                     ...(body.school !== undefined ? { school: body.school } : {}),
@@ -484,7 +568,7 @@ export class CustomerService {
                 where: { id: existing.contactId },
                 data: {
                     ...(body.fullName ? { displayName: body.fullName } : {}),
-                    ...(body.phone !== undefined ? { phoneNormalized: body.phone } : {}),
+                    ...(phoneInput ? { phoneNormalized: phoneInput.phoneNormalized } : {}),
                     ...(body.email !== undefined ? { email: body.email } : {}),
                     ...(body.idCard !== undefined ? { idCard: body.idCard } : {}),
                     ...(body.school !== undefined ? { school: body.school } : {}),
@@ -495,7 +579,7 @@ export class CustomerService {
         }
 
         let mergedResult: any = null;
-        if (body.phone && body.phone !== 'Chưa có SĐT' && this.mergeService) {
+        if (body.phone && this.mergeService) {
             mergedResult = await this.handlePhoneMerge(existing, body.phone, headerWsId, body.updatedBy);
         }
 
@@ -570,6 +654,11 @@ export class CustomerService {
     /**
      * Gỡ trực tiếp một tag khỏi khách hàng và hội thoại thông qua CRM
      */
+    /** STAFF chỉ được thao tác trên khách hàng mình phụ trách (hoặc chưa giao cho ai). */
+    async assertCanModifyCustomer(customerId: string, identity: RequestIdentity): Promise<void> {
+        await assertStaffCanModify(this.prisma, identity, { customerId });
+    }
+
     async removeCustomerTag(id: string, tagToRemove: string, workspaceId?: string) {
         return this.tagService.removeCustomerTag(id, tagToRemove, workspaceId);
     }
@@ -736,88 +825,8 @@ export class CustomerService {
         staffId?: string | null,
         workspaceId?: string | null,
     ): Promise<string | null> {
-        if (!staffId || staffId === 'unassigned' || staffId === 'none' || staffId === 'all') {
-            return null;
-        }
-
-        const cleanId = staffId.replace(/^(user|member|staff)-/, '');
-        if (!UUID_REGEX.test(cleanId)) {
-            return null;
-        }
-
-        const validWsId = workspaceId && UUID_REGEX.test(workspaceId) ? workspaceId : null;
-
-        try {
-            // 1. Kiểm tra trực tiếp WorkspaceMember theo ID
-            const memberById = await this.prisma.workspaceMember.findUnique({
-                where: { id: cleanId },
-                select: { id: true, workspaceId: true, isActive: true },
-            });
-            if (memberById) {
-                return memberById.id;
-            }
-
-            // 2. Kiểm tra nếu staffId là User.id thuộc về Workspace
-            if (validWsId) {
-                const memberByUserId = await this.prisma.workspaceMember.findUnique({
-                    where: {
-                        workspaceId_userId: {
-                            workspaceId: validWsId,
-                            userId: cleanId,
-                        },
-                    },
-                    select: { id: true },
-                });
-                if (memberByUserId) {
-                    return memberByUserId.id;
-                }
-            } else {
-                const anyMember = await this.prisma.workspaceMember.findFirst({
-                    where: { userId: cleanId },
-                    select: { id: true },
-                });
-                if (anyMember) {
-                    return anyMember.id;
-                }
-            }
-
-            // 3. Nếu User có thật trong bảng User và đã có Workspace, tự động tạo thành viên Workspace
-            if (validWsId) {
-                const user = await this.prisma.user.findUnique({
-                    where: { id: cleanId },
-                    select: { id: true },
-                });
-                if (user) {
-                    try {
-                        const newMember = await this.prisma.workspaceMember.create({
-                            data: {
-                                workspaceId: validWsId,
-                                userId: user.id,
-                                role: 'STAFF',
-                                isActive: true,
-                            },
-                            select: { id: true },
-                        });
-                        return newMember.id;
-                    } catch {
-                        const existing = await this.prisma.workspaceMember.findUnique({
-                            where: {
-                                workspaceId_userId: {
-                                    workspaceId: validWsId,
-                                    userId: user.id,
-                                },
-                            },
-                            select: { id: true },
-                        });
-                        if (existing) return existing.id;
-                    }
-                }
-            }
-        } catch (err: any) {
-            this.logger.warn(`Could not resolve workspace member for staffId ${staffId}: ${err?.message || err}`);
-        }
-
-        return null;
+        // Chỉ thành viên đang hoạt động của chính workspace này; không tự thêm thành viên mới
+        return resolveActiveMemberId(this.prisma, workspaceId, staffId);
     }
 
     /**
@@ -952,8 +961,9 @@ export class CustomerService {
         // 4. Fallback to socialId or personal identifier lookups
         if (!existing) {
             const cleanSocialId = id.replace(/^(cust|cand)-(facebook-|zalo-)?/, '').replace(/^(facebook|zalo)-/, '');
-            const validPhone = body?.phone && body.phone !== 'Chưa có SĐT' ? body.phone : null;
-            const validEmail = body?.email && body.email !== 'Chưa có Email' ? body.email : null;
+            const validPhone = body?.phone || null;
+            const validNormalizedPhone = standardizeVietnamesePhoneNumber(validPhone);
+            const validEmail = body?.email || null;
             const validName = body?.fullName && !body.fullName.startsWith('Khách hàng') && !body.fullName.startsWith('Lead') ? body.fullName : null;
 
             try {
@@ -967,6 +977,7 @@ export class CustomerService {
                             { channelIdentities: { path: ['socialId'], equals: cleanSocialId } },
                             { channelIdentities: { path: ['facebook'], equals: id } },
                             ...(validPhone ? [{ phone: validPhone }] : []),
+                            ...(validNormalizedPhone ? [{ phoneNormalized: validNormalizedPhone }] : []),
                             ...(validEmail ? [{ email: validEmail }] : []),
                             ...(validName ? [{ fullName: validName }] : []),
                         ],
@@ -984,8 +995,8 @@ export class CustomerService {
 
     private async provisionNewCustomer(id: string, body: UpdateCustomerDto, headerWsId?: string) {
         const cleanSocialId = id.replace(/^(cust|cand)-(facebook-|zalo-)?/, '').replace(/^(facebook|zalo)-/, '');
-        const validPhone = body.phone && body.phone !== 'Chưa có SĐT' ? body.phone : null;
-        const validEmail = body.email && body.email !== 'Chưa có Email' ? body.email : null;
+        const validPhone = body.phone || null;
+        const validEmail = body.email || null;
         let newCust: any;
 
         let resolvedMemberId: string | null = null;
@@ -999,6 +1010,7 @@ export class CustomerService {
         const customerPayload = {
             fullName: body.fullName || (id.startsWith('cand-') ? 'Ứng viên mới' : 'Khách hàng'),
             phone: validPhone,
+            phoneNormalized: parsePhoneInput(validPhone)?.phoneNormalized ?? null,
             email: validEmail,
             leadStatus: body.leadStatus || 'NEW',
             leadStage: body.leadStage || 'STAGE_NEW',
@@ -1071,7 +1083,8 @@ export class CustomerService {
 
     private async handlePhoneMerge(existing: any, phone: string, headerWsId?: string, updatedBy?: string) {
         const normalizedPhone = standardizeVietnamesePhoneNumber(phone);
-        if (!normalizedPhone || !this.mergeService) return null;
+        const workspaceId = existing.workspaceId || headerWsId;
+        if (!normalizedPhone || !this.mergeService || !workspaceId) return null;
 
         try {
             const currentIdentities = (existing.channelIdentities as any) || {};
@@ -1086,13 +1099,14 @@ export class CustomerService {
                             fbId ? { channel: 'FACEBOOK', externalUserId: String(fbId) } : undefined,
                             zaloId ? { channel: 'ZALO', externalUserId: String(zaloId) } : undefined,
                         ].filter(Boolean) as any,
+                        contact: { workspaceId },
                     },
                     include: { contact: true },
                 });
                 currentContact = idnt?.contact || null;
             }
 
-            const collisionCheck = await this.mergeService.checkDuplicatePhone(normalizedPhone, currentContact?.id);
+            const collisionCheck = await this.mergeService.checkDuplicatePhone(workspaceId, normalizedPhone, currentContact?.id);
             if (collisionCheck.hasCollision && collisionCheck.existingContact) {
                 if (currentContact && currentContact.id !== collisionCheck.existingContact.id) {
                     const mergedResult = await this.mergeService.mergeContacts({
@@ -1102,7 +1116,7 @@ export class CustomerService {
                         actorId: updatedBy,
                         mergeType: 'AUTO_PHONE_MATCH',
                         reason: 'Tự động gộp khách hàng theo SĐT',
-                        workspaceId: headerWsId,
+                        workspaceId,
                     });
                     this.logger.log(`[CUS-04] Auto-merged contact ${currentContact.id} into ${collisionCheck.existingContact.id} via phone ${normalizedPhone}`);
                     return mergedResult;
@@ -1169,7 +1183,7 @@ export class CustomerService {
         try {
             if (customer.phoneNormalized) {
                 await this.prisma.contact.updateMany({
-                    where: { phoneNormalized: customer.phoneNormalized },
+                    where: { workspaceId: customer.workspaceId, phoneNormalized: customer.phoneNormalized },
                     data: {
                         displayName: `Liên hệ ẩn danh #${anonToken}`,
                         phoneNormalized: null,

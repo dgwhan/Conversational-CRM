@@ -36,6 +36,7 @@ export class ProcessMessageReceived {
             channel: message.channel,
             senderExternalId,
             rawPayload: message.rawPayload,
+            workspaceId: await this.messages.findWorkspaceId(message.channelAccountId),
         });
 
         // 4. Gọi phân loại (classification)

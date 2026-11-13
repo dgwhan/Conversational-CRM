@@ -13,10 +13,12 @@ describe('SlugUtil', () => {
     expect(createSlug('  Công ty TNHH @ ABC # 123  ')).toBe('cong-ty-tnhh-abc-123');
   });
 
-  it('should generate unique slug with timestamp suffix', () => {
-    const unique = generateUniqueSlug('PolarisX');
-    expect(unique.startsWith('polarisx-')).toBe(true);
-    expect(unique.length).toBeGreaterThan('polarisx-'.length);
+  it('should generate an opaque random slug that does not leak the workspace name', () => {
+    const a = generateUniqueSlug('PolarisX');
+    const b = generateUniqueSlug('PolarisX');
+    expect(a).toMatch(/^ws-[0-9a-f]{10}$/);
+    expect(a).not.toContain('polarisx');
+    expect(a).not.toBe(b);
   });
 });
 

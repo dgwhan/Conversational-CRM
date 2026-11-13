@@ -126,6 +126,15 @@ export class MessageRepository implements OnModuleInit {
         });
     }
 
+    /** Workspace sở hữu tin nhắn (qua tài khoản kênh nhận tin) */
+    async findWorkspaceId(channelAccountId: string): Promise<string | null> {
+        const account = await this.prisma.channelAccount.findUnique({
+            where: { id: channelAccountId },
+            select: { workspaceId: true },
+        });
+        return account?.workspaceId ?? null;
+    }
+
     async markProcessed(id: string, processedAt: Date = new Date()): Promise<void> {
         await this.prisma.message.update({
             where: { id },

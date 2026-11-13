@@ -9,6 +9,9 @@ import {
     ActivityTypeEnum,
     ActivityStatusEnum,
 } from './dto/activity.dto.js';
+import { resolveActiveMemberId } from '../../common/auth/workspace-membership.js';
+import { assertStaffCanModify, staffAssignmentFilter } from '../../common/auth/staff-scope.js';
+import type { RequestIdentity } from '../../common/auth/request-identity.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,34 +33,13 @@ export class ActivityService {
         const cleanId = rawId.trim();
         const stripped = cleanId.replace(/^(cust|cand)-/, '');
 
-        // 1. Kiểm tra trực tiếp nếu là UUID chuẩn
+        // 1. UUID: chỉ chấp nhận khách hàng thuộc đúng workspace (không liên kết xuyên tenant)
         if (UUID_REGEX.test(stripped)) {
-            try {
-                const cust = await this.prisma.customer.findFirst({
-                    where: { id: stripped, ...(workspaceId ? { workspaceId } : {}) },
-                    select: { id: true },
-                });
-                if (cust) return cust.id;
-
-                // Khách hàng tồn tại nhưng thuộc workspace khác: không được liên kết xuyên tenant
-                if (workspaceId) {
-                    const foreign = await this.prisma.customer.findUnique({
-                        where: { id: stripped },
-                        select: { id: true },
-                    });
-                    if (foreign) return undefined;
-                }
-
-                const contact = await this.prisma.contact.findUnique({
-                    where: { id: stripped },
-                    select: { id: true },
-                });
-                if (contact) return contact.id;
-
-                return stripped;
-            } catch {
-                return stripped;
-            }
+            const cust = await this.prisma.customer.findFirst({
+                where: { id: stripped, ...(workspaceId ? { workspaceId } : {}) },
+                select: { id: true },
+            });
+            return cust?.id;
         }
 
         // 2. Tìm kiếm qua số điện thoại hoặc mã định danh mạng xã hội (Facebook PSID / Zalo ID)
@@ -150,12 +132,17 @@ export class ActivityService {
             ...(fullCallResult && fullCallResult.length > 50 ? { fullCallResult } : {}),
         };
 
+        // contact / người phụ trách phải thuộc đúng workspace (không liên kết xuyên tenant)
+        const safeContact = dto.contactId && UUID_REGEX.test(dto.contactId)
+            ? await this.prisma.contact.findFirst({ where: { id: dto.contactId, workspaceId: safeWsId }, select: { id: true } })
+            : null;
+
         const createData = {
             workspaceId: safeWsId,
             customerId: safeCustomerId,
-            contactId: dto.contactId,
-            creatorId: creatorId || dto.creatorId,
-            assignedMemberId: dto.assignedMemberId,
+            contactId: safeContact?.id,
+            creatorId,
+            assignedMemberId: await resolveActiveMemberId(this.prisma, safeWsId, dto.assignedMemberId),
             type: (dto.type || ActivityTypeEnum.TASK) as any,
             title: safeTitle,
             description: dto.description || null,
@@ -257,7 +244,7 @@ export class ActivityService {
     /**
      * Lấy danh sách hoạt động có phân trang và lọc
      */
-    async findAll(filter: ActivityFilterDto): Promise<any> {
+    async findAll(filter: ActivityFilterDto, identity?: RequestIdentity): Promise<any> {
         const safeWsId = filter.workspaceId && UUID_REGEX.test(filter.workspaceId) ? filter.workspaceId : undefined;
         if (!safeWsId) {
             return { items: [], total: 0, page: 1, limit: 50 };
@@ -267,7 +254,10 @@ export class ActivityService {
         const limit = Math.min(200, Math.max(1, Number(filter.limit) || 50));
         const skip = (page - 1) * limit;
 
-        const where: any = { workspaceId: safeWsId };
+        const where: any = {
+            workspaceId: safeWsId,
+            AND: identity ? [await staffAssignmentFilter(this.prisma, identity)] : [],
+        };
 
         if (filter.customerId) {
             const resolvedCustomerId = await this.resolveCustomerId(filter.customerId, safeWsId);
@@ -379,7 +369,7 @@ export class ActivityService {
     /**
      * Lấy các hoạt động phục vụ hiển thị Lịch biểu (Calendar View)
      */
-    async getCalendarEvents(workspaceId: string, startDate?: string, endDate?: string): Promise<any> {
+    async getCalendarEvents(workspaceId: string, startDate?: string, endDate?: string, identity?: RequestIdentity): Promise<any> {
         const safeWsId = UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
         if (!safeWsId) return [];
 
@@ -389,6 +379,7 @@ export class ActivityService {
         const activities = await this.prisma.activity.findMany({
             where: {
                 workspaceId: safeWsId,
+                ...(identity ? { AND: [await staffAssignmentFilter(this.prisma, identity)] } : {}),
                 OR: [
                     { scheduledAt: { gte: start, lte: end } },
                     { dueAt: { gte: start, lte: end } },
@@ -461,8 +452,9 @@ export class ActivityService {
     /**
      * Cập nhật thông tin hoạt động / hoàn thành task
      */
-    async update(id: string, dto: UpdateActivityDto, workspaceId?: string): Promise<any> {
+    async update(id: string, dto: UpdateActivityDto, workspaceId: string, identity?: RequestIdentity): Promise<any> {
         const existing = await this.findById(id, workspaceId);
+        if (identity) await assertStaffCanModify(this.prisma, identity, existing);
 
         const updateData: any = {};
         if (dto.title !== undefined) updateData.title = dto.title.slice(0, 250);
@@ -479,7 +471,9 @@ export class ActivityService {
         if (dto.meetingJoinUrl !== undefined) updateData.meetingJoinUrl = dto.meetingJoinUrl;
         if (dto.priority !== undefined) updateData.priority = dto.priority ? dto.priority.slice(0, 50) : 'MEDIUM';
         if (dto.assignedTo !== undefined) updateData.assignedTo = dto.assignedTo ? dto.assignedTo.slice(0, 200) : 'Tư vấn viên';
-        if (dto.assignedMemberId !== undefined) updateData.assignedMemberId = dto.assignedMemberId;
+        if (dto.assignedMemberId !== undefined) {
+            updateData.assignedMemberId = await resolveActiveMemberId(this.prisma, existing.workspaceId, dto.assignedMemberId);
+        }
 
         if (dto.scheduledAt !== undefined) {
             updateData.scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : null;
@@ -569,8 +563,9 @@ export class ActivityService {
     /**
      * Xóa một hoạt động
      */
-    async delete(id: string, workspaceId?: string): Promise<any> {
+    async delete(id: string, workspaceId: string, identity?: RequestIdentity): Promise<any> {
         const existing = await this.findById(id, workspaceId);
+        if (identity) await assertStaffCanModify(this.prisma, identity, existing);
         await this.prisma.activity.delete({ where: { id } });
 
         try {
@@ -627,7 +622,7 @@ export class ActivityService {
     /**
      * Lấy danh sách nhiệm vụ cần nhắc nhở hiện tại (due hoặc reminder đến hạn)
      */
-    async getDueReminders(workspaceId: string): Promise<any> {
+    async getDueReminders(workspaceId: string, identity?: RequestIdentity): Promise<any> {
         const safeWsId = UUID_REGEX.test(workspaceId) ? workspaceId : undefined;
         if (!safeWsId) return [];
 
@@ -638,6 +633,7 @@ export class ActivityService {
             where: {
                 workspaceId: safeWsId,
                 status: ActivityStatusEnum.PENDING,
+                ...(identity ? { AND: [await staffAssignmentFilter(this.prisma, identity)] } : {}),
                 OR: [
                     // Các task có hạn chót trong vòng 15 phút tới hoặc đã quá hạn
                     { dueAt: { lte: tenMinutesLater } },

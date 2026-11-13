@@ -71,6 +71,55 @@ export class MessageDispatcherService {
   }
 
   /**
+   * Chọn tài khoản kênh để gửi: ưu tiên channelAccountId, rồi tài khoản của hội thoại, cuối cùng là
+   * tài khoản DUY NHẤT đang hoạt động của kênh trong workspace. Không bao giờ chọn tài khoản của
+   * workspace khác, và không đoán khi workspace có nhiều tài khoản cùng kênh (vd. nhiều Zalo cá nhân).
+   */
+  private async resolveSendingAccount(input: SendMessageInput, channel: Channel, personalZaloOnly: boolean) {
+    const wsFilter = input.workspaceId ? { workspaceId: input.workspaceId } : {};
+
+    if (input.channelAccountId) {
+      const byId = await this.prisma.channelAccount
+        .findFirst({ where: { id: input.channelAccountId, ...wsFilter } })
+        .catch(() => null); // ID sai định dạng UUID -> coi như không có
+      if (byId) return byId;
+    }
+
+    if (input.conversationId && isUuid(input.conversationId)) {
+      const conv = await this.prisma.conversation.findFirst({
+        where: { id: input.conversationId, ...wsFilter },
+        include: { channelAccount: true },
+      });
+      if (conv?.channelAccount) return conv.channelAccount;
+    }
+
+    if (!input.workspaceId) {
+      throw new BadRequestException('Thiếu thông tin hội thoại hoặc tài khoản kênh để gửi tin nhắn.');
+    }
+
+    const candidates = (
+      await this.prisma.channelAccount.findMany({
+        where: { channel, isActive: true, workspaceId: input.workspaceId },
+        orderBy: { updatedAt: 'desc' },
+      })
+    ).filter((acc) => {
+      if (!personalZaloOnly) return true;
+      const meta = acc.metadata as { isPersonal?: boolean; engine?: string } | null;
+      return Boolean(meta?.isPersonal || meta?.engine === 'zca-js');
+    });
+
+    if (candidates.length === 1) return candidates[0];
+    if (candidates.length > 1) {
+      throw new BadRequestException(
+        `Workspace có ${candidates.length} tài khoản ${input.channel} đang hoạt động. Vui lòng gửi từ một hội thoại cụ thể để chọn đúng tài khoản.`,
+      );
+    }
+    throw new NotFoundException(
+      `Không tìm thấy tài khoản kênh ${input.channel} nào đang hoạt động. Vui lòng kết nối kênh trước khi gửi tin.`,
+    );
+  }
+
+  /**
    * Gửi tin nhắn phản hồi đa kênh (Facebook Graph API, Zalo OpenAPI, Zalo Cá nhân zca-js)
    */
   async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
@@ -88,80 +137,8 @@ export class MessageDispatcherService {
       channelEnum = Channel.MANUAL_IMPORT;
     }
 
-    // 1. Tìm tài khoản kênh tương ứng
-    let account = null;
-    if (input.channelAccountId) {
-      try {
-        account = await this.prisma.channelAccount.findUnique({
-          where: { id: input.channelAccountId },
-        });
-      } catch {
-        // Fallback nếu channelAccountId không hợp lệ với database
-      }
-    }
-
-    // 1b. Thử tìm từ conversationId nếu có
-    if (!account && input.conversationId && this.prisma?.conversation) {
-      try {
-        const conv = await this.prisma.conversation.findUnique({
-          where: { id: input.conversationId },
-          include: { channelAccount: true },
-        });
-        if (conv?.channelAccount) {
-          account = conv.channelAccount;
-        }
-      } catch {
-        // Fallback sang tìm kiếm theo kênh
-      }
-    }
-
-    if (!account) {
-      const findAccountWithWorkspace = async (wsId?: string) => {
-        const wsFilter = wsId ? { workspaceId: wsId } : {};
-        if (isPersonalZaloRequested) {
-          const accounts = await this.prisma.channelAccount.findMany({
-            where: {
-              channel: channelEnum,
-              isActive: true,
-              ...wsFilter,
-            },
-            orderBy: { updatedAt: 'desc' },
-          });
-          return (
-            accounts.find((acc) => {
-              const meta = acc.metadata as any;
-              return (
-                meta?.isPersonal ||
-                meta?.engine === 'zca-js' ||
-                acc.externalAccountId?.startsWith('zca_')
-              );
-            }) ||
-            accounts[0] ||
-            null
-          );
-        }
-        return this.prisma.channelAccount.findFirst({
-          where: {
-            channel: channelEnum,
-            isActive: true,
-            ...wsFilter,
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
-      };
-
-      try {
-        account = await findAccountWithWorkspace(input.workspaceId);
-      } catch {
-        account = await findAccountWithWorkspace(undefined);
-      }
-    }
-
-    if (!account) {
-      throw new NotFoundException(
-        `Không tìm thấy tài khoản kênh ${input.channel} nào đang hoạt động. Vui lòng kết nối kênh trước khi gửi tin.`,
-      );
-    }
+    // 1. Tìm tài khoản kênh gửi tin (luôn giới hạn trong workspace của người gửi)
+    const account = await this.resolveSendingAccount(input, channelEnum, isPersonalZaloRequested);
 
     if (!account.encryptedAccessToken) {
       throw new BadRequestException(`Tài khoản "${account.displayName}" chưa có Access Token để gửi tin.`);
@@ -881,31 +858,30 @@ export class MessageDispatcherService {
       throw new BadRequestException('Không thể giải mã Access Token của Fanpage. Vui lòng kết nối lại tài khoản.');
     }
 
-    const response = await fetch(
-      `https://graph.facebook.com/v19.0/${encodeURIComponent(conversation.channelAccount.externalAccountId)}/messages?access_token=${encodeURIComponent(token)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          sender_action: 'mark_seen',
-        }),
-      },
-    );
-    const result = (await response.json().catch(() => ({}))) as {
-      error?: { message?: string };
-    };
-    if (!response.ok || result.error) {
-      throw new BadRequestException(
-        `Không thể đồng bộ trạng thái đã xem lên Facebook: ${result.error?.message || response.statusText}`,
+    let metaError: string | null = null;
+    try {
+      const response = await fetch(
+        `https://graph.facebook.com/v19.0/${encodeURIComponent(conversation.channelAccount.externalAccountId)}/messages?access_token=${encodeURIComponent(token)}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recipient: { id: recipientId }, sender_action: 'mark_seen' }),
+        },
       );
+      const result = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
+      if (!response.ok || result.error) metaError = result.error?.message || response.statusText;
+    } catch (err) {
+      metaError = (err as Error).message;
     }
 
-    if (conversation?.id) {
-      await this.prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { unreadCount: 0 },
-      }).catch(() => {});
+    // Nhân viên đã đọc tin trong CRM: luôn xóa bộ đếm chưa đọc, kể cả khi Meta từ chối đồng bộ
+    await this.prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { unreadCount: 0 },
+    });
+
+    if (metaError) {
+      throw new BadRequestException(`Không thể đồng bộ trạng thái đã xem lên Facebook: ${metaError}`);
     }
   }
 }

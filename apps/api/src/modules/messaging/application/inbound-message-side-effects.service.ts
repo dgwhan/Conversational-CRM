@@ -67,6 +67,7 @@ export class InboundMessageSideEffects {
                     senderExternalId: event.senderExternalId,
                     displayName: raw.customerName || raw.displayName || raw.name,
                     rawPayload: event.rawPayload,
+                    workspaceId: event.workspaceId,
                 });
                 const contactObj = contactResult.contact as { displayName?: string } | undefined;
                 if (contactObj?.displayName) {

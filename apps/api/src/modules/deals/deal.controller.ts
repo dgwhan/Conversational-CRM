@@ -1,32 +1,20 @@
-import {
-    Controller,
-    Get,
-    Post,
-    Patch,
-    Delete,
-    Param,
-    Body,
-    Query,
-    Headers,
-    Req,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, Req } from '@nestjs/common';
 import { DealService } from './deal.service.js';
-import { CreateDealDto, UpdateDealDto } from './dto/deal.dto.js';
-import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator.js';
-import { requireWorkspaceId } from '../../common/auth/request-identity.js';
+import { createDealSchema, updateDealSchema, type CreateDealDto, type UpdateDealDto } from './dto/deal.dto.js';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
+import { getRequestIdentity, requireWorkspaceId } from '../../common/auth/request-identity.js';
 
+/**
+ * Cơ hội tuyển sinh (Deals). Workspace và vai trò lấy từ request đã được WorkspaceContextGuard xác minh;
+ * STAFF chỉ thấy / sửa deal được giao cho mình hoặc chưa giao cho ai.
+ */
 @Controller('deals')
 export class DealController {
-    constructor(private readonly dealService: DealService) { }
+    constructor(private readonly dealService: DealService) {}
 
-    /**
-     * Lấy danh sách các cơ hội tuyển sinh (Deals / Opportunities)
-     */
     @Get()
-    async getDeals(
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
-        @Req() req?: any,
+    getDeals(
+        @Req() req: unknown,
         @Query('customerId') customerId?: string,
         @Query('contactId') contactId?: string,
         @Query('stage') stage?: string,
@@ -35,71 +23,45 @@ export class DealController {
         @Query('search') search?: string,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
-    ): Promise<any> {
-        // Workspace đã được WorkspaceContextGuard xác minh tư cách thành viên
+    ) {
         const workspaceId = requireWorkspaceId(req);
-        return this.dealService.findAll({
-            workspaceId,
-            customerId,
-            contactId,
-            stage,
-            status,
-            intake,
-            search,
-            page,
-            limit,
-        });
+        return this.dealService.findAll(
+            { workspaceId, customerId, contactId, stage, status, intake, search, page, limit },
+            { ...getRequestIdentity(req), workspaceId },
+        );
     }
 
-    /**
-     * Lấy toàn bộ các đợt đăng ký / cơ hội tuyển sinh của một khách hàng
-     */
     @Get('customer/:customerId')
-    async getDealsByCustomer(@Param('customerId') customerId: string, @Req() req?: any): Promise<any> {
-        return this.dealService.findDealsByCustomer(customerId, requireWorkspaceId(req));
+    getDealsByCustomer(@Req() req: unknown, @Param('customerId') customerId: string) {
+        const workspaceId = requireWorkspaceId(req);
+        return this.dealService.findDealsByCustomer(customerId, workspaceId, { ...getRequestIdentity(req), workspaceId });
     }
 
-    /**
-     * Lấy chi tiết một cơ hội tuyển sinh
-     */
     @Get(':id')
-    async getDealById(@Param('id') id: string, @Req() req?: any): Promise<any> {
+    getDealById(@Req() req: unknown, @Param('id') id: string) {
         return this.dealService.findById(id, requireWorkspaceId(req));
     }
 
-    /**
-     * Tạo một cơ hội tuyển sinh mới (Khóa học mới, Niên khóa mới...) cho Học viên
-     */
     @Post()
-    @SkipCsrf()
-    async createDeal(
-        @Body() body: CreateDealDto,
-        @Req() req?: any,
-    ): Promise<any> {
-        const workspaceId = requireWorkspaceId(req);
-        return this.dealService.create({ ...body, workspaceId });
+    createDeal(@Req() req: unknown, @Body(new ZodValidationPipe(createDealSchema)) body: Omit<CreateDealDto, 'workspaceId'>) {
+        return this.dealService.create({ ...body, workspaceId: requireWorkspaceId(req) });
     }
 
-    /**
-     * Cập nhật thông tin cơ hội / chuyển giai đoạn phễu
-     */
     @Patch(':id')
-    @SkipCsrf()
     async updateDeal(
+        @Req() req: unknown,
         @Param('id') id: string,
-        @Body() body: UpdateDealDto,
-        @Req() req?: any,
-    ): Promise<any> {
-        const updatedBy = req?.user?.fullName || body.updatedBy || 'Tư vấn viên';
-        return this.dealService.update(id, { ...body, updatedBy }, requireWorkspaceId(req));
+        @Body(new ZodValidationPipe(updateDealSchema)) body: UpdateDealDto,
+    ) {
+        const identity = getRequestIdentity(req);
+        const workspaceId = requireWorkspaceId(req);
+        const updatedBy = await this.dealService.resolveActorName(identity.userId);
+        return this.dealService.update(id, { ...body, updatedBy }, workspaceId, { ...identity, workspaceId });
     }
 
-    /**
-     * Xóa một cơ hội tuyển sinh
-     */
     @Delete(':id')
-    @SkipCsrf()
-    async deleteDeal(@Param('id') id: string, @Req() req?: any): Promise<any> {
-        return this.dealService.delete(id, requireWorkspaceId(req));
+    deleteDeal(@Req() req: unknown, @Param('id') id: string) {
+        const workspaceId = requireWorkspaceId(req);
+        return this.dealService.delete(id, workspaceId, { ...getRequestIdentity(req), workspaceId });
     }
 }

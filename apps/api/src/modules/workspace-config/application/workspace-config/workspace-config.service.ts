@@ -30,6 +30,7 @@ export type {
 
 import { getConfig, getPresetsList } from './operations/config-query.js';
 import { updateConfig, applyPreset } from './operations/config-update.js';
+import { getQuickReplies, saveQuickReplies, type QuickReply } from './operations/quick-replies.js';
 import {
   addStage,
   addProduct,
@@ -211,6 +212,16 @@ export class WorkspaceConfigService {
     currentStaffId?: string
   ): Promise<WorkspaceConfig> {
     return deleteCriteria(this.prisma, workspaceId, criteriaId, ownerId, currentStaffId, this.lifecycle);
+  }
+
+  // ================= Mẫu trả lời nhanh (dùng chung theo workspace) =================
+
+  getQuickReplies(workspaceId: string): Promise<QuickReply[] | null> {
+    return getQuickReplies(this.prisma, workspaceId);
+  }
+
+  saveQuickReplies(workspaceId: string, replies: QuickReply[]): Promise<QuickReply[]> {
+    return saveQuickReplies(this.prisma, workspaceId, replies);
   }
 }
 

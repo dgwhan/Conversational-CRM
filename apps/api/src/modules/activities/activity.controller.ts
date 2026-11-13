@@ -1,37 +1,37 @@
-import {
-    Controller,
-    Get,
-    Post,
-    Patch,
-    Delete,
-    Param,
-    Body,
-    Query,
-    Headers,
-    Req,
-    UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, Req } from '@nestjs/common';
+import { z } from 'zod';
 import { ActivityService } from './activity.service.js';
 import {
-    CreateActivityDto,
-    UpdateActivityDto,
-    ActivityFilterDto,
+    createActivitySchema,
+    updateActivitySchema,
+    type CreateActivityDto,
+    type UpdateActivityDto,
 } from './dto/activity.dto.js';
-import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator.js';
-import { requireWorkspaceId } from '../../common/auth/request-identity.js';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
+import { getRequestIdentity, requireWorkspaceId, type RequestIdentity } from '../../common/auth/request-identity.js';
 
+const autoTestTaskSchema = z.object({
+    customerId: z.string().trim().min(1).max(128),
+    customerName: z.string().trim().min(1).max(255),
+    notes: z.string().max(5_000).optional(),
+});
+
+/** Danh tính đã xác minh, kèm workspaceId bắt buộc. */
+function scopedIdentity(req: unknown): RequestIdentity & { workspaceId: string } {
+    return { ...getRequestIdentity(req), workspaceId: requireWorkspaceId(req) };
+}
+
+/**
+ * Nhật ký tương tác & nhiệm vụ (cuộc gọi, lịch hẹn, công việc).
+ * STAFF chỉ thấy / sửa hoạt động được giao cho mình hoặc chưa giao cho ai.
+ */
 @Controller('activities')
 export class ActivityController {
-    constructor(private readonly activityService: ActivityService) { }
+    constructor(private readonly activityService: ActivityService) {}
 
-    /**
-     * Lấy danh sách nhật ký tương tác và nhiệm vụ
-     */
     @Get()
-    async getActivities(
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
-        @Req() req?: any,
+    getActivities(
+        @Req() req: unknown,
         @Query('customerId') customerId?: string,
         @Query('type') type?: string,
         @Query('status') status?: string,
@@ -41,107 +41,64 @@ export class ActivityController {
         @Query('search') search?: string,
         @Query('page') page?: string,
         @Query('limit') limit?: string,
-    ): Promise<any> {
-        // Workspace đã được WorkspaceContextGuard xác minh tư cách thành viên
-        const workspaceId = requireWorkspaceId(req);
-        return this.activityService.findAll({
-            workspaceId,
-            customerId,
-            type,
-            status,
-            priority,
-            startDate,
-            endDate,
-            search,
-            page,
-            limit,
-        });
+    ) {
+        const identity = scopedIdentity(req);
+        return this.activityService.findAll(
+            { workspaceId: identity.workspaceId, customerId, type, status, priority, startDate, endDate, search, page, limit },
+            identity,
+        );
     }
 
-    /**
-     * Lấy dữ liệu sự kiện phục vụ hiển thị trên Calendar
-     */
     @Get('calendar')
-    async getCalendarEvents(
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
-        @Query('startDate') startDate?: string,
-        @Query('endDate') endDate?: string,
-        @Req() req?: any,
-    ): Promise<any> {
-        const workspaceId = requireWorkspaceId(req);
-        return this.activityService.getCalendarEvents(workspaceId, startDate, endDate);
+    getCalendarEvents(@Req() req: unknown, @Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
+        const identity = scopedIdentity(req);
+        return this.activityService.getCalendarEvents(identity.workspaceId, startDate, endDate, identity);
     }
 
-    /**
-     * Lấy danh sách nhiệm vụ / cuộc gọi cần kích hoạt chuông nhắc nhở
-     */
     @Get('due-reminders')
-    async getDueReminders(
-        @Headers('x-workspace-id') headerWsId?: string,
-        @Query('workspaceId') queryWsId?: string,
-        @Req() req?: any,
-    ): Promise<any> {
-        const workspaceId = requireWorkspaceId(req);
-        return this.activityService.getDueReminders(workspaceId);
+    getDueReminders(@Req() req: unknown) {
+        const identity = scopedIdentity(req);
+        return this.activityService.getDueReminders(identity.workspaceId, identity);
     }
 
-    /**
-     * Lấy chi tiết một hoạt động
-     */
     @Get(':id')
-    async getActivityById(@Param('id') id: string, @Req() req?: any): Promise<any> {
+    getActivityById(@Req() req: unknown, @Param('id') id: string) {
         return this.activityService.findById(id, requireWorkspaceId(req));
     }
 
-    /**
-     * Tạo mới nhật ký cuộc gọi / lịch hẹn / nhiệm vụ
-     */
     @Post()
-    @SkipCsrf()
-    async createActivity(
-        @Body() body: CreateActivityDto,
-        @Req() req?: any,
-    ): Promise<any> {
-        const workspaceId = requireWorkspaceId(req);
-        const creatorId = req?.user?.id;
-        return this.activityService.create({ ...body, workspaceId }, creatorId);
+    createActivity(
+        @Req() req: unknown,
+        @Body(new ZodValidationPipe(createActivitySchema)) body: Omit<CreateActivityDto, 'workspaceId'>,
+    ) {
+        const identity = scopedIdentity(req);
+        return this.activityService.create({ ...body, workspaceId: identity.workspaceId }, identity.userId);
     }
 
-    /**
-     * Cập nhật thông tin hoạt động / đánh dấu hoàn thành
-     */
     @Patch(':id')
-    @SkipCsrf()
-    async updateActivity(
+    updateActivity(
+        @Req() req: unknown,
         @Param('id') id: string,
-        @Body() body: UpdateActivityDto,
-        @Req() req?: any,
-    ): Promise<any> {
-        return this.activityService.update(id, body, requireWorkspaceId(req));
+        @Body(new ZodValidationPipe(updateActivitySchema)) body: UpdateActivityDto,
+    ) {
+        const identity = scopedIdentity(req);
+        return this.activityService.update(id, body, identity.workspaceId, identity);
     }
 
-    /**
-     * Xóa hoạt động
-     */
     @Delete(':id')
-    @SkipCsrf()
-    async deleteActivity(@Param('id') id: string, @Req() req?: any): Promise<any> {
-        return this.activityService.delete(id, requireWorkspaceId(req));
+    deleteActivity(@Req() req: unknown, @Param('id') id: string) {
+        const identity = scopedIdentity(req);
+        return this.activityService.delete(id, identity.workspaceId, identity);
     }
 
-    /**
-     * Endpoint tiện ích kích hoạt tự động tạo Task xếp phòng máy cho thí sinh
-     */
+    /** Tạo task chuẩn bị phòng máy khi thí sinh hẹn test đầu vào. */
     @Post('auto-test-task')
-    @SkipCsrf()
-    async triggerAutoTestTask(
-        @Body() body: { workspaceId?: string; customerId: string; customerName: string; notes?: string },
-        @Req() req?: any,
-    ): Promise<any> {
-        const workspaceId = requireWorkspaceId(req);
+    triggerAutoTestTask(
+        @Req() req: unknown,
+        @Body(new ZodValidationPipe(autoTestTaskSchema)) body: z.infer<typeof autoTestTaskSchema>,
+    ) {
         return this.activityService.autoCreateTestTask(
-            workspaceId,
+            requireWorkspaceId(req),
             body.customerId,
             body.customerName,
             body.notes,

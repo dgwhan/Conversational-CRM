@@ -118,7 +118,7 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
     });
 
     it('DoD CUS-05: Tìm "nguyen van a" ra đúng khách hàng "Nguyễn Văn A"', async () => {
-      const res = await controller.getCustomers(undefined, undefined, 'nguyen van a', undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomers(makeReq(), 'nguyen van a');
 
       expect(res.items).toHaveLength(1);
       expect(res.items[0].fullName).toBe('Nguyễn Văn A');
@@ -127,14 +127,14 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
     });
 
     it('Tìm "Nguyen Van A" viết hoa chữ cái đầu vẫn ra "Nguyễn Văn A"', async () => {
-      const res = await controller.getCustomers(undefined, undefined, 'Nguyen Van A', undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomers(makeReq(), 'Nguyen Van A');
 
       expect(res.items).toHaveLength(1);
       expect(res.items[0].fullName).toBe('Nguyễn Văn A');
     });
 
     it('Tìm theo SĐT có dấu chấm hoặc khoảng trắng "0912.345.678" ra đúng khách hàng', async () => {
-      const res = await controller.getCustomers(undefined, undefined, '0912.345.678', undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomers(makeReq(), '0912.345.678');
 
       expect(res.items).toHaveLength(1);
       expect(res.items[0].fullName).toBe('Nguyễn Văn A');
@@ -142,14 +142,14 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
     });
 
     it('Tìm theo SĐT đầu số quốc tế "+84912345678" ra đúng khách hàng', async () => {
-      const res = await controller.getCustomers(undefined, undefined, '+84912345678', undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomers(makeReq(), '+84912345678');
 
       expect(res.items).toHaveLength(1);
       expect(res.items[0].fullName).toBe('Nguyễn Văn A');
     });
 
     it('Hỗ trợ phân trang: page=1, limit=10 trả về đúng cấu trúc metadata', async () => {
-      const res = await controller.getCustomers(undefined, undefined, undefined, '1', '10', undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomers(makeReq(), undefined, '1', '10');
 
       expect(res.page).toBe(1);
       expect(res.limit).toBe(10);
@@ -202,7 +202,7 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
     });
 
     it('trả về thông tin chi tiết đầy đủ khi ID tồn tại', async () => {
-      const res = await controller.getCustomerById(existingCustomer.id, undefined, undefined, undefined, undefined, makeReq());
+      const res = await controller.getCustomerById(makeReq(), existingCustomer.id);
 
       expect(res.id).toBe(existingCustomer.id);
       expect(res.fullName).toBe('Nguyễn Văn A');
@@ -214,7 +214,7 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
 
     it('ném lỗi NotFoundException (404) khi ID không tồn tại', async () => {
       await expect(
-        controller.getCustomerById('99999999-9999-9999-9999-999999999999', undefined, undefined, undefined, undefined, makeReq())
+        controller.getCustomerById(makeReq(), '99999999-9999-9999-9999-999999999999')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -253,10 +253,10 @@ describe('CUS-05: Customer API & Unaccent Search', () => {
     });
 
     it('cập nhật thành công tên hiển thị và ghi chú mới', async () => {
-      const updated = await controller.updateCustomer(initialCustomer.id, {
+      const updated = await controller.updateCustomer(makeReq(), initialCustomer.id, {
         fullName: 'Nguyễn Văn An (VIP)',
         notes: 'Học viên đã nộp học phí 100%, chờ xếp lớp tháng 11',
-      }, undefined, undefined, undefined, makeReq());
+      });
 
       expect(updated.fullName).toBe('Nguyễn Văn An (VIP)');
       expect(updated.notes).toBe('Học viên đã nộp học phí 100%, chờ xếp lớp tháng 11');

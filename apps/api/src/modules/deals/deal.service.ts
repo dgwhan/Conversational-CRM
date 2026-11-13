@@ -4,6 +4,10 @@ import { RealtimeService } from '../realtime/realtime.service.js';
 import { ActivityService } from '../activities/activity.service.js';
 import { isTestAppointmentStage } from '../messaging/application/customer.service.js';
 import { CreateDealDto, UpdateDealDto, DealFilterDto } from './dto/deal.dto.js';
+import { parsePhoneInput, parseEmailInput } from '../customers/domain/phone-standardizer.js';
+import { resolveActiveMemberId } from '../../common/auth/workspace-membership.js';
+import { assertStaffCanModify, staffAssignmentFilter } from '../../common/auth/staff-scope.js';
+import type { RequestIdentity } from '../../common/auth/request-identity.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -31,35 +35,21 @@ export class DealService {
             throw new BadRequestException('workspaceId must be a valid UUID');
         }
 
-        let safeCustomerId: string | undefined = undefined;
-        if (dto.customerId) {
-            const stripped = dto.customerId.replace(/^(cust|cand)-/, '');
-            if (UUID_REGEX.test(stripped)) {
-                safeCustomerId = stripped;
-            }
-        }
+        let safeCustomerId = await this.resolveCustomerRef(dto.customerId, safeWsId);
+        const phoneInput = parsePhoneInput(dto.customerPhone);
+        const customerEmail = parseEmailInput(dto.customerEmail) ?? null;
 
         // Tự động tìm hoặc tạo Customer khi tạo deal từ thông tin học viên nhập tay
-        if (!safeCustomerId && (dto.customerName || dto.customerPhone || dto.customerEmail)) {
-            const trimmedPhone = dto.customerPhone?.trim() || null;
-            let existingCust = trimmedPhone
+        if (!safeCustomerId && (dto.customerName || phoneInput?.phone || customerEmail)) {
+            let existingCust = phoneInput?.phoneNormalized
                 ? await this.prisma.customer.findFirst({
-                    where: {
-                        workspaceId: safeWsId,
-                        OR: [
-                            { phone: trimmedPhone },
-                            { phoneNormalized: trimmedPhone },
-                        ],
-                    },
+                    where: { workspaceId: safeWsId, phoneNormalized: phoneInput.phoneNormalized },
                 })
                 : null;
 
-            if (!existingCust && dto.customerEmail?.trim()) {
+            if (!existingCust && customerEmail) {
                 existingCust = await this.prisma.customer.findFirst({
-                    where: {
-                        workspaceId: safeWsId,
-                        email: dto.customerEmail.trim(),
-                    },
+                    where: { workspaceId: safeWsId, email: customerEmail },
                 });
             }
 
@@ -70,9 +60,9 @@ export class DealService {
                     data: {
                         workspaceId: safeWsId,
                         fullName: dto.customerName?.trim() || 'Học viên',
-                        phone: trimmedPhone,
-                        phoneNormalized: trimmedPhone,
-                        email: dto.customerEmail?.trim() || null,
+                        phone: phoneInput?.phone ?? null,
+                        phoneNormalized: phoneInput?.phoneNormalized ?? null,
+                        email: customerEmail,
                         channel: 'MANUAL_IMPORT',
                         leadStatus: 'POTENTIAL',
                     },
@@ -81,10 +71,8 @@ export class DealService {
             }
         }
 
-        let safeContactId: string | undefined = undefined;
-        if (dto.contactId && UUID_REGEX.test(dto.contactId)) {
-            safeContactId = dto.contactId;
-        }
+        const safeContactId = await this.resolveContactRef(dto.contactId, safeWsId);
+        const assignedMemberId = await resolveActiveMemberId(this.prisma, safeWsId, dto.assignedMemberId);
 
         const safeTitle = (dto.title || 'Cơ hội tuyển sinh').slice(0, 250);
         const safeStage = (dto.stage || 'STAGE_NEW').slice(0, 50);
@@ -98,7 +86,7 @@ export class DealService {
                 workspaceId: safeWsId,
                 customerId: safeCustomerId,
                 contactId: safeContactId,
-                assignedMemberId: dto.assignedMemberId && UUID_REGEX.test(dto.assignedMemberId) ? dto.assignedMemberId : null,
+                assignedMemberId,
                 title: safeTitle,
                 stage: safeStage,
                 pipelineId: dto.pipelineId || null,
@@ -151,7 +139,7 @@ export class DealService {
     /**
      * Lấy danh sách Deal / Cơ hội có phân trang và bộ lọc
      */
-    async findAll(filter: DealFilterDto): Promise<any> {
+    async findAll(filter: DealFilterDto, identity?: RequestIdentity): Promise<any> {
         const safeWsId = filter.workspaceId && UUID_REGEX.test(filter.workspaceId) ? filter.workspaceId : undefined;
         if (!safeWsId) {
             return { items: [], total: 0, page: 1, limit: 50 };
@@ -161,7 +149,10 @@ export class DealService {
         const limit = Math.min(200, Math.max(1, Number(filter.limit) || 50));
         const skip = (page - 1) * limit;
 
-        const where: any = { workspaceId: safeWsId };
+        const where: any = {
+            workspaceId: safeWsId,
+            ...(identity ? { AND: [await staffAssignmentFilter(this.prisma, identity)] } : {}),
+        };
 
         if (filter.customerId) {
             const stripped = filter.customerId.replace(/^(cust|cand)-/, '');
@@ -243,13 +234,14 @@ export class DealService {
     /**
      * Lấy lịch sử tất cả các Deals / Đợt đăng ký của một Khách hàng
      */
-    async findDealsByCustomer(customerIdOrContactId: string, workspaceId?: string): Promise<any> {
+    async findDealsByCustomer(customerIdOrContactId: string, workspaceId: string, identity?: RequestIdentity): Promise<any> {
         const stripped = customerIdOrContactId.replace(/^(cust|cand)-/, '');
         if (!UUID_REGEX.test(stripped)) return [];
 
         return this.prisma.deal.findMany({
             where: {
-                ...(workspaceId ? { workspaceId } : {}),
+                workspaceId,
+                ...(identity ? { AND: [await staffAssignmentFilter(this.prisma, identity)] } : {}),
                 OR: [
                     { customerId: stripped },
                     { contactId: stripped },
@@ -293,8 +285,9 @@ export class DealService {
     /**
      * Cập nhật thông tin Deal / chuyển đổi giai đoạn phễu tuyển sinh
      */
-    async update(id: string, dto: UpdateDealDto, workspaceId?: string): Promise<any> {
+    async update(id: string, dto: UpdateDealDto, workspaceId: string, identity?: RequestIdentity): Promise<any> {
         const existing = await this.findById(id, workspaceId);
+        if (identity) await assertStaffCanModify(this.prisma, identity, existing);
 
         const updateData: any = {};
         if (dto.title !== undefined) updateData.title = dto.title.slice(0, 250);
@@ -310,22 +303,22 @@ export class DealService {
         if (dto.notes !== undefined) updateData.notes = dto.notes;
 
         if (dto.assignedMemberId !== undefined) {
-            updateData.assignedMemberId = dto.assignedMemberId && UUID_REGEX.test(dto.assignedMemberId) ? dto.assignedMemberId : null;
+            updateData.assignedMemberId = await resolveActiveMemberId(this.prisma, existing.workspaceId, dto.assignedMemberId);
         }
         if (dto.customerId !== undefined) {
-            const stripped = dto.customerId ? dto.customerId.replace(/^(cust|cand)-/, '') : null;
-            updateData.customerId = stripped && UUID_REGEX.test(stripped) ? stripped : null;
+            updateData.customerId = (await this.resolveCustomerRef(dto.customerId, existing.workspaceId)) ?? null;
         }
-        if (existing.customerId && (dto.customerName || dto.customerPhone || dto.customerEmail)) {
+        const phoneInput = dto.customerPhone ? parsePhoneInput(dto.customerPhone) : undefined;
+        const customerEmail = dto.customerEmail ? parseEmailInput(dto.customerEmail) : undefined;
+        if (existing.customerId && (dto.customerName?.trim() || phoneInput || customerEmail)) {
             await this.prisma.customer.update({
                 where: { id: existing.customerId },
                 data: {
                     fullName: dto.customerName?.trim() || undefined,
-                    phone: dto.customerPhone?.trim() || undefined,
-                    phoneNormalized: dto.customerPhone?.trim() || undefined,
-                    email: dto.customerEmail?.trim() || undefined,
+                    ...(phoneInput ? { phone: phoneInput.phone, phoneNormalized: phoneInput.phoneNormalized } : {}),
+                    ...(customerEmail ? { email: customerEmail } : {}),
                 },
-            }).catch(() => {});
+            });
         }
         if (dto.expectedCloseDate !== undefined) {
             updateData.expectedCloseDate = dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null;
@@ -403,8 +396,9 @@ export class DealService {
     /**
      * Xóa một Deal
      */
-    async delete(id: string, workspaceId?: string) {
+    async delete(id: string, workspaceId: string, identity?: RequestIdentity) {
         const existing = await this.findById(id, workspaceId);
+        if (identity) await assertStaffCanModify(this.prisma, identity, existing);
         await this.prisma.deal.delete({ where: { id } });
 
         try {
@@ -415,5 +409,32 @@ export class DealService {
         } catch { }
 
         return { success: true, message: 'Đã xóa cơ hội tuyển sinh' };
+    }
+
+    /** customerId do client gửi phải thuộc workspace; tham chiếu sai -> 400 (không liên kết xuyên tenant). */
+    private async resolveCustomerRef(ref: string | null | undefined, workspaceId: string): Promise<string | undefined> {
+        const id = ref?.replace(/^(cust|cand)-/, '');
+        if (!id) return undefined;
+        const found = UUID_REGEX.test(id)
+            ? await this.prisma.customer.findFirst({ where: { id, workspaceId }, select: { id: true } })
+            : null;
+        if (!found) throw new BadRequestException('Khách hàng không tồn tại trong không gian làm việc này.');
+        return found.id;
+    }
+
+    private async resolveContactRef(ref: string | null | undefined, workspaceId: string): Promise<string | undefined> {
+        if (!ref) return undefined;
+        const found = UUID_REGEX.test(ref)
+            ? await this.prisma.contact.findFirst({ where: { id: ref, workspaceId }, select: { id: true } })
+            : null;
+        if (!found) throw new BadRequestException('Liên hệ không tồn tại trong không gian làm việc này.');
+        return found.id;
+    }
+
+    /** Tên hiển thị của người thao tác, lấy từ DB (không tin giá trị client gửi lên). */
+    async resolveActorName(userId?: string): Promise<string> {
+        if (!userId) return 'Tư vấn viên';
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+        return user?.fullName || 'Tư vấn viên';
     }
 }

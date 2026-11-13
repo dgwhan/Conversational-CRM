@@ -7,6 +7,7 @@ import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
 import { useUserRole } from '../auth/UserRoleContext.js';
 import { useRealtime } from '../realtime/RealtimeContext.js';
 import { useTranslation } from '../../i18n/index.js';
+import { apiClient } from '../../lib/api-client/index.js';
 
 interface NewCandidateModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   onClose,
   onAddCandidate,
 }) => {
-  const { config } = useWorkspaceConfig();
+  const { config, activeWorkspaceId } = useWorkspaceConfig();
   const { staffName } = useUserRole();
   const { staffPresences } = useRealtime();
   const { t, locale } = useTranslation();
@@ -35,6 +36,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
   );
   const [assignedStaff, setAssignedStaff] = useState('staff-me');
   const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Cập nhật giá mặc định khi đổi sản phẩm / khóa học
   const handleProductChange = (selectedName: string) => {
@@ -57,58 +59,64 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
       notify.warning(t('kanban.newCandidateModal.nameRequired', `Vui lòng nhập họ và tên.`));
       return;
     }
 
-    const selectedStaffObj = Object.values(staffPresences).find(
-      (s) => s.staffId === assignedStaff
-    );
-    const assignedName = selectedStaffObj
-      ? selectedStaffObj.name
-      : staffName
-      ? staffName
-      : (locale === 'en' ? 'You' : 'Bạn');
-    const assignedAvatar = selectedStaffObj
-      ? selectedStaffObj.avatar
-      : staffName
-      ? staffName.slice(0, 2).toUpperCase()
-      : 'ME';
+    const selectedStaff = Object.values(staffPresences).find((s) => s.staffId === assignedStaff);
+    const assignedName = selectedStaff?.name || staffName || (locale === 'en' ? 'You' : 'Bạn');
+    const assignedAvatar = selectedStaff?.avatar || assignedName.slice(0, 2).toUpperCase();
+    const tuition = Number(estimatedTuition) || 0;
+    const interestCourses = course ? [course] : [];
 
-    const newCandidate: KanbanCandidate = {
-      id: `cand-${Date.now()}`,
-      fullName: fullName.trim(),
-      phone: phone.trim() || t('kanban.noPhone', 'Chưa có SĐT'),
-      email: email.trim() || t('kanban.noEmail', 'Chưa có Email'),
-      avatarUrl: `https://images.unsplash.com/photo-${1535713875002 + Math.floor(Math.random() * 1000)}?w=120&auto=format&fit=crop&q=80`,
-      channel,
-      channelAccountName:
-        channel === 'FACEBOOK'
-          ? 'Fanpage'
-          : channel === 'ZALO'
-          ? 'Zalo OA'
-          : channel === 'ZALO_PERSONAL'
-          ? 'Zalo Personal'
-          : 'Direct Hotline',
-      stage,
-      estimatedTuition: Number(estimatedTuition) || 20000000,
-      priority: 'HIGH',
-      interestCourses: [course || 'Gói dịch vụ mặc định'],
-      assignedStaffId: assignedStaff,
-      assignedStaffName: assignedName,
-      assignedStaffAvatar: assignedAvatar,
-      assignedStaffPresence: 'ONLINE',
-      lastActivityAt: t('common.justNow', 'Vừa xong'),
-      notesCount: notes.trim() ? 1 : 0,
-      tags: [locale === 'en' ? 'Manual Lead' : 'Thêm thủ công', locale === 'en' ? 'Priority' : 'Ưu tiên chăm sóc'],
-    };
+    setIsSaving(true);
+    try {
+      // Lưu vào CSDL trước; chỉ hiển thị trên phễu khi đã có ID thật từ server
+      const created = await apiClient.createCustomer(
+        {
+          fullName: fullName.trim(),
+          phone: phone.trim() || undefined,
+          email: email.trim() || undefined,
+          notes: notes.trim() || undefined,
+          leadStage: stage,
+          interestCourses,
+          estimatedValue: tuition,
+          ...(selectedStaff ? { assignedStaffId: selectedStaff.staffId } : {}),
+          assignedStaffName: assignedName,
+        },
+        activeWorkspaceId || undefined,
+      );
 
-    onAddCandidate(newCandidate);
-    notify.success(t('kanban.newCandidateModal.addSuccess', `Đã thêm thành công vào phễu!`));
-    onClose();
+      onAddCandidate({
+        id: String(created.id),
+        fullName: fullName.trim(),
+        phone: phone.trim() || t('kanban.noPhone', 'Chưa có SĐT'),
+        email: email.trim() || t('kanban.noEmail', 'Chưa có Email'),
+        avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName.trim())}&background=0284c7&color=fff&bold=true`,
+        channel,
+        channelAccountName: t('kanban.manualEntry', 'Nhập thủ công'),
+        stage,
+        estimatedTuition: tuition,
+        priority: 'MEDIUM',
+        interestCourses,
+        assignedStaffId: selectedStaff?.staffId,
+        assignedStaffName: assignedName,
+        assignedStaffAvatar: assignedAvatar,
+        assignedStaffPresence: 'ONLINE',
+        lastActivityAt: t('common.justNow', 'Vừa xong'),
+        notesCount: notes.trim() ? 1 : 0,
+        tags: [locale === 'en' ? 'Manual Lead' : 'Thêm thủ công'],
+      });
+      notify.success(t('kanban.newCandidateModal.addSuccess', `Đã thêm thành công vào phễu!`));
+      onClose();
+    } catch (err) {
+      notify.error(err instanceof Error ? err.message : t('kanban.newCandidateModal.addFailed', 'Không thể lưu khách hàng mới.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -274,7 +282,7 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               {t('common.cancel', 'Hủy bỏ')}
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
               <UserPlus size={15} />
               <span>{t('kanban.newCandidateModal.saveBtn', 'Thêm vào phễu')}</span>
             </button>

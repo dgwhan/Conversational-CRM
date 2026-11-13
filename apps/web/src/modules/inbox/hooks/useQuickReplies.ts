@@ -1,28 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { QuickReplyItem } from '../types.js';
 import { MOCK_QUICK_REPLIES } from '../mockData.js';
+import { apiClient } from '../../../lib/api-client/index.js';
+import { notify } from '../../../components/feedback/toastEmitter.js';
 
-const STORAGE_KEY_QUICK_REPLIES = 'polarisx_crm_quick_replies_v1';
-
+/**
+ * Mẫu trả lời nhanh dùng chung cho cả nhóm, lưu theo workspace trên server
+ * (trước đây chỉ nằm trong localStorage của từng trình duyệt nên không chia sẻ được).
+ */
 export const useQuickReplies = () => {
-  const [quickReplies, setQuickReplies] = useState<QuickReplyItem[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_QUICK_REPLIES);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch { }
-    return MOCK_QUICK_REPLIES;
-  });
-
+  const [quickReplies, setQuickReplies] = useState<QuickReplyItem[]>(MOCK_QUICK_REPLIES);
   const [isQuickReplyModalOpen, setIsQuickReplyModalOpen] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+    apiClient
+      .getQuickReplies()
+      .then(({ items }) => {
+        if (active && items) setQuickReplies(items);
+      })
+      .catch(() => {
+        // Giữ mẫu mặc định nếu chưa tải được; lần lưu tiếp theo sẽ báo lỗi nếu server vẫn không phản hồi
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleSaveQuickReplies = (replies: QuickReplyItem[]) => {
+    const previous = quickReplies;
     setQuickReplies(replies);
-    try {
-      localStorage.setItem(STORAGE_KEY_QUICK_REPLIES, JSON.stringify(replies));
-    } catch { }
+    apiClient.saveQuickReplies(replies).catch((err: unknown) => {
+      setQuickReplies(previous);
+      notify.error(err instanceof Error ? err.message : 'Không thể lưu mẫu trả lời nhanh.');
+    });
   };
 
   return {
@@ -32,4 +43,3 @@ export const useQuickReplies = () => {
     handleSaveQuickReplies,
   };
 };
-

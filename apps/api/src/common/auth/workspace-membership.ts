@@ -91,3 +91,22 @@ export async function resolveDefaultMembership(
     status: member.status,
   };
 }
+
+/**
+ * Phân giải tham chiếu nhân sự (WorkspaceMember.id hoặc User.id, có thể kèm tiền tố "user-"/"member-"/"staff-")
+ * thành WorkspaceMember.id của một thành viên ĐANG HOẠT ĐỘNG trong `workspaceId`.
+ * Trả về null nếu không hợp lệ hoặc thuộc workspace khác. Không bao giờ tự thêm thành viên mới.
+ */
+export async function resolveActiveMemberId(
+  prisma: Pick<PrismaService, 'workspaceMember'>,
+  workspaceId: string | null | undefined,
+  ref: string | null | undefined,
+): Promise<string | null> {
+  const cleanId = ref?.replace(/^(user|member|staff)-/, '');
+  if (!cleanId || !isUuid(cleanId) || !workspaceId || !isUuid(workspaceId)) return null;
+  const member = await prisma.workspaceMember.findFirst({
+    where: { workspaceId, isActive: true, status: 'ACTIVE', OR: [{ id: cleanId }, { userId: cleanId }] },
+    select: { id: true },
+  });
+  return member?.id ?? null;
+}

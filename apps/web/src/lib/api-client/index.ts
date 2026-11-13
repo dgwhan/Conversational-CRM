@@ -59,6 +59,7 @@ export class ApiClient extends BaseApiClient {
   // Customer & Message APIs
   getMessages = this.customers.getMessages;
   getCustomers = this.customers.getCustomers;
+  createCustomer = this.customers.createCustomer;
   updateCustomer = this.customers.updateCustomer;
   assignConversation = this.customers.assignConversation;
   deleteCustomerTag = this.customers.deleteCustomerTag;
@@ -75,6 +76,8 @@ export class ApiClient extends BaseApiClient {
 
   // Workspace, Hotline & Notification APIs
   getMyWorkspaces = this.workspaces.getMyWorkspaces;
+  getQuickReplies = this.workspaces.getQuickReplies;
+  saveQuickReplies = this.workspaces.saveQuickReplies;
   createWorkspace = this.workspaces.createWorkspace;
   updateWorkspace = this.workspaces.updateWorkspace;
   deleteWorkspace = this.workspaces.deleteWorkspace;

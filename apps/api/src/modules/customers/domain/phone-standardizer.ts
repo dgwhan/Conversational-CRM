@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 
 export interface StandardizePhoneOptions {
   /**
@@ -214,3 +215,41 @@ export function formatVietnamesePhoneNumber(
   }
 }
 
+
+export interface PhoneInput {
+  /** SĐT hiển thị (giữ nguyên định dạng người dùng nhập) */
+  phone: string | null;
+  /** SĐT chuẩn hóa dùng để so khớp / gộp trùng */
+  phoneNormalized: string | null;
+}
+
+/**
+ * Chuẩn hóa SĐT do client gửi lên trước khi lưu.
+ * - `undefined`: client không gửi trường này -> giữ nguyên dữ liệu cũ.
+ * - Chuỗi rỗng / null: xóa SĐT.
+ * - Chuỗi không có chữ số (vd. nhãn hiển thị "Chưa có SĐT") -> lỗi 400 thay vì ghi rác vào DB.
+ * - SĐT Việt Nam được chuẩn hóa về dạng 0xxxxxxxxx; số nước ngoài giữ lại phần chữ số.
+ */
+export function parsePhoneInput(raw: string | null | undefined): PhoneInput | undefined {
+  if (raw === undefined) return undefined;
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed) return { phone: null, phoneNormalized: null };
+  if (!/^[0-9+\s.\-–—()]+$/.test(trimmed) || !/\d/.test(trimmed)) {
+    throw new BadRequestException(`Số điện thoại không hợp lệ: "${trimmed}"`);
+  }
+  return {
+    phone: trimmed,
+    phoneNormalized: standardizeVietnamesePhoneNumber(trimmed) ?? trimmed.replace(/\D/g, ''),
+  };
+}
+
+/** Email do client gửi: rỗng -> null, sai định dạng -> lỗi 400, undefined -> không đổi. */
+export function parseEmailInput(raw: string | null | undefined): string | null | undefined {
+  if (raw === undefined) return undefined;
+  const trimmed = (raw ?? '').trim().toLowerCase();
+  if (!trimmed) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    throw new BadRequestException(`Email không hợp lệ: "${trimmed}"`);
+  }
+  return trimmed;
+}

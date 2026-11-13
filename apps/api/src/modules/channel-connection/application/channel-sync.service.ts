@@ -234,6 +234,7 @@ export class ChannelSyncService {
             channel: Channel.ZALO,
             senderExternalId: customerZaloId,
             displayName: customerName,
+            workspaceId: targetWsId,
             rawPayload: {
               customerName,
               customerAvatar,
@@ -593,6 +594,7 @@ export class ChannelSyncService {
             channel: Channel.FACEBOOK,
             senderExternalId: customer.id,
             displayName: customerName,
+            workspaceId: targetWsId,
             rawPayload: {
               customerName,
               customerAvatar,

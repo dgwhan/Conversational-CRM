@@ -29,7 +29,7 @@ export const StagesTab: React.FC<StagesTabProps> = ({
   const [editingStage, setEditingStage] = useState<PipelineStageConfig | null>(null);
 
   const formatStageDisplayName = (name: string, index: number) => {
-    const cleaned = name.replace(/^\d+[\.\s\-]+/, '').trim();
+    const cleaned = name.replace(/^\d+[.\s-]+/, '').trim();
     return `${index + 1}. ${cleaned || name}`;
   };
 

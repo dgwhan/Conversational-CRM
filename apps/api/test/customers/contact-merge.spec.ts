@@ -7,6 +7,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
   let mockPrisma: any;
   let mockAudit: any;
   let mockRealtime: any;
+  const WS = 'ws-uuid-001';
 
   beforeEach(() => {
     mockPrisma = {
@@ -34,6 +35,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
       },
       contactMergeLog: {
         create: vi.fn(),
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
         findMany: vi.fn(),
         update: vi.fn(),
@@ -65,7 +67,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
       };
       mockPrisma.contact.findFirst.mockResolvedValue(existingContact);
 
-      const result = await service.checkDuplicatePhone('+84 912 345 678');
+      const result = await service.checkDuplicatePhone(WS, '+84 912 345 678');
 
       expect(result.isValid).toBe(true);
       expect(result.normalizedPhone).toBe('0912345678');
@@ -74,7 +76,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
     });
 
     it('từ chối SĐT sai định dạng hoặc không đủ 10 chữ số', async () => {
-      const result = await service.checkDuplicatePhone('0912345');
+      const result = await service.checkDuplicatePhone(WS, '0912345');
       expect(result.isValid).toBe(false);
       expect(result.normalizedPhone).toBeNull();
       expect(result.hasCollision).toBe(false);
@@ -83,12 +85,13 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
     it('bỏ qua contact hiện tại nếu truyền excludeContactId', async () => {
       mockPrisma.contact.findFirst.mockResolvedValue(null);
 
-      const result = await service.checkDuplicatePhone('0912345678', 'contact-target-uuid');
+      const result = await service.checkDuplicatePhone(WS, '0912345678', 'contact-target-uuid');
 
       expect(result.isValid).toBe(true);
       expect(result.hasCollision).toBe(false);
       expect(mockPrisma.contact.findFirst).toHaveBeenCalledWith({
         where: {
+          workspaceId: WS,
           phoneNormalized: '0912345678',
           isMerged: false,
           id: { not: 'contact-target-uuid' },
@@ -102,6 +105,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
     it('báo lỗi nếu targetContactId trùng với sourceContactId', async () => {
       await expect(
         service.mergeContacts({
+          workspaceId: WS,
           targetContactId: 'c-1',
           sourceContactId: 'c-1',
         }),
@@ -109,12 +113,13 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
     });
 
     it('báo lỗi nếu sourceContact đã bị gộp trước đó (isMerged = true)', async () => {
-      mockPrisma.contact.findUnique
+      mockPrisma.contact.findFirst
         .mockResolvedValueOnce({ id: 'target-1', isMerged: false, channelIdentities: [] })
         .mockResolvedValueOnce({ id: 'source-1', isMerged: true, channelIdentities: [] });
 
       await expect(
         service.mergeContacts({
+          workspaceId: WS,
           targetContactId: 'target-1',
           sourceContactId: 'source-1',
         }),
@@ -145,7 +150,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
         ],
       };
 
-      mockPrisma.contact.findUnique
+      mockPrisma.contact.findFirst
         .mockResolvedValueOnce(targetContact)
         .mockResolvedValueOnce(sourceContact);
 
@@ -194,6 +199,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
       });
 
       const res = await service.mergeContacts({
+          workspaceId: WS,
         targetContactId: targetContact.id,
         sourceContactId: sourceContact.id,
         phoneNormalized: '0912345678',
@@ -240,18 +246,18 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
 
   describe('3. unmergeContact (Tách lại hồ sơ nếu gộp nhầm)', () => {
     it('báo lỗi nếu mergeLogId không tồn tại', async () => {
-      mockPrisma.contactMergeLog.findUnique.mockResolvedValue(null);
-      await expect(service.unmergeContact({ mergeLogId: 'not-found' })).rejects.toThrow(
+      mockPrisma.contactMergeLog.findFirst.mockResolvedValue(null);
+      await expect(service.unmergeContact({ mergeLogId: 'not-found', workspaceId: WS })).rejects.toThrow(
         'Không tìm thấy lịch sử gộp',
       );
     });
 
     it('báo lỗi nếu lần gộp đã được hoàn tác trước đó', async () => {
-      mockPrisma.contactMergeLog.findUnique.mockResolvedValue({
+      mockPrisma.contactMergeLog.findFirst.mockResolvedValue({
         id: 'log-1',
         isReverted: true,
       });
-      await expect(service.unmergeContact({ mergeLogId: 'log-1' })).rejects.toThrow(
+      await expect(service.unmergeContact({ mergeLogId: 'log-1', workspaceId: WS })).rejects.toThrow(
         'Lần gộp này đã được hoàn tác',
       );
     });
@@ -278,9 +284,10 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
         },
       };
 
-      mockPrisma.contactMergeLog.findUnique.mockResolvedValue(mergeLog);
+      mockPrisma.contactMergeLog.findFirst.mockResolvedValue(mergeLog);
 
       const unmergeRes = await service.unmergeContact({
+        workspaceId: WS,
         mergeLogId: 'log-uuid-1',
         actorId: 'staff-actor-uuid',
         reason: 'Gộp nhầm SĐT gia đình',
@@ -348,6 +355,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
 
   describe('4. getMergeHistory', () => {
     it('trả về danh sách lịch sử gộp của một contact', async () => {
+      mockPrisma.channelIdentity.findMany.mockResolvedValue([]);
       mockPrisma.contactMergeLog.findMany.mockResolvedValue([
         {
           id: 'log-1',
@@ -357,7 +365,7 @@ describe('CUS-04: ContactMergeService (Unit Tests)', () => {
         },
       ]);
 
-      const history = await service.getMergeHistory('c-1');
+      const history = await service.getMergeHistory(WS, 'c-1');
       expect(history.items).toHaveLength(1);
       expect(history.total).toBe(1);
       expect(history.items[0].id).toBe('log-1');

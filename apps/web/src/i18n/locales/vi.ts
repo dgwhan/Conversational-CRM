@@ -161,6 +161,9 @@ export const vi: TranslationDictionary = {
     staffOwnOnly: 'Bạn chỉ có quyền chỉnh sửa trạng thái khách hàng mà mình phụ trách (403 Forbidden).',
     noPermissionTitle: 'Không có quyền',
     movedTo: 'Đã chuyển "{name}" sang giai đoạn "{stage}".',
+    moveFailed: 'Không thể lưu giai đoạn mới. Đã hoàn tác thay đổi.',
+    saveFailed: 'Không thể lưu thay đổi.',
+    manualEntry: 'Nhập thủ công',
     updatePipelineTitle: 'Cập nhật {pipeline}',
     pipelinePrefix: 'Phễu',
     pageSubtitle: 'Quản lý và chuyển đổi {entity} theo các giai đoạn quy trình',
@@ -232,6 +235,7 @@ export const vi: TranslationDictionary = {
       saveBtn: 'Lưu & Thêm vào Phễu',
       nameRequired: 'Vui lòng nhập họ và tên.',
       addSuccess: 'Đã thêm thành công vào phễu!',
+      addFailed: 'Không thể lưu khách hàng mới.',
     },
   },
   deals: {
