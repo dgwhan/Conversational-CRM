@@ -702,14 +702,19 @@ export class ZcaPersonalService implements OnModuleInit {
         },
       });
 
+      // Chỉ fallback khi hệ thống có đúng 1 tài khoản Zalo đang hoạt động — với nhiều tài khoản,
+      // đoán sai sẽ lưu tin nhắn vào nhầm kênh.
       if (!channelAccount) {
-        channelAccount = await this.prisma.channelAccount.findFirst({
+        const activeZalos = await this.prisma.channelAccount.findMany({
           where: {
             channel: 'ZALO',
             isActive: true,
           },
-          orderBy: { updatedAt: 'desc' },
+          take: 2,
         });
+        if (activeZalos.length === 1) {
+          channelAccount = activeZalos[0];
+        }
       }
     }
 

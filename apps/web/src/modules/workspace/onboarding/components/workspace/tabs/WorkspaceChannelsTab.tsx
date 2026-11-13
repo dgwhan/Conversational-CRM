@@ -68,6 +68,57 @@ export interface WorkspaceChannelsTabProps {
   onOpenConnectModal: (channelKey: ChannelKey) => void;
 }
 
+const PLATFORM_BADGE: Record<string, { label: string; className: string; dot: string }> = {
+  FACEBOOK: { label: 'FB', className: 'text-blue-600', dot: 'bg-blue-600' },
+  ZALO: { label: 'ZL', className: 'text-sky-600', dot: 'bg-sky-500' },
+  TIKTOK: { label: 'TT', className: 'text-slate-900', dot: 'bg-slate-900' },
+};
+
+/** Danh sách URL avatar theo thứ tự ưu tiên (bỏ qua ảnh placeholder ui-avatars). */
+function getAvatarCandidates(ch: ConnectedChannelItem): string[] {
+  const urls: string[] = [];
+  if (ch.avatarUrl && !ch.avatarUrl.includes('ui-avatars.com')) urls.push(ch.avatarUrl);
+  // Ảnh Fanpage công khai — ổn định hơn URL CDN có chữ ký (hết hạn sau vài ngày)
+  if (ch.channel === 'FACEBOOK' && /^\d+$/.test(ch.externalAccountId)) {
+    urls.push(`https://graph.facebook.com/${ch.externalAccountId}/picture?type=normal`);
+  }
+  return urls;
+}
+
+const ChannelAvatar: React.FC<{ channel: ConnectedChannelItem }> = ({ channel: ch }) => {
+  const candidates = getAvatarCandidates(ch);
+  const [index, setIndex] = useState(0);
+  const src = candidates[index];
+  const badge = PLATFORM_BADGE[ch.channel] ?? { label: ch.channel.slice(0, 2), className: 'text-slate-600', dot: 'bg-slate-400' };
+
+  return (
+    <div className="relative w-10 h-10 shrink-0">
+      {src ? (
+        <img
+          key={src}
+          src={src}
+          alt={ch.displayName}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={() => setIndex((i) => i + 1)}
+          className="w-10 h-10 rounded-lg object-cover border border-slate-200/80 bg-slate-50"
+        />
+      ) : (
+        <div className="w-10 h-10 border border-slate-200/80 bg-slate-50 rounded-lg flex items-center justify-center">
+          <span className={`font-bold text-xs tracking-wider ${badge.className}`}>{badge.label}</span>
+        </div>
+      )}
+      {src && (
+        <span
+          className={`absolute -bottom-1 -right-1 px-1 rounded text-[8px] font-bold text-white leading-[14px] ring-2 ring-white ${badge.dot}`}
+        >
+          {badge.label}
+        </span>
+      )}
+    </div>
+  );
+};
+
 export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
   channels,
   isLoading,
@@ -205,17 +256,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
                     {/* Left: Tên nền tảng, Tên trang & StatusBadge */}
                     <div className="flex items-center gap-3.5 min-w-[260px]">
                       {/* Platform Icon Badge */}
-                      <div className="w-10 h-10 border border-slate-200/80 bg-slate-50 rounded-lg flex items-center justify-center shrink-0">
-                        {ch.channel === 'FACEBOOK' && (
-                          <span className="font-bold text-xs text-blue-600 tracking-wider">FB</span>
-                        )}
-                        {ch.channel === 'ZALO' && (
-                          <span className="font-bold text-xs text-sky-600 tracking-wider">ZL</span>
-                        )}
-                        {ch.channel === 'TIKTOK' && (
-                          <span className="font-bold text-xs text-slate-900 tracking-wider">TT</span>
-                        )}
-                      </div>
+                      <ChannelAvatar channel={ch} />
 
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 flex-wrap">

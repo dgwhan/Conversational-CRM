@@ -608,25 +608,12 @@ describe('Zalo Channel Connection & Messaging', () => {
       expect(res.messageId).toBe('zca_msg_from_finduser');
     });
 
-    it('Tự động cập nhật kênh Zalo cũ và dọn dẹp bản ghi trùng lặp khi kết nối lại', async () => {
-      mockPrisma.channelAccount.findMany.mockResolvedValueOnce([
-        {
-          id: 'zalo-old-primary',
-          workspaceId: 'ws-uuid-001',
-          channel: Channel.ZALO,
-          externalAccountId: 'old_uid_111',
-          displayName: 'Zalo Tuyển Sinh',
-          isActive: true,
-        },
-        {
-          id: 'zalo-duplicate-redundant',
-          workspaceId: 'ws-uuid-001',
-          channel: Channel.ZALO,
-          externalAccountId: 'old_uid_duplicate',
-          displayName: 'Zalo Tuyển Sinh',
-          isActive: false,
-        },
-      ]);
+    it('Cho phép kết nối thêm tài khoản Zalo khác mà không ghi đè/xóa kênh Zalo đã có', async () => {
+      // Không có bản ghi nào trùng externalAccountId mới -> tạo kênh mới
+      mockPrisma.channelAccount.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.channelAccount.deleteMany.mockClear();
+      mockPrisma.channelAccount.update.mockClear();
+      mockPrisma.channelAccount.upsert.mockClear();
 
       const activateRes = await channelManager.activateChannels(
         {
@@ -634,22 +621,27 @@ describe('Zalo Channel Connection & Messaging', () => {
             {
               id: 'page_new',
               externalAccountId: 'new_uid_222',
-              displayName: 'Zalo Tuyển Sinh (Đã quét lại)',
+              displayName: 'Zalo Tư vấn viên 2',
+              avatarUrl: 'https://s120-ava-talk.zadn.vn/avatar.jpg',
               channel: 'ZALO',
-              accessToken: 'mock_reconnected_token',
+              accessToken: 'mock_second_account_token',
+              metadata: { isPersonal: true, engine: 'zca-js' },
             },
           ],
         },
         'ws-uuid-001',
       );
 
-      // Đã dọn dẹp kênh thừa
-      expect(mockPrisma.channelAccount.deleteMany).toHaveBeenCalled();
-      // Đã cập nhật kênh hiện tại
-      expect(mockPrisma.channelAccount.update).toHaveBeenCalled();
-      // Chỉ trả về đúng 1 kênh Zalo đã kích hoạt
+      expect(mockPrisma.channelAccount.deleteMany).not.toHaveBeenCalled();
+      expect(mockPrisma.channelAccount.update).not.toHaveBeenCalled();
+      expect(mockPrisma.channelAccount.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { channel_externalAccountId: { channel: Channel.ZALO, externalAccountId: 'new_uid_222' } },
+        }),
+      );
       expect(activateRes.activatedCount).toBe(1);
-      expect(activateRes.channels[0].displayName).toBe('Zalo Tuyển Sinh (Đã quét lại)');
+      expect(activateRes.channels[0].externalAccountId).toBe('new_uid_222');
+      expect(activateRes.channels[0].avatarUrl).toBe('https://s120-ava-talk.zadn.vn/avatar.jpg');
     });
   });
 });

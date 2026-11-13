@@ -133,69 +133,8 @@ export class ChannelManagerService {
         webhookError = subResult.error;
       }
 
-      // 4. Nếu là kênh ZALO: Đảm bảo không tạo trùng lặp kênh trong cùng Workspace
-      if (channelEnum === Channel.ZALO || page.channel === 'ZALO') {
-        let existingZalos: any[] = [];
-        if (this.prisma.channelAccount?.findMany) {
-          existingZalos = await this.prisma.channelAccount.findMany({
-            where: {
-              workspaceId: targetWorkspaceId,
-              channel: Channel.ZALO,
-            },
-          }).catch(() => []);
-        }
-
-        if (existingZalos.length > 0) {
-          const primaryZalo = existingZalos[0];
-          // Nếu có nhiều hơn 1 kênh Zalo cũ bị trùng lặp, xóa các bản ghi thừa
-          if (existingZalos.length > 1 && this.prisma.channelAccount?.deleteMany) {
-            const duplicateIds = existingZalos.slice(1).map((z: any) => z.id);
-            await this.prisma.channelAccount.deleteMany({
-              where: { id: { in: duplicateIds } },
-            }).catch(() => null);
-            this.logger.log(`Cleaned up ${duplicateIds.length} duplicate Zalo channel accounts in workspace ${targetWorkspaceId}`);
-          }
-
-          if (this.prisma.channelAccount?.update) {
-            const previousDisconnectedAt = primaryZalo.disconnectedAt;
-            const updated = await this.prisma.channelAccount.update({
-              where: { id: primaryZalo.id },
-              data: {
-                externalAccountId: page.externalAccountId,
-                displayName: page.displayName || primaryZalo.displayName,
-                avatarUrl: page.avatarUrl || primaryZalo.avatarUrl,
-                encryptedAccessToken,
-                refreshToken: encryptedRefreshToken,
-                tokenExpiresAt: page.tokenExpiresAt
-                  ? new Date(page.tokenExpiresAt)
-                  : new Date(Date.now() + 72 * 60 * 60 * 1000),
-                disconnectedAt: null,
-                isActive: true,
-                metadata: {
-                  ...(primaryZalo.metadata as any),
-                  ...page.metadata,
-                  lastReconnectedAt: new Date().toISOString(),
-                  ...(previousDisconnectedAt
-                    ? { previousDisconnectedAt: previousDisconnectedAt.toISOString() }
-                    : {}),
-                } as any,
-              },
-            });
-            activatedAccounts.push(this.mapToDto(updated));
-
-            // Tự động kích hoạt cơ chế Auto Backfill Sync chống mất tin nhắn
-            if (this.zcaService) {
-              this.zcaService
-                .syncCloudMessages(page.externalAccountId, previousDisconnectedAt)
-                .catch((err) =>
-                  this.logger.warn(`Auto backfill sync error: ${err?.message}`),
-                );
-            }
-            continue;
-          }
-        }
-      }
-
+      // 4. Mỗi tài khoản (kể cả Zalo cá nhân) là một kênh riêng, định danh bởi (channel, externalAccountId).
+      //    Quét lại QR cùng một tài khoản Zalo sẽ cập nhật (gia hạn) đúng bản ghi đó; tài khoản khác sẽ tạo kênh mới.
       const existingAccount = await this.prisma.channelAccount.findUnique({
         where: {
           channel_externalAccountId: {
@@ -220,8 +159,8 @@ export class ChannelManagerService {
         },
         update: {
           workspaceId: targetWorkspaceId,
-          displayName: page.displayName,
-          avatarUrl: page.avatarUrl || null,
+          displayName: page.displayName || existingAccount?.displayName,
+          avatarUrl: page.avatarUrl || existingAccount?.avatarUrl || null,
           encryptedAccessToken,
           refreshToken: encryptedRefreshToken,
           tokenExpiresAt: page.tokenExpiresAt
@@ -231,9 +170,13 @@ export class ChannelManagerService {
           isWebhookSubscribed,
           isActive: true,
           metadata: {
+            ...((existingAccount?.metadata as any) || {}),
             ...page.metadata,
             ...(webhookError ? { webhookError } : {}),
             lastReconnectedAt: new Date().toISOString(),
+            ...(prevDisconnected
+              ? { previousDisconnectedAt: prevDisconnected.toISOString() }
+              : {}),
           } as any,
         },
         create: {
