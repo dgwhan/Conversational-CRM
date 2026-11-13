@@ -1,5 +1,6 @@
 enum WorkspaceMemberRole {
     OWNER
+    MANAGER
     STAFF
 
     @@map("workspace_member_role")

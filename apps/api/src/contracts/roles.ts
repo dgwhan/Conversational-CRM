@@ -1,11 +1,12 @@
 export const WorkspaceRole = {
   OWNER: 'OWNER',
+  MANAGER: 'MANAGER',
   STAFF: 'STAFF',
 } as const;
 
 export type WorkspaceRole = (typeof WorkspaceRole)[keyof typeof WorkspaceRole];
 
-export const WORKSPACE_ROLES = [WorkspaceRole.OWNER, WorkspaceRole.STAFF] as const;
+export const WORKSPACE_ROLES = [WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF] as const;
 
 export const UserStatus = {
   ACTIVE: 'ACTIVE',

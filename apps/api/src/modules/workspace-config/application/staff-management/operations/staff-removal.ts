@@ -1,127 +1,146 @@
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
 import { WorkspaceRole } from '../../../domain/index.js';
-import {
-  getUserDelegate,
-  resolveOwnerId,
-  findTargetWorkspace,
-  getCurrentUserAndRole,
-} from '../../workspace-resolver.js';
+import { getUserDelegate, resolveOwnerId, findTargetWorkspace, getCurrentUserAndRole } from '../../workspace-resolver.js';
 
 const logger = new Logger('StaffRemoval');
 
 /**
- * Xóa thành viên khỏi Không gian làm việc hoặc Rời khỏi Không gian làm việc
- * Chỉ xóa bản ghi liên kết WorkspaceMember
+ * Xóa thành viên khỏi Workspace hoặc tự rời Workspace.
  */
 export async function removeStaff(
   prisma: PrismaService,
-  ownerId: string,
+  actorId: string,
   targetStaffId: string,
-  workspaceId?: string
+  workspaceId?: string,
 ): Promise<{ success: boolean; message: string }> {
-  const resolvedCaller = await resolveOwnerId(prisma, ownerId);
+  const resolvedOwnerId = await resolveOwnerId(prisma, actorId);
   const userDelegate = getUserDelegate(prisma);
 
   try {
-    const targetStaff = userDelegate
+    const targetUser = userDelegate
       ? await userDelegate.findUnique({
-        where: { id: targetStaffId },
-      })
+          where: { id: targetStaffId },
+          select: { id: true },
+        })
       : null;
 
-    if (!targetStaff) {
-      throw new NotFoundException('Không tìm thấy tài khoản nhân viên cần xóa.');
+    if (!targetUser) {
+      throw new NotFoundException(
+        'Không tìm thấy tài khoản cần xóa.',
+      );
     }
 
-    // Xác định workspace cần thao tác
-    const targetWs = await findTargetWorkspace(
+    const workspace = await findTargetWorkspace(
       prisma,
       workspaceId,
-      resolvedCaller
+      resolvedOwnerId,
     );
 
-    if (!targetWs) {
+    if (!workspace) {
       throw new NotFoundException(
-        'Không tìm thấy Không gian làm việc tương ứng.'
+        'Không tìm thấy Không gian làm việc tương ứng.',
       );
     }
 
-    // Lấy tư cách thành viên của người gọi trong Workspace này
-    const { currentUser, role: currentUserRole } = await getCurrentUserAndRole(
-      prisma,
-      resolvedCaller,
-      targetWs
-    );
-
-    const isCallerOwner = currentUserRole === WorkspaceRole.OWNER;
-    const isSelfLeave = targetStaffId === currentUser.id;
-    const callerMembership = await prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId: targetWs.id, userId: resolvedCaller } },
-      select: { isWorkspaceManager: true, isActive: true, status: true },
-    });
-    const isWorkspaceManager = callerMembership?.isWorkspaceManager === true && callerMembership.isActive && callerMembership.status === 'ACTIVE';
-
-    // Nhân viên chỉ được phép tự rời workspace của mình
-    if (!isCallerOwner && !isWorkspaceManager && !isSelfLeave) {
-      throw new ForbiddenException(
-        'Bạn không có quyền xóa thành viên khác khỏi Không gian làm việc này.'
+    const { currentUser, role: actorRole } =
+      await getCurrentUserAndRole(
+        prisma,
+        actorId,
+        workspace,
       );
-    }
 
-    // Nếu là OWNER muốn rời/xóa chính mình, kiểm tra xem Workspace còn Owner nào khác không
-    if (isSelfLeave && isCallerOwner) {
-      const totalOwners = await prisma.workspaceMember.count({
-        where: {
-          workspaceId: targetWs.id,
-          role: WorkspaceRole.OWNER,
-          isActive: true,
-        },
-      });
+    const isSelfLeave = currentUser.id === targetStaffId;
 
-      if (totalOwners <= 1) {
-        throw new BadRequestException(
-          'Không thể rời hoặc xóa Chủ sở hữu. Không gian làm việc phải có ít nhất 1 Chủ sở hữu.'
-        );
-      }
-    }
-
-    const targetMembership = await prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId: targetWs.id, userId: targetStaffId } },
-      select: { id: true, role: true, isWorkspaceManager: true },
-    });
-    if (!isCallerOwner && !isSelfLeave && (targetStaffId === targetWs.ownerId || targetMembership?.role === WorkspaceRole.OWNER || targetMembership?.isWorkspaceManager)) {
-      throw new ForbiddenException('Quản lý workspace không thể gỡ Owner hoặc Quản lý workspace khác.');
-    }
-    if (targetMembership) {
-      const openConversationCount = await prisma.conversation.count({
-        where: { workspaceId: targetWs.id, assignedMemberId: targetMembership.id, status: 'OPEN' },
-      });
-      if (openConversationCount > 0) {
-        throw new ConflictException(`Cần bàn giao ${openConversationCount} hội thoại đang mở trước khi gỡ nhân viên khỏi workspace.`);
-      }
-    }
-
-    // Xóa thành viên khỏi bảng WorkspaceMember
-    await prisma.workspaceMember.deleteMany({
+    const membership = await prisma.workspaceMember.findUnique({
       where: {
-        workspaceId: targetWs.id,
-        userId: targetStaffId,
+        workspaceId_userId: {
+          workspaceId: workspace.id,
+          userId: targetStaffId,
+        },
       },
     });
 
-    logger.log(`Member ${targetStaffId} removed from workspace ${targetWs.id}`);
+    if (!membership) {
+      throw new NotFoundException(
+        'Người dùng không phải là thành viên của Workspace này.',
+      );
+    }
+
+    // Không cho phép xóa Owner thông qua chức năng quản lý nhân viên.
+    if (membership.role === WorkspaceMemberRole.OWNER) {
+      throw new ForbiddenException(
+        'Không thể xóa Chủ sở hữu Workspace bằng chức năng này.',
+      );
+    }
+
+    // Tự rời Workspace.
+    if (isSelfLeave) {
+      if (actorRole === WorkspaceRole.OWNER) {
+        throw new BadRequestException(
+          'Không thể rời Workspace khi bạn là Chủ sở hữu. Hãy chuyển quyền sở hữu trước.',
+        );
+      }
+
+      await prisma.workspaceMember.delete({
+        where: {
+          workspaceId_userId: {
+            workspaceId: workspace.id,
+            userId: currentUser.id,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: 'Bạn đã rời khỏi Không gian làm việc thành công.',
+      };
+    }
+
+    // Không cho phép STAFF xóa thành viên khác.
+    if (actorRole === WorkspaceRole.STAFF) {
+      throw new ForbiddenException(
+        'Bạn không có quyền xóa thành viên khỏi Workspace.',
+      );
+    }
+
+    // MANAGER chỉ được xóa STAFF.
+    if (
+      actorRole === WorkspaceRole.MANAGER &&
+      membership.role !== WorkspaceMemberRole.STAFF
+    ) {
+      throw new ForbiddenException(
+        'Quản lý Workspace chỉ được xóa nhân viên tư vấn.',
+      );
+    }
+
+    // Chỉ OWNER và MANAGER được phép xóa thành viên theo quy tắc trên.
+    if (
+      actorRole !== WorkspaceRole.OWNER &&
+      actorRole !== WorkspaceRole.MANAGER
+    ) {
+      throw new ForbiddenException(
+        'Bạn không có quyền thực hiện thao tác này.',
+      );
+    }
+
+    await prisma.workspaceMember.delete({
+      where: {
+        workspaceId_userId: {
+          workspaceId: workspace.id,
+          userId: targetStaffId,
+        },
+      },
+    });
+
+    logger.log(
+      `Member ${targetStaffId} removed from workspace ${workspace.id} by ${currentUser.id}`,
+    );
+
     return {
       success: true,
-      message: isSelfLeave
-        ? 'Bạn đã rời khỏi Không gian làm việc thành công.'
-        : 'Đã xóa nhân viên khỏi Không gian làm việc.',
+      message: 'Đã xóa thành viên khỏi Không gian làm việc.',
     };
   } catch (err) {
     if (
@@ -132,8 +151,11 @@ export async function removeStaff(
     ) {
       throw err;
     }
-    logger.warn(`Could not remove member from workspace: ${(err as Error).message}`);
+
+    logger.error(
+      `Could not remove member from workspace: ${(err as Error).message}`,
+    );
+
     throw err;
   }
 }
-

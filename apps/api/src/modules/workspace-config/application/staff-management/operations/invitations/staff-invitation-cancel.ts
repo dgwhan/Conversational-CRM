@@ -1,5 +1,5 @@
 import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
-import { NotificationType, WorkspaceMemberStatus } from '@prisma/client';
+import {NotificationType, WorkspaceMemberRole, WorkspaceMemberStatus } from '@prisma/client';
 import { PrismaService } from '../../../../../../platform/database/prisma.service.js';
 import { WorkspaceRole } from '../../../../domain/index.js';
 import { findTargetWorkspace, getCurrentUserAndRole, resolveOwnerId } from '../../../workspace-resolver.js';
@@ -7,29 +7,46 @@ import { findTargetWorkspace, getCurrentUserAndRole, resolveOwnerId } from '../.
 const logger = new Logger('StaffCancelInvitation');
 
 /**
- * Hủy lời mời đã gửi (Dành cho Chủ sở hữu Workspace)
+ * Hủy lời mời đã gửi vào Workspace.
+ *
+ * OWNER: Có thể hủy lời mời MANAGER và STAFF.
+ * MANAGER: Chỉ có thể hủy lời mời STAFF.
+ * STAFF: Không có quyền.
  */
 export async function cancelInvitation(
   prisma: PrismaService,
-  ownerId: string,
+  actorId: string,
   targetStaffIdOrMemberId: string,
-  workspaceId?: string
+  workspaceId?: string,
 ): Promise<{ success: boolean; message: string }> {
-  const resolvedOwner = await resolveOwnerId(prisma, ownerId);
-  const targetWs = await findTargetWorkspace(prisma, workspaceId, resolvedOwner);
+  const resolvedOwnerId = await resolveOwnerId(prisma, actorId);
+
+  const targetWs = await findTargetWorkspace(
+    prisma,
+    workspaceId,
+    resolvedOwnerId,
+  );
+
   if (!targetWs) {
-    throw new NotFoundException('Không tìm thấy Không gian làm việc.');
+    throw new NotFoundException(
+      'Không tìm thấy Không gian làm việc.',
+    );
   }
 
-  const { role } = await getCurrentUserAndRole(prisma, resolvedOwner, targetWs);
-  const callerMembership = await prisma.workspaceMember.findUnique({
-    where: { workspaceId_userId: { workspaceId: targetWs.id, userId: resolvedOwner } },
-    select: { isWorkspaceManager: true, isActive: true, status: true },
-  });
-  const isOwner = targetWs.ownerId === resolvedOwner || role === WorkspaceRole.OWNER;
-  const isWorkspaceManager = callerMembership?.isWorkspaceManager === true && callerMembership.isActive && callerMembership.status === 'ACTIVE';
-  if (!isOwner && !isWorkspaceManager) {
-    throw new ForbiddenException('Bạn chưa được cấp quyền quản lý lời mời trong workspace.');
+  const { currentUser, role: actorRole } =
+    await getCurrentUserAndRole(
+      prisma,
+      actorId,
+      targetWs,
+    );
+
+  if (
+    actorRole !== WorkspaceRole.OWNER &&
+    actorRole !== WorkspaceRole.MANAGER
+  ) {
+    throw new ForbiddenException(
+      'Bạn không có quyền hủy lời mời thành viên.',
+    );
   }
 
   const member = await prisma.workspaceMember.findFirst({
@@ -40,22 +57,37 @@ export async function cancelInvitation(
         { userId: targetStaffIdOrMemberId },
       ],
       status: WorkspaceMemberStatus.PENDING,
+      isActive: true,
     },
   });
 
   if (!member) {
-    throw new NotFoundException('Không tìm thấy lời mời đang chờ chấp nhận.');
-  }
-  if (!isOwner && member.role === WorkspaceRole.OWNER) {
-    throw new ForbiddenException('Quản lý workspace không thể hủy lời mời cấp quyền Owner.');
+    throw new NotFoundException(
+      'Không tìm thấy lời mời đang chờ chấp nhận.',
+    );
   }
 
-  // Xóa bản ghi WorkspaceMember
-  await prisma.workspaceMember.delete({
-    where: { id: member.id },
+  // MANAGER chỉ được hủy lời mời STAFF.
+  if (
+    actorRole === WorkspaceRole.MANAGER &&
+    member.role !== WorkspaceMemberRole.STAFF
+  ) {
+    throw new ForbiddenException(
+      'Quản lý Workspace chỉ được hủy lời mời nhân viên tư vấn.',
+    );
+  }
+
+  await prisma.workspaceMember.update({
+    where: {
+      id: member.id,
+    },
+    data: {
+      status: WorkspaceMemberStatus.CANCELLED,
+      isActive: false,
+    },
   });
 
-  // Xóa hoặc thu hồi notification lời mời tương ứng
+  // Thu hồi notification tương ứng nếu schema hỗ trợ lọc theo memberId.
   try {
     if (prisma.notification?.deleteMany) {
       await prisma.notification.deleteMany({
@@ -63,15 +95,18 @@ export async function cancelInvitation(
           workspaceId: targetWs.id,
           userId: member.userId,
           type: NotificationType.WORKSPACE_INVITATION,
+          // Cần bổ sung điều kiện memberId nếu metadata schema hỗ trợ.
         },
       });
     }
-  } catch (e) {
-    logger.warn(`Could not clean up invitation notifications: ${(e as Error).message}`);
+  } catch (error) {
+    logger.warn(
+      `Could not clean up invitation notification: ${(error as Error).message}`,
+    );
   }
 
   logger.log(
-    `Owner ${resolvedOwner} cancelled invitation for member ${member.id} in workspace ${targetWs.id}`
+    `User ${currentUser.id} cancelled invitation ${member.id} in workspace ${targetWs.id}`,
   );
 
   return {

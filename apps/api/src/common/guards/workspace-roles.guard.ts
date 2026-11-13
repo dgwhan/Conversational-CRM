@@ -16,6 +16,7 @@ import { WORKSPACE_ROLES } from '../../contracts/roles.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import { extractUserFromAuthHeader } from '../../modules/workspace-config/application/workspace-resolver.js';
 import { resolveDefaultMembership, resolveWorkspaceMembership } from '../auth/workspace-membership.js';
+import { STAFF_STATUS } from '../../modules/auth/domain/staff-status.constants.js';
 
 /** Các route liên quan lời mời: người được mời (PENDING) phải truy cập được workspace mời họ */
 const INVITATION_FLOW_REGEX = /\/workspaces\/(?:invitations\/|[^/]+\/members\/(?:accept|decline)(?:\/|\?|$))/;
@@ -33,18 +34,20 @@ export class WorkspaceRolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     @Optional() private readonly prisma?: PrismaService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    // 1. Danh tính
+    // Xác định Danh tính
     if (!request.user?.id) {
       const tokenUser = extractUserFromAuthHeader(request.headers?.authorization);
       if (!tokenUser) {
         throw new UnauthorizedException();
       }
-      request.user = { id: tokenUser.id };
+      request.user = {
+        id: tokenUser.id
+      };
     }
     const userId: string = request.user.id;
 
@@ -59,21 +62,31 @@ export class WorkspaceRolesGuard implements CanActivate {
     );
     const hasPermissionRequirement = Array.isArray(requiredPermissions) && requiredPermissions.length > 0;
 
-    // 2. Workspace đích
-    let workspace: { id?: string; role?: string; status?: string } | undefined = request.workspace;
+    /**
+     * Kiểm tra vai trò OWNER / MANAGER / STAFF trong workspace.
+     */
+    let workspace: {
+      id?: string;
+      role?: AppRole;
+      status?: string
+    } | undefined = request.workspace;
 
-    // Phòng thủ nhiều lớp: nếu WorkspaceContextGuard toàn cục chưa chạy (vd. module chạy riêng),
+    // Nếu WorkspaceContextGuard toàn cục chưa chạy,
     // tự xác định workspace từ tư cách thành viên thực tế thay vì tin bất kỳ header nào của client.
     if (!workspace && this.prisma) {
       const headerRef = request.headers?.['x-workspace-id'];
       let membership = null;
       if (typeof headerRef === 'string' && headerRef) {
         const m = await resolveWorkspaceMembership(this.prisma, userId, headerRef);
-        if (m?.status === 'ACTIVE') membership = m;
+        if (m?.status === STAFF_STATUS.ACTIVE) membership = m;
       }
       membership = membership ?? (await resolveDefaultMembership(this.prisma, userId));
       if (membership) {
-        workspace = { id: membership.workspaceId, role: membership.role, status: membership.status };
+        workspace = {
+          id: membership.workspaceId,
+          role: membership.role,
+          status: membership.status
+        };
         request.workspace = {
           id: membership.workspaceId,
           ownerId: membership.ownerId,
@@ -86,36 +99,49 @@ export class WorkspaceRolesGuard implements CanActivate {
     const url: string = request.url || request.raw?.url || '';
     const isInvitationFlow = INVITATION_FLOW_REGEX.test(url);
 
-    if (targetRef && !isInvitationFlow && targetRef !== workspace?.id) {
+    if (targetRef && targetRef !== workspace?.id) {
       const membership = this.prisma
         ? await resolveWorkspaceMembership(this.prisma, userId, targetRef)
         : null;
+
       if (!membership) {
-        throw new ForbiddenException('Bạn không phải thành viên của Không gian làm việc này.');
+        throw new ForbiddenException(
+          'Bạn không có quyền truy cập Không gian làm việc này.',
+        );
       }
-      workspace = { id: membership.workspaceId, role: membership.role, status: membership.status };
-      request.workspace = { ...(request.workspace ?? {}), ...workspace };
+
+      workspace = {
+        id: membership.workspaceId,
+        role: membership.role,
+        status: membership.status,
+      };
+
+      request.workspace = {
+        ...(request.workspace ?? {}),
+        ...workspace,
+      };
     }
 
     // Nếu tài khoản đang ở trạng thái PENDING đối với workspace, chặn truy cập
-    if (workspace?.status && workspace.status !== 'ACTIVE' && !isInvitationFlow) {
+    if (
+      workspace?.status &&
+      workspace.status !== STAFF_STATUS.ACTIVE &&
+      !isInvitationFlow
+    ) {
       throw new ForbiddenException(
         'Bạn chưa chấp nhận lời mời tham gia Không gian làm việc này.',
       );
     }
 
-    // Endpoint không yêu cầu role cụ thể: chỉ cần đã đăng nhập (và là thành viên nếu URL chỉ định workspace)
+    //chỉ cần đã đăng nhập và là thành viên của workspace
     if (!hasRoleRequirement && !hasPermissionRequirement) {
       return true;
     }
 
-    // Endpoint cho phép mọi vai trò (vd: tạo workspace đầu tiên khi chưa thuộc workspace nào)
-    if (hasRoleRequirement && !hasPermissionRequirement && !targetRef && WORKSPACE_ROLES.every((r) => requiredRoles!.includes(r))) {
-      return true;
-    }
+    const userRole = workspace?.role;
 
-    const userRole = workspace?.role as AppRole | undefined;
-    if (hasRoleRequirement && (!userRole || !requiredRoles!.includes(userRole))) {
+    if (hasRoleRequirement &&
+      (!userRole || !requiredRoles?.includes(userRole))) {
       throw new ForbiddenException(
         `Bạn không có quyền thực hiện thao tác này. Chức năng này chỉ dành cho: ${requiredRoles!.join(', ')} (Hiện tại bạn là: ${userRole ?? 'không thuộc không gian làm việc nào'}).`,
       );
@@ -130,23 +156,33 @@ export class WorkspaceRolesGuard implements CanActivate {
         select: {
           ownerId: true,
           members: {
-            where: { userId, isActive: true, status: 'ACTIVE' },
-            select: { role: true, isWorkspaceManager: true },
+            where: { userId, isActive: true, status: STAFF_STATUS.ACTIVE },
+            select: { role: true },
             take: 1,
           },
         },
       });
-      const membership = target?.members[0];
-      const isOwner = target?.ownerId === userId || membership?.role === 'OWNER';
-      const isWorkspaceManager = membership?.isWorkspaceManager === true;
+
+      const workspaceOwner = await this.prisma.workspace.findUnique({
+        where: {
+          id: workspace.id,
+        },
+        select: {
+          ownerId: true,
+        },
+      });
+
+      const isOwner = target?.ownerId === userId;
+
       const allowed = requiredPermissions!.every((permission) => {
         switch (permission) {
           case 'MANAGE_WORKSPACE':
-            return isOwner || isWorkspaceManager;
+            return isOwner;
           default:
             return false;
         }
       });
+
       if (!allowed) {
         throw new ForbiddenException('Bạn chưa được cấp quyền quản lý workspace này.');
       }
@@ -156,7 +192,9 @@ export class WorkspaceRolesGuard implements CanActivate {
   }
 
   /** workspace được chỉ định trong URL của route hiện tại (nếu có) */
-  private getTargetWorkspaceRef(context: ExecutionContext, request: any): string | undefined {
+  private getTargetWorkspaceRef(
+    context: ExecutionContext,
+    request: any): string | undefined {
     const params = request.params ?? {};
     const explicit = params.wsId ?? params.workspaceId;
     if (typeof explicit === 'string' && explicit) return explicit;

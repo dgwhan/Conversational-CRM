@@ -1,31 +1,16 @@
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-  Logger,
-} from '@nestjs/common';
-import { WorkspaceMemberStatus, NotificationType, NotificationSeverity } from '@prisma/client';
+import { BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { WorkspaceMemberRole, WorkspaceMemberStatus, NotificationType, NotificationSeverity, } from '@prisma/client';
 import { PrismaService } from '../../../../../platform/database/prisma.service.js';
-import {
-  findUserByIdentifier,
-  USER_IDENTIFIER_CONFIG,
-} from '../../../../../common/configs/index.js';
+import { findUserByIdentifier, USER_IDENTIFIER_CONFIG } from '../../../../../common/configs/index.js';
 import { WorkspaceRole } from '../../../domain/index.js';
-import type {
-  StaffItemResponse,
-  CreateStaffDto,
-} from '../../../presentation/dto/index.js';
-import {
-  findTargetWorkspace,
-  resolveOwnerId,
-  getCurrentUserAndRole,
-} from '../../workspace-resolver.js';
+import type { StaffItemResponse, CreateStaffDto} from '../../../presentation/dto/index.js';
+import { findTargetWorkspace, resolveOwnerId, getCurrentUserAndRole } from '../../workspace-resolver.js';
 
 const logger = new Logger('StaffInvite');
 
 /**
  * Mời nhân viên đã có tài khoản vào Workspace
- * Chỉ OWNER mới có quyền mời
+ * Chỉ OWNER và MANAGER mới có quyền mời
  */
 export async function createStaff(
   prisma: PrismaService,
@@ -44,8 +29,13 @@ export async function createStaff(
     throw new BadRequestException(USER_IDENTIFIER_CONFIG.MESSAGES.MISSING_ROLE);
   }
 
-  if (dto.role !== WorkspaceRole.OWNER && dto.role !== WorkspaceRole.STAFF) {
-    throw new BadRequestException(USER_IDENTIFIER_CONFIG.MESSAGES.INVALID_ROLE);
+  if (
+    dto.role !== WorkspaceRole.MANAGER &&
+    dto.role !== WorkspaceRole.STAFF
+  ) {
+    throw new BadRequestException(
+      USER_IDENTIFIER_CONFIG.MESSAGES.INVALID_ROLE,
+    );
   }
 
   try {
@@ -61,21 +51,24 @@ export async function createStaff(
 
     // Lấy tài khoản hiện tại và vai trò trong Workspace
     const { currentUser, role: currentUserRole } =
-      await getCurrentUserAndRole(prisma, resolvedOwner, ownerWorkspace);
+      await getCurrentUserAndRole(prisma, ownerId, ownerWorkspace);
 
-    const currentMembership = await prisma.workspaceMember.findUnique({
-      where: { workspaceId_userId: { workspaceId: ownerWorkspace.id, userId: resolvedOwner } },
-      select: { isWorkspaceManager: true, isActive: true, status: true },
-    });
-    const isWorkspaceManager = currentMembership?.isWorkspaceManager === true && currentMembership.isActive && currentMembership.status === 'ACTIVE';
-    const isOwner = ownerWorkspace.ownerId === resolvedOwner || currentUserRole === WorkspaceRole.OWNER;
-    if (!isOwner && !isWorkspaceManager) {
+    if (
+      currentUserRole !== WorkspaceRole.OWNER &&
+      currentUserRole !== WorkspaceRole.MANAGER
+    ) {
       throw new ForbiddenException(
-        'Bạn chưa được cấp quyền quản lý thành viên trong workspace.'
+        'Bạn không có quyền mời thành viên vào workspace này.',
       );
     }
-    if (!isOwner && dto.role === WorkspaceRole.OWNER) {
-      throw new ForbiddenException('Quản lý workspace chỉ được mời nhân viên tư vấn, không được cấp quyền Owner.');
+
+    if (
+      currentUserRole === WorkspaceRole.MANAGER &&
+      dto.role !== WorkspaceRole.STAFF
+    ) {
+      throw new ForbiddenException(
+        'Quản lý workspace chỉ được mời nhân viên tư vấn.',
+      );
     }
 
     // Tìm kiếm theo Email hoặc Số điện thoại qua magic string 'user' trên Prisma
@@ -124,7 +117,10 @@ export async function createStaff(
     }
 
     // Sử dụng chính xác vai trò do người mời chỉ định (bắt buộc)
-    const finalRole: WorkspaceRole = dto.role;
+    const finalRole: WorkspaceMemberRole =
+      dto.role === WorkspaceRole.MANAGER
+        ? WorkspaceMemberRole.MANAGER
+        : WorkspaceMemberRole.STAFF;
 
     const member = await prisma.workspaceMember.upsert({
       where: {
@@ -152,6 +148,10 @@ export async function createStaff(
       },
     });
 
+    const roleLabel = finalRole === WorkspaceMemberRole.MANAGER
+      ? 'Quản lý workspace'
+      : 'Nhân viên tư vấn';
+
     // Tạo bản ghi Notification cho người được mời
     try {
       if (prisma.notification?.create) {
@@ -162,7 +162,7 @@ export async function createStaff(
             type: NotificationType.WORKSPACE_INVITATION,
             severity: NotificationSeverity.INFO,
             title: 'Lời mời tham gia Không gian làm việc',
-            content: `${currentUser.fullName || 'Chủ sở hữu'} đã mời bạn tham gia không gian làm việc "${ownerWorkspace.name}" với vai trò ${finalRole === WorkspaceRole.OWNER ? 'Chủ sở hữu' : 'Nhân viên tư vấn'}.`,
+            content: `${currentUser.fullName} đã mời bạn tham gia không gian làm việc "${ownerWorkspace.name}" với vai trò ${roleLabel}.`,
             actionUrl: `/workspace/invited/${member.id}`,
             metadata: {
               workspaceId: ownerWorkspace.id,
