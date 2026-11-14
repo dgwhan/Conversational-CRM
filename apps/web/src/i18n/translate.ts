@@ -1,10 +1,24 @@
 import type { Locale, TranslationDictionary } from './types.js';
 import { vi } from './locales/vi.js';
-import { en } from './locales/en.js';
 
 export type TranslationParams = Record<string, string | number>;
 
-const DICTIONARIES: Record<Locale, TranslationDictionary> = { vi, en };
+// vi là mặc định nên nằm trong gói chính; en chỉ tải khi cần (loadDictionary) để giảm JS ban đầu.
+const DICTIONARIES: Partial<Record<Locale, TranslationDictionary>> = { vi };
+
+export function getDictionary(locale: Locale): TranslationDictionary {
+  return DICTIONARIES[locale] ?? vi;
+}
+
+export function isDictionaryLoaded(locale: Locale): boolean {
+  return DICTIONARIES[locale] !== undefined;
+}
+
+/** Tải từ điển của locale nếu chưa có. Lỗi mạng thì giữ nguyên tiếng Việt (translate() tự lùi về vi). */
+export async function loadDictionary(locale: Locale): Promise<void> {
+  if (DICTIONARIES[locale]) return;
+  if (locale === 'en') DICTIONARIES.en = (await import('./locales/en.js')).en;
+}
 
 let activeLocale: Locale = 'vi';
 
@@ -47,5 +61,5 @@ export function lookupTranslation(
  * Gọi tại thời điểm hiển thị (không gán vào hằng số lúc import) để luôn theo locale hiện tại.
  */
 export function translate(keyPath: string, fallback?: string, params?: TranslationParams): string {
-  return lookupTranslation(DICTIONARIES[activeLocale], keyPath, fallback, params);
+  return lookupTranslation(getDictionary(activeLocale), keyPath, fallback, params);
 }

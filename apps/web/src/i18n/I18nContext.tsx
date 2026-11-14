@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import type { Locale, TranslationDictionary } from './types.js';
 import { I18nContext, type I18nContextValue } from './context.js';
-import { lookupTranslation, setActiveLocale, type TranslationParams } from './translate.js';
-import { vi } from './locales/vi.js';
-import { en } from './locales/en.js';
+import {
+  getDictionary,
+  isDictionaryLoaded,
+  loadDictionary,
+  lookupTranslation,
+  setActiveLocale,
+  type TranslationParams,
+} from './translate.js';
 
 const STORAGE_KEY = 'crm_app_locale';
 
@@ -25,9 +30,26 @@ export const I18nProvider: React.FC<I18nProviderProps> = ({ children }) => {
     return 'vi';
   });
 
-  const dict = useMemo<TranslationDictionary>(() => {
-    return locale === 'en' ? en : vi;
+  // Tăng khi một từ điển tải xong để render lại. Trong lúc tải (chỉ lần đầu với locale en) hiển thị tiếng Việt.
+  const [loadedVersion, setLoadedVersion] = useState(0);
+  useEffect(() => {
+    if (isDictionaryLoaded(locale)) return;
+    let cancelled = false;
+    loadDictionary(locale)
+      .then(() => {
+        if (!cancelled) setLoadedVersion((v) => v + 1);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [locale]);
+
+  const dict = useMemo<TranslationDictionary>(
+    () => getDictionary(locale),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadedVersion buộc tính lại khi từ điển vừa tải xong
+    [locale, loadedVersion],
+  );
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
