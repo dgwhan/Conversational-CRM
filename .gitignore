@@ -10,3 +10,8 @@ coverage/
 
 # Bản sao media khi MEDIA_STORAGE_DRIVER=local
 apps/api/storage/
+
+# Skill/công cụ AI cài cục bộ, không thuộc runtime
+apps/api/.agents/
+apps/api/.claude/
+apps/api/.windsurf/

@@ -1,8 +1,9 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
+import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
 import { WorkspaceRole } from '../../../contracts/roles.js';
 import { MEDIA_STORAGE, type MediaStorage, type StoredMediaObject } from '../infrastructure/media-storage/media-storage.js';
 import { prepareOutboundImage } from '../infrastructure/media-storage/image-optimizer.js';
@@ -73,6 +74,7 @@ export class OutboundMediaService {
     constructor(
         private readonly prisma: PrismaService,
         @Inject(MEDIA_STORAGE) private readonly storage: MediaStorage,
+        @Optional() private readonly locks?: DistributedLockService,
     ) {}
 
     async upload(
@@ -279,6 +281,13 @@ export class OutboundMediaService {
     /** Mỗi giờ: xóa tệp tải lên mà không gửi đi sau 24 giờ. */
     @Cron('15 * * * *', { name: 'outbound-media-pending-cleanup' })
     async cleanupPending(now = new Date()): Promise<number> {
+        // Khóa phân tán: nhiều instance chỉ một instance dọn (giống các cron khác)
+        const run = () => this.cleanupPendingRows(now);
+        const result = this.locks ? await this.locks.runExclusive('cron:outbound-media-pending-cleanup', 10 * 60_000, run) : await run();
+        return result ?? 0;
+    }
+
+    private async cleanupPendingRows(now: Date): Promise<number> {
         const rows = await this.prisma.mediaAsset.findMany({
             where: { purpose: 'OUTBOUND', status: 'PENDING', createdAt: { lt: new Date(now.getTime() - PENDING_TTL_MS) } },
             select: { id: true, storageKey: true },
