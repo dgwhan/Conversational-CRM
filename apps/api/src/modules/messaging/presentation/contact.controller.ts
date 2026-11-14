@@ -8,25 +8,23 @@ import {
     Headers,
     Logger,
     BadRequestException,
+    ForbiddenException,
     Req,
+    UseGuards,
 } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { Channel } from '../domain/channel.js';
 import { ContactMergeService } from '../application/contact-merge.service.js';
-import { getRequestIdentity } from '../../../common/auth/request-identity.js';
-
-/*
- * LƯU Ý BẢO MẬT (giới hạn của mô hình dữ liệu): bảng contacts / channel_identities / contact_merge_logs
- * hiện KHÔNG có cột workspace_id (số điện thoại chuẩn hóa là unique toàn hệ thống), nên các endpoint ở
- * đây mới chỉ được bảo vệ bằng xác thực toàn cục (JwtAuthGuard) chứ chưa cô lập theo workspace.
- * Muốn cô lập thật sự cần migration thêm workspace_id cho các bảng này. Danh tính người thực hiện
- * (actorId) luôn lấy từ token, không lấy từ header do client gửi.
- */
+import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
+import { WorkspaceRolesGuard } from '../../../common/guards/workspace-roles.guard.js';
+import { WorkspaceRole } from '../../../contracts/roles.js';
 
 /**
- * Controller managing Contact, ChannelIdentity, and Contact Merge/Unmerge operations (CUS-04).
+ * Controller quản lý Contact, ChannelIdentity, và Hợp nhất Contact (CUS-04).
+ * Đã được bảo vệ phân quyền theo từng Không gian làm việc (WorkspaceRolesGuard) chống IDOR và rò rỉ dữ liệu.
  */
 @Controller('contacts')
+@UseGuards(WorkspaceRolesGuard)
 export class ContactController {
     private readonly logger = new Logger(ContactController.name);
 
@@ -36,12 +34,59 @@ export class ContactController {
     ) {}
 
     /**
-     * Retrieve all contacts along with their linked channel identities.
+     * Lấy danh sách liên hệ thuộc Workspace hiện tại kèm định danh kênh.
      */
     @Get()
-    async getContacts() {
+    async getContacts(@Req() req: any) {
+        const workspaceId = requireWorkspaceId(req);
+        const { role, userId } = getRequestIdentity(req);
+
+        let where: any = { workspaceId, isMerged: false };
+
+        // STAFF: Chỉ xem danh bạ thuộc các hội thoại, deal hoặc khách hàng được phân công cho mình
+        if (role === WorkspaceRole.STAFF && userId) {
+            const memberIds: string[] = [];
+            try {
+                const members = await this.prisma.workspaceMember.findMany({
+                    where: { userId, workspaceId },
+                    select: { id: true },
+                });
+                members.forEach((m) => memberIds.push(m.id));
+            } catch { }
+
+            where = {
+                workspaceId,
+                isMerged: false,
+                OR: [
+                    {
+                        deals: {
+                            some: {
+                                OR: [
+                                    { assignedMember: { userId } },
+                                    ...(memberIds.length > 0 ? [{ assignedMemberId: { in: memberIds } }] : []),
+                                ],
+                            },
+                        },
+                    },
+                    {
+                        channelIdentities: {
+                            some: {
+                                customer: {
+                                    OR: [
+                                        { conversations: { some: { assignedMember: { userId } } } },
+                                        ...(memberIds.length > 0 ? [{ conversations: { some: { assignedMemberId: { in: memberIds } } } }] : []),
+                                        { channelIdentities: { path: ['assignedStaffId'], equals: userId } },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                ],
+            };
+        }
+
         const items = await this.prisma.contact.findMany({
-            where: { isMerged: false },
+            where,
             include: { channelIdentities: true },
             orderBy: { updatedAt: 'desc' },
         });
@@ -49,7 +94,7 @@ export class ContactController {
     }
 
     /**
-     * Kiểm tra số điện thoại có bị trùng với contact khác không
+     * Kiểm tra số điện thoại có bị trùng với contact khác không trong workspace
      */
     @Get('check-duplicate-phone')
     async checkDuplicatePhone(
@@ -82,14 +127,53 @@ export class ContactController {
             throw new BadRequestException('targetContactId và sourceContactId là bắt buộc');
         }
 
+        const workspaceId = requireWorkspaceId(req);
+        const { role, userId } = getRequestIdentity(req);
+
+        // STAFF: Chỉ được gộp các contact thuộc phạm vi phân công của mình
+        if (role === WorkspaceRole.STAFF && userId) {
+            const allowedCount = await this.prisma.contact.count({
+                where: {
+                    id: { in: [body.targetContactId, body.sourceContactId] },
+                    workspaceId,
+                    OR: [
+                        {
+                            deals: {
+                                some: {
+                                    assignedMember: { userId },
+                                },
+                            },
+                        },
+                        {
+                            channelIdentities: {
+                                some: {
+                                    customer: {
+                                        OR: [
+                                            { conversations: { some: { assignedMember: { userId } } } },
+                                            { channelIdentities: { path: ['assignedStaffId'], equals: userId } },
+                                        ],
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+            if (allowedCount < 2) {
+                throw new ForbiddenException(
+                    'Bạn chỉ được gộp các liên hệ thuộc phạm vi phân công của mình (403 Forbidden).',
+                );
+            }
+        }
+
         return this.mergeService.mergeContacts({
             targetContactId: body.targetContactId,
             sourceContactId: body.sourceContactId,
             phoneNormalized: body.phoneNormalized,
-            actorId: getRequestIdentity(req).userId,
+            actorId: userId,
             mergeType: 'MANUAL_STAFF',
             reason: body.reason,
-            workspaceId: getRequestIdentity(req).workspaceId,
+            workspaceId,
         });
     }
 
@@ -107,9 +191,16 @@ export class ContactController {
             throw new BadRequestException('mergeLogId là bắt buộc');
         }
 
+        const { role, userId } = getRequestIdentity(req);
+        if (role === WorkspaceRole.STAFF) {
+            throw new ForbiddenException(
+                'Nhân viên không có quyền hoàn tác gộp liên hệ (403 Forbidden).',
+            );
+        }
+
         return this.mergeService.unmergeContact({
             mergeLogId,
-            actorId: getRequestIdentity(req).userId,
+            actorId: userId,
             reason: body?.reason,
         });
     }
@@ -137,22 +228,24 @@ export class ContactController {
     }
 
     /**
-     * Look up a contact and its channel identities by channel & external user ID, phone, or email.
+     * Tra cứu contact và danh tính kênh theo định danh, chỉ trong workspace hiện tại.
      */
     @Get('lookup')
     async lookupContact(
+        @Req() req: any,
         @Query('channel') channel?: string,
         @Query('externalUserId') externalUserId?: string,
         @Query('phone') phone?: string,
         @Query('email') email?: string,
     ) {
+        const workspaceId = requireWorkspaceId(req);
+
         if (channel && externalUserId) {
-            const identity = await this.prisma.channelIdentity.findUnique({
+            const identity = await this.prisma.channelIdentity.findFirst({
                 where: {
-                    channel_externalUserId: {
-                        channel: channel.toUpperCase() as Channel,
-                        externalUserId,
-                    },
+                    channel: channel.toUpperCase() as Channel,
+                    externalUserId,
+                    workspaceId,
                 },
                 include: {
                     contact: {
@@ -167,7 +260,7 @@ export class ContactController {
 
         if (phone) {
             const contact = await this.prisma.contact.findFirst({
-                where: { phoneNormalized: phone, isMerged: false },
+                where: { workspaceId, phoneNormalized: phone, isMerged: false },
                 include: { channelIdentities: true },
             });
             if (contact) return { contact, channelIdentities: contact.channelIdentities };
@@ -175,7 +268,7 @@ export class ContactController {
 
         if (email) {
             const contact = await this.prisma.contact.findFirst({
-                where: { email, isMerged: false },
+                where: { workspaceId, email, isMerged: false },
                 include: { channelIdentities: true },
             });
             if (contact) return { contact, channelIdentities: contact.channelIdentities };

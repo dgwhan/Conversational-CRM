@@ -60,6 +60,8 @@ model Workspace {
     members         WorkspaceMember[]
     channelAccounts ChannelAccount[]
     customers       Customer[]
+    contacts        Contact[]
+    channelIdentities ChannelIdentity[]
     conversations   Conversation[]
     configuration   WorkspaceConfiguration?
     notifications   Notification[]

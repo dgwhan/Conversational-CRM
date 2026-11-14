@@ -21,6 +21,14 @@ export interface WorkspaceMembersTabProps {
     memberId: string,
     enabled: boolean,
   ) => Promise<void>;
+  onTransferOwnership?: (
+    targetMemberId: string,
+    leaveWorkspace?: boolean,
+  ) => void | Promise<any>;
+  onToggleStaffLock?: (
+    targetId: string,
+    lock: boolean,
+  ) => Promise<any>;
 }
 
 export interface CopyValueButtonProps {
@@ -81,5 +89,13 @@ export interface WorkspaceMembersTableProps {
     memberId: string,
     enabled: boolean,
   ) => Promise<void>;
+  onTransferOwnership?: (
+    targetMemberId: string,
+    leaveWorkspace?: boolean,
+  ) => void | Promise<any>;
+  onToggleStaffLock?: (
+    targetId: string,
+    lock: boolean,
+  ) => Promise<any>;
 }
 

@@ -69,7 +69,7 @@ export class WorkspaceConfigController {
    * Cập nhật cấu hình workspace theo ownerId (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Put('config')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async updateConfig(
     @Req() req: any,
     @Body() payload: UpdateWorkspaceConfigRequestDto,
@@ -85,7 +85,7 @@ export class WorkspaceConfigController {
    * Áp dụng mẫu ngành nghề 1-click (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/apply-preset')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async applyPreset(
     @Req() req: any,
     @Body() body: ApplyPresetRequestDto,
@@ -106,7 +106,7 @@ export class WorkspaceConfigController {
    * Thêm giai đoạn mới vào phễu (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/stages')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async addStage(
     @Req() req: any,
     @Body() stage: AddPipelineStageRequestDto,
@@ -122,7 +122,7 @@ export class WorkspaceConfigController {
    * Thêm sản phẩm / khóa học / ngành đào tạo mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/products')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async addProduct(
     @Req() req: any,
     @Body() product: AddProductItemRequestDto,
@@ -138,7 +138,7 @@ export class WorkspaceConfigController {
    * Thêm tiêu chí đánh giá / phân loại mới (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Post('config/criteria')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async addCriteria(
     @Req() req: any,
     @Body() criteria: AddCriteriaRequestDto,
@@ -154,7 +154,7 @@ export class WorkspaceConfigController {
    * Xóa tiêu chí (Chỉ Chủ Doanh Nghiệp hoặc Admin)
    */
   @Delete('config/criteria/:criteriaId')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async deleteCriteria(
     @Req() req: any,
     @Param('criteriaId') criteriaId: string,

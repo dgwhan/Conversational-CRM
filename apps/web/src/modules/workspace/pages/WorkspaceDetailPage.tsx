@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs } from '../../../components/ui/index.js';
+import { notify } from '../../../components/feedback/toastEmitter.js';
 import type { WorkspaceItem } from '../WorkspaceConfigContext.js';
 import { getDomainLabel } from '../types/domain.types.js';
 import type { ChannelKey, DiscoveredPageDto } from '../onboarding/types.js';
@@ -9,7 +10,11 @@ import {
   WorkspaceChannelsTab,
   WorkspaceMembersTab,
 } from '../onboarding/components/workspace/tabs/index.js';
-import { EditWorkspaceModal, DeleteWorkspaceModal } from '../onboarding/components/workspace/tabs/modals/index.js';
+import {
+  EditWorkspaceModal,
+  DeleteWorkspaceModal,
+  TransferOwnershipModal,
+} from '../onboarding/components/workspace/tabs/modals/index.js';
 import { WorkspaceDetailHeader } from '../onboarding/components/workspace/WorkspaceDetailHeader.js';
 import { useWorkspaceDetail } from '../hooks/useWorkspaceDetail.js';
 
@@ -40,7 +45,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
     canManageWorkspace,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
     handleInviteMember, handleCancelInvitation, handleSaveWorkspaceInfo, handleDeleteWorkspace,
-    handleSetWorkspaceManagerPermission,
+    handleSetWorkspaceManagerPermission, handleTransferOwnership, handleToggleStaffLock,
   } = detail;
 
   // Tab điều hướng dùng component Tabs hệ thống
@@ -53,6 +58,67 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   // Modal kết nối kênh mới
   const [modalChannel, setModalChannel] = useState<ChannelKey | null>(null);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
+  // Modal chuyển quyền Chủ sở hữu & Rời workspace (dùng chung cho Header và Cột thao tác)
+  const [transferModalState, setTransferModalState] = useState<{
+    isOpen: boolean;
+    preselectedMemberId?: string;
+    isLeaving: boolean;
+  }>({
+    isOpen: false,
+    preselectedMemberId: undefined,
+    isLeaving: false,
+  });
+
+  // Thành viên đang hoạt động khác ngoài tài khoản hiện tại
+  const otherActiveMembers = useMemo(
+    () =>
+      activeStaffList.filter(
+        (member) =>
+          member.id !== staffId &&
+          (!member.email ||
+            !staffEmail ||
+            member.email.toLowerCase() !== staffEmail.toLowerCase()),
+      ),
+    [activeStaffList, staffId, staffEmail],
+  );
+
+  // Mở modal Rời Workspace (Chủ sở hữu bắt buộc chuyển quyền; Staff/Manager xác nhận rời)
+  const handleOpenLeaveWorkspace = async () => {
+    if (workspace.isOwner) {
+      if (otherActiveMembers.length === 0) {
+        notify.warning(
+          'Bạn là thành viên duy nhất trong Không gian làm việc. Nếu không còn nhu cầu sử dụng, bạn có thể chọn "Xóa Workspace" trong Cài đặt.',
+          'Không Thể Rời Workspace',
+        );
+        return;
+      }
+      setTransferModalState({
+        isOpen: true,
+        preselectedMemberId: otherActiveMembers[0]?.id,
+        isLeaving: true,
+      });
+      return;
+    }
+    await handleLeaveWorkspace();
+  };
+
+  // Mở modal Chuyển quyền Chủ sở hữu từ Cột thao tác
+  const handleOpenTransferModal = (targetMemberId: string) => {
+    setTransferModalState({
+      isOpen: true,
+      preselectedMemberId: targetMemberId,
+      isLeaving: false,
+    });
+  };
+
+  // Xác nhận chuyển quyền trong Modal
+  const handleConfirmTransfer = async (
+    targetMemberId: string,
+    leaveWorkspace: boolean,
+  ) => {
+    await handleTransferOwnership(targetMemberId, leaveWorkspace);
+  };
 
   // Xử lý khi kết nối kênh thành công từ modal OAuth
   const onConnectSuccess = async (channelKey: ChannelKey, pages?: DiscoveredPageDto[]) => {
@@ -75,7 +141,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
         onBack={onBack}
         onSelectWorkspace={onSelectWorkspace}
         onGoToInbox={onGoToInbox}
-        onLeaveWorkspace={handleLeaveWorkspace}
+        onLeaveWorkspace={handleOpenLeaveWorkspace}
         onEditWorkspace={() => setIsEditModalOpen(true)}
         onSaveWorkspaceName={async (newName) => {
           await handleSaveWorkspaceInfo(workspace.id, {
@@ -151,10 +217,12 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           currentStaffEmail={staffEmail}
           staffMembers={effectiveStaffList}
           onRemoveMember={handleRemoveMember}
-          onLeaveWorkspace={handleLeaveWorkspace}
+          onLeaveWorkspace={handleOpenLeaveWorkspace}
           onInviteMember={handleInviteMember}
           onCancelInvitation={handleCancelInvitation}
           onSetWorkspaceManagerPermission={handleSetWorkspaceManagerPermission}
+          onTransferOwnership={handleOpenTransferModal}
+          onToggleStaffLock={handleToggleStaffLock}
         />
       )}
 
@@ -188,6 +256,19 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
         onClose={() => setIsDeleteModalOpen(false)}
         workspace={workspace}
         onConfirm={handleDeleteWorkspace}
+      />
+
+      {/* Modal chuyển quyền Chủ sở hữu & Rời workspace (Dùng chung cho nút Header và Cột thao tác) */}
+      <TransferOwnershipModal
+        isOpen={transferModalState.isOpen}
+        onClose={() =>
+          setTransferModalState((prev) => ({ ...prev, isOpen: false }))
+        }
+        workspaceName={workspace.name}
+        activeCandidates={otherActiveMembers}
+        preselectedMemberId={transferModalState.preselectedMemberId}
+        isLeaving={transferModalState.isLeaving}
+        onConfirm={handleConfirmTransfer}
       />
     </div>
   );

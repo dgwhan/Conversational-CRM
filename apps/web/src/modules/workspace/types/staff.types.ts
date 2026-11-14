@@ -22,6 +22,7 @@ export interface ManagedStaffItem {
   fullName: string;
   role: string;
   status: UserStatus;
+  isActive?: boolean;
   memberStatus?: WorkspaceMemberStatus;
   memberId?: string;
   assignmentLocked?: boolean;

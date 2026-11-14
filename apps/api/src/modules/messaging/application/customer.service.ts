@@ -10,7 +10,8 @@ import { deduplicateTags } from '../domain/tag-mapping/index.js';
 import { ActivityService } from '../../activities/activity.service.js';
 import { AuditAction } from '@prisma/client';
 import { AuditService } from '../../audit/audit.service.js';
-import { LeadRoutingService } from '../../lead-routing/lead-routing.service.js';
+import { LeadRoutingService } from '../../lead-routing/index.js';
+import { WorkspaceRole } from '../../../contracts/roles.js';
 
 export function isTestAppointmentStage(stage?: string | null): boolean {
     if (!stage) return false;
@@ -106,7 +107,7 @@ export class CustomerService {
         }
 
         // Role STAFF: Chỉ xem khách hàng được phân công cho mình (OWNER xem toàn bộ)
-        if (params.role === 'STAFF' && params.staffId) {
+        if (params.role === WorkspaceRole.STAFF && params.staffId) {
             const memberIds: string[] = [];
             try {
                 const members = await this.prisma.workspaceMember.findMany({
@@ -321,7 +322,7 @@ export class CustomerService {
         }
 
         // Role STAFF: nếu vào khách hàng của người khác sẽ trả về lỗi 403 Forbidden
-        if (caller?.role === 'STAFF' && caller?.staffId) {
+        if (caller?.role === WorkspaceRole.STAFF && caller?.staffId) {
             const isAssigned = this.isCustomerAssignedToStaff(customer, caller.staffId);
             if (!isAssigned) {
                 throw new ForbiddenException(
@@ -374,7 +375,7 @@ export class CustomerService {
         }
 
         // Role STAFF: không tự phân công cho người khác
-        if (caller?.role === 'STAFF') {
+        if (caller?.role === WorkspaceRole.STAFF) {
             if (body.assignedStaffId !== undefined || body.assignedMemberId !== undefined) {
                 throw new ForbiddenException(
                     'Nhân viên không có quyền tự phân công khách hàng cho người khác (403 Forbidden).',
@@ -391,7 +392,7 @@ export class CustomerService {
         }
 
         // Role STAFF: chỉ được chỉnh sửa các trạng thái lead thuộc khách hàng mình phụ trách, nếu vào của người khác sẽ trả về lỗi 403
-        if (caller?.role === 'STAFF' && caller?.staffId) {
+        if (caller?.role === WorkspaceRole.STAFF && caller?.staffId) {
             const isAssigned = this.isCustomerAssignedToStaff(existing, caller.staffId);
             if (!isAssigned) {
                 throw new ForbiddenException(
@@ -599,13 +600,13 @@ export class CustomerService {
                 name: assignedMember.user?.fullName || 'Tư vấn viên',
                 email: assignedMember.user?.email || null,
                 avatar: (assignedMember.user as any)?.avatarUrl || '',
-                role: assignedMember.role || 'STAFF',
+                role: assignedMember.role || WorkspaceRole.STAFF,
             }
             : (identities.assignedStaffId
                 ? {
                     id: identities.assignedStaffId,
                     name: identities.assignedStaffName || 'Tư vấn viên',
-                    role: 'STAFF',
+                    role: WorkspaceRole.STAFF,
                 }
                 : undefined);
 
@@ -833,7 +834,7 @@ export class CustomerService {
                             data: {
                                 workspaceId: validWsId,
                                 userId: user.id,
-                                role: 'STAFF',
+                                role: WorkspaceRole.STAFF,
                                 isActive: true,
                             },
                             select: { id: true },

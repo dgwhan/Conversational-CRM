@@ -1,5 +1,6 @@
 model Contact {
     id                  String            @id @default(uuid()) @db.Uuid
+    workspaceId         String?           @map("workspace_id") @db.Uuid
     displayName         String            @map("display_name") @db.VarChar(255)
     phoneNormalized     String?           @unique @map("phone_normalized") @db.VarChar(50)
     email               String?           @db.VarChar(255)
@@ -13,10 +14,12 @@ model Contact {
     createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt           DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+    workspace           Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
     channelIdentities   ChannelIdentity[]
     mergeLogsTarget     ContactMergeLog[] @relation("MergeTargetContact")
     deals               Deal[]
 
+    @@index([workspaceId])
     @@index([isMerged])
     @@index([mergedIntoContactId])
     @@map("contacts")
@@ -24,6 +27,7 @@ model Contact {
 
 model ChannelIdentity {
     id             String    @id @default(uuid()) @db.Uuid
+    workspaceId    String?   @map("workspace_id") @db.Uuid
     contactId      String?   @map("contact_id") @db.Uuid
     customerId     String?   @map("customer_id") @db.Uuid
     channel        Channel
@@ -31,10 +35,12 @@ model ChannelIdentity {
     createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
     updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+    workspace      Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
     contact        Contact?  @relation(fields: [contactId], references: [id], onDelete: Cascade)
     customer       Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
     @@unique([channel, externalUserId])
+    @@index([workspaceId])
     @@index([contactId])
     @@index([customerId])
     @@map("channel_identities")

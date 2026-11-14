@@ -21,6 +21,8 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     deleteStaffMember,
     setWorkspaceManagerPermission,
     cancelInvitation,
+    transferOwnership,
+    toggleStaffLock,
     updateWorkspaceInfo,
     deleteWorkspace,
     myWorkspaces,
@@ -94,7 +96,8 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     (member) => (workspace.ownerId && member.id === workspace.ownerId) || member.role === StaffRole.OWNER,
   );
   const resolvedAdminName = ownerStaff?.fullName ?? workspace.ownerName ?? (isOwner ? staffName : '') ?? '';
-  const canOwnerLeave = activeStaffList.filter((member) => member.role === StaffRole.OWNER).length >= 2;
+  // Chủ sở hữu có thể rời nếu có ít nhất 1 thành viên đang hoạt động khác để nhận chuyển giao quyền
+  const canOwnerLeave = activeStaffList.filter((member) => member.id !== staffId).length > 0;
 
   const handleSyncChannel = async (channelId: string) => {
     setSyncingChannelId(channelId);
@@ -239,6 +242,31 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     }
   };
 
+  const handleTransferOwnership = async (targetMemberId: string, leaveWorkspace = false) => {
+    try {
+      if (transferOwnership) {
+        await transferOwnership(targetMemberId, leaveWorkspace, workspace.id);
+        await fetchStaffList(workspace.id);
+        if (leaveWorkspace) {
+          onBack();
+        }
+      }
+    } catch (error) {
+      notify.error(`Lỗi chuyển quyền sở hữu: ${(error as Error).message}`);
+    }
+  };
+
+  const handleToggleStaffLock = async (targetId: string, lock: boolean) => {
+    try {
+      if (toggleStaffLock) {
+        await toggleStaffLock(targetId, lock, workspace.id);
+        await fetchStaffList(workspace.id);
+      }
+    } catch (error) {
+      notify.error(`Lỗi thao tác: ${(error as Error).message}`);
+    }
+  };
+
   const handleSaveWorkspaceInfo = (workspaceId: string, data: { name: string; domain: string }) =>
     updateWorkspaceInfo(workspaceId, data);
   const handleDeleteWorkspace = async (workspaceId: string) => {
@@ -252,6 +280,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     resolvedAdminName, canOwnerLeave, canManageWorkspace, loadChannels, handleSyncChannel, handleToggleChannel,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
     handleInviteMember, handleCancelInvitation, handleSetWorkspaceManagerPermission,
+    handleTransferOwnership, handleToggleStaffLock,
     handleSaveWorkspaceInfo, handleDeleteWorkspace,
   };
 }

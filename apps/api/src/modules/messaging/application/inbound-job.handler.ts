@@ -3,7 +3,7 @@ import type { InboundJobData } from "../domain/channel-adapter.port.js";
 import { MessageRepository } from "../infrastructure/message.repository.js";
 import { InboundMessageSideEffects } from "./inbound-message-side-effects.service.js";
 import { ProcessMessageReceived } from "./process-message-received.usecase.js";
-import { LeadRoutingService } from '../../lead-routing/lead-routing.service.js';
+import { LeadRoutingService } from '../../lead-routing/index.js';
 
 /**
  * Xử lý một job inbound (chạy trong worker, ngoài request webhook):

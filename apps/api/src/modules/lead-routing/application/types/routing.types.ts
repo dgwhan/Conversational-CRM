@@ -10,3 +10,9 @@ export type Candidate = {
   lastAssignedAt: Date | null;
   shiftMemberIds: string[];
 };
+
+export const AUDIT_META = (before: unknown, after: unknown, reason: string) => ({
+  before,
+  after,
+  reason,
+});

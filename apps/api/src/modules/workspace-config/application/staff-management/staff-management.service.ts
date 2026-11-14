@@ -16,6 +16,7 @@ import { getStaffList } from './operations/staff-query.js';
 import { createStaff } from './operations/staff-invite.js';
 import { removeStaff } from './operations/staff-removal.js';
 import { getWorkspacePermissions, setWorkspaceManagerPermission } from './operations/staff-permissions.js';
+import { toggleStaffLock } from './operations/staff-lock.js';
 import {
   getInvitationDetails,
   acceptInvitation,
@@ -103,14 +104,15 @@ export class StaffManagementService {
   }
 
   /**
-   * Gỡ thành viên ra khỏi workspace (chỉ OWNER hoặc tự rời)
+   * Gỡ thành viên ra khỏi workspace hoặc tự rời (nếu Owner rời thì có thể chuyển nhượng targetNewOwnerId)
    */
   removeStaff(
     ownerId: string,
     targetStaffId: string,
-    workspaceId?: string
+    workspaceId?: string,
+    targetNewOwnerId?: string,
   ): Promise<{ success: boolean; message: string }> {
-    return removeStaff(this.prisma, ownerId, targetStaffId, workspaceId);
+    return removeStaff(this.prisma, ownerId, targetStaffId, workspaceId, targetNewOwnerId);
   }
 
   /**
@@ -149,6 +151,18 @@ export class StaffManagementService {
     workspaceId?: string
   ): Promise<{ success: boolean; message: string }> {
     return cancelInvitation(this.prisma, ownerId, targetStaffIdOrMemberId, workspaceId);
+  }
+
+  /**
+   * Khóa hoặc Mở khóa tài khoản thành viên trong workspace (Chỉ OWNER có quyền)
+   */
+  toggleStaffLock(
+    callerId: string,
+    targetUserId: string,
+    lock: boolean,
+    workspaceId?: string,
+  ): Promise<{ success: boolean; userId: string; locked: boolean; message: string }> {
+    return toggleStaffLock(this.prisma, callerId, targetUserId, lock, workspaceId);
   }
 }
 

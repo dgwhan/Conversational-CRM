@@ -25,16 +25,11 @@ export async function createStaff(
     throw new BadRequestException(USER_IDENTIFIER_CONFIG.MESSAGES.MISSING_INPUT);
   }
 
-  if (!dto.role) {
-    throw new BadRequestException(USER_IDENTIFIER_CONFIG.MESSAGES.MISSING_ROLE);
-  }
-
-  if (
-    dto.role !== WorkspaceRole.MANAGER &&
-    dto.role !== WorkspaceRole.STAFF
-  ) {
+  // Mỗi workspace chỉ có duy nhất 1 Owner (người tạo hoặc nhận chuyển nhượng).
+  // Thành viên mới luôn được mời với vai trò mặc định duy nhất là STAFF; Manager sẽ được cấp quyền sau tại cột Thao tác.
+  if (dto.role && dto.role !== WorkspaceRole.STAFF) {
     throw new BadRequestException(
-      USER_IDENTIFIER_CONFIG.MESSAGES.INVALID_ROLE,
+      'Chỉ được mời thành viên mới với vai trò Nhân viên tư vấn (STAFF). Sau khi gia nhập, Chủ sở hữu có thể đặt làm Quản lý tại cột Thao tác.',
     );
   }
 
@@ -59,15 +54,6 @@ export async function createStaff(
     ) {
       throw new ForbiddenException(
         'Bạn không có quyền mời thành viên vào workspace này.',
-      );
-    }
-
-    if (
-      currentUserRole === WorkspaceRole.MANAGER &&
-      dto.role !== WorkspaceRole.STAFF
-    ) {
-      throw new ForbiddenException(
-        'Quản lý workspace chỉ được mời nhân viên tư vấn.',
       );
     }
 
@@ -116,11 +102,8 @@ export async function createStaff(
       }
     }
 
-    // Sử dụng chính xác vai trò do người mời chỉ định (bắt buộc)
-    const finalRole: WorkspaceMemberRole =
-      dto.role === WorkspaceRole.MANAGER
-        ? WorkspaceMemberRole.MANAGER
-        : WorkspaceMemberRole.STAFF;
+    // Vai trò khi mời luôn luôn là STAFF
+    const finalRole: WorkspaceMemberRole = WorkspaceMemberRole.STAFF;
 
     const member = await prisma.workspaceMember.upsert({
       where: {
@@ -148,9 +131,7 @@ export async function createStaff(
       },
     });
 
-    const roleLabel = finalRole === WorkspaceMemberRole.MANAGER
-      ? 'Quản lý workspace'
-      : 'Nhân viên tư vấn';
+    const roleLabel = 'Nhân viên tư vấn';
 
     // Tạo bản ghi Notification cho người được mời
     try {

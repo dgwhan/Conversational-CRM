@@ -170,6 +170,12 @@ function createMockPrisma() {
         return null;
       },
       delete: async ({ where }: any) => {
+        if (where?.workspaceId_userId) {
+          const key = `${where.workspaceId_userId.workspaceId}_${where.workspaceId_userId.userId}`;
+          const m = members.get(key);
+          members.delete(key);
+          return m || null;
+        }
         for (const [k, m] of members.entries()) {
           if (m.id === where.id) {
             members.delete(k);
@@ -417,12 +423,12 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
     const result = await prismaService.createStaff('c0000000-0000-0000-0000-000000000123', {
       email: 'exist@gmail.com',
       fullName: 'User Da Co',
-      role: 'OWNER',
+      role: 'STAFF',
     });
 
     expect(result.email).toBe('exist@gmail.com');
     expect(upsertMemberCalled).toBe(true);
-    expect(result.role).toBe('OWNER');
+    expect(result.role).toBe('STAFF');
   });
 
   it('should allow Owner to invite staff using only email (without fullName)', async () => {
@@ -471,11 +477,11 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
     expect(invited.role).toBe('STAFF');
   });
 
-  it('should reject invite when role is missing', async () => {
+  it('should reject invite when role is OWNER or MANAGER', async () => {
     const ownerId = 'c0000000-0000-0000-0000-000000000001';
     await expect(
-      service.createStaff(ownerId, { identifier: 'member@cusc.com' } as any)
-    ).rejects.toThrow('Vui lòng chỉ định vai trò cho thành viên (OWNER hoặc STAFF).');
+      service.createStaff(ownerId, { identifier: 'member@cusc.com', role: 'OWNER' } as any)
+    ).rejects.toThrow('Chỉ được mời thành viên mới với vai trò Nhân viên tư vấn (STAFF)');
   });
 
   it('should reject invite when neither email nor phone is provided', async () => {
@@ -568,7 +574,7 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
 
     await expect(
       service.createStaff(staffId, { identifier: 'new_member@cusc.com', role: 'STAFF' }, ws.id)
-    ).rejects.toThrow('Chỉ Chủ sở hữu (OWNER) mới có quyền mời thành viên vào Không gian làm việc.');
+    ).rejects.toThrow(/quyền mời thành viên|Chỉ Chủ sở hữu/);
   });
 
   describe('Quy trình Mời Nhân Sự & Thông Báo (Invitation & Notification Lifecycle)', () => {
@@ -629,7 +635,7 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
 
       // Kiểm tra thành viên đã chuyển sang ACTIVE
       const member = await mockPrisma.workspaceMember.findFirst({
-        where: { workspaceId: ws.id, userId: inviteeId },
+        where: { workspaceId: ws.id, userId: inviteeId, isActive: true },
       });
       expect(member.status).toBe('ACTIVE');
       expect(member.isActive).toBe(true);
@@ -694,7 +700,7 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
       expect(cancelRes.success).toBe(true);
 
       const member = await mockPrisma.workspaceMember.findFirst({
-        where: { workspaceId: ws.id, userId: inviteeId },
+        where: { workspaceId: ws.id, userId: inviteeId, isActive: true },
       });
       expect(member).toBeNull();
     });

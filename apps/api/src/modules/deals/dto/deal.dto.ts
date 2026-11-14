@@ -58,4 +58,6 @@ export class DealFilterDto {
     search?: string;
     page?: number | string;
     limit?: number | string;
+    callerRole?: string;
+    callerUserId?: string;
 }

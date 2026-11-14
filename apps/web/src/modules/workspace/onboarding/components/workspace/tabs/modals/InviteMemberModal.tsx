@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, Button } from '../../../../../../../components/ui/index.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
 import { StaffRole } from '../../../../../../../features/auth/constants/auth.constants.js';
@@ -14,15 +14,9 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
   isOpen,
   onClose,
   onInviteMember,
-  allowOwnerRole = true,
 }) => {
   const [identifier, setIdentifier] = useState('');
-  const [inviteRole, setInviteRole] = useState<StaffRole>(StaffRole.STAFF);
   const [isInviting, setIsInviting] = useState(false);
-
-  useEffect(() => {
-    if (!allowOwnerRole) setInviteRole(StaffRole.STAFF);
-  }, [allowOwnerRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +27,8 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     }
     setIsInviting(true);
     try {
-      await onInviteMember(cleanId, allowOwnerRole ? inviteRole : StaffRole.STAFF);
+      // Mặc định luôn mời thành viên mới với vai trò STAFF; Chủ sở hữu có thể đặt làm Quản lý tại cột Thao tác
+      await onInviteMember(cleanId, StaffRole.STAFF);
       setIdentifier('');
       onClose();
     } catch {
@@ -67,18 +62,13 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
-            Vai trò
-          </label>
-          <select
-            value={inviteRole}
-            onChange={(e) => setInviteRole(e.target.value as StaffRole)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
-          >
-            <option value={StaffRole.STAFF}>Nhân viên tư vấn (STAFF)</option>
-            {allowOwnerRole && <option value={StaffRole.OWNER}>Chủ sở hữu / Quản lý (OWNER)</option>}
-          </select>
+        <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 text-xs text-blue-900">
+          <div className="font-semibold text-blue-800">
+            Vai trò mặc định: Nhân viên tư vấn (STAFF)
+          </div>
+          <p className="mt-1 text-[11.5px] leading-relaxed text-blue-700">
+            Thành viên mới sẽ tham gia với vai trò Nhân viên tư vấn. Sau khi tham gia, Chủ sở hữu có thể đặt làm Quản lý tại <strong>Cột Thao tác</strong>.
+          </p>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-2">

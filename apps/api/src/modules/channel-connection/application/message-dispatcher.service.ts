@@ -28,6 +28,7 @@ export interface SendMessageInput {
   channelAccountId?: string;
   conversationId?: string;
   workspaceId?: string;
+  senderStaffId?: string;
 }
 
 export interface SendMessageResult {
@@ -255,6 +256,7 @@ export class MessageDispatcherService {
               recipient: { id: resolvedRecipientId || input.recipientId },
               message: { text: input.content },
               conversationKey: input.conversationId,
+              senderStaffId: input.senderStaffId,
             },
           },
         ]);

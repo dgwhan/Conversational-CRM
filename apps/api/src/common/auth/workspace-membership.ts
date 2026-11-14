@@ -17,6 +17,12 @@ type WorkspaceWithMembers = {
   members?: Array<{ role: string; status: string; isActive: boolean }>;
 };
 
+function mapMemberRole(role?: string): WorkspaceRole {
+  if (role === WorkspaceRole.OWNER) return WorkspaceRole.OWNER;
+  if (role === WorkspaceRole.MANAGER) return WorkspaceRole.MANAGER;
+  return WorkspaceRole.STAFF;
+}
+
 function toMembership(ws: WorkspaceWithMembers, userId: string): ResolvedMembership | null {
   if (ws.ownerId === userId) {
     return { workspaceId: ws.id, ownerId: ws.ownerId, role: WorkspaceRole.OWNER, status: 'ACTIVE' };
@@ -26,7 +32,7 @@ function toMembership(ws: WorkspaceWithMembers, userId: string): ResolvedMembers
   return {
     workspaceId: ws.id,
     ownerId: ws.ownerId,
-    role: member.role === WorkspaceRole.OWNER ? WorkspaceRole.OWNER : WorkspaceRole.STAFF,
+    role: mapMemberRole(member.role),
     status: member.status,
   };
 }
@@ -87,7 +93,7 @@ export async function resolveDefaultMembership(
   return {
     workspaceId: member.workspace.id,
     ownerId: member.workspace.ownerId,
-    role: member.role === WorkspaceRole.OWNER ? WorkspaceRole.OWNER : WorkspaceRole.STAFF,
+    role: mapMemberRole(member.role),
     status: member.status,
   };
 }

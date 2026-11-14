@@ -4,3 +4,4 @@ export * from './InviteMemberModal.js';
 export * from './EditWorkspaceModal.js';
 export * from './DeleteWorkspaceModal.js';
 export * from './HotlineModal.js';
+export * from './TransferOwnershipModal.js';

@@ -8,7 +8,7 @@ describe('request-identity', () => {
     const req = {
       headers: { 'x-user-role': 'OWNER', 'x-staff-id': 'attacker', 'x-workspace-id': 'other-ws' },
       user: { id: 'u1' },
-      workspace: { id: 'ws-1', role: 'STAFF' },
+      workspace: { id: 'ws-1', role: WorkspaceRole.STAFF },
     };
     expect(getRequestIdentity(req)).toEqual({ userId: 'u1', workspaceId: 'ws-1', role: WorkspaceRole.STAFF });
   });
@@ -20,7 +20,7 @@ describe('request-identity', () => {
   });
 
   it('nhận OWNER khi workspace đã xác minh có role OWNER', () => {
-    expect(getRequestIdentity({ workspace: { id: 'w', role: 'OWNER' } }).role).toBe(WorkspaceRole.OWNER);
+    expect(getRequestIdentity({ workspace: { id: 'w', role: WorkspaceRole.OWNER } }).role).toBe(WorkspaceRole.OWNER);
   });
 
   it('requireWorkspaceId trả workspace đã xác minh hoặc ném 403', () => {

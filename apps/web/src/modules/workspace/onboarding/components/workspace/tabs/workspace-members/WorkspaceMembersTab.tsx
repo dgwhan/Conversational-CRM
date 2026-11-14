@@ -15,6 +15,7 @@ import {
   Tabs,
 } from "../../../../../../../components/ui/index.js";
 import { notify } from "../../../../../../../components/feedback/toastEmitter.js";
+import { matchesUnaccent } from "../../../../../../../lib/unaccent.js";
 import { useWorkspaceLeadRouting } from "../../../../../hooks/useWorkspaceLeadRouting.js";
 import { InviteMemberModal } from "../modals/index.js";
 import { MemberLeadLockDialog } from "./MemberLeadLockDialog.js";
@@ -40,6 +41,8 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
   onInviteMember,
   onCancelInvitation,
   onSetWorkspaceManagerPermission,
+  onTransferOwnership,
+  onToggleStaffLock,
 }) => {
   const canManageMembers = canManageMembersProp ?? isOwner;
   const navigate = useNavigate();
@@ -80,18 +83,36 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
   const effectiveSubTab = canManageMembers ? activeSubTab : "members";
   const currentTabMembers =
     effectiveSubTab === "members" ? activeMembers : pendingInvitations;
-  const totalOwners = activeMembers.filter(
-    (member) => member.role === StaffRole.OWNER,
-  ).length;
-  const canOwnerLeave = totalOwners >= 2;
-  const normalizedSearch = memberSearch.trim().toLowerCase();
+
+  // Thành viên đang hoạt động khác ngoài tài khoản hiện tại
+  const otherActiveMembers = useMemo(
+    () =>
+      activeMembers.filter(
+        (member) =>
+          member.id !== currentStaffId &&
+          (!member.email ||
+            !currentStaffEmail ||
+            member.email.toLowerCase() !== currentStaffEmail.toLowerCase()),
+      ),
+    [activeMembers, currentStaffId, currentStaffEmail],
+  );
+
+  // Chủ sở hữu có thể rời nếu có ít nhất 1 thành viên đang hoạt động khác để nhận chuyển giao quyền
+  const canOwnerLeave = otherActiveMembers.length > 0;
+  const normalizedSearch = memberSearch.trim();
+  const lowerSearch = normalizedSearch.toLowerCase();
+  const digitsSearch = normalizedSearch.replace(/\D/g, "");
+
   const filteredStaff = currentTabMembers.filter((member) => {
+    const rawPhone = member.phoneNumber ? String(member.phoneNumber).replace(/\D/g, "") : "";
     const matchesSearch =
       !normalizedSearch ||
-      member.fullName.toLowerCase().includes(normalizedSearch) ||
-      member.email.toLowerCase().includes(normalizedSearch) ||
-      (member.phoneNumber &&
-        member.phoneNumber.toLowerCase().includes(normalizedSearch));
+      matchesUnaccent(member.fullName, normalizedSearch) ||
+      member.fullName.toLowerCase().includes(lowerSearch) ||
+      member.email.toLowerCase().includes(lowerSearch) ||
+      matchesUnaccent(member.email, normalizedSearch) ||
+      (member.phoneNumber && member.phoneNumber.toLowerCase().includes(lowerSearch)) ||
+      (digitsSearch.length >= 3 && rawPhone.includes(digitsSearch));
     const matchesRole = roleFilter === "ALL" || member.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -299,6 +320,8 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
         onLeaveWorkspace={() => void onLeaveWorkspace()}
         onRemoveMember={setOffboardingMember}
         onSetWorkspaceManagerPermission={onSetWorkspaceManagerPermission}
+        onTransferOwnership={onTransferOwnership}
+        onToggleStaffLock={onToggleStaffLock}
       />
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">

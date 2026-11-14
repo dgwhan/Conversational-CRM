@@ -22,7 +22,12 @@ export function getRequestIdentity(req: unknown): RequestIdentity {
   return {
     userId: r.user?.id,
     workspaceId: r.workspace?.id,
-    role: r.workspace?.role === WorkspaceRole.OWNER ? WorkspaceRole.OWNER : WorkspaceRole.STAFF,
+    role:
+      r.workspace?.role === WorkspaceRole.OWNER
+        ? WorkspaceRole.OWNER
+        : r.workspace?.role === WorkspaceRole.MANAGER
+          ? WorkspaceRole.MANAGER
+          : WorkspaceRole.STAFF,
   };
 }
 

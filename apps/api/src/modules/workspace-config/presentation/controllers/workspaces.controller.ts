@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -133,7 +134,7 @@ export class WorkspacesController {
    * Cập nhật thông tin Không gian làm việc (Tên, Ngành nghề)
    */
   @Patch(':id')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async updateWorkspace(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -149,6 +150,7 @@ export class WorkspacesController {
    * Xóa Không gian làm việc
    */
   @Delete(':id')
+  @WorkspacePermissions(WorkspacePermission.DELETE_WORKSPACE)
   @Roles(WorkspaceRole.OWNER)
   async deleteWorkspace(
     @Req() req: any,
@@ -158,6 +160,31 @@ export class WorkspacesController {
   ): Promise<DeleteWorkspaceResponseDto> {
     const callerId = resolveCallerId(req, ownerId, staffId);
     return this.configService.deleteWorkspace(workspaceId, callerId);
+  }
+
+  /**
+   * Chuyển quyền sở hữu Không gian làm việc cho một thành viên khác trong Workspace
+   */
+  @Post(':id/transfer-ownership')
+  @WorkspacePermissions(WorkspacePermission.TRANSFER_OWNERSHIP)
+  @Roles(WorkspaceRole.OWNER)
+  async transferOwnership(
+    @Req() req: any,
+    @Param('id') workspaceId: string,
+    @Body() body: { targetMemberId?: string; leaveWorkspace?: boolean },
+    @Headers('x-staff-id') staffId?: string,
+    @Headers('x-owner-id') ownerId?: string,
+  ): Promise<{ success: boolean; message: string; newOwnerId: string }> {
+    const callerId = resolveCallerId(req, ownerId, staffId);
+    if (!body?.targetMemberId) {
+      throw new BadRequestException('targetMemberId là bắt buộc.');
+    }
+    return this.configService.transferOwnership(
+      workspaceId,
+      callerId,
+      body.targetMemberId,
+      Boolean(body.leaveWorkspace),
+    );
   }
 
   /**
@@ -178,7 +205,7 @@ export class WorkspacesController {
    * Cập nhật cấu hình của một Workspace cụ thể theo ID
    */
   @Put(':id/config')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async updateWorkspaceConfig(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -202,7 +229,7 @@ export class WorkspacesController {
    * Thêm số Hotline mới cho Không gian làm việc
    */
   @Post(':id/hotlines')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async createHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -218,7 +245,7 @@ export class WorkspacesController {
    * Cập nhật thông tin hoặc trạng thái số Hotline
    */
   @Patch(':id/hotlines/:hotlineId')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async updateHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -235,7 +262,7 @@ export class WorkspacesController {
    * Xóa số Hotline khỏi Không gian làm việc
    */
   @Delete(':id/hotlines/:hotlineId')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE_CONFIG)
   async deleteHotline(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -251,7 +278,7 @@ export class WorkspacesController {
    * Lấy danh sách thành viên của Workspace
    */
   @Get(':id/members')
-  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   async getWorkspaceMembers(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -269,7 +296,7 @@ export class WorkspacesController {
    * Mời nhân viên vào Workspace cụ thể
    */
   @Post(':id/members/invite')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_STAFF)
   async inviteWorkspaceMember(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -288,7 +315,7 @@ export class WorkspacesController {
    * Xóa thành viên khỏi Workspace cụ thể
    */
   @Delete(':id/members/:memberId')
-  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_STAFF)
   async removeWorkspaceMember(
     @Req() req: any,
     @Param('id') workspaceId: string,
@@ -341,7 +368,7 @@ export class WorkspacesController {
    * Hủy lời mời đã gửi tới nhân sự
    */
   @Delete(':id/members/invitations/:memberId')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.MANAGE_STAFF)
   async cancelInvitation(
     @Req() req: any,
     @Param('id') workspaceId: string,

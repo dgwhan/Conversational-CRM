@@ -12,7 +12,7 @@ import {
   WORKSPACE_PERMISSIONS_KEY,
   type WorkspacePermission,
 } from '../decorators/workspace-permissions.decorator.js';
-import { WORKSPACE_ROLES } from '../../contracts/roles.js';
+import { WORKSPACE_ROLES, WorkspaceRole } from '../../contracts/roles.js';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import { extractUserFromAuthHeader } from '../../modules/workspace-config/application/workspace-resolver.js';
 import { resolveDefaultMembership, resolveWorkspaceMembership } from '../auth/workspace-membership.js';
@@ -157,34 +157,40 @@ export class WorkspaceRolesGuard implements CanActivate {
           ownerId: true,
           members: {
             where: { userId, isActive: true, status: STAFF_STATUS.ACTIVE },
-            select: { role: true },
+            select: { role: true, isWorkspaceManager: true },
             take: 1,
           },
         },
       });
 
-      const workspaceOwner = await this.prisma.workspace.findUnique({
-        where: {
-          id: workspace.id,
-        },
-        select: {
-          ownerId: true,
-        },
-      });
-
-      const isOwner = target?.ownerId === userId;
+      const member = target?.members?.[0];
+      const isOwner = target?.ownerId === userId || member?.role === WorkspaceRole.OWNER;
+      const isManager = isOwner || member?.role === WorkspaceRole.MANAGER || member?.isWorkspaceManager === true;
 
       const allowed = requiredPermissions!.every((permission) => {
         switch (permission) {
+          // Quyền chỉ dành riêng cho Chủ sở hữu (Owner)
+          case 'DELETE_WORKSPACE':
+          case 'TRANSFER_OWNERSHIP':
+          case 'MANAGE_WORKSPACE_CONFIG':
+          case 'MANAGE_CHANNELS':
           case 'MANAGE_WORKSPACE':
             return isOwner;
+
+          // Quyền quản trị vận hành (Owner và Manager)
+          case 'MANAGE_STAFF':
+          case 'MANAGE_SHIFTS':
+          case 'MANAGE_ROUTING':
+          case 'VIEW_AUDIT_LOGS':
+            return isManager;
+
           default:
             return false;
         }
       });
 
       if (!allowed) {
-        throw new ForbiddenException('Bạn chưa được cấp quyền quản lý workspace này.');
+        throw new ForbiddenException('Bạn không có đủ quyền để thực hiện thao tác này.');
       }
     }
 
@@ -198,6 +204,13 @@ export class WorkspaceRolesGuard implements CanActivate {
     const params = request.params ?? {};
     const explicit = params.wsId ?? params.workspaceId;
     if (typeof explicit === 'string' && explicit) return explicit;
+
+    const query = request.query ?? {};
+    const queryWs = query.wsId ?? query.workspaceId;
+    if (typeof queryWs === 'string' && queryWs) return queryWs;
+
+    const headerWs = request.headers?.['x-workspace-id'];
+    if (typeof headerWs === 'string' && headerWs) return headerWs;
 
     // @Controller('workspaces') + @Get(':id/...') -> :id là workspaceId
     // (riêng các route /workspaces/invitations/:id thì :id là invitationId nên đã loại ở INVITATION_FLOW_REGEX)

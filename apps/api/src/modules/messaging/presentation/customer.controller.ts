@@ -106,7 +106,7 @@ export class CustomerController {
         @Req() req?: any,
     ) {
         const { role, userId } = getRequestIdentity(req);
-        if (role !== WorkspaceRole.OWNER) {
+        if (role !== WorkspaceRole.OWNER && role !== WorkspaceRole.MANAGER) {
             throw new ForbiddenException(
                 'Nhân viên không có quyền phân công cuộc hội thoại cho người khác (403 Forbidden).',
             );

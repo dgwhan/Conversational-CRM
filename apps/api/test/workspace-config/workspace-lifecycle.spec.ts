@@ -179,7 +179,7 @@ describe('WorkspaceLifecycleService (Creator Ownership & Access Control)', () =>
 
     await expect(
       service.updateWorkspace(ws.id, { name: 'Hack Name' }, strangerId)
-    ).rejects.toThrow('Chỉ Chủ sở hữu mới có quyền chỉnh sửa Không gian làm việc này');
+    ).rejects.toThrow(/mới có quyền chỉnh sửa Không gian làm việc/);
   });
 
   it('cho phép Owner chỉnh sửa thông tin Workspace của mình', async () => {

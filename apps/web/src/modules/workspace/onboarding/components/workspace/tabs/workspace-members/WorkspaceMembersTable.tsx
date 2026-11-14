@@ -37,6 +37,8 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
   onLeaveWorkspace,
   onRemoveMember,
   onSetWorkspaceManagerPermission,
+  onTransferOwnership,
+  onToggleStaffLock,
 }) => (
   <div className="w-full overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm lg:overflow-visible">
     <table className="w-full table-fixed border-collapse text-left text-xs">
@@ -171,6 +173,58 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                 onSelect: () => onToggleLeadLock(member, assignmentLocked),
               });
             }
+
+            // Chủ sở hữu quản lý phân quyền thành viên tại Cột Thao tác
+            if (isOwner && !isOwnerMember && !isPending) {
+              if (onSetWorkspaceManagerPermission) {
+                memberMenuItems.push({
+                  id: "toggle-manager-permission",
+                  label: member.isWorkspaceManager
+                    ? "Chuyển về Nhân viên tư vấn"
+                    : "Đặt làm Quản lý workspace",
+                  onSelect: async () => {
+                    const enabled = !member.isWorkspaceManager;
+                    const actionText = enabled
+                      ? `đặt "${displayName}" làm Quản lý workspace`
+                      : `chuyển "${displayName}" về Nhân viên tư vấn`;
+                    if (!window.confirm(`Bạn có chắc chắn muốn ${actionText}?`)) return;
+                    try {
+                      await onSetWorkspaceManagerPermission(member.id, enabled);
+                    } catch {
+                      // Handled in parent/hook
+                    }
+                  },
+                });
+              }
+
+              if (onTransferOwnership) {
+                memberMenuItems.push({
+                  id: "transfer-ownership",
+                  label: "Chuyển quyền Chủ sở hữu",
+                  tone: "warning",
+                  onSelect: () => onTransferOwnership(member.id, false),
+                });
+              }
+
+              if (onToggleStaffLock) {
+                const isLocked = member.isActive === false;
+                memberMenuItems.push({
+                  id: "toggle-staff-lock",
+                  label: isLocked ? "Mở khóa thành viên" : "Khóa tài khoản thành viên",
+                  tone: isLocked ? "success" : "warning",
+                  onSelect: async () => {
+                    const actionText = isLocked ? "mở khóa" : "khóa";
+                    if (!window.confirm(`Bạn có chắc chắn muốn ${actionText} thành viên "${displayName}"?`)) return;
+                    try {
+                      await onToggleStaffLock(member.id, !isLocked);
+                    } catch {
+                      // Handled in parent/hook
+                    }
+                  },
+                });
+              }
+            }
+
             const hasDivider =
               canCancelInvitation || canLeaveWorkspace || canRemoveMember;
             if (canCancelInvitation) {
@@ -277,11 +331,13 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                   )}
                 </td>
                 <td className="px-4 py-3.5 sm:px-6">
-                  <div className="flex flex-col items-start gap-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span
                       className={`inline-block whitespace-nowrap rounded-md border px-2.5 py-0.5 text-[11px] font-semibold ${
                         isOwnerMember
                           ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : member.isWorkspaceManager
+                          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                           : "border-slate-200 bg-slate-100 text-slate-700"
                       }`}
                     >
@@ -291,43 +347,11 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                           ? "Quản lý workspace"
                           : "Nhân viên tư vấn"}
                     </span>
-                    {member.isWorkspaceManager && !isOwnerMember && (
-                      <span className="text-[10px] text-slate-500">
-                        Kiêm Nhân viên tư vấn
+                    {member.isActive === false && (
+                      <span className="inline-block whitespace-nowrap rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-[10.5px] font-semibold text-red-600">
+                        Đã khóa
                       </span>
                     )}
-                    {isOwner &&
-                      !isOwnerMember &&
-                      !isPending &&
-                      member.memberId &&
-                      onSetWorkspaceManagerPermission && (
-                        <button
-                          type="button"
-                          className="whitespace-nowrap text-[10px] font-semibold text-blue-700 hover:underline"
-                          onClick={async () => {
-                            const enabled = !member.isWorkspaceManager;
-                            const action = enabled ? "cấp" : "thu hồi";
-                            if (
-                              !window.confirm(
-                                `Bạn muốn ${action} quyền Quản lý workspace cho ${member.fullName || member.email}?`,
-                              )
-                            )
-                              return;
-                            try {
-                              await onSetWorkspaceManagerPermission(
-                                member.id,
-                                enabled,
-                              );
-                            } catch {
-                              // The hook already reports the API error.
-                            }
-                          }}
-                        >
-                          {member.isWorkspaceManager
-                            ? "Thu hồi quyền"
-                            : "Cấp quyền quản lý"}
-                        </button>
-                      )}
                   </div>
                 </td>
                 <td className="px-4 py-3.5 text-xs text-slate-600 sm:px-6">

@@ -72,17 +72,17 @@ export const NotificationItemRow: React.FC<NotificationItemRowProps> = ({
           <div className="flex items-center gap-2 mt-2.5 pt-2 border-t border-slate-100">
             <button
               type="button"
-              onClick={(e) => inviteWsId && onAcceptInvite(inviteWsId, item, e)}
-              className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer transition-colors shadow-2xs"
+              onClick={(e) => inviteWsId && onDeclineInvite(inviteWsId, item, e)}
+              className="px-2.5 py-1 text-xs font-semibold rounded bg-red-600 hover:bg-red-700 text-white cursor-pointer transition-colors shadow-2xs"
             >
-              {t('notifications.accept', 'Chấp nhận')}
+              {t('notifications.decline', 'Từ chối')}
             </button>
             <button
               type="button"
-              onClick={(e) => inviteWsId && onDeclineInvite(inviteWsId, item, e)}
-              className="px-2.5 py-1 text-xs font-medium rounded bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors"
+              onClick={(e) => inviteWsId && onAcceptInvite(inviteWsId, item, e)}
+              className="px-2.5 py-1 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white cursor-pointer transition-colors shadow-2xs"
             >
-              {t('notifications.decline', 'Từ chối')}
+              {t('notifications.accept', 'Chấp nhận')}
             </button>
           </div>
         )}

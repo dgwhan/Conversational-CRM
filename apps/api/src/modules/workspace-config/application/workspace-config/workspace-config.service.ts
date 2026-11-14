@@ -95,6 +95,15 @@ export class WorkspaceConfigService {
     return this.lifecycle.deleteWorkspace(workspaceId, callerId);
   }
 
+  async transferOwnership(
+    workspaceId: string,
+    callerId: string,
+    targetMemberId: string,
+    leaveWorkspace = false,
+  ): Promise<{ success: boolean; message: string; newOwnerId: string }> {
+    return this.lifecycle.transferOwnership(workspaceId, callerId, targetMemberId, leaveWorkspace);
+  }
+
   async resolveWorkspaceForOwner(
     resolvedOwner: string,
     workspaceId?: string

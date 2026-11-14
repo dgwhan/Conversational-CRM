@@ -3,6 +3,7 @@ import { PrismaService } from '../../platform/database/prisma.service.js';
 import { WorkspaceConfigService } from '../workspace-config/index.js';
 import type { PipelineStageConfig } from '../../contracts/workspace-config.js';
 import { isUuid } from '../../utils/uuid.util.js';
+import { WorkspaceRole } from '../../contracts/roles.js';
 
 export interface OverviewFilterDto {
   workspaceId?: string;
@@ -12,6 +13,8 @@ export interface OverviewFilterDto {
   staffId?: string;
   courseId?: string;
   productId?: string;
+  isStaffOnly?: boolean;
+  callerRole?: string;
 }
 
 @Injectable()
@@ -139,9 +142,18 @@ export class ReportsService {
         break;
     }
 
+    const isStaffOnly = Boolean(filter.isStaffOnly || filter.callerRole === WorkspaceRole.STAFF);
+    const effectiveStaffId = isStaffOnly ? (filter.currentStaffId || filter.staffId) : filter.staffId;
+
     const customerWhere: any = { workspaceId: targetWsId };
     if (targetWsId) {
       customerWhere.workspaceId = targetWsId;
+    }
+    if (isStaffOnly && effectiveStaffId) {
+      customerWhere.OR = [
+        { conversations: { some: { assignedMember: { userId: effectiveStaffId } } } },
+        { channelIdentities: { path: ['assignedStaffId'], equals: effectiveStaffId } },
+      ];
     }
     if (startDate && endDate) {
       customerWhere.createdAt = { gte: startDate, lt: endDate };
@@ -149,7 +161,7 @@ export class ReportsService {
       customerWhere.createdAt = { gte: startDate };
     }
 
-    // 3. Lấy toàn bộ khách hàng / hồ sơ từ DB
+    // 3. Lấy toàn bộ khách hàng / hồ sơ từ DB (thu hẹp phạm vi nếu người gọi là STAFF)
     const customers = targetWsId
       ? await this.prisma.customer.findMany({
           where: customerWhere,
@@ -180,13 +192,22 @@ export class ReportsService {
     if (prevStartDate && prevEndDate) {
       const prevWhere: any = { createdAt: { gte: prevStartDate, lt: prevEndDate } };
       if (targetWsId) prevWhere.workspaceId = targetWsId;
+      if (isStaffOnly && effectiveStaffId) {
+        prevWhere.OR = [
+          { conversations: { some: { assignedMember: { userId: effectiveStaffId } } } },
+          { channelIdentities: { path: ['assignedStaffId'], equals: effectiveStaffId } },
+        ];
+      }
       prevPeriodCount = await this.prisma.customer.count({ where: prevWhere });
     }
 
-    // 4. Lấy danh sách nhân viên trong workspace
+    // 4. Lấy danh sách nhân viên trong workspace (STAFF chỉ lấy thông tin của chính mình)
     const workspaceMembers = targetWsId
       ? await this.prisma.workspaceMember.findMany({
-          where: { workspaceId: targetWsId },
+          where: {
+            workspaceId: targetWsId,
+            ...(isStaffOnly && effectiveStaffId ? { userId: effectiveStaffId } : {}),
+          },
           include: { user: { select: { id: true, fullName: true, email: true } } },
         })
       : [];

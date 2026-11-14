@@ -22,6 +22,7 @@ import { Roles } from '../decorators/roles.decorator.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../guards/roles.guard.js';
 import type { AuthUser } from '../../domain/types/auth-user.js';
+import { WorkspaceRole } from '../../../../contracts/roles.js';
 
 export const ChangeStaffRoleSchema = z.object({
   role: StaffRoleSchema,
@@ -36,14 +37,14 @@ export class OwnerController {
   ) {}
 
   @Get('owner-only')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   getOwnerOnly(): { ok: true } {
     return { ok: true };
   }
 
   @Get('owner/audit-logs')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getAuditLogs(): Promise<any> {
     return this.prisma.auditLog.findMany({
@@ -62,7 +63,7 @@ export class OwnerController {
   }
 
   @Patch('owner/staff/:id/role')
-  @Roles('OWNER')
+  @Roles(WorkspaceRole.OWNER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   async changeStaffRole(

@@ -10,10 +10,10 @@ import { AuditService } from './audit.service.js';
 @Controller('workspaces/current/audit')
 @UseGuards(WorkspaceRolesGuard)
 export class AuditController {
-  constructor(private readonly audit: AuditService) {}
+  constructor(private readonly audit: AuditService) { }
 
   @Get()
-  @WorkspacePermissions(WorkspacePermission.MANAGE_WORKSPACE)
+  @WorkspacePermissions(WorkspacePermission.VIEW_AUDIT_LOGS)
   getWorkspaceAudit(
     @Req() req: unknown,
     @Query('take') take?: string,

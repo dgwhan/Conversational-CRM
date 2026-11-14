@@ -14,6 +14,7 @@ import { getMyWorkspaces } from './operations/workspace-query.js';
 import { createWorkspace } from './operations/workspace-creation.js';
 import { updateWorkspace } from './operations/workspace-update.js';
 import { deleteWorkspace } from './operations/workspace-deletion.js';
+import { transferOwnership } from './operations/workspace-transfer.js';
 
 @Injectable()
 export class WorkspaceLifecycleService {
@@ -61,6 +62,15 @@ export class WorkspaceLifecycleService {
   ): Promise<{ success: boolean; message: string }> {
     const callerId = ownerId;
     return deleteWorkspace(this.prisma, workspaceId, callerId);
+  }
+
+  async transferOwnership(
+    workspaceId: string,
+    ownerId: string,
+    targetMemberId: string,
+    leaveWorkspace = false,
+  ): Promise<{ success: boolean; message: string; newOwnerId: string }> {
+    return transferOwnership(this.prisma, ownerId, targetMemberId, workspaceId, leaveWorkspace);
   }
 
   async resolveWorkspaceForOwner(

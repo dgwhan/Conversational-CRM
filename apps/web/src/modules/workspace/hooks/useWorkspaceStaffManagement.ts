@@ -84,10 +84,15 @@ export const useWorkspaceStaffManagement = ({
     }
   };
 
-  const deleteStaffMember = async (targetId: string, targetWsId?: string) => {
+  const deleteStaffMember = async (
+    targetId: string,
+    targetWsId?: string,
+    targetNewOwnerId?: string,
+  ) => {
     const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+    const query = targetNewOwnerId ? `?targetNewOwnerId=${encodeURIComponent(targetNewOwnerId)}` : '';
     try {
-      await apiClient.delete(`/workspaces/current/staff/${targetId}`, {
+      await apiClient.delete(`/workspaces/current/staff/${targetId}${query}`, {
         headers: {
           'x-owner-id': effectiveOwnerId,
           'x-staff-id': staffId || '',
@@ -100,6 +105,67 @@ export const useWorkspaceStaffManagement = ({
         await onStaffChange();
       }
       notify.success('Thao tác thành công!');
+    } catch (err) {
+      notify.error((err as Error).message, 'Thao Tác Thất Bại');
+      throw err;
+    }
+  };
+
+  const transferOwnership = async (
+    targetMemberId: string,
+    leaveWorkspace = false,
+    targetWsId?: string,
+  ) => {
+    const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string; newOwnerId: string }>(
+        `/workspaces/${wsId}/transfer-ownership`,
+        { targetMemberId, leaveWorkspace },
+        {
+          headers: {
+            'x-owner-id': effectiveOwnerId,
+            'x-staff-id': staffId || '',
+            'x-workspace-id': wsId,
+          },
+        },
+      );
+      notify.success(res.message || 'Chuyển quyền Chủ sở hữu thành công!');
+      if (onStaffChange) {
+        await onStaffChange();
+      }
+      return res;
+    } catch (err) {
+      notify.error((err as Error).message, 'Chuyển Quyền Chủ Sở Hữu Thất Bại');
+      throw err;
+    }
+  };
+
+  const toggleStaffLock = async (
+    targetId: string,
+    lock: boolean,
+    targetWsId?: string,
+  ) => {
+    const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
+    try {
+      const res = await apiClient.patch<{ success: boolean; message: string; isActive: boolean }>(
+        `/workspaces/current/staff/${targetId}/lock`,
+        { lock },
+        {
+          headers: {
+            'x-owner-id': effectiveOwnerId,
+            'x-staff-id': staffId || '',
+            'x-workspace-id': wsId,
+          },
+        },
+      );
+      setStaffMembers((prev) =>
+        prev.map((m) => (m.id === targetId ? { ...m, isActive: res.isActive } : m)),
+      );
+      notify.success(res.message || (lock ? 'Đã khóa thành viên.' : 'Đã mở khóa thành viên.'));
+      if (onStaffChange) {
+        await onStaffChange();
+      }
+      return res;
     } catch (err) {
       notify.error((err as Error).message, 'Thao Tác Thất Bại');
       throw err;
@@ -199,6 +265,8 @@ export const useWorkspaceStaffManagement = ({
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,
+    transferOwnership,
+    toggleStaffLock,
     setWorkspaceManagerPermission,
     cancelInvitation,
     acceptInvitation,

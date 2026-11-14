@@ -24,6 +24,7 @@ import {
   type StorageRetentionPolicy,
 } from '../../../contracts/message-storage.js';
 import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
+import { WorkspaceRole } from '../../../contracts/roles.js';
 
 @Controller('messaging/storage')
 export class MessageStorageController {
@@ -38,7 +39,7 @@ export class MessageStorageController {
    * Helper kiểm tra quyền OWNER cho các thao tác tác động dữ liệu lưu trữ
    */
   private checkOwnerPermission(role: string, actionDescription: string): void {
-    if (role !== 'OWNER' && role !== 'ADMIN') {
+    if (role !== WorkspaceRole.OWNER && role !== 'ADMIN') {
       throw new ForbiddenException(
         `Chỉ Quản trị viên (OWNER) mới có quyền ${actionDescription}. Quyền hiện tại: ${role}`,
       );

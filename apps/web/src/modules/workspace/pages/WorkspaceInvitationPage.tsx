@@ -175,8 +175,8 @@ export const WorkspaceInvitationPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-2.5">
                 <Button
                   type="button"
-                  variant="secondary"
-                  className="w-full justify-center text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 font-medium py-2 text-xs"
+                  variant="danger"
+                  className="w-full justify-center font-semibold py-2 text-xs shadow-2xs"
                   disabled={isSubmitting}
                   onClick={handleDecline}
                   icon={<XCircle size={14} />}

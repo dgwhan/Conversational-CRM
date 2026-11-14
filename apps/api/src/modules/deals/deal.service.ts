@@ -1,9 +1,11 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../platform/database/prisma.service.js';
 import { RealtimeService } from '../realtime/realtime.service.js';
 import { ActivityService } from '../activities/activity.service.js';
 import { isTestAppointmentStage } from '../messaging/application/customer.service.js';
 import { CreateDealDto, UpdateDealDto, DealFilterDto } from './dto/deal.dto.js';
+import { STAFF_ROLES } from '../../contracts/iam.js';
+import { WorkspaceRole } from '../../contracts/roles.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -197,6 +199,31 @@ export class DealService {
             ];
         }
 
+        // Role STAFF: Chỉ xem Deal được phân công cho mình hoặc khách hàng mình phụ trách
+        if (filter.callerRole === WorkspaceRole.STAFF && filter.callerUserId) {
+            const memberIds: string[] = [];
+            try {
+                const members = await this.prisma.workspaceMember.findMany({
+                    where: { userId: filter.callerUserId, workspaceId: safeWsId },
+                    select: { id: true },
+                });
+                members.forEach((m) => memberIds.push(m.id));
+            } catch { }
+
+            where.AND = [
+                ...(where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : []),
+                {
+                    OR: [
+                        { assignedMember: { userId: filter.callerUserId } },
+                        ...(memberIds.length > 0 ? [{ assignedMemberId: { in: memberIds } }] : []),
+                        { customer: { conversations: { some: { assignedMember: { userId: filter.callerUserId } } } } },
+                        ...(memberIds.length > 0 ? [{ customer: { conversations: { some: { assignedMemberId: { in: memberIds } } } } }] : []),
+                        { customer: { channelIdentities: { path: ['assignedStaffId'], equals: filter.callerUserId } } },
+                    ],
+                },
+            ];
+        }
+
         const [items, total] = await Promise.all([
             this.prisma.deal.findMany({
                 where,
@@ -243,11 +270,15 @@ export class DealService {
     /**
      * Lấy lịch sử tất cả các Deals / Đợt đăng ký của một Khách hàng
      */
-    async findDealsByCustomer(customerIdOrContactId: string, workspaceId?: string): Promise<any> {
+    async findDealsByCustomer(
+        customerIdOrContactId: string,
+        workspaceId?: string,
+        caller?: { role?: string; userId?: string },
+    ): Promise<any> {
         const stripped = customerIdOrContactId.replace(/^(cust|cand)-/, '');
         if (!UUID_REGEX.test(stripped)) return [];
 
-        return this.prisma.deal.findMany({
+        const deals = await this.prisma.deal.findMany({
             where: {
                 ...(workspaceId ? { workspaceId } : {}),
                 OR: [
@@ -256,6 +287,19 @@ export class DealService {
                 ],
             },
             include: {
+                customer: {
+                    include: {
+                        conversations: {
+                            select: {
+                                id: true,
+                                assignedMemberId: true,
+                                assignedMember: { select: { userId: true } },
+                            },
+                        },
+                    },
+                },
+                contact: true,
+                assignedMember: true,
                 activities: {
                     take: 10,
                     orderBy: { createdAt: 'desc' },
@@ -263,19 +307,39 @@ export class DealService {
             },
             orderBy: { createdAt: 'desc' },
         });
+
+        if (caller?.role === WorkspaceRole.STAFF && caller?.userId) {
+            return deals.filter((deal) => this.isDealAssignedToStaff(deal, caller.userId!));
+        }
+
+        return deals;
     }
 
     /**
      * Lấy chi tiết 1 Deal
      */
-    async findById(id: string, workspaceId?: string): Promise<any> {
+    async findById(
+        id: string,
+        workspaceId?: string,
+        caller?: { role?: string; userId?: string },
+    ): Promise<any> {
         if (!UUID_REGEX.test(id)) {
             throw new NotFoundException(`Cơ hội tuyển sinh với ID "${id}" không tồn tại.`);
         }
         const deal = await this.prisma.deal.findUnique({
             where: { id },
             include: {
-                customer: true,
+                customer: {
+                    include: {
+                        conversations: {
+                            select: {
+                                id: true,
+                                assignedMemberId: true,
+                                assignedMember: { select: { userId: true } },
+                            },
+                        },
+                    },
+                },
                 contact: true,
                 assignedMember: true,
                 activities: {
@@ -287,14 +351,66 @@ export class DealService {
         if (!deal || (workspaceId && deal.workspaceId !== workspaceId)) {
             throw new NotFoundException(`Cơ hội tuyển sinh với ID "${id}" không tồn tại.`);
         }
+
+        // Role STAFF: Nếu vào Deal của người khác sẽ trả về lỗi 403 Forbidden
+        if (caller?.role === WorkspaceRole.STAFF && caller?.userId) {
+            const isAssigned = this.isDealAssignedToStaff(deal, caller.userId);
+            if (!isAssigned) {
+                throw new ForbiddenException(
+                    'Bạn không có quyền xem thông tin cơ hội tuyển sinh của người khác (403 Forbidden).',
+                );
+            }
+        }
+
         return deal;
+    }
+
+    /**
+     * Kiểm tra cơ hội tuyển sinh có thuộc quyền phụ trách của nhân viên hay không
+     */
+    isDealAssignedToStaff(deal: any, userId: string): boolean {
+        if (!deal || !userId) return false;
+        if (deal.assignedMember?.userId === userId) return true;
+        const customer = deal.customer;
+        if (customer) {
+            const identities = (customer.channelIdentities as any) || {};
+            if (identities.assignedStaffId === userId || identities.assignedMemberId === userId) {
+                return true;
+            }
+            if (Array.isArray(customer.conversations)) {
+                for (const conv of customer.conversations) {
+                    if (
+                        conv.assignedMember?.userId === userId ||
+                        conv.assignedMemberId === userId ||
+                        conv.assignedMember?.id === userId
+                    ) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
      * Cập nhật thông tin Deal / chuyển đổi giai đoạn phễu tuyển sinh
      */
-    async update(id: string, dto: UpdateDealDto, workspaceId?: string): Promise<any> {
-        const existing = await this.findById(id, workspaceId);
+    async update(
+        id: string,
+        dto: UpdateDealDto,
+        workspaceId?: string,
+        caller?: { role?: string; userId?: string },
+    ): Promise<any> {
+        // Role STAFF: Không được tự ý phân công cơ hội cho người khác
+        if (caller?.role === WorkspaceRole.STAFF) {
+            if (dto.assignedMemberId !== undefined || dto.assignedStaffName !== undefined) {
+                throw new ForbiddenException(
+                    'Nhân viên không có quyền tự phân công cơ hội cho người khác (403 Forbidden).',
+                );
+            }
+        }
+
+        const existing = await this.findById(id, workspaceId, caller);
 
         const updateData: any = {};
         if (dto.title !== undefined) updateData.title = dto.title.slice(0, 250);
@@ -325,7 +441,7 @@ export class DealService {
                     phoneNormalized: dto.customerPhone?.trim() || undefined,
                     email: dto.customerEmail?.trim() || undefined,
                 },
-            }).catch(() => {});
+            }).catch(() => { });
         }
         if (dto.expectedCloseDate !== undefined) {
             updateData.expectedCloseDate = dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null;
@@ -387,7 +503,7 @@ export class DealService {
                     customerName: updated.customer?.fullName || updated.contact?.displayName || updated.title,
                     newStage: updated.stage,
                     previousStage: existing.stage,
-                    updatedBy: dto.updatedBy || 'Tư vấn viên',
+                    updatedBy: dto.updatedBy,
                     channel: 'MANUAL',
                     channelAccountName: updated.title,
                     estimatedValue: updated.expectedRevenue,
@@ -403,9 +519,14 @@ export class DealService {
     /**
      * Xóa một Deal
      */
-    async delete(id: string, workspaceId?: string) {
-        const existing = await this.findById(id, workspaceId);
-        await this.prisma.deal.delete({ where: { id } });
+    async delete(id: string, workspaceId?: string, caller?: { role?: string; userId?: string }) {
+        if (caller?.role === WorkspaceRole.STAFF) {
+            throw new ForbiddenException(
+                'Nhân viên không có quyền xóa cơ hội tuyển sinh (403 Forbidden).',
+            );
+        }
+        const existing = await this.findById(id, workspaceId, caller);
+        await this.prisma.deal.delete({ where: { id: existing.id } });
 
         try {
             this.realtime?.emit('deal:deleted', {

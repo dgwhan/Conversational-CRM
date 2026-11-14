@@ -51,7 +51,9 @@ export interface WorkspaceConfigContextType {
   staffMembers: ManagedStaffItem[];
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
   createStaffMember: (data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER }, targetWsId?: string) => Promise<void>;
-  deleteStaffMember: (staffId: string, targetWsId?: string) => Promise<void>;
+  deleteStaffMember: (staffId: string, targetWsId?: string, targetNewOwnerId?: string) => Promise<void>;
+  transferOwnership?: (targetMemberId: string, leaveWorkspace?: boolean, targetWsId?: string) => Promise<any>;
+  toggleStaffLock?: (targetId: string, lock: boolean, targetWsId?: string) => Promise<any>;
   setWorkspaceManagerPermission: (staffId: string, enabled: boolean, targetWsId?: string) => Promise<void>;
   cancelInvitation?: (targetId: string, targetWsId?: string) => Promise<void>;
   acceptInvitation?: (targetWsId: string) => Promise<any>;

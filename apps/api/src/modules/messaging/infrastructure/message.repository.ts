@@ -9,6 +9,7 @@ import {
     CRM_SYSTEM_TAGS,
     META_SOURCE_TAGS,
 } from "../domain/tag-mapping/index.js";
+import { WorkspaceRole } from "../../../contracts/roles.js";
 
 /** Tin vừa được chèn mới (đã bỏ qua tin trùng). channel + externalMessageId dùng để ghép lại đúng sự kiện gốc. */
 export interface InsertedMessage {
@@ -134,7 +135,7 @@ export class MessageRepository implements OnModuleInit {
         channel?: Channel | string;
         search?: string;
         staffId?: string;
-        role?: 'OWNER' | 'STAFF';
+        role?: WorkspaceRole | string;
     }): Promise<{ items: any[]; total: number }> {
         const safeWorkspaceId = normalizeWorkspaceId(options?.workspaceId);
         const normalizedChannel = normalizeChannel(options?.channel);
@@ -151,7 +152,7 @@ export class MessageRepository implements OnModuleInit {
         }
 
         // Nếu là role STAFF, chỉ xem hội thoại được phân công cho mình (OWNER xem được tất cả)
-        if (options?.role === 'STAFF' && options?.staffId) {
+        if (options?.role === WorkspaceRole.STAFF && options?.staffId) {
             const memberIds: string[] = [];
             try {
                 const members = await this.prisma.workspaceMember.findMany({
@@ -315,13 +316,13 @@ export class MessageRepository implements OnModuleInit {
                         name: assignedMember.user?.fullName || 'Tư vấn viên',
                         email: assignedMember.user?.email || null,
                         avatar: (assignedMember.user as any)?.avatarUrl || '',
-                        role: assignedMember.role || 'STAFF',
+                        role: assignedMember.role || WorkspaceRole.STAFF,
                     }
                     : (customerIdentities?.assignedStaffId
                         ? {
                             id: customerIdentities.assignedStaffId,
                             name: customerIdentities.assignedStaffName || 'Tư vấn viên',
-                            role: 'STAFF',
+                            role: WorkspaceRole.STAFF,
                         }
                         : undefined);
 
