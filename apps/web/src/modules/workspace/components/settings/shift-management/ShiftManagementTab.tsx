@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { apiClient } from "../../../../../lib/api-client/index.js";
 import { notify } from "../../../../../components/feedback/toastEmitter.js";
-import { Button, Modal } from "../../../../../components/ui/index.js";
+import { Button, Modal, Toggle } from "../../../../../components/ui/index.js";
 import {
   useWorkspaceLeadRouting,
   WEEKDAY_LABELS,
@@ -838,39 +838,16 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
               {selectedShift && (
                 <div className="ml-auto flex shrink-0 items-center gap-3">
                   <div className="flex shrink-0 items-center gap-2">
-                    {isOwner && (
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={selectedShift.isActive}
-                        aria-label={
-                          selectedShift.isActive ? "Tắt ca" : "Bật ca"
-                        }
-                        onClick={() => void toggleShift(selectedShift)}
-                        className={`relative block h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
-                          selectedShift.isActive
-                            ? "bg-emerald-600"
-                            : "bg-slate-300"
-                        }`}
-                      >
-                        <span
-                          className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
-                            selectedShift.isActive
-                              ? "translate-x-5"
-                              : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    )}
-                    <span
-                      className={`whitespace-nowrap text-xs font-medium ${
-                        selectedShift.isActive
-                          ? "text-emerald-700"
-                          : "text-slate-500"
-                      }`}
-                    >
-                      {selectedShift.isActive ? "Đang hoạt động" : "Đang tắt"}
-                    </span>
+                    <Toggle
+                      checked={selectedShift.isActive}
+                      onChange={() => void toggleShift(selectedShift)}
+                      disabled={!isOwner}
+                      size="md"
+                      showStatusLabel
+                      labelOn="Đang hoạt động"
+                      labelOff="Đang tắt"
+                      aria-label={selectedShift.isActive ? "Tắt ca" : "Bật ca"}
+                    />
                   </div>
                   {isOwner && (
                     <div className="relative" ref={overflowRef}>

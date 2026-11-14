@@ -329,6 +329,20 @@ export class ChannelManagerService {
   }
 
   /**
+   * Tìm một ChannelAccount theo ID và kiểm tra thuộc về Workspace
+   */
+  async getChannelById(id: string, workspaceId?: string) {
+    const channelAccount = await this.prisma.channelAccount.findUnique({
+      where: { id },
+    });
+    if (!channelAccount) return null;
+    if (workspaceId && channelAccount.workspaceId && channelAccount.workspaceId !== workspaceId) {
+      return null;
+    }
+    return channelAccount;
+  }
+
+  /**
    * Bật / Tắt trạng thái hoạt động của kênh.
    * BẢO MẬT: Kiểm tra quyền sở hữu workspaceId trước khi thay đổi.
    */

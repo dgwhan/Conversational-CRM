@@ -167,7 +167,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                   </div>
                 </div>
 
-                {canManageChannels && (
+                {(canManageChannels || channel.channel === "ZALO") && (
                   <div className="flex items-center gap-2">
                     {channel.channel === "ZALO" && (
                       <Button
@@ -196,7 +196,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                       Đồng bộ
                     </Button>
 
-                    {(status === "Expired" || status === "Error") && (
+                    {canManageChannels && (status === "Expired" || status === "Error") && (
                       <Button
                         variant="danger"
                         size="sm"
@@ -208,35 +208,39 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                       </Button>
                     )}
 
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon={<Sliders size={13} />}
-                      onClick={() => onOpenChannelDetails(channel)}
-                    >
-                      Quản lý
-                    </Button>
+                    {canManageChannels && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon={<Sliders size={13} />}
+                        onClick={() => onOpenChannelDetails(channel)}
+                      >
+                        Quản lý
+                      </Button>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onToggleChannel(channel.id, channel.isActive)
-                      }
-                      disabled={togglingChannelId === channel.id}
-                      className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-300 bg-white text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                      title={
-                        channel.isActive
-                          ? "Tạm dừng nhận tin nhắn"
-                          : "Kích hoạt lại kênh"
-                      }
-                    >
-                      <Power
-                        size={13}
-                        className={
-                          channel.isActive ? "text-slate-400" : "text-emerald-600"
+                    {canManageChannels && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onToggleChannel(channel.id, channel.isActive)
                         }
-                      />
-                    </button>
+                        disabled={togglingChannelId === channel.id}
+                        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-md border border-slate-300 bg-white text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                        title={
+                          channel.isActive
+                            ? "Tạm dừng nhận tin nhắn"
+                            : "Kích hoạt lại kênh"
+                        }
+                      >
+                        <Power
+                          size={13}
+                          className={
+                            channel.isActive ? "text-slate-400" : "text-emerald-600"
+                          }
+                        />
+                      </button>
+                    )}
 
                     {canDisconnect && (
                       <button

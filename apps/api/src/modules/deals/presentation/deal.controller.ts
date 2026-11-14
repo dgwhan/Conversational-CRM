@@ -12,13 +12,14 @@ import {
     UseGuards,
     ForbiddenException,
 } from '@nestjs/common';
-import { DealService } from './deal.service.js';
-import { CreateDealDto, UpdateDealDto } from './dto/deal.dto.js';
-import { SkipCsrf } from '../../common/decorators/skip-csrf.decorator.js';
-import { getRequestIdentity, requireWorkspaceId } from '../../common/auth/request-identity.js';
-import { WorkspaceRolesGuard } from '../../common/guards/workspace-roles.guard.js';
-import { Roles } from '../../common/decorators/roles.decorator.js';
-import { WorkspaceRole } from '../../contracts/roles.js';
+import { DealService } from '../application/deal.service.js';
+import { CreateDealDto, UpdateDealDto } from '../application/dto/deal.dto.js';
+import { SkipCsrf } from '../../../common/decorators/skip-csrf.decorator.js';
+import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
+import { WorkspaceRolesGuard } from '../../../common/guards/workspace-roles.guard.js';
+import { Roles } from '../../../common/decorators/roles.decorator.js';
+import { WorkspaceRole } from '../../../contracts/roles.js';
+import { DEFAULT_DEAL_CONFIG, DEAL_SYSTEM_MESSAGES } from '../domain/constants/deal.constants.js';
 
 @Controller('deals')
 @UseGuards(WorkspaceRolesGuard)
@@ -26,7 +27,7 @@ export class DealController {
     constructor(private readonly dealService: DealService) { }
 
     /**
-     * Lấy danh sách các cơ hội tuyển sinh (Deals / Opportunities)
+     * Lấy danh sách các cơ hội (Deals / Opportunities)
      * STAFF: Chỉ xem được Deal được phân công cho mình
      */
     @Get()
@@ -62,7 +63,7 @@ export class DealController {
     }
 
     /**
-     * Lấy toàn bộ các đợt đăng ký / cơ hội tuyển sinh của một khách hàng
+     * Lấy toàn bộ các cơ hội (Deals) của một khách hàng
      */
     @Get('customer/:customerId')
     @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
@@ -73,7 +74,7 @@ export class DealController {
     }
 
     /**
-     * Lấy chi tiết một cơ hội tuyển sinh
+     * Lấy chi tiết một cơ hội
      * STAFF: Nếu xem Deal của người khác sẽ bị chặn 403 Forbidden
      */
     @Get(':id')
@@ -85,7 +86,7 @@ export class DealController {
     }
 
     /**
-     * Tạo một cơ hội tuyển sinh mới (Khóa học mới, Niên khóa mới...) cho Học viên
+     * Tạo một cơ hội mới cho Khách hàng
      */
     @Post()
     @SkipCsrf()
@@ -112,12 +113,16 @@ export class DealController {
     ): Promise<any> {
         const workspaceId = requireWorkspaceId(req);
         const { role, userId } = getRequestIdentity(req);
-        const updatedBy = req?.user?.fullName || body.updatedBy || 'Tư vấn viên';
+        const updatedBy =
+            req?.user?.fullName ||
+            body.updatedBy ||
+            req?.user?.email ||
+            DEFAULT_DEAL_CONFIG.DEFAULT_UPDATED_BY;
         return this.dealService.update(id, { ...body, updatedBy }, workspaceId, { role, userId });
     }
 
     /**
-     * Xóa một cơ hội tuyển sinh
+     * Xóa một cơ hội
      * Chỉ OWNER hoặc MANAGER mới có quyền xóa Deal, cấm STAFF xóa
      */
     @Delete(':id')
@@ -127,7 +132,7 @@ export class DealController {
         const workspaceId = requireWorkspaceId(req);
         const { role, userId } = getRequestIdentity(req);
         if (role !== WorkspaceRole.OWNER && role !== WorkspaceRole.MANAGER) {
-            throw new ForbiddenException('Nhân viên không có quyền xóa cơ hội tuyển sinh (403 Forbidden).');
+            throw new ForbiddenException(DEAL_SYSTEM_MESSAGES.CANNOT_DELETE_DEAL);
         }
         return this.dealService.delete(id, workspaceId, { role, userId });
     }

@@ -10,6 +10,7 @@ import {
   Headers,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -47,18 +48,27 @@ export class ChannelConnectorController {
 
   /**
    * GET /api/oauth/:channel/authorize-url
-   * Sinh URL đăng nhập OAuth kèm state token chống CSRF (Chỉ OWNER / ADMIN)
+   * Sinh URL đăng nhập OAuth kèm state token chống CSRF (OWNER/MANAGER toàn quyền, STAFF chỉ áp dụng cho Zalo)
    */
   @Get('oauth/:channel/authorize-url')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   getAuthorizeUrl(
     @Param('channel') rawChannel: string,
     @Query() rawQuery: Record<string, unknown>,
+    @Req() req?: any,
   ): AuthorizeUrlResult {
     const channelResult = ChannelTypeSchema.safeParse(rawChannel.toUpperCase());
     if (!channelResult.success) {
       throw new BadRequestException(
         `Invalid channel '${rawChannel}'. Must be one of: FACEBOOK, ZALO, TIKTOK, INSTAGRAM`,
+      );
+    }
+
+    // Ngoại lệ Zalo: STAFF chỉ được sinh authorize URL cho kênh Zalo
+    const userRole = req?.workspace?.role;
+    if (userRole === WorkspaceRole.STAFF && channelResult.data !== 'ZALO') {
+      throw new ForbiddenException(
+        'Nhân viên chỉ có quyền xác thực kết nối cho kênh Zalo (403 Forbidden).',
       );
     }
 
@@ -76,19 +86,28 @@ export class ChannelConnectorController {
 
   /**
    * POST /api/oauth/:channel/exchange-token
-   * Trao đổi Authorization Code lấy token và danh sách Fanpage / OA (Chỉ OWNER / ADMIN)
+   * Trao đổi Authorization Code lấy token và danh sách Fanpage / OA (OWNER/MANAGER toàn quyền, STAFF chỉ áp dụng cho Zalo)
    */
   @Post('oauth/:channel/exchange-token')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   @HttpCode(HttpStatus.OK)
   async exchangeToken(
     @Param('channel') rawChannel: string,
     @Body() rawBody: unknown,
+    @Req() req?: any,
   ): Promise<ExchangeTokenResult> {
     const channelResult = ChannelTypeSchema.safeParse(rawChannel.toUpperCase());
     if (!channelResult.success) {
       throw new BadRequestException(
         `Invalid channel '${rawChannel}'. Must be one of: FACEBOOK, ZALO, TIKTOK, INSTAGRAM`,
+      );
+    }
+
+    // Ngoại lệ Zalo: STAFF chỉ được trao đổi token cho kênh Zalo
+    const userRole = req?.workspace?.role;
+    if (userRole === WorkspaceRole.STAFF && channelResult.data !== 'ZALO') {
+      throw new ForbiddenException(
+        'Nhân viên chỉ có quyền xác thực kết nối cho kênh Zalo (403 Forbidden).',
       );
     }
 
@@ -112,10 +131,10 @@ export class ChannelConnectorController {
 
   /**
    * POST /api/channels/activate
-   * Kích hoạt danh sách Fanpage vào Workspace & Mã hóa AES-256 Token (Chỉ OWNER / ADMIN)
+   * Kích hoạt danh sách Fanpage vào Workspace & Mã hóa AES-256 Token (OWNER/MANAGER toàn quyền, STAFF chỉ được kích hoạt/xác thực lại Zalo)
    */
   @Post('channels/activate')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   @HttpCode(HttpStatus.OK)
   async activateChannels(
     @Body() rawBody: unknown,
@@ -131,11 +150,24 @@ export class ChannelConnectorController {
     const payload = bodyResult.data;
     const authorizedWorkspaceId = req?.workspace?.id || headerWorkspaceId;
     if (payload.workspaceId && authorizedWorkspaceId && payload.workspaceId !== authorizedWorkspaceId) {
-      throw new ForbiddenException('Không thể kết nối kênh vào workspace khác với workspace đã xác thực.');
+      throw new ForbiddenException('Access denied: Không thể kết nối kênh vào workspace khác với workspace đã xác thực.');
     }
     if (authorizedWorkspaceId) payload.workspaceId = authorizedWorkspaceId;
     if (!payload.workspaceId && headerWorkspaceId) {
       payload.workspaceId = headerWorkspaceId;
+    }
+
+    // Ngoại lệ Zalo: STAFF chỉ được kích hoạt hoặc xác thực lại kênh Zalo
+    const userRole = req?.workspace?.role;
+    if (userRole === WorkspaceRole.STAFF) {
+      const hasNonZalo = payload.pages.some(
+        (p) => p.channel !== 'ZALO' && (p.channel as string) !== 'ZALO_PERSONAL',
+      );
+      if (hasNonZalo) {
+        throw new ForbiddenException(
+          'Nhân viên chỉ có quyền kích hoạt hoặc xác thực lại kết nối kênh Zalo (403 Forbidden).',
+        );
+      }
     }
 
     return this.channelManager.activateChannels(payload, headerOwnerId);
@@ -175,10 +207,10 @@ export class ChannelConnectorController {
 
   /**
    * POST /api/channels/:id/sync
-   * Đồng bộ tin nhắn từ kênh (Zalo OA, Zalo Cá nhân zca-js, Facebook Fanpage) về CRM (Chỉ OWNER / ADMIN)
+   * Đồng bộ tin nhắn từ kênh về CRM (OWNER/MANAGER toàn quyền, STAFF chỉ được đồng bộ Zalo để duy trì phiên)
    */
   @Post('channels/:id/sync')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   @HttpCode(HttpStatus.OK)
   async syncChannel(
     @Param('id') id: string,
@@ -187,6 +219,21 @@ export class ChannelConnectorController {
     @Req() req?: any,
   ) {
     const effectiveWorkspaceId = this.requireAuthorizedWorkspace(req, queryWorkspaceId || headerWorkspaceId);
+
+    // Ngoại lệ Zalo: STAFF chỉ được đồng bộ kênh Zalo
+    const userRole = req?.workspace?.role;
+    if (userRole === WorkspaceRole.STAFF) {
+      const channelAccount = await this.channelManager.getChannelById(id, effectiveWorkspaceId);
+      if (!channelAccount) {
+        throw new NotFoundException('Không tìm thấy kênh trong không gian làm việc.');
+      }
+      if (channelAccount.channel !== 'ZALO' && (channelAccount.channel as string) !== 'ZALO_PERSONAL') {
+        throw new ForbiddenException(
+          'Nhân viên chỉ có quyền làm mới hoặc đồng bộ phiên đối với kênh Zalo (403 Forbidden).',
+        );
+      }
+    }
+
     return this.channelManager.syncChannel(id, effectiveWorkspaceId);
   }
 
@@ -288,10 +335,10 @@ export class ChannelConnectorController {
 
   /**
    * POST /api/channels/zalo-personal/qr-init
-   * Khởi tạo phiên quét mã QR Đăng nhập Zalo Cá nhân (zca-js Engine)
+   * Khởi tạo phiên quét mã QR Đăng nhập Zalo Cá nhân (zca-js Engine) - Hỗ trợ STAFF duy trì phiên
    */
   @Post('channels/zalo-personal/qr-init')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   @HttpCode(HttpStatus.OK)
   async initZaloPersonalQr() {
     return this.getZcaService().createQrSession();
@@ -302,7 +349,7 @@ export class ChannelConnectorController {
    * Kiểm tra trạng thái phiên quét mã QR
    */
   @Get('channels/zalo-personal/qr-status')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   async getZaloPersonalQrStatus(@Query('sessionId') sessionId: string) {
     if (!sessionId) {
       throw new BadRequestException('sessionId is required');
@@ -315,7 +362,7 @@ export class ChannelConnectorController {
    * Xác nhận / Mô phỏng đăng nhập thành công sau khi quét mã
    */
   @Post('channels/zalo-personal/qr-confirm')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_CHANNELS)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   @HttpCode(HttpStatus.OK)
   async confirmZaloPersonalQr(
     @Body()
@@ -370,12 +417,12 @@ export class ChannelConnectorController {
   }
 
   private requireAuthorizedWorkspace(req: any, requestedWorkspaceId?: string): string {
-    const authorizedWorkspaceId = req?.workspace?.id;
+    const authorizedWorkspaceId = req?.workspace?.id || requestedWorkspaceId;
     if (!authorizedWorkspaceId) {
       throw new ForbiddenException('Không thể xác định workspace đã được xác thực.');
     }
-    if (requestedWorkspaceId && requestedWorkspaceId !== authorizedWorkspaceId) {
-      throw new ForbiddenException('Không thể thao tác ngoài workspace đã xác thực.');
+    if (req?.workspace?.id && requestedWorkspaceId && requestedWorkspaceId !== req.workspace.id) {
+      throw new ForbiddenException('Access denied: Không thể thao tác ngoài workspace đã xác thực.');
     }
     return authorizedWorkspaceId;
   }

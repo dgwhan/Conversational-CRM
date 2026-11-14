@@ -17,6 +17,7 @@ export * from './StatCard.js';
 export * from './TextField.js';
 export * from './PasswordField.js';
 export * from './Checkbox.js';
+export * from './Toggle.js';
 export * from './Alert.js';
 export * from './GlassCard.js';
 export * from './GlassInput.js';

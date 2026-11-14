@@ -14,6 +14,7 @@ import type {
   DayWorkingSchedule,
 } from '../../workspaceConfig.types.js';
 import { getDefaultWorkingHoursConfig } from '../../workspaceConfig.types.js';
+import { WorkingHoursToggle } from './WorkingHoursToggle.js';
 
 import { useTranslation } from '../../../../i18n/index.js';
 export interface WorkingHoursTabProps {
@@ -154,20 +155,14 @@ export const WorkingHoursTab: React.FC<WorkingHoursTabProps> = ({
           </div>
 
           {/* Toggle Enabled */}
-          <div className="flex items-center gap-2 shrink-0">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={config.enabled}
-                onChange={handleToggleEnabled}
-                disabled={!isOwner}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-            </label>
-            <span className="text-xs font-semibold text-slate-700 hidden sm:inline">
-              {config.enabled ? t('workspaceSettings.workingHours.on', 'Đang bật') : t('workspaceSettings.workingHours.off', 'Tạm tắt')}
-            </span>
+          <div className="flex items-center shrink-0">
+            <WorkingHoursToggle
+              checked={config.enabled}
+              onChange={handleToggleEnabled}
+              disabled={!isOwner}
+              labelOn={t('workspaceSettings.workingHours.on', 'Đang bật')}
+              labelOff={t('workspaceSettings.workingHours.off', 'Tạm tắt')}
+            />
           </div>
         </div>
 

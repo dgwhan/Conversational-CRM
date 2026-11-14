@@ -903,9 +903,10 @@ export class MessageDispatcherService {
       );
     }
 
-    if (conversation?.id) {
+    const targetConversationId = conversation?.id || (isUuid ? trimmedId : undefined);
+    if (targetConversationId) {
       await this.prisma.conversation.update({
-        where: { id: conversation.id },
+        where: { id: targetConversationId },
         data: { unreadCount: 0 },
       }).catch(() => {});
     }

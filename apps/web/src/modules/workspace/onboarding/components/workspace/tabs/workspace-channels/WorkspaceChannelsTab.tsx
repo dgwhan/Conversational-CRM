@@ -75,7 +75,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
           />
         }
         actions={
-          canManageChannels && (
+          canManageChannels ? (
             <Button
               variant="primary"
               size="sm"
@@ -83,6 +83,16 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
               onClick={() => setIsPlatformPickerOpen(true)}
             >
               Thêm kênh
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Plus size={13} />}
+              onClick={() => onOpenConnectModal('ZALO')}
+              title="Kết nối hoặc duy trì phiên Zalo cá nhân"
+            >
+              Kết nối Zalo
             </Button>
           )
         }

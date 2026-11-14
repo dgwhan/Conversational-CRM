@@ -25,7 +25,12 @@ export async function executeSingleHandover(
 ) {
   const existingConversation = await prisma.conversation.findFirst({
     where: { id: conversationId, workspaceId },
-    select: { assignedMemberId: true },
+    select: {
+      assignedMemberId: true,
+      assignedMember: {
+        select: { userId: true },
+      },
+    },
   });
   if (!existingConversation) {
     throw new NotFoundException('Không tìm thấy hội thoại trong workspace.');
@@ -35,27 +40,35 @@ export async function executeSingleHandover(
     workspaceId,
     actorId,
   );
-  if (!workspaceManager && existingConversation.assignedMemberId) {
-    await support.assertMemberManager(
-      workspaceId,
-      actorId,
-      existingConversation.assignedMemberId,
-    );
-  } else if (!workspaceManager) {
-    const shiftManager = await prisma.workspaceMember.findFirst({
-      where: {
+
+  // Cho phép STAFF bàn giao cuộc hội thoại do chính mình đang phụ trách
+  const isSelfAssigned =
+    existingConversation.assignedMember?.userId === actorId ||
+    existingConversation.assignedMemberId === actorId;
+
+  if (!workspaceManager && !isSelfAssigned) {
+    if (existingConversation.assignedMemberId) {
+      await support.assertMemberManager(
         workspaceId,
-        userId: actorId,
-        status: WorkspaceMemberStatus.ACTIVE,
-        isActive: true,
-        shiftAssignments: { some: { isShiftManager: true } },
-      },
-      select: { id: true },
-    });
-    if (!shiftManager) {
-      throw new ForbiddenException(
-        'Chỉ Owner, Quản lý workspace hoặc ca trưởng mới được bàn giao lead.',
+        actorId,
+        existingConversation.assignedMemberId,
       );
+    } else {
+      const shiftManager = await prisma.workspaceMember.findFirst({
+        where: {
+          workspaceId,
+          userId: actorId,
+          status: WorkspaceMemberStatus.ACTIVE,
+          isActive: true,
+          shiftAssignments: { some: { isShiftManager: true } },
+        },
+        select: { id: true },
+      });
+      if (!shiftManager) {
+        throw new ForbiddenException(
+          'Bạn chỉ có quyền bàn giao hội thoại do chính mình đang phụ trách (403 Forbidden).',
+        );
+      }
     }
   }
 

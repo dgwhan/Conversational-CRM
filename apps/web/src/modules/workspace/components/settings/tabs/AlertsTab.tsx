@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Save } from 'lucide-react';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
+import { Toggle } from '../../../../../components/ui/index.js';
 
 import { useTranslation } from '../../../../../i18n/index.js';
 export interface AlertsTabProps {
@@ -57,23 +58,24 @@ export const AlertsTab: React.FC<AlertsTabProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-start gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-200/80">
-            <input
-              type="checkbox"
+          <div className="flex items-start justify-between gap-3 p-3.5 bg-slate-50/70 rounded-xl border border-slate-200/80">
+            <div className="space-y-0.5">
+              <label htmlFor="enableAlertToggle" className="block text-xs font-bold text-slate-800 cursor-pointer">
+                {t('workspaceSettings.alerts.enable', 'Bật tính năng cảnh báo tin nhắn chậm phản hồi')}
+              </label>
+              <p className="text-[11px] text-slate-500 m-0">
+                {t('workspaceSettings.alerts.enableDesc', 'Hệ thống đo lường thời gian từ lúc khách gửi tin nhắn cuối cùng nếu chưa có phản hồi từ nhân viên tư vấn.')}
+              </p>
+            </div>
+            <Toggle
               id="enableAlertToggle"
               checked={isEnabled}
-              onChange={(e) => setIsEnabled(e.target.checked)}
+              onChange={setIsEnabled}
               disabled={!isOwner}
-              className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed"
+              showStatusLabel
+              labelOn={t('workspaceSettings.workingHours.on', 'Đang bật')}
+              labelOff={t('workspaceSettings.workingHours.off', 'Tạm tắt')}
             />
-            <label htmlFor="enableAlertToggle" className="cursor-pointer">
-              <span className="block text-xs font-bold text-slate-800">
-                {t('workspaceSettings.alerts.enable', 'Bật tính năng cảnh báo tin nhắn chậm phản hồi')}
-              </span>
-              <span className="block text-[11px] text-slate-500 mt-0.5">
-                {t('workspaceSettings.alerts.enableDesc', 'Hệ thống đo lường thời gian từ lúc khách gửi tin nhắn cuối cùng nếu chưa có phản hồi từ nhân viên tư vấn.')}
-              </span>
-            </label>
           </div>
 
           {isEnabled && (

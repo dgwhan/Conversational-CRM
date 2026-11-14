@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { DealService } from '../../src/modules/deals/deal.service.js';
-import { DealController } from '../../src/modules/deals/deal.controller.js';
+import { DealService } from '../../src/modules/deals/application/deal.service.js';
+import { DealController } from '../../src/modules/deals/presentation/deal.controller.js';
 import { WorkspaceRole } from '../../src/contracts/roles.js';
 
 describe('DealSecurity & Staff Authorization Boundaries', () => {

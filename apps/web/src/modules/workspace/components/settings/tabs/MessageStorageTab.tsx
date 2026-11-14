@@ -13,7 +13,7 @@ import {
   Sparkles,
   Zap,
 } from 'lucide-react';
-import { Button, Badge } from '../../../../../components/ui/index.js';
+import { Button, Badge, Toggle } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import type {
@@ -463,12 +463,11 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
                   {t('workspaceSettings.storage.enableScheduleDesc', 'Hệ thống tự động kích hoạt Worker quét và giải phóng các tin nhắn quá hạn vào lúc 02:00 AM hàng ngày.')}
                 </p>
               </div>
-              <input
-                type="checkbox"
+              <Toggle
                 checked={policy.autoCleanupEnabled}
-                onChange={(e) => setPolicy({ ...policy, autoCleanupEnabled: e.target.checked })}
+                onChange={(checked) => setPolicy({ ...policy, autoCleanupEnabled: checked })}
                 disabled={!isOwner}
-                className="mt-1 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                size="md"
               />
             </div>
 

@@ -111,7 +111,7 @@ export class LeadRoutingController {
   }
 
   @Post('conversations/:conversationId/handover')
-  @WorkspacePermissions(WorkspacePermission.MANAGE_ROUTING)
+  @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
   handover(@Req() req: unknown, @Param('conversationId') conversationId: string, @Body() body: { targetMemberId?: string | null }) {
     const identity = getRequestIdentity(req);
     return this.routing.handover(requireWorkspaceId(req), identity.userId!, conversationId, body.targetMemberId);

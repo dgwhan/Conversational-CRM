@@ -61,3 +61,4 @@ export class DealFilterDto {
     callerRole?: string;
     callerUserId?: string;
 }
+

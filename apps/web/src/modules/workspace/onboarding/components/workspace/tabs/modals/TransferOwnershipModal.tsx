@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ShieldAlert, UserCheck, Search, Check, Phone, Mail, User } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ShieldAlert, UserCheck, Check, ChevronDown } from 'lucide-react';
 import { Modal, Button } from '../../../../../../../components/ui/index.js';
 import type { ManagedStaffItem } from '../../../../../WorkspaceConfigContext.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
@@ -15,15 +15,6 @@ export interface TransferOwnershipModalProps {
   onConfirm: (targetMemberId: string, leaveWorkspace: boolean) => Promise<void>;
 }
 
-const getInitials = (name: string) =>
-  name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((part) => part[0] ?? '')
-    .join('')
-    .toLocaleUpperCase('vi');
-
 export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
   isOpen,
   onClose,
@@ -35,8 +26,21 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
 }) => {
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [inputValue, setInputValue] = useState<string>('');
+  const [isOpenDropdown, setIsOpenDropdown] = useState<boolean>(false);
   const [leaveAfterTransfer, setLeaveAfterTransfer] = useState<boolean>(isLeaving);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const comboboxRef = useRef<HTMLDivElement>(null);
+
+  const getDisplayLabel = (c: ManagedStaffItem) => {
+    const roleLabel = c.isWorkspaceManager ? 'Quản lý' : 'Nhân viên tư vấn';
+    const name = c.fullName || c.email.split('@')[0];
+    return `${name} (${c.email}) - ${roleLabel}`;
+  };
+
+  const selectedCandidate = useMemo(() => {
+    return activeCandidates.find((c) => c.id === selectedMemberId);
+  }, [activeCandidates, selectedMemberId]);
 
   useEffect(() => {
     if (preselectedMemberId) {
@@ -46,12 +50,37 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
     }
     setLeaveAfterTransfer(isLeaving);
     setSearchQuery('');
+    setIsOpenDropdown(false);
   }, [preselectedMemberId, activeCandidates, isLeaving, isOpen]);
+
+  useEffect(() => {
+    if (selectedCandidate) {
+      setInputValue(getDisplayLabel(selectedCandidate));
+    } else {
+      setInputValue('');
+    }
+  }, [selectedCandidate]);
+
+  // Đóng dropdown khi click bên ngoài box
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(event.target as Node)) {
+        setIsOpenDropdown(false);
+        if (selectedCandidate) {
+          setInputValue(getDisplayLabel(selectedCandidate));
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectedCandidate]);
 
   // Lọc danh sách ứng viên theo Tên (hỗ trợ tiếng Việt không dấu), Email hoặc Số điện thoại
   const filteredCandidates = useMemo(() => {
     const q = searchQuery.trim();
-    if (!q) return activeCandidates;
+    if (!q || (selectedCandidate && q === getDisplayLabel(selectedCandidate))) {
+      return activeCandidates;
+    }
     const lowerQ = q.toLowerCase();
     const digitsQ = q.replace(/\D/g, '');
 
@@ -83,7 +112,21 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
 
       return matchName || matchEmail || matchPhone;
     });
-  }, [activeCandidates, searchQuery]);
+  }, [activeCandidates, searchQuery, selectedCandidate]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputValue(val);
+    setSearchQuery(val);
+    setIsOpenDropdown(true);
+  };
+
+  const handleSelectOption = (c: ManagedStaffItem) => {
+    setSelectedMemberId(c.id);
+    setInputValue(getDisplayLabel(c));
+    setSearchQuery('');
+    setIsOpenDropdown(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,8 +135,8 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
       return;
     }
 
-    const selectedCandidate = activeCandidates.find((c) => c.id === selectedMemberId);
-    const candidateName = selectedCandidate?.fullName || selectedCandidate?.email || selectedMemberId;
+    const candidate = activeCandidates.find((c) => c.id === selectedMemberId);
+    const candidateName = candidate?.fullName || candidate?.email || selectedMemberId;
 
     const confirmMsg = leaveAfterTransfer
       ? `Bạn có chắc chắn muốn chuyển giao quyền Chủ sở hữu cho "${candidateName}" và rời khỏi Không gian làm việc "${workspaceName}"?`
@@ -139,84 +182,83 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
             Chọn thành viên nhận quyền Chủ sở hữu <span className="text-red-500">*</span>
           </label>
 
-          {/* Ô nhập tìm kiếm bao gồm Tên, Email, Số điện thoại */}
-          <div className="relative mb-2">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Nhập tên, email hoặc số điện thoại để tìm..."
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-md outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 shadow-xs transition-all"
-            />
-          </div>
+          {/* Combobox chọn thành viên: hỗ trợ nhập tìm kiếm Tên (tiếng Việt không dấu), Email, SĐT */}
+          <div ref={comboboxRef} className="relative">
+            <div
+              className={`flex items-center w-full px-3 py-2 text-xs border rounded-md bg-white shadow-2xs transition-all ${
+                isOpenDropdown
+                  ? 'border-blue-600 ring-2 ring-blue-100'
+                  : 'border-slate-300 hover:border-slate-400'
+              }`}
+            >
+              <input
+                type="text"
+                value={inputValue}
+                onChange={handleInputChange}
+                onFocus={() => setIsOpenDropdown(true)}
+                placeholder="Nhập tên, email hoặc số điện thoại để tìm..."
+                className="w-full bg-transparent outline-none text-xs text-slate-800 placeholder-slate-400 cursor-text"
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setIsOpenDropdown((prev) => !prev)}
+                className="ml-1 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+              >
+                <ChevronDown
+                  size={15}
+                  className={`transition-transform duration-150 ${isOpenDropdown ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
 
-          {activeCandidates.length === 0 ? (
-            <div className="p-3 text-xs text-slate-500 bg-slate-50 rounded border border-slate-200 text-center">
-              Không có thành viên đang hoạt động nào khác trong Workspace.
-            </div>
-          ) : filteredCandidates.length === 0 ? (
-            <div className="p-3 text-xs text-slate-500 bg-slate-50 rounded border border-slate-200 text-center">
-              Không tìm thấy thành viên nào khớp với từ khóa "{searchQuery}".
-            </div>
-          ) : (
-            <div className="max-h-56 overflow-y-auto space-y-1.5 border border-slate-200 rounded-lg p-1.5 bg-slate-50/50">
-              {filteredCandidates.map((candidate) => {
-                const isSelected = candidate.id === selectedMemberId;
-                const displayName = candidate.fullName || candidate.email.split('@')[0];
-                return (
-                  <div
-                    key={candidate.id}
-                    onClick={() => setSelectedMemberId(candidate.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer border transition-all text-xs ${
-                      isSelected
-                        ? 'bg-blue-50/80 border-blue-500 shadow-xs ring-1 ring-blue-500'
-                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
-                        {getInitials(displayName) || <User size={13} />}
-                      </div>
-                      <div className="min-w-0 flex flex-col">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-semibold text-slate-900 truncate">
-                            {displayName}
-                          </span>
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
-                              candidate.isWorkspaceManager
-                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                : 'bg-slate-100 text-slate-600 border-slate-200'
-                            }`}
-                          >
-                            {candidate.isWorkspaceManager ? 'Quản lý' : 'Nhân viên tư vấn'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-                          <span className="flex items-center gap-1 truncate" title={candidate.email}>
-                            <Mail size={11} className="text-slate-400 shrink-0" />
-                            {candidate.email}
-                          </span>
+            {/* Menu thả xuống hiển thị danh sách thành viên */}
+            {isOpenDropdown && (
+              <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg py-1">
+                {activeCandidates.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-500 text-center">
+                    Không có thành viên đang hoạt động nào khác trong Workspace.
+                  </div>
+                ) : filteredCandidates.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-500 text-center">
+                    Không tìm thấy thành viên nào khớp với từ khóa "{searchQuery}".
+                  </div>
+                ) : (
+                  filteredCandidates.map((candidate) => {
+                    const isSelected = candidate.id === selectedMemberId;
+                    const label = getDisplayLabel(candidate);
+                    return (
+                      <div
+                        key={candidate.id}
+                        onClick={() => handleSelectOption(candidate)}
+                        className={`flex items-center justify-between px-3 py-2 cursor-pointer text-xs transition-colors ${
+                          isSelected
+                            ? 'bg-blue-600 text-white font-medium'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="truncate">{label}</span>
                           {candidate.phoneNumber && (
-                            <span className="flex items-center gap-1 shrink-0">
-                              <Phone size={11} className="text-slate-400 shrink-0" />
-                              {candidate.phoneNumber}
+                            <span
+                              className={`text-[10px] shrink-0 ${
+                                isSelected ? 'text-blue-100' : 'text-slate-400'
+                              }`}
+                            >
+                              ({candidate.phoneNumber})
                             </span>
                           )}
                         </div>
+                        {isSelected && (
+                          <Check size={14} className="shrink-0 ml-2 text-white" />
+                        )}
                       </div>
-                    </div>
-                    {isSelected && (
-                      <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white ml-2">
-                        <Check size={12} strokeWidth={3} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {!isLeaving && (
