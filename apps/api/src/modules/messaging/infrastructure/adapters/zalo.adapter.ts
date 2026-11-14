@@ -3,7 +3,8 @@ import { ConfigService } from "@nestjs/config";
 import crypto from "node:crypto";
 import { ChannelAdapter, InvalidWebhookPayloadError, RawWebhookRequest } from "../../domain/channel-adapter.port.js";
 import { Channel, MessageDirection } from "../../domain/channel.js";
-import { InboundEvent, NormalizedAttachment } from "../../domain/inbound-event.js";
+import { InboundEvent } from "../../domain/inbound-event.js";
+import { normalizeZaloOaAttachments, summarizeAttachments } from "../../domain/media/attachment-normalizer.js";
 
 @Injectable()
 export class ZaloAdapter implements ChannelAdapter {
@@ -158,8 +159,7 @@ export class ZaloAdapter implements ChannelAdapter {
             const infoObj = (e.info as Record<string, unknown> | undefined) || (senderObj?.info as Record<string, unknown> | undefined);
 
             const isOutbound =
-                e.event_name === 'oa_send_text' ||
-                e.event_name === 'oa_send_image' ||
+                (typeof e.event_name === 'string' && e.event_name.startsWith('oa_send_')) ||
                 e.direction === 'OUTBOUND' ||
                 e.direction === MessageDirection.OUTBOUND;
 
@@ -184,73 +184,12 @@ export class ZaloAdapter implements ChannelAdapter {
             // Nội dung tin nhắn
             let contentText = (e.text ?? msgObj?.text ?? e.content ?? null) as string | null;
 
-            // Xử lý đính kèm nếu có ảnh/file/sticker/audio
-            const attachmentsList: NormalizedAttachment[] = [];
-            const isStickerEvent = e.event_name === 'user_send_sticker' || e.event_name === 'oa_send_sticker';
-            const isImageEvent = e.event_name === 'user_send_image' || e.event_name === 'oa_send_image';
-            const isFileEvent = e.event_name === 'user_send_file' || e.event_name === 'oa_send_file';
-
-            if (Array.isArray(msgObj?.attachments)) {
-                for (let idx = 0; idx < msgObj.attachments.length; idx++) {
-                    const att = msgObj.attachments[idx] as any;
-                    const url = att?.payload?.url || att?.url || att?.payload?.thumbnail || '';
-                    const rawType = String(att?.type || (isStickerEvent ? 'sticker' : isImageEvent ? 'image' : isFileEvent ? 'file' : 'image')).toLowerCase();
-
-                    let normalizedType: NormalizedAttachment['type'] = 'IMAGE';
-                    if (rawType.includes('sticker') || isStickerEvent || att?.payload?.id || att?.sticker_id) {
-                        normalizedType = 'STICKER';
-                    } else if (rawType.includes('file') || isFileEvent) {
-                        normalizedType = 'FILE';
-                    } else if (rawType.includes('audio') || rawType.includes('voice')) {
-                        normalizedType = 'AUDIO';
-                    } else if (rawType.includes('video')) {
-                        normalizedType = 'VIDEO';
-                    }
-
-                    if (url || att?.payload?.id || att?.id) {
-                        attachmentsList.push({
-                            id: att?.id || `zalo_att_${Date.now()}_${idx}`,
-                            type: normalizedType,
-                            url: url || (att?.payload?.id ? `https://stickers.zalo.me/${att.payload.id}` : ''),
-                            name: att?.payload?.name || att?.name || (normalizedType === 'STICKER' ? 'Sticker Zalo' : `${normalizedType.toLowerCase()}_attachment`),
-                            size: att?.payload?.size ? String(att.payload.size) : undefined,
-                            stickerId: att?.payload?.id || att?.sticker_id || undefined,
-                        });
-                    }
-                }
-            } else if (isStickerEvent || msgObj?.sticker_id || e.sticker_id || (msgObj as any)?.id) {
-                // Hỗ trợ sự kiện sticker trực tiếp từ Zalo không bọc trong mảng attachments
-                const stickerId = (msgObj as any)?.id || (msgObj as any)?.sticker_id || e.sticker_id || (e as any)?.id;
-                const stickerUrl = (msgObj as any)?.url || (e as any)?.url || (stickerId ? `https://stickers.zalo.me/${stickerId}` : '');
-                attachmentsList.push({
-                    id: `zalo_sticker_${Date.now()}_0`,
-                    type: 'STICKER',
-                    url: stickerUrl,
-                    name: 'Sticker Zalo',
-                    stickerId: stickerId ? String(stickerId) : undefined,
-                });
-            } else if ((isImageEvent || isFileEvent) && ((msgObj as any)?.url || (e as any)?.url)) {
-                const mediaUrl = (msgObj as any)?.url || (e as any)?.url;
-                const normalizedType = isImageEvent ? 'IMAGE' : 'FILE';
-                attachmentsList.push({
-                    id: `zalo_${normalizedType.toLowerCase()}_${Date.now()}_0`,
-                    type: normalizedType,
-                    url: mediaUrl,
-                    name: (msgObj as any)?.name || (e as any)?.name || `${normalizedType.toLowerCase()}_attachment`,
-                });
-            }
+            // Chuẩn hóa ảnh / voice / video / gif / sticker / file (id ổn định theo msg_id)
+            const zaloMessageId = String(msgObj?.msg_id ?? e.msg_id ?? e.messageId ?? e.externalMessageId ?? `zalo-${index}`);
+            const attachmentsList = normalizeZaloOaAttachments(zaloMessageId, String(e.event_name ?? ''), msgObj ?? e);
 
             if (!contentText && attachmentsList.length > 0) {
-                const firstType = attachmentsList[0].type;
-                if (firstType === 'STICKER') {
-                    contentText = '[Nhãn dán]';
-                } else if (firstType === 'IMAGE') {
-                    contentText = '[Hình ảnh]';
-                } else if (firstType === 'FILE') {
-                    contentText = attachmentsList[0].name ? `[Tệp: ${attachmentsList[0].name}]` : '[Tệp đính kèm]';
-                } else {
-                    contentText = '[Đính kèm]';
-                }
+                contentText = summarizeAttachments(attachmentsList);
             }
 
             // Tên và avatar khách hàng nếu Zalo đính kèm thông tin

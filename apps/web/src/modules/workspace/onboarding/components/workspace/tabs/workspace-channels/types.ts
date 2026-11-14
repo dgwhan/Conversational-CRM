@@ -28,6 +28,11 @@ export interface ConnectedChannelItem {
   createdAt?: string;
 }
 
+export interface ConnectRenewTarget {
+  externalAccountId: string;
+  displayName: string;
+}
+
 export interface WorkspaceChannelsTabProps {
   workspaceId: string;
   workspaceName: string;
@@ -40,7 +45,8 @@ export interface WorkspaceChannelsTabProps {
   onSyncChannel: (channelId: string) => Promise<void>;
   onToggleChannel: (channelId: string, currentActive: boolean) => Promise<void>;
   onDisconnectChannel: (channelId: string, displayName: string) => Promise<void>;
-  onOpenConnectModal: (channelKey: ChannelKey) => void;
+  /** renewTarget: gia hạn đúng kênh Zalo đang chọn (QR phải quét bằng chính tài khoản đó) */
+  onOpenConnectModal: (channelKey: ChannelKey, renewTarget?: ConnectRenewTarget) => void;
 }
 
 export interface ConnectedChannelsListProps {
@@ -51,7 +57,7 @@ export interface ConnectedChannelsListProps {
   canDisconnect: boolean;
   syncingChannelId: string | null;
   togglingChannelId: string | null;
-  onOpenConnectModal: (channelKey: ChannelKey) => void;
+  onOpenConnectModal: (channelKey: ChannelKey, renewTarget?: ConnectRenewTarget) => void;
   onOpenPlatformPicker: () => void;
   onOpenChannelDetails: (channel: ConnectedChannelItem) => void;
   onSyncChannel: WorkspaceChannelsTabProps["onSyncChannel"];

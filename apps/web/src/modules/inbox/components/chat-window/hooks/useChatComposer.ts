@@ -1,19 +1,41 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ConversationItem, MessageAttachment } from '../../../types.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
-import { useTranslation } from '../../../../../i18n/index.js';
+import { useOutboundAttachments } from './useOutboundAttachments.js';
+import { useVoiceRecorder } from './useVoiceRecorder.js';
+import { canSendVoice, outboundChannelOf } from '../../../utils/outboundMediaRules.js';
+
+/**
+ * Gửi tin: text + tệp đính kèm đã tải lên (assetIds). Trả về true khi gửi thành công
+ * để khung soạn biết có dọn tệp đính kèm hay giữ lại cho người dùng thử lại.
+ */
+export type SendMessageHandler = (
+  text: string,
+  attachments?: MessageAttachment[],
+  assetIds?: string[],
+) => void | boolean | Promise<boolean | void>;
 
 export interface UseChatComposerOptions {
   conversation: ConversationItem;
-  onSendMessage: (text: string, attachments?: MessageAttachment[]) => void;
+  onSendMessage: SendMessageHandler;
 }
 
 export function useChatComposer({ conversation, onSendMessage }: UseChatComposerOptions) {
-  const { t } = useTranslation();
   const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const outboundChannel = outboundChannelOf(conversation.channel);
+  const attachments = useOutboundAttachments(outboundChannel);
+  const voice = useVoiceRecorder(
+    useCallback((file: File) => attachments.addFiles([file], 'AUDIO'), [attachments.addFiles]),
+  );
+
+  // Đổi hội thoại: bỏ tệp chưa gửi của hội thoại cũ
+  const { discardAll } = attachments;
+  useEffect(() => discardAll, [conversation.id, discardAll]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTimestamp(Date.now()), 60_000);
@@ -61,17 +83,62 @@ export function useChatComposer({ conversation, onSendMessage }: UseChatComposer
   const isWithin24Hours = isLastMsgFromCustomer || !Number.isFinite(hoursDiff) || (hoursDiff >= 0 && hoursDiff < 24);
   const hoursRemaining = Number.isFinite(hoursDiff) ? Math.max(0, Math.floor(24 - hoursDiff)) : 24;
 
-  const handleSend = useCallback(() => {
-    if (!inputText.trim()) return;
+  const handleSend = useCallback(async () => {
+    const text = inputText.trim();
+    const pending = attachments.items;
+    if (!text && pending.length === 0) return;
+    if (attachments.isUploading) {
+      notify.info('Đang tải tệp lên, vui lòng đợi trong giây lát.');
+      return;
+    }
+    if (attachments.hasErrors) {
+      notify.warning('Có tệp tải lên lỗi. Hãy bỏ tệp đó trước khi gửi.');
+      return;
+    }
     if (conversation.channel === 'FACEBOOK' && !isWithin24Hours) {
       notify.warning(
         'Đã hết cửa sổ phản hồi 24 giờ của Facebook. Chờ khách nhắn lại hoặc dùng phương thức được Meta cho phép.',
       );
       return;
     }
-    onSendMessage(inputText.trim());
+
+    // Tin tạm hiển thị ngay: ảnh / voice dùng bản xem trước tại chỗ
+    const optimistic: MessageAttachment[] = pending.map((it, i) => ({
+      id: `local-${it.localId}-${i}`,
+      type: it.kind,
+      url: it.previewUrl ?? '',
+      name: it.fileName,
+      size: undefined,
+      mimeType: it.mimeType,
+    }));
+    const assetIds = attachments.readyAssetIds;
+
     setInputText('');
-  }, [conversation.channel, inputText, isWithin24Hours, onSendMessage]);
+    setIsSending(true);
+    try {
+      const ok = await onSendMessage(text, optimistic.length > 0 ? optimistic : undefined, assetIds.length > 0 ? assetIds : undefined);
+      if (ok !== false) attachments.clearAfterSend();
+    } finally {
+      setIsSending(false);
+    }
+  }, [attachments, conversation.channel, inputText, isWithin24Hours, onSendMessage]);
+
+  // Dán ảnh từ clipboard (VD: chụp màn hình rồi Ctrl+V)
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (files.length === 0) return;
+      e.preventDefault();
+      attachments.addFiles(
+        files.map((f, i) =>
+          f.name && f.name !== 'image.png'
+            ? f
+            : new File([f], `anh-dan-${Date.now()}-${i}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`, { type: f.type }),
+        ),
+      );
+    },
+    [attachments],
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -87,39 +154,6 @@ export function useChatComposer({ conversation, onSendMessage }: UseChatComposer
     setInputText((prev) => (prev ? `${prev} ${content}` : content));
   }, []);
 
-  const handleSimulateVoice = useCallback(() => {
-    setIsRecording(true);
-    notify.info(t('inbox.chatInput.voiceRecordingNotice'));
-    setTimeout(() => {
-      setIsRecording(false);
-      onSendMessage('Tin nhắn thoại (Ghi âm từ nhân viên tư vấn)', [
-        {
-          id: `att-voice-${Date.now()}`,
-          type: 'AUDIO',
-          url: 'https://example.com/audio/voice-sample.mp3',
-          name: 'tuvan_khoahoc_cusc.mp3',
-          duration: '0:35',
-        },
-      ]);
-      notify.success(t('inbox.chatInput.voiceSentSuccess'));
-    }, 2000);
-  }, [onSendMessage, t]);
-
-  const handleAttachSimulated = useCallback(() => {
-    notify.info(t('inbox.chatInput.attachSimulated'));
-  }, [t]);
-
-  const handleAttachImageSimulated = useCallback(() => {
-    onSendMessage('Đã gửi tài liệu / hình ảnh minh họa', [
-      {
-        id: `att-img-${Date.now()}`,
-        type: 'IMAGE',
-        url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60',
-        name: 'chung_chi_polarisx.jpg',
-      },
-    ]);
-  }, [onSendMessage]);
-
   const handleInsertEmoji = useCallback(() => {
     setInputText((prev) => `${prev} 😊 `);
   }, []);
@@ -127,16 +161,18 @@ export function useChatComposer({ conversation, onSendMessage }: UseChatComposer
   return {
     inputText,
     setInputText,
-    isRecording,
+    isSending,
     messagesEndRef,
     isWithin24Hours,
     hoursRemaining,
     handleSend,
     handleKeyDown,
+    handlePaste,
     handleQuickReplySelect,
-    handleSimulateVoice,
-    handleAttachSimulated,
-    handleAttachImageSimulated,
     handleInsertEmoji,
+    outboundChannel,
+    attachments,
+    voice: { ...voice, supported: canSendVoice(outboundChannel) },
+    library: { isOpen: isLibraryOpen, open: () => setIsLibraryOpen(true), close: () => setIsLibraryOpen(false) },
   };
 }

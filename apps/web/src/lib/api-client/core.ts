@@ -239,6 +239,63 @@ export class BaseApiClient {
     return response.blob();
   }
 
+  /**
+   * Tải một tệp lên (multipart/form-data, trường "file") kèm tiến trình.
+   * Dùng XMLHttpRequest vì fetch chưa báo được tiến trình tải lên. Tự làm mới token một lần khi gặp 401.
+   */
+  async uploadFile<T>(
+    endpoint: string,
+    file: Blob,
+    fileName: string,
+    options: { params?: Record<string, string | undefined>; onProgress?: (percent: number) => void; signal?: AbortSignal } = {},
+  ): Promise<T> {
+    let url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const query = new URLSearchParams(
+      Object.entries(options.params ?? {}).filter((e): e is [string, string] => e[1] !== undefined && e[1] !== ''),
+    ).toString();
+    if (query) url += `?${query}`;
+
+    const send = (token: string | null) =>
+      new Promise<{ status: number; body: unknown }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        if (this.activeWorkspaceId) xhr.setRequestHeader('x-workspace-id', this.activeWorkspaceId);
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) options.onProgress?.(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          let body: unknown;
+          try {
+            body = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+          } catch {
+            body = xhr.responseText;
+          }
+          resolve({ status: xhr.status, body });
+        };
+        xhr.onerror = () => reject(new ApiError(translate('ui.api.networkError', 'Lỗi kết nối mạng'), 0, `POST ${endpoint}`, 'POST'));
+        xhr.onabort = () => reject(new DOMException('Đã hủy tải lên', 'AbortError'));
+        options.signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+        const form = new FormData();
+        form.append('file', file, fileName);
+        xhr.send(form);
+      });
+
+    let result = await send(this.getAccessToken());
+    if (result.status === 401) {
+      const refreshed = await this.refreshAccessToken();
+      if (refreshed) result = await send(refreshed);
+    }
+    if (result.status < 200 || result.status >= 300) {
+      const body = result.body as { message?: string | string[] } | null;
+      const message = Array.isArray(body?.message) ? body!.message.join(', ') : body?.message;
+      throw new ApiError(message || `Tải lên thất bại (HTTP ${result.status})`, result.status, `POST ${endpoint}`, 'POST');
+    }
+    return result.body as T;
+  }
+
   async request<T>(endpoint: string, options: ApiRequestOptions = {}): Promise<T> {
     const { params, headers, skipToast, method = 'GET', _retry, ...restOptions } = options;
 

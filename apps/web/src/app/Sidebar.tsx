@@ -5,7 +5,6 @@ import {
   Users,
   BarChart3,
   Layers,
-  FileSpreadsheet,
   LayoutGrid,
   Sliders,
   Calendar,
@@ -21,7 +20,7 @@ import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.
 import { notify } from '../components/feedback/toastEmitter.js';
 import { TAB_TO_ROUTE_MAP, getTabFromPathname } from '../config/routes.js';
 
-export type ActiveNavTab = 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings';
+export type ActiveNavTab = 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'workspace-settings';
 
 export interface SidebarProps {
   currentTab?: ActiveNavTab;
@@ -108,11 +107,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'onboarding' as ActiveNavTab,
       label: t('nav.onboarding'),
       icon: <Layers size={18} />,
-    },
-    {
-      id: 'import' as ActiveNavTab,
-      label: t('nav.dataImport'),
-      icon: <FileSpreadsheet size={18} />,
     },
   ];
 

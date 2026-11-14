@@ -2,8 +2,24 @@ import type { BaseApiClient } from './core.js';
 import type { NotificationItem, NotificationListResponse } from './types.js';
 import type { WorkspaceMemberStatus } from '../../modules/workspace/types/staff.types.js';
 
+export interface QuickReplyDto {
+  id: string;
+  label: string;
+  content: string;
+  shortcut?: string;
+}
+
 export function createWorkspaceApi(client: BaseApiClient) {
   return {
+    /** Mẫu trả lời nhanh dùng chung của workspace; items = null khi chưa cấu hình. */
+    getQuickReplies() {
+      return client.get<{ items: QuickReplyDto[] | null }>('/workspaces/current/quick-replies');
+    },
+
+    saveQuickReplies(items: QuickReplyDto[]) {
+      return client.put<{ items: QuickReplyDto[] }>('/workspaces/current/quick-replies', { items });
+    },
+
     getMyWorkspaces(staffId?: string, ownerId?: string) {
       return client.get<Array<{
         id: string;

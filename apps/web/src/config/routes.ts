@@ -24,6 +24,7 @@ export const ROUTES = {
 
   // Danh sách khách hàng tiềm năng (Leads)
   LEADS: '/leads',
+  LEADS_IMPORT: '/leads/import',
 
   // Phễu Tuyển sinh (Kanban Board)
   KANBAN: '/kanban',
@@ -47,7 +48,7 @@ export const ROUTES = {
   ONBOARDING: '/onboarding',
   ONBOARDING_DETAIL: '/onboarding/:id',
 
-  // Nhập Dữ liệu Đa kênh (Import)
+  // Link cũ của trang import tin nhắn (đã gỡ) – chỉ còn dùng để chuyển hướng sang nhập khách hàng
   IMPORT: '/import',
 
   // Xác thực người dùng (Login / Sign Up)
@@ -86,7 +87,6 @@ export const buildRoute = {
     id && id !== 'undefined' ? `/workspace-settings/${encodeURIComponent(id)}` : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
   onboarding: (idOrSlug?: string | number | null) =>
     idOrSlug && idOrSlug !== 'undefined' ? `/workspace/${encodeURIComponent(idOrSlug)}` : ROUTES.WORKSPACE_DEFAULT,
-  import: () => ROUTES.IMPORT,
   login: () => ROUTES.LOGIN,
 };
 
@@ -104,13 +104,12 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
     workspaceId && workspaceId !== 'undefined' ? buildRoute.workspaceSettings(workspaceId) : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
   onboarding: (workspaceId) =>
     workspaceId && workspaceId !== 'undefined' ? buildRoute.workspace(workspaceId) : ROUTES.WORKSPACE_DEFAULT,
-  import: () => ROUTES.IMPORT,
 };
 
 /**
  * Suy ra ActiveNavTab dựa trên pathname hiện tại của trình duyệt
  */
-export function getTabFromPathname(pathname: string): 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'import' | 'workspace-settings' {
+export function getTabFromPathname(pathname: string): 'inbox' | 'leads' | 'kanban' | 'calendar' | 'deals' | 'reports' | 'onboarding' | 'workspace-settings' {
   if (pathname.startsWith('/inbox')) return 'inbox';
   if (pathname.startsWith('/leads')) return 'leads';
   if (pathname.startsWith('/kanban')) return 'kanban';
@@ -118,7 +117,6 @@ export function getTabFromPathname(pathname: string): 'inbox' | 'leads' | 'kanba
   if (pathname.startsWith('/deals')) return 'deals';
   if (pathname.startsWith('/workspace-settings')) return 'workspace-settings';
   if (pathname.startsWith('/workspace') || pathname.startsWith('/onboarding')) return 'onboarding';
-  if (pathname.startsWith('/import')) return 'import';
   if (pathname.startsWith('/reports') || pathname.startsWith('/report') || pathname.startsWith('/home')) {
     return 'reports';
   }

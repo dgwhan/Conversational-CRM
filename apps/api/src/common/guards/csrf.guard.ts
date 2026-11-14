@@ -18,6 +18,7 @@ import { SKIP_CSRF_KEY } from '../decorators/skip-csrf.decorator.js';
 @Injectable()
 export class CsrfGuard implements CanActivate {
   private readonly allowedOrigins: string[] = [];
+  private readonly isProduction: boolean;
 
   constructor(
     private readonly reflector: Reflector,
@@ -28,6 +29,7 @@ export class CsrfGuard implements CanActivate {
       .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
+    this.isProduction = this.configService.get<string>('NODE_ENV') === 'production';
   }
 
   canActivate(context: ExecutionContext): boolean {
@@ -49,9 +51,10 @@ export class CsrfGuard implements CanActivate {
       return true;
     }
 
-    // 3. Tự động miễn trừ các route webhook từ nhà cung cấp bên thứ ba (Meta, Zalo)
-    const url = req.url || req.raw?.url || '';
-    if (url.includes('/webhook') || url.includes('/channels/facebook') || url.includes('/channels/zalo')) {
+    // 3. Miễn trừ webhook của nhà cung cấp bên thứ ba (Meta, Zalo) — đã xác thực bằng chữ ký riêng.
+    //    Chỉ khớp tiền tố đường dẫn, không khớp chuỗi con ở bất kỳ vị trí nào.
+    const path = String(req.url || req.raw?.url || '').split('?')[0];
+    if (/^\/api\/webhook(\/|$)/.test(path)) {
       return true;
     }
 
@@ -112,11 +115,12 @@ export class CsrfGuard implements CanActivate {
       return true;
     }
 
-    // Cho phép localhost và 127.0.0.1 trong môi trường dev
+    // Cho phép localhost và 127.0.0.1 khi phát triển (không áp dụng ở production)
     if (
-      normalizedOrigin.startsWith('http://localhost:') ||
+      !this.isProduction &&
+      (normalizedOrigin.startsWith('http://localhost:') ||
       normalizedOrigin.startsWith('http://127.0.0.1:') ||
-      normalizedOrigin.startsWith('https://localhost:')
+        normalizedOrigin.startsWith('https://localhost:'))
     ) {
       return true;
     }

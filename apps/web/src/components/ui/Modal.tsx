@@ -28,6 +28,8 @@ export type ModalProps = {
   closeOnEsc?: boolean;
   className?: string;
   variant?: 'rounded' | 'flat';
+  /** Lớp z-index của toàn bộ modal (mặc định z-[9999]); hộp xác nhận dùng lớp cao hơn để nằm trên modal khác. */
+  layerClassName?: string;
 };
 
 export function Modal({
@@ -46,6 +48,7 @@ export function Modal({
   closeOnEsc = true,
   className = '',
   variant = 'rounded',
+  layerClassName = 'z-[9999]',
 }: ModalProps) {
   const { t } = useOptionalTranslation();
   const [isRendered, setIsRendered] = useState(isOpen);
@@ -109,7 +112,7 @@ export function Modal({
   const modalElement = (
     <div
       aria-modal="true"
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto"
+      className={`fixed inset-0 ${layerClassName} flex items-center justify-center p-4 overflow-y-auto`}
       role="dialog"
     >
       {/* Backdrop mờ che phủ toàn bộ viewport (bao gồm cả Header và Sidebar) */}

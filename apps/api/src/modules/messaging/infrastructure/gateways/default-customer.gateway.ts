@@ -16,6 +16,7 @@ export class DefaultCustomerGateway implements CustomerGateway {
         senderExternalId: string;
         displayName?: string | null;
         rawPayload?: unknown;
+        workspaceId?: string | null;
     }): Promise<CustomerLookupResult> {
         this.logger.log(`Find or create customer for ${params.channel}:${params.senderExternalId}`);
 
@@ -50,6 +51,7 @@ export class DefaultCustomerGateway implements CustomerGateway {
                 profileDisplayName &&
                 existingIdentity.contact &&
                 existingIdentity.contactId &&
+                (!params.workspaceId || existingIdentity.contact.workspaceId === params.workspaceId) &&
                 (existingIdentity.contact.displayName.startsWith('Khách hàng') ||
                     existingIdentity.contact.displayName.startsWith('Unknown'))
             ) {
@@ -80,6 +82,7 @@ export class DefaultCustomerGateway implements CustomerGateway {
             const contact = await this.prisma.contact.create({
                 data: {
                     displayName,
+                    workspaceId: params.workspaceId || null,
                 },
             });
 

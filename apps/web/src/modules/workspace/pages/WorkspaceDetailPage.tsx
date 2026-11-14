@@ -8,6 +8,7 @@ import { OAuthSimulationModal } from '../onboarding/components/OAuthSimulationMo
 import {
   WorkspaceOverviewTab,
   WorkspaceChannelsTab,
+  type ConnectRenewTarget,
   WorkspaceMembersTab,
 } from '../onboarding/components/workspace/tabs/index.js';
 import {
@@ -58,6 +59,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   // Modal kết nối kênh mới
   const [modalChannel, setModalChannel] = useState<ChannelKey | null>(null);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [renewTarget, setRenewTarget] = useState<ConnectRenewTarget | null>(null);
 
   // Modal chuyển quyền Chủ sở hữu & Rời workspace (dùng chung cho Header và Cột thao tác)
   const [transferModalState, setTransferModalState] = useState<{
@@ -199,8 +201,9 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           onSyncChannel={handleSyncChannel}
           onToggleChannel={handleToggleChannel}
           onDisconnectChannel={handleDisconnectChannel}
-          onOpenConnectModal={(chKey) => {
+          onOpenConnectModal={(chKey, target) => {
             setModalChannel(chKey);
+            setRenewTarget(target ?? null);
             setIsConnectModalOpen(true);
           }}
         />
@@ -235,8 +238,10 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           onClose={() => {
             setIsConnectModalOpen(false);
             setModalChannel(null);
+            setRenewTarget(null);
           }}
           onSuccess={onConnectSuccess}
+          renewTarget={renewTarget}
         />
       )}
 

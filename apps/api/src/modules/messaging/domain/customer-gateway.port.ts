@@ -14,5 +14,7 @@ export interface CustomerGateway {
         senderExternalId: string;
         displayName?: string | null;
         rawPayload?: unknown;
+        /** Workspace sở hữu kênh nhận tin; Contact mới tạo sẽ thuộc workspace này */
+        workspaceId?: string | null;
     }): Promise<CustomerLookupResult>;
 }

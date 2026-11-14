@@ -9,6 +9,10 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   let prisma: PrismaClient;
   let controller: CustomerController;
   let createdCustomerId: string;
+  let ownerUserId: string;
+  let workspaceId: string;
+  // Request giả lập sau khi JwtAuthGuard + WorkspaceContextGuard đã xác minh (OWNER của workspace kiểm thử)
+  const req = () => ({ user: { id: ownerUserId }, workspace: { id: workspaceId, role: 'OWNER' } });
 
   beforeAll(async () => {
     const connectionString =
@@ -24,9 +28,20 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
 
     controller = new CustomerController(prisma as any);
 
+    const suffix = Date.now().toString(36);
+    const owner = await prisma.user.create({
+      data: { email: `owner.e2e.${suffix}@example.com`, fullName: 'Chủ workspace E2E', passwordHash: 'not-used' },
+    });
+    ownerUserId = owner.id;
+    const workspace = await prisma.workspace.create({
+      data: { name: 'Workspace E2E CUS-05', slug: `ws-e2e-${suffix}`, ownerId: owner.id },
+    });
+    workspaceId = workspace.id;
+
     // Khởi tạo Customer test
     const cust = await prisma.customer.create({
       data: {
+        workspaceId,
         fullName: 'Nguyễn Văn A',
         phone: '0912345678',
         email: 'vana.test.e2e@cusc.ctu.edu.vn',
@@ -42,12 +57,14 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
     if (createdCustomerId) {
       await prisma.customer.delete({ where: { id: createdCustomerId } }).catch(() => {});
     }
+    if (workspaceId) await prisma.workspace.delete({ where: { id: workspaceId } }).catch(() => {});
+    if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => {});
     await prisma.$disconnect();
     await pool.end();
   });
 
   it('1. Tìm "nguyen van a" trên PostgreSQL thật ra "Nguyễn Văn A" (unaccent test)', async () => {
-    const res = await controller.getCustomers(undefined, undefined, 'nguyen van a');
+    const res = await controller.getCustomers(req(), 'nguyen van a');
 
     expect(res.items.length).toBeGreaterThanOrEqual(1);
     const found = res.items.find((c: any) => c.id === createdCustomerId);
@@ -57,7 +74,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   });
 
   it('2. Tìm "Nguyen Van A" viết hoa chữ cái đầu trên PostgreSQL thật ra "Nguyễn Văn A"', async () => {
-    const res = await controller.getCustomers(undefined, undefined, 'Nguyen Van A');
+    const res = await controller.getCustomers(req(), 'Nguyen Van A');
 
     const found = res.items.find((c: any) => c.id === createdCustomerId);
     expect(found).toBeDefined();
@@ -65,7 +82,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   });
 
   it('3. Tìm theo SĐT định dạng có dấu chấm "0912.345.678" ra đúng khách hàng', async () => {
-    const res = await controller.getCustomers(undefined, undefined, '0912.345.678');
+    const res = await controller.getCustomers(req(), '0912.345.678');
 
     const found = res.items.find((c: any) => c.id === createdCustomerId);
     expect(found).toBeDefined();
@@ -73,7 +90,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   });
 
   it('4. GET /customers/:id: Xem chi tiết khách hàng trên PostgreSQL thật', async () => {
-    const details = await controller.getCustomerById(createdCustomerId);
+    const details = await controller.getCustomerById(req(), createdCustomerId);
 
     expect(details.id).toBe(createdCustomerId);
     expect(details.fullName).toBe('Nguyễn Văn A');
@@ -82,7 +99,7 @@ describe('CUS-05: Customer API Real PostgreSQL E2E Test', () => {
   });
 
   it('5. PATCH /customers/:id: Cập nhật tên và ghi chú trên PostgreSQL thật', async () => {
-    const updated = await controller.updateCustomer(createdCustomerId, {
+    const updated = await controller.updateCustomer(req(), createdCustomerId, {
       fullName: 'Nguyễn Văn An',
       notes: 'Đã hoàn tất đóng học phí đợt 1',
     });

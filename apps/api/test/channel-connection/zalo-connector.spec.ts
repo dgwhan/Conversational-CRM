@@ -315,10 +315,13 @@ describe('Zalo Channel Connection & Messaging', () => {
           }),
       });
 
+      // Workspace chỉ có đúng 1 Zalo OA đang hoạt động -> tự chọn tài khoản này
+      mockPrisma.channelAccount.findMany.mockResolvedValueOnce([(await mockPrisma.channelAccount.findFirst())]);
       const res = await channelManager.sendMessage({
         channel: 'ZALO',
         recipientId: 'zalo_customer_12345',
         content: 'CUSC xin gửi bạn thông tin học phí khóa học!',
+        workspaceId: 'ws-uuid-001',
       });
 
       expect(res.success).toBe(true);
@@ -365,13 +368,34 @@ describe('Zalo Channel Connection & Messaging', () => {
           }),
       });
 
+      mockPrisma.channelAccount.findMany.mockResolvedValueOnce([(await mockPrisma.channelAccount.findFirst())]);
       await expect(
         channelManager.sendMessage({
           channel: 'ZALO',
           recipientId: 'inactive_customer',
           content: 'Xin chào',
+          workspaceId: 'ws-uuid-001',
         }),
       ).rejects.toThrow('Chính sách Zalo: Khách hàng chưa gửi tin nhắn cho OA trong 7 ngày qua');
+    });
+
+    it('Không tự đoán tài khoản khi workspace có nhiều tài khoản Zalo cùng hoạt động', async () => {
+      const account = (await mockPrisma.channelAccount.findFirst());
+      mockPrisma.channelAccount.findMany.mockResolvedValueOnce([account, { ...account, id: 'zalo-acc-2' }]);
+      await expect(
+        channelManager.sendMessage({
+          channel: 'ZALO',
+          recipientId: 'zalo_customer_12345',
+          content: 'Xin chào',
+          workspaceId: 'ws-uuid-001',
+        }),
+      ).rejects.toThrow('Vui lòng gửi từ một hội thoại cụ thể');
+    });
+
+    it('Không gửi tin khi thiếu cả workspace lẫn hội thoại / tài khoản kênh', async () => {
+      await expect(
+        channelManager.sendMessage({ channel: 'ZALO', recipientId: 'x', content: 'Xin chào' }),
+      ).rejects.toThrow('Thiếu thông tin hội thoại hoặc tài khoản kênh');
     });
 
     it('Endpoint POST /channels/send-message kiểm tra hợp lệ dữ liệu đầu vào', async () => {
@@ -537,7 +561,7 @@ describe('Zalo Channel Connection & Messaging', () => {
     });
 
     it('Gửi tin nhắn Outbound qua Zalo Cá nhân (zca-js) thành công', async () => {
-      mockPrisma.channelAccount.findUnique.mockResolvedValueOnce({
+      mockPrisma.channelAccount.findFirst.mockResolvedValueOnce({
         id: 'zca-acc-personal',
         workspaceId: 'ws-uuid-001',
         channel: Channel.ZALO,
@@ -569,7 +593,7 @@ describe('Zalo Channel Connection & Messaging', () => {
     });
 
     it('Tự động tra cứu và chuyển đổi số điện thoại sang Zalo UID nội bộ qua api.findUser', async () => {
-      mockPrisma.channelAccount.findUnique.mockResolvedValueOnce({
+      mockPrisma.channelAccount.findFirst.mockResolvedValueOnce({
         id: 'zca-acc-personal',
         workspaceId: 'ws-uuid-001',
         channel: Channel.ZALO,
@@ -608,25 +632,12 @@ describe('Zalo Channel Connection & Messaging', () => {
       expect(res.messageId).toBe('zca_msg_from_finduser');
     });
 
-    it('Tự động cập nhật kênh Zalo cũ và dọn dẹp bản ghi trùng lặp khi kết nối lại', async () => {
-      mockPrisma.channelAccount.findMany.mockResolvedValueOnce([
-        {
-          id: 'zalo-old-primary',
-          workspaceId: 'ws-uuid-001',
-          channel: Channel.ZALO,
-          externalAccountId: 'old_uid_111',
-          displayName: 'Zalo Tuyển Sinh',
-          isActive: true,
-        },
-        {
-          id: 'zalo-duplicate-redundant',
-          workspaceId: 'ws-uuid-001',
-          channel: Channel.ZALO,
-          externalAccountId: 'old_uid_duplicate',
-          displayName: 'Zalo Tuyển Sinh',
-          isActive: false,
-        },
-      ]);
+    it('Cho phép kết nối thêm tài khoản Zalo khác mà không ghi đè/xóa kênh Zalo đã có', async () => {
+      // Không có bản ghi nào trùng externalAccountId mới -> tạo kênh mới
+      mockPrisma.channelAccount.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.channelAccount.deleteMany.mockClear();
+      mockPrisma.channelAccount.update.mockClear();
+      mockPrisma.channelAccount.upsert.mockClear();
 
       const activateRes = await channelManager.activateChannels(
         {
@@ -634,22 +645,27 @@ describe('Zalo Channel Connection & Messaging', () => {
             {
               id: 'page_new',
               externalAccountId: 'new_uid_222',
-              displayName: 'Zalo Tuyển Sinh (Đã quét lại)',
+              displayName: 'Zalo Tư vấn viên 2',
+              avatarUrl: 'https://s120-ava-talk.zadn.vn/avatar.jpg',
               channel: 'ZALO',
-              accessToken: 'mock_reconnected_token',
+              accessToken: 'mock_second_account_token',
+              metadata: { isPersonal: true, engine: 'zca-js' },
             },
           ],
         },
         'ws-uuid-001',
       );
 
-      // Đã dọn dẹp kênh thừa
-      expect(mockPrisma.channelAccount.deleteMany).toHaveBeenCalled();
-      // Đã cập nhật kênh hiện tại
-      expect(mockPrisma.channelAccount.update).toHaveBeenCalled();
-      // Chỉ trả về đúng 1 kênh Zalo đã kích hoạt
+      expect(mockPrisma.channelAccount.deleteMany).not.toHaveBeenCalled();
+      expect(mockPrisma.channelAccount.update).not.toHaveBeenCalled();
+      expect(mockPrisma.channelAccount.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { channel_externalAccountId: { channel: Channel.ZALO, externalAccountId: 'new_uid_222' } },
+        }),
+      );
       expect(activateRes.activatedCount).toBe(1);
-      expect(activateRes.channels[0].displayName).toBe('Zalo Tuyển Sinh (Đã quét lại)');
+      expect(activateRes.channels[0].externalAccountId).toBe('new_uid_222');
+      expect(activateRes.channels[0].avatarUrl).toBe('https://s120-ava-talk.zadn.vn/avatar.jpg');
     });
   });
 });

@@ -105,6 +105,8 @@ export function createChannelApi(client: BaseApiClient) {
       channelAccountId?: string;
       conversationId?: string;
       workspaceId?: string;
+      /** Tệp đã tải lên / tài liệu thư viện */
+      attachments?: Array<{ assetId: string }>;
     }) {
       return client.post<{
         success: boolean;
@@ -113,6 +115,7 @@ export function createChannelApi(client: BaseApiClient) {
         content: string;
         recipientId: string;
         channel: string;
+        attachmentMessages?: Array<{ assetId: string; messageId: string; dbMessageId: string | null }>;
       }>('/channels/send-message', data, {
         headers: data.workspaceId ? { 'x-workspace-id': data.workspaceId } : {},
       });

@@ -114,6 +114,7 @@ describe('RefreshTokenService - Broken Access Token Protection', () => {
       },
     });
 
+    mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.refreshToken.create.mockResolvedValue({ id: 'new-token-id' });
     mockPrisma.refreshToken.update.mockResolvedValue({});
 
@@ -123,13 +124,14 @@ describe('RefreshTokenService - Broken Access Token Protection', () => {
     expect(result.refreshToken).toBeDefined();
     expect(result.refreshToken).not.toBe(rawToken);
 
-    // Old token was revoked with replacedById pointing to new token
+    // Old token was claimed (revoked only if still active), then pointed at the new token
+    expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledWith({
+      where: { id: 'old-token-id', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
     expect(mockPrisma.refreshToken.update).toHaveBeenCalledWith({
       where: { id: 'old-token-id' },
-      data: {
-        revokedAt: expect.any(Date),
-        replacedById: 'new-token-id',
-      },
+      data: { replacedById: 'new-token-id' },
     });
 
     // New JWT was signed with current tokenVersion
@@ -139,5 +141,23 @@ describe('RefreshTokenService - Broken Access Token Protection', () => {
       fullName: 'Tu Van Vien',
       tokenVersion: 2,
     });
+  });
+
+  it('rejects the loser of a concurrent refresh without issuing a token or revoking the family', async () => {
+    const { service, mockPrisma } = createMockService();
+    mockPrisma.refreshToken.findUnique.mockResolvedValue({
+      id: 'old-token-id',
+      familyId: 'family-abc',
+      userId: 'staff-1',
+      expiresAt: new Date(Date.now() + 3600000),
+      revokedAt: null,
+      user: { id: 'staff-1', status: 'ACTIVE', tokenVersion: 1, lockedUntil: null },
+    });
+    // Another request revoked this token between our read and our write
+    mockPrisma.refreshToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.refresh('raced_token', { ip: '127.0.0.1' })).rejects.toThrow(UnauthorizedException);
+    expect(mockPrisma.refreshToken.create).not.toHaveBeenCalled();
+    expect(mockPrisma.refreshToken.updateMany).toHaveBeenCalledTimes(1);
   });
 });

@@ -27,6 +27,8 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
   let fbConvId: string;
   let zaloConvId: string;
   let mergeLogId: string;
+  let ownerUserId: string;
+  let workspaceId: string;
 
   beforeAll(async () => {
     const connectionString =
@@ -38,6 +40,20 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
 
     auditService = new AuditService(prisma as any);
     mergeService = new ContactMergeService(prisma as any, auditService);
+
+    // 0a. Contact / Customer thuộc về một workspace: tạo chủ sở hữu và workspace riêng cho bài test
+    const owner = await prisma.user.create({
+      data: {
+        email: `owner.${testSuffix}@example.com`,
+        fullName: 'Chủ workspace kiểm thử',
+        passwordHash: 'not-used-in-test',
+      },
+    });
+    ownerUserId = owner.id;
+    const workspace = await prisma.workspace.create({
+      data: { name: 'Workspace kiểm thử CUS-04', slug: `ws-test-${testSuffix}`, ownerId: owner.id },
+    });
+    workspaceId = workspace.id;
 
     // 0. Tạo ChannelAccount dùng chung
     const channelAccount = await prisma.channelAccount.create({
@@ -52,6 +68,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
     // 1. Tạo Contact 1 (Facebook)
     const targetContact = await prisma.contact.create({
       data: {
+        workspaceId,
         displayName: 'Nguyễn Học Viên (Facebook)',
         email: `an.fb.${testSuffix}@example.com`,
         phoneNormalized: testPhone,
@@ -69,6 +86,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
     // 2. Tạo Customer 1 & Conversation 1
     const targetCustomer = await prisma.customer.create({
       data: {
+        workspaceId,
         fullName: 'Nguyễn Học Viên (Facebook)',
         phone: testPhone,
         channelIdentities: { facebook: `fb-user-${testSuffix}`, tags: ['Lead'] },
@@ -99,6 +117,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
     // 3. Tạo Contact 2 (Zalo - Chưa có SĐT)
     const sourceContact = await prisma.contact.create({
       data: {
+        workspaceId,
         displayName: 'Hoc Vien Nguyen (Zalo)',
         email: null,
         channelIdentities: {
@@ -115,6 +134,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
     // 4. Tạo Customer 2 & Conversation 2
     const sourceCustomer = await prisma.customer.create({
       data: {
+        workspaceId,
         fullName: 'Hoc Vien Nguyen (Zalo)',
         channelIdentities: { zalo: `zalo-user-${testSuffix}`, tags: ['Zalo Quan tâm'] },
       },
@@ -165,6 +185,8 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
       if (channelAccountId) {
         await prisma.channelAccount.delete({ where: { id: channelAccountId } }).catch(() => {});
       }
+      if (workspaceId) await prisma.workspace.delete({ where: { id: workspaceId } }).catch(() => {});
+      if (ownerUserId) await prisma.user.delete({ where: { id: ownerUserId } }).catch(() => {});
     } finally {
       await prisma.$disconnect();
       await pool.end();
@@ -173,6 +195,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
 
   it('Bước 1: Gộp hai contact khác kênh cùng SĐT vào 1 hồ sơ duy nhất', async () => {
     const mergeResult = await mergeService.mergeContacts({
+      workspaceId,
       targetContactId,
       sourceContactId,
       phoneNormalized: testPhone,
@@ -226,6 +249,7 @@ describe('CUS-04: Contact Merge & Unmerge (Database Integration E2E)', () => {
 
   it('Bước 2: Tách lại hồ sơ (Unmerge) nếu gộp nhầm, phục hồi độc lập', async () => {
     const unmergeResult = await mergeService.unmergeContact({
+      workspaceId,
       mergeLogId,
       actorId: '00000000-0000-0000-0000-000000000001',
       reason: 'Tư vấn viên phát hiện nhầm SĐT phụ huynh và học viên',

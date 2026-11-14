@@ -102,6 +102,16 @@ export class RefreshTokenService {
 
         // Giao dịch xoay vòng token nguyên tử (Atomic Token Rotation)
         const outcome = await this.prisma.$transaction(async (tx) => {
+            // 0. Giành quyền xoay token: chỉ một request thắng khi nhiều request cùng gửi token này (nhiều tab).
+            //    Bên thua nhận 401 và dùng cookie mới do bên thắng cấp; không hủy cả họ vì đây không phải token bị đánh cắp.
+            const claimed = await tx.refreshToken.updateMany({
+                where: { id: tokenRecord.id, revokedAt: null },
+                data: { revokedAt: now },
+            });
+            if (claimed.count !== 1) {
+                throw new UnauthorizedException("Refresh Token đã được sử dụng. Vui lòng thử lại.");
+            }
+
             // 1. Tạo Refresh Token mới trong cùng familyId
             const createdToken = await tx.refreshToken.create({
                 data: {
@@ -114,13 +124,10 @@ export class RefreshTokenService {
                 },
             });
 
-            // 2. Thu hồi token cũ và trỏ replacedById sang token mới
+            // 2. Trỏ replacedById của token cũ (đã thu hồi ở bước 0) sang token mới
             await tx.refreshToken.update({
                 where: { id: tokenRecord.id },
-                data: {
-                    revokedAt: now,
-                    replacedById: createdToken.id,
-                },
+                data: { replacedById: createdToken.id },
             });
 
             // 3. Ký Access Token mới tương ứng với tokenVersion hiện tại của user

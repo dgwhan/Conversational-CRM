@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Channel, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service.js';
+import { MediaArchiveService } from '../application/media-archive.service.js';
 
 export interface PhysicalTableSizes {
   totalBytes: number;
@@ -54,7 +55,10 @@ function purgeFilters(options: Pick<PurgeOptions, 'channel' | 'onlyResolvedConve
 export class MessageStorageRepository {
   private readonly logger = new Logger(MessageStorageRepository.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly media?: MediaArchiveService,
+  ) {}
 
   /**
    * Lấy dung lượng vật lý thực tế từ PostgreSQL (table, index, TOAST)
@@ -392,6 +396,11 @@ export class MessageStorageRepository {
 
         const ids = batch.map((b) => b.id);
         const batchFreed = batch.reduce((acc, curr) => acc + (Number(curr.total_bytes) || 0), 0);
+
+        // Xóa bản sao media trong object storage trước, tránh để lại tệp mồ côi
+        await this.media?.deleteMediaForMessages({ id: { in: ids } }).catch((err: Error) =>
+          this.logger.warn(`Không xóa được media của lô tin bị purge: ${err.message}`),
+        );
 
         await this.prisma.$executeRaw`
           DELETE FROM messages

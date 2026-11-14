@@ -84,7 +84,7 @@ describe('ContactController Workspace Isolation', () => {
       workspace: { id: 'ws-1', role: WorkspaceRole.STAFF },
     };
 
-    await expect(controller.unmergeContact('log-1', undefined, undefined, req)).rejects.toThrow();
+    await expect(controller.unmergeContact(req, 'log-1')).rejects.toThrow();
   });
 
   it('lookupContact không tìm thấy contact nếu contact thuộc workspace khác', async () => {

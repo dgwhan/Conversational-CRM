@@ -302,7 +302,7 @@ Nhân viên bị gỡ khỏi workspace mất quyền ngay ở request kế tiế
 - **Zalo OA** ([zalo.adapter.ts](../../apps/api/src/modules/messaging/infrastructure/adapters/zalo.adapter.ts)): `X-ZEvent-Signature` = SHA-256(`appId + rawBody + timestamp + secret`), hoặc HMAC-SHA256 trên rawBody. So sánh hằng thời gian.
 - **Thiếu khóa ký:** production **từ chối** mọi webhook. Ngoài production thì cho qua kèm cảnh báo trong log, để thử nghiệm qua tunnel.
 - Chữ ký sai → `401`.
-- Kênh `MANUAL_IMPORT` không nhận qua webhook công khai, chỉ qua `/messages/import` (cần đăng nhập).
+- Kênh `MANUAL_IMPORT` không nhận qua webhook công khai (chức năng import tin nhắn đã gỡ, enum chỉ còn cho dữ liệu cũ).
 
 **Xử lý tin** — [webhook.controller.ts](../../apps/api/src/modules/messaging/presentation/webhook.controller.ts), [receive-inbound-message.usecase.ts](../../apps/api/src/modules/messaging/application/receive-inbound-message.usecase.ts):
 1. Trong request chỉ có: xác thực chữ ký → phân tích sự kiện → gán workspace theo `ChannelAccount` → `INSERT ... ON CONFLICT DO NOTHING` theo khóa duy nhất `(channel, external_message_id)` → đưa job vào BullMQ. Sau đó trả `200`, mục tiêu dưới 500 ms.

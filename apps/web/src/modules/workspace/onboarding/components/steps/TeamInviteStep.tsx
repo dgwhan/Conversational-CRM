@@ -13,6 +13,7 @@ import {
 import type { StaffInvite, BusinessSetupData, FanpageItem } from '../../types.js';
 import { StaffRole } from '../../../../../features/auth/constants/auth.constants.js';
 import { useTranslation } from '../../../../../i18n/index.js';
+import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
 
 export interface TeamInviteStepProps {
   business: BusinessSetupData;
@@ -215,10 +216,18 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
                       <button
                         type="button"
                         className="table-action-btn delete-btn"
-                        onClick={() => {
-                          if (window.confirm(`Bạn có chắc muốn loại "${inv.fullName || inv.email}" khỏi Workspace?`)) {
-                            onRemoveInvite(inv.id);
-                          }
+                        onClick={async () => {
+                          const confirmed = await confirmDialog({
+                            tone: 'danger',
+                            title: t('confirmDialog.removeInviteeTitle', 'Bỏ người này khỏi danh sách mời?'),
+                            message: t(
+                              'confirmDialog.removeInviteeMessage',
+                              '"{name}" sẽ không nhận được lời mời tham gia workspace.',
+                              { name: inv.fullName || inv.email },
+                            ),
+                            confirmText: t('confirmDialog.removeInviteeConfirm', 'Bỏ khỏi danh sách'),
+                          });
+                          if (confirmed) onRemoveInvite(inv.id);
                         }}
                         title="Loại nhân viên khỏi Workspace"
                         style={{ cursor: 'pointer' }}

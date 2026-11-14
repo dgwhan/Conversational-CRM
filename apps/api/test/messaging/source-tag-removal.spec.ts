@@ -236,7 +236,7 @@ describe('Sub-task 4: Handle Source Tag Removal', () => {
                 })
             );
 
-            const result = await controller.removeCustomerTag(customerId, 'Lead', makeReq());
+            const result = await controller.removeCustomerTag(makeReq(), customerId, 'Lead');
 
             expect(result.success).toBe(true);
             expect(result.removedTag).toBe('Lead');
@@ -287,9 +287,9 @@ describe('Sub-task 4: Handle Source Tag Removal', () => {
             );
 
             // Tư vấn viên gỡ 'Lead' bằng cách gửi danh sách mới chỉ còn ['Khóa học React']
-            const result = await controller.updateCustomer(customerId, {
+            const result = await controller.updateCustomer(makeReq(), customerId, {
                 tags: ['Khóa học React'],
-            }, undefined, undefined, undefined, makeReq());
+            });
 
             expect(result.tags).toEqual(['Khóa học React']);
             expect(mockPrisma.customer.update).toHaveBeenCalledWith(

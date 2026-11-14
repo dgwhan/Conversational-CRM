@@ -252,6 +252,8 @@ export class ChannelConnectorController {
       channelAccountId?: string;
       conversationId?: string;
       workspaceId?: string;
+      /** Tệp đã tải lên (POST /messaging/outbound-media) hoặc tài liệu thư viện */
+      attachments?: Array<{ assetId: string }>;
     },
     @Headers('x-workspace-id') headerWorkspaceId?: string,
     @Req() req?: any,
@@ -259,8 +261,16 @@ export class ChannelConnectorController {
     if (!body.recipientId?.trim()) {
       throw new BadRequestException('recipientId (ID người nhận trên kênh) không được để trống');
     }
-    if (!body.content?.trim()) {
+    const attachments = Array.isArray(body.attachments)
+      ? body.attachments
+          .map((a) => ({ assetId: String(a?.assetId ?? '').trim() }))
+          .filter((a) => /^[0-9a-f-]{36}$/i.test(a.assetId))
+      : [];
+    if (!body.content?.trim() && attachments.length === 0) {
       throw new BadRequestException('Nội dung tin nhắn không được để trống');
+    }
+    if (attachments.length > 10) {
+      throw new BadRequestException('Mỗi lần gửi tối đa 10 tệp.');
     }
 
     const authorizedWorkspaceId = req?.workspace?.id || headerWorkspaceId;
@@ -281,11 +291,12 @@ export class ChannelConnectorController {
     return this.channelManager.sendMessage({
       channel: body.channel || 'ZALO',
       recipientId: assignment.recipientId,
-      content: body.content.trim(),
+      content: (body.content ?? '').trim(),
       channelAccountId: assignment.channelAccountId,
       conversationId: body.conversationId,
       workspaceId: authorizedWorkspaceId,
       senderStaffId: staffId,
+      ...(attachments.length > 0 ? { attachments } : {}),
     });
   }
 
@@ -304,7 +315,7 @@ export class ChannelConnectorController {
     return this.channelManager.sendMessage({
       channel: body.channel || 'ZALO',
       recipientId: body.recipientId.trim(),
-      content: body.content.trim(),
+      content: (body.content ?? '').trim(),
       channelAccountId: body.channelAccountId,
       workspaceId,
     });

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export enum ActivityTypeEnum {
     CALL = 'CALL',
     MEETING = 'MEETING',
@@ -19,57 +21,48 @@ export enum ActivityPriorityEnum {
     URGENT = 'URGENT',
 }
 
-export class CreateActivityDto {
-    workspaceId!: string;
-    customerId?: string;
-    contactId?: string;
-    creatorId?: string;
-    assignedMemberId?: string;
+/** Chuỗi tùy chọn có giới hạn độ dài; "" được coi như không gửi. */
+const optionalText = (max: number) =>
+    z.preprocess((v) => (v === '' ? undefined : v), z.string().trim().max(max).optional());
+const nullableDate = z.union([z.string(), z.date()]).nullish();
+const meetingType = z.enum(['OFFLINE', 'GOOGLE_MEET', 'ZOOM']);
 
-    type?: ActivityTypeEnum;
-    title!: string;
-    description?: string;
+const activityFields = {
+    description: z.string().max(20_000).nullish(),
+    callResult: z.string().max(5_000).nullish(),
+    callDuration: z.preprocess((v) => (v === null || v === '' ? undefined : v), z.coerce.number().int().min(0).optional()),
+    meetingType: meetingType.nullish(),
+    meetingLocation: z.string().max(250).nullish(),
+    meetingJoinUrl: z.string().max(2_000).nullish(),
+    status: optionalText(50),
+    priority: optionalText(50),
+    assignedTo: optionalText(200),
+    assignedMemberId: z.string().max(64).nullish(),
+    scheduledAt: nullableDate,
+    dueAt: nullableDate,
+    reminderAt: nullableDate,
+    metadata: z.record(z.string(), z.any()).optional(),
+};
 
-    // Call properties
-    callResult?: string;
-    callDuration?: number;
+/** Body tạo hoạt động. Trường lạ bị loại bỏ; workspaceId / creatorId lấy từ request đã xác minh. */
+export const createActivitySchema = z.object({
+    ...activityFields,
+    customerId: optionalText(128),
+    contactId: optionalText(64),
+    type: z.nativeEnum(ActivityTypeEnum).optional(),
+    title: z.string().trim().min(1, 'Tiêu đề là bắt buộc').max(250),
+});
 
-    // Meeting properties
-    meetingType?: 'OFFLINE' | 'GOOGLE_MEET' | 'ZOOM';
-    meetingLocation?: string;
-    meetingJoinUrl?: string;
+/** Body cập nhật hoạt động. */
+export const updateActivitySchema = z.object({
+    ...activityFields,
+    title: optionalText(250),
+    completedAt: nullableDate,
+    isReminderSent: z.boolean().optional(),
+});
 
-    // Status & Priority
-    status?: ActivityStatusEnum | string;
-    priority?: ActivityPriorityEnum | string;
-    assignedTo?: string;
-
-    // Dates
-    scheduledAt?: string | Date;
-    dueAt?: string | Date;
-    reminderAt?: string | Date;
-    metadata?: Record<string, any>;
-}
-
-export class UpdateActivityDto {
-    title?: string;
-    description?: string;
-    callResult?: string;
-    callDuration?: number;
-    meetingType?: 'OFFLINE' | 'GOOGLE_MEET' | 'ZOOM';
-    meetingLocation?: string;
-    meetingJoinUrl?: string;
-    status?: ActivityStatusEnum | string;
-    priority?: ActivityPriorityEnum | string;
-    assignedTo?: string;
-    assignedMemberId?: string | null;
-    scheduledAt?: string | Date | null;
-    dueAt?: string | Date | null;
-    completedAt?: string | Date | null;
-    reminderAt?: string | Date | null;
-    isReminderSent?: boolean;
-    metadata?: Record<string, any>;
-}
+export type CreateActivityDto = z.infer<typeof createActivitySchema> & { workspaceId: string };
+export type UpdateActivityDto = z.infer<typeof updateActivitySchema>;
 
 export class ActivityFilterDto {
     workspaceId?: string;

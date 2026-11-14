@@ -41,4 +41,9 @@ COPY --chown=node:node --from=builder /app/apps/api ./apps/api
 WORKDIR /app/apps/api
 EXPOSE 3000
 
-CMD ["node", "dist/main.js"]
+# /api/health trả 503 khi Postgres/Redis không phản hồi (busybox wget có sẵn trong alpine)
+HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
+
+# Áp migration trước khi khởi động. Prisma dùng advisory lock nên nhiều instance khởi động cùng lúc vẫn an toàn.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]

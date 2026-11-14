@@ -377,12 +377,11 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     // Đồng bộ sự kiện bộ nhớ nội bộ thay vì localStorage
 
     // Lưu vào Backend Database Customer
-    if (editingProductCandidate.id) {
-      apiClient.updateCustomer(editingProductCandidate.id, {
-        interestCourses: courses,
-        estimatedValue: tuition,
-      }).catch(() => { });
-    }
+    apiClient
+      .updateCustomer(editingProductCandidate.id, { interestCourses: courses, estimatedValue: tuition })
+      .catch((err: unknown) =>
+        notify.error(err instanceof Error ? err.message : t('kanban.saveFailed', 'Không thể lưu thay đổi.')),
+      );
 
     notify.success(
       t('kanban.productAssigned', 'Đã gán {label} cho "{name}".', { label: config.terminology.productLabel.toLowerCase(), name: editingProductCandidate.fullName }),
@@ -468,42 +467,23 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
       }
     }
 
-    setCandidates((prev) =>
-      prev.map((c) =>
-        c.id === candId
-          ? {
-            ...c,
-            stage: nextStage,
-            lastActivityAt: translate('common.justNow', 'Vừa xong'),
-          }
-          : c
-      )
-    );
+    const setStage = (stage: LeadStage, lastActivityAt: string) =>
+      setCandidates((prev) => prev.map((c) => (c.id === candId ? { ...c, stage, lastActivityAt } : c)));
 
-    // Đồng bộ sự kiện bộ nhớ nội bộ thay vì localStorage
+    // Cập nhật lạc quan trên giao diện; nếu lưu thất bại thì trả thẻ về giai đoạn cũ
+    setStage(nextStage, translate('common.justNow', 'Vừa xong'));
 
-    // Gọi API cập nhật vào Database Customer
-    if (candidate.id) {
-      apiClient.updateCustomer(candidate.id, {
-        fullName: candidate.fullName,
-        phone: candidate.phone,
-        email: candidate.email,
-        leadStage: nextStage,
-        leadStatus: computedStatus,
-        updatedBy: staffId ? 'Tư vấn viên' : 'Hệ thống CRM',
-      }).catch((err) => {
-        console.warn('Could not update customer in DB from Kanban:', err);
-      });
-    }
-
-    // Cập nhật Cơ hội tuyển sinh tương ứng (Chuẩn CRM Deal)
-    if (candidate.dealId) {
-      apiClient.updateDeal(candidate.dealId, {
-        stage: nextStage,
-      }).catch((err) => {
-        console.warn('Could not update deal stage from Kanban:', err);
-      });
-    }
+    // Chỉ gửi các trường giai đoạn: không gửi lại tên / SĐT / email đang hiển thị trên thẻ
+    Promise.all([
+      apiClient.updateCustomer(candidate.id, { leadStage: nextStage, leadStatus: computedStatus }),
+      candidate.dealId ? apiClient.updateDeal(candidate.dealId, { stage: nextStage }) : null,
+    ]).catch((err: unknown) => {
+      setStage(candidate.stage, candidate.lastActivityAt);
+      notify.error(
+        err instanceof Error ? err.message : t('kanban.moveFailed', 'Không thể lưu giai đoạn mới. Đã hoàn tác thay đổi.'),
+        t('kanban.updatePipelineTitle', 'Cập nhật {pipeline}', { pipeline: config.terminology.pipelineName }),
+      );
+    });
 
     // Phát sự kiện đồng bộ toàn cục cho Inbox nếu đang mở
     if (typeof window !== 'undefined') {
@@ -579,7 +559,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
 
   const conversionRate = totalLeads > 0 ? Math.round((wonCount / totalLeads) * 100) : 0;
 
-  const pageTitle = React.useMemo(() => {
+  const pageTitle = (() => {
     const wsName = activeWorkspace?.name || config.workspaceName || '';
     const rawPipeline = config.terminology?.pipelineName || t('header.kanbanTab', 'Phễu Tuyển sinh');
     const pipelinePrefix = t('kanban.pipelinePrefix', 'Phễu');
@@ -595,7 +575,7 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
     }
 
     return pipelineName;
-  }, [activeWorkspace?.name, config.workspaceName, config.terminology?.pipelineName, t]);
+  })();
 
   return (
     <div className="kanban-pipeline-wrapper">

@@ -4,6 +4,7 @@ import { NestFastifyApplication, FastifyAdapter } from '@nestjs/platform-fastify
 import { ConfigService } from '@nestjs/config';
 import { RealtimeService } from './modules/realtime/realtime.service.js';
 import { parseTrustProxy } from './platform/config/trust-proxy.js';
+import fastifyMultipart from '@fastify/multipart';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -24,6 +25,9 @@ async function bootstrap(): Promise<void> {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
+
+  // Tải tệp đính kèm gửi đi (multipart/form-data): mỗi request 1 tệp, tối đa 25MB
+  await app.register(fastifyMultipart as never, { limits: { fileSize: 25 * 1024 * 1024, files: 1, fields: 10 } });
 
   // Hỗ trợ parse định dạng text/csv và text/plain
   const fastify = app.getHttpAdapter().getInstance();

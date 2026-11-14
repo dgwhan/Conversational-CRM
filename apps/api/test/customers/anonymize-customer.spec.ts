@@ -128,7 +128,7 @@ describe('Customer Anonymization (Nghị định 13/2023/NĐ-CP)', () => {
     // 3. Kiểm tra ẩn danh Contact liên kết
     expect(mockPrisma.contact.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { phoneNormalized: '+84912345678' },
+        where: { workspaceId: 'workspace-1', phoneNormalized: '+84912345678' },
         data: expect.objectContaining({
           displayName: expect.stringContaining('Liên hệ ẩn danh'),
           phoneNormalized: null,

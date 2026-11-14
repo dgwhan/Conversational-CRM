@@ -35,6 +35,7 @@ describe('ProcessMessageReceived UseCase (Worker message.received)', () => {
         mockRepo = {
             findById: vi.fn(),
             markProcessed: vi.fn().mockResolvedValue(undefined),
+            findWorkspaceId: vi.fn().mockResolvedValue('ws-uuid-001'),
         };
 
         mockCustomer = {
@@ -64,6 +65,7 @@ describe('ProcessMessageReceived UseCase (Worker message.received)', () => {
             channel: Channel.ZALO,
             senderExternalId: 'user-zalo-101',
             rawPayload: message.rawPayload,
+            workspaceId: 'ws-uuid-001',
         });
 
         // 2. Gọi phân loại

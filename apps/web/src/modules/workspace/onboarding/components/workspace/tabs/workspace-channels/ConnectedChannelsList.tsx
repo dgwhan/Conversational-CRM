@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Power,
   Plus,
@@ -18,7 +18,58 @@ import {
   getChannelStatus,
 } from "../../workspace.config.js";
 import { ZaloTokenCountdown } from "../ZaloTokenCountdown.js";
-import type { ConnectedChannelsListProps } from "./types.js";
+import type { ConnectedChannelItem, ConnectedChannelsListProps } from "./types.js";
+
+const PLATFORM_BADGE: Record<string, { label: string; className: string; dot: string }> = {
+  FACEBOOK: { label: 'FB', className: 'text-blue-600', dot: 'bg-blue-600' },
+  ZALO: { label: 'ZL', className: 'text-sky-600', dot: 'bg-sky-500' },
+  TIKTOK: { label: 'TT', className: 'text-slate-900', dot: 'bg-slate-900' },
+};
+
+/** Danh sách URL avatar theo thứ tự ưu tiên (bỏ qua ảnh placeholder ui-avatars). */
+function getAvatarCandidates(ch: ConnectedChannelItem): string[] {
+  const urls: string[] = [];
+  if (ch.avatarUrl && !ch.avatarUrl.includes('ui-avatars.com')) urls.push(ch.avatarUrl);
+  // Ảnh Fanpage công khai — ổn định hơn URL CDN có chữ ký (hết hạn sau vài ngày)
+  if (ch.channel === 'FACEBOOK' && /^\d+$/.test(ch.externalAccountId)) {
+    urls.push(`https://graph.facebook.com/${ch.externalAccountId}/picture?type=normal`);
+  }
+  return urls;
+}
+
+const ChannelAvatar: React.FC<{ channel: ConnectedChannelItem }> = ({ channel: ch }) => {
+  const candidates = getAvatarCandidates(ch);
+  const [index, setIndex] = useState(0);
+  const src = candidates[index];
+  const badge = PLATFORM_BADGE[ch.channel] ?? { label: ch.channel.slice(0, 2), className: 'text-slate-600', dot: 'bg-slate-400' };
+
+  return (
+    <div className="relative w-10 h-10 shrink-0">
+      {src ? (
+        <img
+          key={src}
+          src={src}
+          alt={ch.displayName}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          onError={() => setIndex((i) => i + 1)}
+          className="w-10 h-10 rounded-lg object-cover border border-slate-200/80 bg-slate-50"
+        />
+      ) : (
+        <div className="w-10 h-10 border border-slate-200/80 bg-slate-50 rounded-lg flex items-center justify-center">
+          <span className={`font-bold text-xs tracking-wider ${badge.className}`}>{badge.label}</span>
+        </div>
+      )}
+      {src && (
+        <span
+          className={`absolute -bottom-1 -right-1 px-1 rounded text-[8px] font-bold text-white leading-[14px] ring-2 ring-white ${badge.dot}`}
+        >
+          {badge.label}
+        </span>
+      )}
+    </div>
+  );
+};
 
 export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
   channels,
@@ -105,23 +156,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                 className="flex flex-wrap items-center justify-between gap-4 p-4 px-5 transition-colors hover:bg-slate-50/70 sm:px-6 sm:p-5"
               >
                 <div className="flex min-w-[260px] items-center gap-3.5">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-slate-50">
-                    {channel.channel === "FACEBOOK" && (
-                      <span className="text-xs font-bold tracking-wider text-blue-600">
-                        FB
-                      </span>
-                    )}
-                    {channel.channel === "ZALO" && (
-                      <span className="text-xs font-bold tracking-wider text-sky-600">
-                        ZL
-                      </span>
-                    )}
-                    {channel.channel === "TIKTOK" && (
-                      <span className="text-xs font-bold tracking-wider text-slate-900">
-                        TT
-                      </span>
-                    )}
-                  </div>
+                  <ChannelAvatar channel={channel} />
 
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -161,7 +196,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                           tokenExpiresAt={channel.tokenExpiresAt}
                           disconnectedAt={channel.disconnectedAt}
                           isActive={channel.isActive}
-                          onRenew={() => onOpenConnectModal("ZALO")}
+                          onRenew={() => onOpenConnectModal("ZALO", { externalAccountId: channel.externalAccountId, displayName: channel.displayName })}
                         />
                       )}
                   </div>
@@ -174,7 +209,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                         variant="primary"
                         size="sm"
                         icon={<RotateCcw size={13} />}
-                        onClick={() => onOpenConnectModal("ZALO")}
+                        onClick={() => onOpenConnectModal("ZALO", { externalAccountId: channel.externalAccountId, displayName: channel.displayName })}
                         title="Gia hạn ngay phiên Zalo (Làm mới phiên 72h bằng cách quét lại mã QR)"
                       >
                         Gia hạn

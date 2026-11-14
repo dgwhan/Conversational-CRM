@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Info } from 'lucide-react';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
+import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
 import type {
   ConversationTier,
   KeywordRuleItem,
@@ -183,7 +184,13 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
   };
 
   const handleDeleteRule = async (rule: KeywordRuleItem) => {
-    if (!window.confirm(t('workspaceSettings.leadScoring.confirmDelete', 'Xóa tiêu chí "{keyword}"?', { keyword: rule.keyword }))) return;
+    const confirmed = await confirmDialog({
+      tone: 'danger',
+      title: t('confirmDialog.deleteScoringRuleTitle', 'Xóa tiêu chí chấm điểm?'),
+      message: t('workspaceSettings.leadScoring.confirmDelete', 'Xóa tiêu chí "{keyword}"?', { keyword: rule.keyword }),
+      confirmText: t('confirmDialog.deleteConfirm', 'Xóa'),
+    });
+    if (!confirmed) return;
 
     setIsSavingRule(true);
     try {

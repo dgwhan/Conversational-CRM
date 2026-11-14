@@ -7,7 +7,8 @@ import {
     RawWebhookRequest,
 } from "../../domain/channel-adapter.port.js";
 import { Channel, MessageDirection } from "../../domain/channel.js";
-import { InboundEvent, NormalizedAttachment } from "../../domain/inbound-event.js";
+import { InboundEvent } from "../../domain/inbound-event.js";
+import { normalizeFacebookAttachments, summarizeAttachments } from "../../domain/media/attachment-normalizer.js";
 
 export interface FacebookAttachment {
     type: string;
@@ -254,55 +255,14 @@ export class FacebookAdapter implements ChannelAdapter {
 
                         const externalAccountId = pageId;
 
-                        // Trích xuất danh sách tệp/ảnh/sticker đính kèm (attachments)
-                        let parsedAttachments: NormalizedAttachment[] | undefined = undefined;
-                        if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
-                            parsedAttachments = msg.attachments.map((att, idx) => {
-                                const isSticker = att.type === 'sticker' || Boolean(att.payload?.sticker_id);
-                                const rawType = String(att.type || 'FILE').toUpperCase();
-                                let resolvedType: NormalizedAttachment['type'] = 'FILE';
-                                if (isSticker) {
-                                    resolvedType = 'STICKER';
-                                } else if (rawType === 'IMAGE') {
-                                    resolvedType = 'IMAGE';
-                                } else if (rawType === 'AUDIO') {
-                                    resolvedType = 'AUDIO';
-                                } else if (rawType === 'VIDEO') {
-                                    resolvedType = 'VIDEO';
-                                }
-
-                                const stickerId = att.payload?.sticker_id ? String(att.payload.sticker_id) : undefined;
-                                let url = att.payload?.url || (att as any).url || (att.payload as any)?.src || '';
-                                if (!url && stickerId) {
-                                    url = `https://lookaside.facebook.com/stickers/${stickerId}.png`;
-                                }
-                                const name = (att.payload as any)?.name || (att.payload as any)?.title || (isSticker ? 'Sticker Messenger' : `${rawType.toLowerCase()}_attachment`);
-                                const size = (att.payload as any)?.size ? String((att.payload as any).size) : undefined;
-
-                                return {
-                                    id: `fb_att_${Date.now()}_${idx}`,
-                                    type: resolvedType,
-                                    url,
-                                    name,
-                                    size,
-                                    stickerId,
-                                };
-                            });
-                        }
+                        // Chuẩn hóa tệp/ảnh/sticker/voice/video đính kèm (id ổn định theo mid)
+                        const normalized = normalizeFacebookAttachments(String(msg.mid), msg.attachments);
+                        const parsedAttachments = normalized.length > 0 ? normalized : undefined;
 
                         // Lấy nội dung tin nhắn hoặc tóm tắt attachment
                         let content: string | null = msg.text ?? null;
-                        if (!content && parsedAttachments && parsedAttachments.length > 0) {
-                            const first = parsedAttachments[0];
-                            if (first.type === 'STICKER') {
-                                content = '[Nhãn dán]';
-                            } else if (first.type === 'IMAGE') {
-                                content = '[Hình ảnh]';
-                            } else if (first.type === 'FILE') {
-                                content = first.name ? `[Tệp: ${first.name}]` : '[Tệp đính kèm]';
-                            } else {
-                                content = `[Đính kèm ${first.type}]`;
-                            }
+                        if (!content && parsedAttachments) {
+                            content = summarizeAttachments(parsedAttachments);
                         } else if (!content && msg.quick_reply?.payload) {
                             content = msg.quick_reply.payload;
                         }

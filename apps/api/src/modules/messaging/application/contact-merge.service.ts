@@ -5,6 +5,8 @@ import { RealtimeService } from '../../realtime/realtime.service.js';
 import { standardizeVietnamesePhoneNumber } from '../../customers/domain/phone-standardizer.js';
 import { AuditAction } from '@prisma/client';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface MergeContactsParams {
   targetContactId: string;
   sourceContactId: string;
@@ -12,13 +14,14 @@ export interface MergeContactsParams {
   actorId?: string;
   mergeType?: 'AUTO_PHONE_MATCH' | 'MANUAL_STAFF';
   reason?: string;
-  workspaceId?: string;
+  workspaceId: string;
 }
 
 export interface UnmergeContactParams {
   mergeLogId: string;
   actorId?: string;
   reason?: string;
+  workspaceId: string;
 }
 
 export interface CheckDuplicatePhoneResult {
@@ -39,9 +42,13 @@ export class ContactMergeService {
   ) {}
 
   /**
-   * Kiểm tra trùng lặp số điện thoại trong hệ thống Contacts
+   * Kiểm tra trùng lặp số điện thoại trong Contacts của một workspace
    */
-  async checkDuplicatePhone(phone: string, excludeContactId?: string): Promise<CheckDuplicatePhoneResult> {
+  async checkDuplicatePhone(
+    workspaceId: string,
+    phone: string,
+    excludeContactId?: string,
+  ): Promise<CheckDuplicatePhoneResult> {
     const normalized = standardizeVietnamesePhoneNumber(phone);
     if (!normalized) {
       return {
@@ -54,6 +61,7 @@ export class ContactMergeService {
 
     const existing = await this.prisma.contact.findFirst({
       where: {
+        workspaceId,
         phoneNormalized: normalized,
         isMerged: false,
         ...(excludeContactId ? { id: { not: excludeContactId } } : {}),
@@ -82,15 +90,15 @@ export class ContactMergeService {
       throw new BadRequestException('Không thể gộp một contact với chính nó');
     }
 
+    // Contact của workspace khác được coi như không tồn tại
+    const findInWorkspace = (id: string) =>
+      this.prisma.contact.findFirst({
+        where: { id, workspaceId: params.workspaceId },
+        include: { channelIdentities: true },
+      });
     const [targetContact, sourceContact] = await Promise.all([
-      this.prisma.contact.findUnique({
-        where: { id: targetContactId },
-        include: { channelIdentities: true },
-      }),
-      this.prisma.contact.findUnique({
-        where: { id: sourceContactId },
-        include: { channelIdentities: true },
-      }),
+      findInWorkspace(targetContactId),
+      findInWorkspace(sourceContactId),
     ]);
 
     if (!targetContact) {
@@ -112,8 +120,8 @@ export class ContactMergeService {
 
     // Tìm các Customer tương ứng (theo workspace hoặc identity)
     const [targetCustomers, sourceCustomers] = await Promise.all([
-      this.findRelatedCustomers(targetContact),
-      this.findRelatedCustomers(sourceContact),
+      this.findRelatedCustomers(targetContact, params.workspaceId),
+      this.findRelatedCustomers(sourceContact, params.workspaceId),
     ]);
 
     const primaryTargetCustomer = targetCustomers[0] || null;
@@ -288,7 +296,7 @@ export class ContactMergeService {
           previousStage: primarySourceCustomer?.leadStage || 'STAGE_NEW',
           updatedBy: params.actorId ? `Tư vấn viên ${params.actorId}` : 'Hệ thống tự động gộp (CUS-04)',
           phone: result.updatedTarget.phoneNormalized || undefined,
-          workspaceId: primaryTargetCustomer?.workspaceId || params.workspaceId || undefined,
+          workspaceId: params.workspaceId,
         } as any);
       } catch {}
     }
@@ -311,8 +319,8 @@ export class ContactMergeService {
    * Sử dụng Snapshot đã lưu để phục hồi nguyên trạng
    */
   async unmergeContact(params: UnmergeContactParams) {
-    const mergeLog = await this.prisma.contactMergeLog.findUnique({
-      where: { id: params.mergeLogId },
+    const mergeLog = await this.prisma.contactMergeLog.findFirst({
+      where: { id: params.mergeLogId, targetContact: { workspaceId: params.workspaceId } },
     });
 
     if (!mergeLog) {
@@ -407,89 +415,62 @@ export class ContactMergeService {
   }
 
   /**
-   * Lấy danh sách lịch sử gộp linh hoạt theo Contact ID, Customer ID, Số điện thoại hoặc Identity
+   * Lịch sử gộp trong một workspace, tra theo Contact ID, Customer ID, số điện thoại hoặc External User ID
    */
-  async getMergeHistory(identifier: string): Promise<any> {
+  async getMergeHistory(workspaceId: string, identifier: string): Promise<{ items: any[]; total: number }> {
     if (!identifier) {
       return { items: [], total: 0 };
     }
 
-    const whereOr: any[] = [
-      { targetContactId: identifier },
-      { sourceContactId: identifier },
-    ];
+    const contactIds = new Set<string>([identifier]);
+    const phones = new Set<string>();
+    const externalIds = new Set<string>([identifier]);
 
-    // Tra cứu xem có phải Customer ID trong bảng Customer không
-    try {
-      if (this.prisma.customer?.findUnique) {
-        const customer = await this.prisma.customer.findUnique({
-          where: { id: identifier },
-        });
+    const stdPhone = standardizeVietnamesePhoneNumber(identifier);
+    if (stdPhone) phones.add(stdPhone);
 
-        if (customer) {
-          if (customer.phone) {
-            const std = standardizeVietnamesePhoneNumber(customer.phone);
-            if (std) whereOr.push({ phoneNormalized: std });
-          }
-          const rawIdentities = customer.channelIdentities as any;
-          const fbId = rawIdentities?.facebook || rawIdentities?.socialId;
-          const zaloId = rawIdentities?.zalo?.id || rawIdentities?.zalo;
-          const extIds: string[] = [];
-          if (fbId) extIds.push(String(fbId));
-          if (zaloId) extIds.push(String(zaloId));
-
-          if (extIds.length > 0 && this.prisma.channelIdentity?.findMany) {
-            const identities = await this.prisma.channelIdentity.findMany({
-              where: { externalUserId: { in: extIds } },
-              select: { contactId: true },
-            });
-            for (const idnt of identities || []) {
-              whereOr.push({ targetContactId: idnt.contactId });
-              whereOr.push({ sourceContactId: idnt.contactId });
-            }
-          }
+    // Customer ID: lấy SĐT và các ID kênh của khách hàng
+    if (UUID_REGEX.test(identifier)) {
+      const customer = await this.prisma.customer.findFirst({ where: { id: identifier, workspaceId } });
+      if (customer) {
+        const std = customer.phone ? standardizeVietnamesePhoneNumber(customer.phone) : null;
+        if (std) phones.add(std);
+        const ids = (customer.channelIdentities as any) || {};
+        for (const extId of [ids.facebook || ids.socialId, ids.zalo?.id || ids.zalo]) {
+          if (extId) externalIds.add(String(extId));
         }
       }
-    } catch { }
-
-    // Tra cứu xem có phải là số điện thoại không
-    const stdPhone = standardizeVietnamesePhoneNumber(identifier);
-    if (stdPhone) {
-      whereOr.push({ phoneNormalized: stdPhone });
     }
 
-    // Tra cứu xem có phải là External User ID của kênh không
-    try {
-      if (this.prisma.channelIdentity?.findFirst) {
-        const idnt = await this.prisma.channelIdentity.findFirst({
-          where: { externalUserId: identifier },
-          select: { contactId: true },
-        });
-        if (idnt) {
-          whereOr.push({ targetContactId: idnt.contactId });
-          whereOr.push({ sourceContactId: idnt.contactId });
-        }
-      }
-    } catch { }
+    const identities = await this.prisma.channelIdentity.findMany({
+      where: { externalUserId: { in: [...externalIds] }, contact: { workspaceId } },
+      select: { contactId: true },
+    });
+    for (const idnt of identities) {
+      if (idnt.contactId) contactIds.add(idnt.contactId);
+    }
 
+    const ids = [...contactIds];
     const logs = await this.prisma.contactMergeLog.findMany({
       where: {
-        OR: whereOr,
+        targetContact: { workspaceId },
+        OR: [
+          { targetContactId: { in: ids.filter((id) => UUID_REGEX.test(id)) } },
+          { sourceContactId: { in: ids.filter((id) => UUID_REGEX.test(id)) } },
+          ...(phones.size > 0 ? [{ phoneNormalized: { in: [...phones] } }] : []),
+        ],
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
 
-    return {
-      items: logs,
-      total: logs.length,
-    };
+    return { items: logs, total: logs.length };
   }
 
   /**
    * Helper tìm danh sách Customer liên quan đến một Contact
    */
-  private async findRelatedCustomers(contact: any): Promise<any[]> {
+  private async findRelatedCustomers(contact: any, workspaceId: string): Promise<any[]> {
     const identities = contact.channelIdentities || [];
     const conditions: any[] = [];
 
@@ -521,7 +502,7 @@ export class ContactMergeService {
     if (conditions.length === 0) return [];
 
     return this.prisma.customer.findMany({
-      where: { OR: conditions },
+      where: { workspaceId, OR: conditions },
       orderBy: { updatedAt: 'desc' },
     });
   }

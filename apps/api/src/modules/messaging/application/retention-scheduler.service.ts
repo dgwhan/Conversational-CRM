@@ -4,6 +4,7 @@ import { PrismaService } from '../../../platform/database/prisma.service.js';
 import { MessageStorageService } from './message-storage.service.js';
 import type { PurgeMessagesResponse } from '../../../contracts/message-storage.js';
 import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
+import { MediaArchiveService } from './media-archive.service.js';
 
 /** Giữ khóa tối đa 2 giờ: đủ cho một lượt dọn dẹp lớn, tự hết hạn nếu instance chết giữa chừng. */
 const RETENTION_LOCK_TTL_MS = 2 * 60 * 60 * 1000;
@@ -17,7 +18,21 @@ export class RetentionSchedulerService {
     private readonly prisma: PrismaService,
     private readonly storageService: MessageStorageService,
     @Optional() private readonly locks?: DistributedLockService,
+    @Optional() private readonly media?: MediaArchiveService,
   ) {}
+
+  /** 03:00 hằng ngày: xóa bản sao media quá MEDIA_RETENTION_DAYS (giữ metadata, đánh dấu hết hạn). */
+  @Cron('0 3 * * *', { name: 'media-retention-cleanup', timeZone: 'Asia/Ho_Chi_Minh' })
+  async handleMediaRetention(): Promise<void> {
+    if (!this.media) return;
+    const task = () => this.media!.cleanupExpired();
+    try {
+      if (this.locks) await this.locks.runExclusive('cron:media-retention', RETENTION_LOCK_TTL_MS, task);
+      else await task();
+    } catch (err) {
+      this.logger.error(`Media retention cleanup failed: ${(err as Error).message}`);
+    }
+  }
 
   /**
    * Cron Job tự động dọn dẹp tin nhắn quá hạn định kỳ hàng ngày vào 02:00 AM (giờ Việt Nam).

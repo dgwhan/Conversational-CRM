@@ -13,6 +13,7 @@ import { ErrorBoundary } from './app/ErrorBoundary.js';
 import { I18nProvider } from './i18n/I18nContext.js';
 import { ToastProvider } from './components/feedback/ToastContext.js';
 import { ToastContainer } from './components/feedback/ToastContainer.js';
+import { ConfirmDialogHost } from './components/feedback/ConfirmDialogHost.js';
 import { UserRoleProvider, useUserRole, WorkspaceAccessGuard } from './modules/auth/index.js';
 import { RealtimeProvider } from './modules/realtime/RealtimeContext.js';
 import { WorkspaceConfigProvider, useWorkspaceConfig } from './modules/workspace/WorkspaceConfigContext.js';
@@ -61,8 +62,8 @@ const WorkspaceInvitationPage = lazy(() =>
 const OnboardingWizardPage = lazy(() =>
   import('./modules/workspace/onboarding/pages/OnboardingWizardPage.js').then((m) => ({ default: m.OnboardingWizardPage }))
 );
-const MessagingImportPage = lazy(() =>
-  import('./modules/messaging/pages/MessagingImportPage.js').then((m) => ({ default: m.MessagingImportPage }))
+const CustomerImportPage = lazy(() =>
+  import('./modules/leads/import/CustomerImportPage.js').then((m) => ({ default: m.CustomerImportPage }))
 );
 const Error404Page = lazy(() =>
   import('./pages/errors/Error404Page.js').then((m) => ({ default: m.Error404Page }))
@@ -280,6 +281,7 @@ function CRMAppRoutes() {
     <>
       <ScrollToTop />
       <ToastContainer />
+      <ConfirmDialogHost />
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
           {/* 1. Trang công khai: Giới thiệu & Pháp lý */}
@@ -304,6 +306,7 @@ function CRMAppRoutes() {
             <Route path={ROUTES.INBOX_CONVERSATION} element={<InboxRoute />} />
 
             {/* Danh sách khách hàng tiềm năng */}
+            <Route path={ROUTES.LEADS_IMPORT} element={<CustomerImportPage />} />
             <Route
               path={ROUTES.LEADS}
               element={<LeadsListPage onOpenChat={(convId) => navigate(buildRoute.inbox(convId))} />}
@@ -341,7 +344,8 @@ function CRMAppRoutes() {
             {/* Chuyển hướng các route /onboarding cũ về /workspace */}
             <Route path={ROUTES.ONBOARDING} element={<Navigate to={ROUTES.WORKSPACE_DEFAULT} replace />} />
             <Route path={ROUTES.ONBOARDING_DETAIL} element={<WorkspaceRouteRedirect />} />
-            <Route path={ROUTES.IMPORT} element={<MessagingImportPage />} />
+            {/* Trang import tin nhắn cũ đã gỡ: chuyển link cũ sang nhập khách hàng */}
+            <Route path={ROUTES.IMPORT} element={<Navigate to={ROUTES.LEADS_IMPORT} replace />} />
           </Route>
 
           {/* 3. Trang 404 Not Found */}

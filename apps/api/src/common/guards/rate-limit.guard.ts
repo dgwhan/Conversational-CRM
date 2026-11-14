@@ -15,7 +15,7 @@ import { RateLimiterService } from '../security/rate-limiter.service.js';
 
 @Injectable()
 export class RateLimitGuard implements CanActivate {
-  private readonly defaultLimit = 120; // 120 req / phút mặc định
+  private readonly defaultLimit = 150; // 120 req / phút mặc định
   private readonly defaultTtlMs = 60_000; // 60s
 
   constructor(

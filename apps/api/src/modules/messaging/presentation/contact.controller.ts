@@ -18,6 +18,7 @@ import { ContactMergeService } from '../application/contact-merge.service.js';
 import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
 import { WorkspaceRolesGuard } from '../../../common/guards/workspace-roles.guard.js';
 import { WorkspaceRole } from '../../../contracts/roles.js';
+import { standardizeVietnamesePhoneNumber } from '../../customers/domain/phone-standardizer.js';
 
 /**
  * Controller quản lý Contact, ChannelIdentity, và Hợp nhất Contact (CUS-04).
@@ -98,32 +99,22 @@ export class ContactController {
      */
     @Get('check-duplicate-phone')
     async checkDuplicatePhone(
-        @Query('phone') phone: string,
+        @Req() req: unknown,
+        @Query('phone') phone?: string,
         @Query('excludeContactId') excludeContactId?: string,
     ) {
         if (!phone) {
             return { isValid: false, normalizedPhone: null, existingContact: null, hasCollision: false };
         }
-        return this.mergeService.checkDuplicatePhone(phone, excludeContactId);
+        return this.mergeService.checkDuplicatePhone(requireWorkspaceId(req), phone, excludeContactId);
     }
 
-    /**
-     * Thực hiện gộp 2 Contacts về 1 Contact duy nhất (CUS-04)
-     */
     @Post('merge')
     async mergeContacts(
-        @Body()
-        body: {
-            targetContactId: string;
-            sourceContactId: string;
-            phoneNormalized?: string;
-            reason?: string;
-            workspaceId?: string;
-        },
-        @Headers('x-actor-id') headerActorId?: string,
-        @Req() req?: any,
+        @Req() req: unknown,
+        @Body() body: { targetContactId?: string; sourceContactId?: string; phoneNormalized?: string; reason?: string },
     ) {
-        if (!body.targetContactId || !body.sourceContactId) {
+        if (!body?.targetContactId || !body?.sourceContactId) {
             throw new BadRequestException('targetContactId và sourceContactId là bắt buộc');
         }
 
@@ -177,15 +168,11 @@ export class ContactController {
         });
     }
 
-    /**
-     * Tách lại / Hoàn tác gộp nếu gộp nhầm (CUS-04)
-     */
     @Post('unmerge/:mergeLogId')
     async unmergeContact(
+        @Req() req: unknown,
         @Param('mergeLogId') mergeLogId: string,
         @Body() body?: { reason?: string },
-        @Headers('x-actor-id') headerActorId?: string,
-        @Req() req?: any,
     ) {
         if (!mergeLogId) {
             throw new BadRequestException('mergeLogId là bắt buộc');
@@ -202,78 +189,54 @@ export class ContactController {
             mergeLogId,
             actorId: userId,
             reason: body?.reason,
+            workspaceId: requireWorkspaceId(req),
         });
     }
 
-    /**
-     * Lấy lịch sử các lần gộp qua Query Param (phone, customerId, contactId)
-     */
     @Get('merge-history')
     async getMergeHistoryByQuery(
+        @Req() req: unknown,
         @Query('identifier') identifier?: string,
         @Query('phone') phone?: string,
         @Query('contactId') contactId?: string,
         @Query('customerId') customerId?: string,
-    ): Promise<any> {
+    ) {
         const id = contactId || customerId || phone || identifier || '';
-        return this.mergeService.getMergeHistory(id);
+        return this.mergeService.getMergeHistory(requireWorkspaceId(req), id);
     }
 
-    /**
-     * Lấy lịch sử các lần gộp của một Contact / Customer / SĐT
-     */
     @Get(':id/merge-history')
-    async getMergeHistory(@Param('id') contactId: string, @Query('phone') phone?: string): Promise<any> {
-        return this.mergeService.getMergeHistory(phone || contactId);
+    async getMergeHistory(@Req() req: unknown, @Param('id') contactId: string, @Query('phone') phone?: string) {
+        return this.mergeService.getMergeHistory(requireWorkspaceId(req), phone || contactId);
     }
 
-    /**
-     * Tra cứu contact và danh tính kênh theo định danh, chỉ trong workspace hiện tại.
-     */
+    /** Tra cứu contact theo (kênh, external user ID), số điện thoại hoặc email. */
     @Get('lookup')
     async lookupContact(
-        @Req() req: any,
+        @Req() req: unknown,
         @Query('channel') channel?: string,
         @Query('externalUserId') externalUserId?: string,
         @Query('phone') phone?: string,
         @Query('email') email?: string,
     ) {
         const workspaceId = requireWorkspaceId(req);
+        const base = { workspaceId, isMerged: false };
 
-        if (channel && externalUserId) {
-            const identity = await this.prisma.channelIdentity.findFirst({
-                where: {
-                    channel: channel.toUpperCase() as Channel,
-                    externalUserId,
-                    workspaceId,
-                },
-                include: {
-                    contact: {
-                        include: { channelIdentities: true },
-                    },
-                },
-            });
-            if (identity && identity.contact) {
-                return { contact: identity.contact, channelIdentities: identity.contact.channelIdentities };
-            }
-        }
+        const conditions = [
+            channel && externalUserId
+                ? { channelIdentities: { some: { channel: channel.toUpperCase() as Channel, externalUserId } } }
+                : null,
+            phone ? { phoneNormalized: standardizeVietnamesePhoneNumber(phone) || phone } : null,
+            email ? { email } : null,
+        ].filter((c): c is NonNullable<typeof c> => c !== null);
 
-        if (phone) {
+        for (const condition of conditions) {
             const contact = await this.prisma.contact.findFirst({
-                where: { workspaceId, phoneNormalized: phone, isMerged: false },
+                where: { ...base, ...condition },
                 include: { channelIdentities: true },
             });
             if (contact) return { contact, channelIdentities: contact.channelIdentities };
         }
-
-        if (email) {
-            const contact = await this.prisma.contact.findFirst({
-                where: { workspaceId, email, isMerged: false },
-                include: { channelIdentities: true },
-            });
-            if (contact) return { contact, channelIdentities: contact.channelIdentities };
-        }
-
         return { contact: null, channelIdentities: [] };
     }
 }

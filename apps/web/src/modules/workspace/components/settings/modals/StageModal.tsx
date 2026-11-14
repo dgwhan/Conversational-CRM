@@ -50,7 +50,7 @@ export const StageModal: React.FC<StageModalProps> = ({
 
   useEffect(() => {
     if (stageToEdit) {
-      setName(stageToEdit.name.replace(/^\d+[\.\s\-]+/, '').trim());
+      setName(stageToEdit.name.replace(/^\d+[.\s-]+/, '').trim());
       setSubtitle(stageToEdit.subtitle || '');
       const swatch =
         COLOR_SWATCHES.find((s) => s.color === stageToEdit.color) || COLOR_SWATCHES[0];

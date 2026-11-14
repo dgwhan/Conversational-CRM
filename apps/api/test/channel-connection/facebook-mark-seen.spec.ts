@@ -19,6 +19,7 @@ describe('MessageDispatcherService Facebook mark seen', () => {
       json: async () => ({ recipient_id: 'customer-psid' }),
     });
     conversationFindUnique.mockResolvedValue({
+      id: 'f8a5c5b2-0fc0-4dc2-a0d8-6ab5cd111111',
       workspaceId: 'workspace-id',
       channelAccount: {
         channel: Channel.FACEBOOK,
@@ -69,7 +70,7 @@ describe('MessageDispatcherService Facebook mark seen', () => {
     });
   });
 
-  it('does not clear local unread state when Meta rejects mark_seen', async () => {
+  it('still clears the local unread count when Meta rejects mark_seen, and reports the Meta error', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       statusText: 'Bad Request',
@@ -79,6 +80,10 @@ describe('MessageDispatcherService Facebook mark seen', () => {
     await expect(
       dispatcher.markFacebookConversationSeen('f8a5c5b2-0fc0-4dc2-a0d8-6ab5cd111111'),
     ).rejects.toThrow('Permission denied');
-    expect(conversationUpdate).not.toHaveBeenCalled();
+    // Nhân viên đã đọc tin trong CRM: bộ đếm chưa đọc phải về 0 dù Meta không đồng bộ được
+    expect(conversationUpdate).toHaveBeenCalledWith({
+      where: { id: 'f8a5c5b2-0fc0-4dc2-a0d8-6ab5cd111111' },
+      data: { unreadCount: 0 },
+    });
   });
 });

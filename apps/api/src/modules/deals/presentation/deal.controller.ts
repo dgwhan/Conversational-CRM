@@ -13,7 +13,8 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { DealService } from '../application/deal.service.js';
-import { CreateDealDto, UpdateDealDto } from '../application/dto/deal.dto.js';
+import { createDealSchema, updateDealSchema, type CreateDealDto, type UpdateDealDto } from '../application/dto/deal.dto.js';
+import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe.js';
 import { SkipCsrf } from '../../../common/decorators/skip-csrf.decorator.js';
 import { getRequestIdentity, requireWorkspaceId } from '../../../common/auth/request-identity.js';
 import { WorkspaceRolesGuard } from '../../../common/guards/workspace-roles.guard.js';
@@ -92,7 +93,7 @@ export class DealController {
     @SkipCsrf()
     @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
     async createDeal(
-        @Body() body: CreateDealDto,
+        @Body(new ZodValidationPipe(createDealSchema)) body: Omit<CreateDealDto, 'workspaceId'>,
         @Req() req?: any,
     ): Promise<any> {
         const workspaceId = requireWorkspaceId(req);
@@ -108,7 +109,7 @@ export class DealController {
     @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
     async updateDeal(
         @Param('id') id: string,
-        @Body() body: UpdateDealDto,
+        @Body(new ZodValidationPipe(updateDealSchema)) body: UpdateDealDto,
         @Req() req?: any,
     ): Promise<any> {
         const workspaceId = requireWorkspaceId(req);

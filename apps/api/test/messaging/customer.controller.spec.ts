@@ -72,7 +72,7 @@ describe('CustomerController', () => {
 
             vi.mocked(mockCustomerService.getCustomers!).mockResolvedValue(expectedResult as any);
 
-            const result = await controller.getCustomers(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, makeReq());
+            const result = await controller.getCustomers(makeReq());
 
             expect(result.total).toBe(2);
             expect(result.items[0].leadStatus).toBe('POTENTIAL');
@@ -100,11 +100,11 @@ describe('CustomerController', () => {
 
             vi.mocked(mockCustomerService.updateCustomer!).mockResolvedValue(updatedResult as any);
 
-            const result = await controller.updateCustomer(customerUuid, {
+            const result = await controller.updateCustomer(makeReq(), customerUuid, {
                 leadStatus: 'POTENTIAL',
                 leadStage: 'STAGE_QUALIFIED',
                 updatedBy: 'Tư vấn viên Lan',
-            }, undefined, undefined, undefined, makeReq());
+            });
 
             expect(mockCustomerService.updateCustomer).toHaveBeenCalledWith(
                 customerUuid,
@@ -132,11 +132,11 @@ describe('CustomerController', () => {
 
             vi.mocked(mockCustomerService.updateCustomer!).mockResolvedValue(newCustResult as any);
 
-            const result = await controller.updateCustomer('cand-123456', {
+            const result = await controller.updateCustomer(makeReq(), 'cand-123456', {
                 fullName: 'Ứng viên mới',
                 leadStatus: 'POTENTIAL',
                 leadStage: 'STAGE_QUALIFIED',
-            }, undefined, undefined, undefined, makeReq());
+            });
 
             expect(mockCustomerService.updateCustomer).toHaveBeenCalledWith(
                 'cand-123456',
@@ -166,13 +166,7 @@ describe('CustomerController', () => {
                 assignedStaffName: 'Nguyễn Văn Tư Vấn',
             } as any);
 
-            const result = await controller.assignConversation(
-                convId,
-                { staffId, staffName: 'Nguyễn Văn Tư Vấn' },
-                'ws-gia-mao-tu-header',
-                'OWNER',
-                makeReq(),
-            );
+            const result = await controller.assignConversation(makeReq(), convId, { staffId, staffName: 'Nguyễn Văn Tư Vấn' });
 
             expect(mockCustomerService.assignConversation).toHaveBeenCalledWith(
                 convId,
@@ -186,13 +180,7 @@ describe('CustomerController', () => {
 
         it('STAFF không được phân công hội thoại dù tự gửi header x-user-role: OWNER', async () => {
             await expect(
-                controller.assignConversation(
-                    '33333333-3333-3333-3333-333333333333',
-                    { staffId: 'x' },
-                    undefined,
-                    'OWNER',
-                    makeReq('STAFF', 'staff-1'),
-                ),
+                controller.assignConversation(makeReq('STAFF', 'staff-1'), '33333333-3333-3333-3333-333333333333', { staffId: 'x' }),
             ).rejects.toThrow(ForbiddenException);
             expect(mockCustomerService.assignConversation).not.toHaveBeenCalled();
         });
@@ -216,12 +204,7 @@ describe('CustomerController', () => {
                 },
             } as any);
 
-            const result = await controller.anonymizeCustomer(
-                customerId,
-                { reason },
-                'staff-gia-mao',
-                makeReq('OWNER', staffId),
-            );
+            const result = await controller.anonymizeCustomer(makeReq('OWNER', staffId), customerId, { reason });
 
             // actorId lấy từ token, không từ header x-staff-id
             expect(mockCustomerService.anonymizeCustomer).toHaveBeenCalledWith(
@@ -236,7 +219,7 @@ describe('CustomerController', () => {
 
         it('chỉ OWNER được ẩn danh hóa khách hàng', async () => {
             await expect(
-                controller.anonymizeCustomer('cust-1', { reason: 'x' }, undefined, makeReq('STAFF', 'staff-1')),
+                controller.anonymizeCustomer(makeReq('STAFF', 'staff-1'), 'cust-1', { reason: 'x' }),
             ).rejects.toThrow(ForbiddenException);
             expect(mockCustomerService.anonymizeCustomer).not.toHaveBeenCalled();
         });
