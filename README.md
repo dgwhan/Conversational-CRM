@@ -147,12 +147,12 @@ Khởi động toàn bộ:
 ```bash
 docker compose up --build -d
 docker compose ps
-curl http://localhost:3000/api/health      # {"status":"ok"}
+curl http://localhost:3000/api/health      # {"status":"ok","db":"ok","redis":"ok"}
 ```
 
 Compose chạy `postgres` và `redis` (có healthcheck, dữ liệu lưu trong volume `crm_postgres_data` và `crm_redis_data`), sau đó build và chạy `api`. Container `api` nạp biến từ `.env`, còn `DATABASE_URL` và `REDIS_URL` được tự trỏ tới host `postgres`/`redis` trong mạng Docker. Muốn dùng giá trị khác thì đặt `DATABASE_URL_DOCKER` / `REDIS_URL_DOCKER`.
 
-> Image không tự chạy migration. Lần đầu cần áp schema từ máy host: `pnpm --filter api exec prisma migrate deploy` (hoặc `pnpm db:reset` cho môi trường phát triển, lệnh này xóa sạch dữ liệu).
+> Container `api` tự chạy `prisma migrate deploy` mỗi lần khởi động rồi mới chạy ứng dụng (Prisma khóa nên nhiều instance khởi động cùng lúc vẫn an toàn). `docker compose` mặc định `NODE_ENV=production`; chạy dev local thì đặt `NODE_ENV=development` trong `.env`. `/api/health` trả 503 khi Postgres hoặc Redis không phản hồi.
 
 ---
 
@@ -247,7 +247,7 @@ Danh sách kiểm tra tối thiểu (lý do chi tiết nằm trong [tài liệu 
 3. Đặt API sau reverse proxy có TLS và cấu hình `TRUST_PROXY` đúng số hop. HSTS được API tự gửi khi chạy production.
 4. Cấu hình `META_APP_SECRET` và `ZALO_OA_SECRET_KEY` / `ZALO_APP_SECRET`: production từ chối webhook không có chữ ký hợp lệ.
 5. `FRONTEND_URL` chỉ chứa domain thật của web.
-6. Chạy `prisma migrate deploy` trước khi khởi động phiên bản mới.
+6. Image Docker tự chạy `prisma migrate deploy` khi khởi động. Nếu deploy không dùng image này, chạy lệnh đó trước khi khởi động phiên bản mới.
 7. Chạy nhiều instance được: trạng thái dùng chung nằm trên Redis và cron có khóa phân tán. Có thể tách instance nhận webhook (`INBOUND_WORKER_ENABLED=false`) khỏi instance chạy worker.
 
 ---

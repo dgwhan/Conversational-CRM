@@ -52,7 +52,8 @@ services:
       - .env
     environment:
       TZ: Asia/Ho_Chi_Minh
-      NODE_ENV: ${NODE_ENV:-development}
+      # Mặc định production: quên đặt NODE_ENV không được làm tắt các rào bảo mật. Dev local đặt NODE_ENV=development trong .env.
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: 3000
       DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-recruitment_crm}?schema=public}
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379}
