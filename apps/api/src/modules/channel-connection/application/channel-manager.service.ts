@@ -387,6 +387,9 @@ export class ChannelManagerService {
   /**
    * Kiểm tra quyền của nhân viên (STAFF) khi gửi phản hồi:
    * Chỉ cho phép phản hồi các hội thoại được phân công cho mình (trả về lỗi 403 nếu không thuộc quyền).
+   *
+   * Người nhận được SUY RA TỪ HỘI THOẠI (senderExternalId / rawPayload / channelIdentities),
+   * không tin hoàn toàn vào recipientId do FE gửi lên.
    */
   async verifyStaffCanReply(
     input: {
@@ -411,11 +414,12 @@ export class ChannelManagerService {
         assignedMember: true,
         customer: true,
         channelAccount: true,
+        // Chỉ lấy tin INBOUND (tránh 10 tin gần nhất toàn là OUTBOUND)
         messages: {
           where: { direction: 'INBOUND' },
           orderBy: { sentAt: 'desc' },
-          take: 1,
-          select: { rawPayload: true },
+          take: 5,
+          select: { rawPayload: true, senderExternalId: true },
         },
       },
     });
@@ -432,7 +436,9 @@ export class ChannelManagerService {
 
     const identityMap = conv.customer?.channelIdentities as Record<string, unknown> | null;
     const channelKey = String(conv.channelAccount.channel).toLowerCase();
+    const pageExtId = conv.channelAccount.externalAccountId;
     const candidates: string[] = [];
+
     const normalizeExternalId = (value: string) => {
       const candidate = value.trim();
       const parts = candidate.split('_');
@@ -441,8 +447,24 @@ export class ChannelManagerService {
     };
     const addCandidate = (value: unknown) => {
       if (typeof value !== 'string' || !value.trim()) return;
-      candidates.push(normalizeExternalId(value));
+      const normalized = normalizeExternalId(value);
+      // Không thêm ID của chính Page / OA vào danh sách người nhận
+      if (pageExtId && normalized === normalizeExternalId(pageExtId)) return;
+      if (!candidates.includes(normalized)) candidates.push(normalized);
     };
+
+    // 1. Ưu tiên cột senderExternalId của tin INBOUND gần nhất
+    for (const msg of conv.messages) addCandidate(msg.senderExternalId);
+
+    // 2. Rồi tới rawPayload (Graph API: from.id; webhook: messaging[0].sender.id; Zalo: uidFrom)
+    for (const msg of conv.messages) {
+      const rp = msg.rawPayload as Record<string, any> | null;
+      const m0 = rp?.messaging?.[0] ?? rp?.entry?.[0]?.messaging?.[0];
+      const sender = rp?.sender || rp?.from || rp?.user || m0?.sender;
+      addCandidate(sender?.id || sender?.userId || rp?.senderExternalId || rp?.fromId || rp?.uidFrom);
+    }
+
+    // 3. Cuối cùng là channelIdentities của customer (dữ liệu cũ / fallback)
     const channelIdentity = identityMap?.[channelKey];
     if (typeof channelIdentity === 'string') addCandidate(channelIdentity);
     else if (channelIdentity && typeof channelIdentity === 'object' && !Array.isArray(channelIdentity)) {
@@ -453,27 +475,46 @@ export class ChannelManagerService {
     }
     if (Array.isArray(identityMap)) {
       for (const entry of identityMap as any[]) {
-        if (String(entry?.channel || '').toLowerCase() === channelKey) addCandidate(entry?.externalUserId || entry?.id);
+        if (String(entry?.channel || '').toLowerCase() === channelKey) {
+          addCandidate(entry?.externalUserId || entry?.id);
+        }
       }
     }
-    const rawPayload = conv.messages[0]?.rawPayload as Record<string, any> | undefined;
-    const sender = rawPayload?.sender || rawPayload?.from || rawPayload?.user;
-    addCandidate(sender?.id || sender?.userId || rawPayload?.senderExternalId || rawPayload?.fromId);
     const socialId = identityMap?.socialId;
     if (typeof socialId === 'string' && socialId !== 'khách' && !socialId.startsWith('cust-')) {
       addCandidate(socialId);
     }
 
-    const normalizedInput = input.recipientId.trim();
-    const normalizedInputExternal = normalizeExternalId(normalizedInput);
-    const recipientId = candidates.find((candidate) => candidate === normalizedInputExternal);
-    if (!recipientId && (!conv.customerId || normalizedInput !== conv.customerId)) {
-      throw new ForbiddenException('Người nhận không khớp với khách hàng trong hội thoại.');
+    // 4. Quyết định người nhận
+    // 4. Quyết định người nhận
+    const normalizedInputExternal = normalizeExternalId(input.recipientId.trim());
+    const matched = candidates.find((candidate) => candidate === normalizedInputExternal);
+
+    let resolvedRecipientId: string | undefined;
+    if (channelKey === 'facebook') {
+      // Facebook: mỗi hội thoại một khách. candidates[0] là người gửi của tin INBOUND gần nhất,
+      // tức ID duy nhất chắc chắn đang nằm trong cửa sổ 24h. Không tin ID do FE gửi.
+      resolvedRecipientId = candidates[0];
+      if (resolvedRecipientId && matched !== resolvedRecipientId) {
+        this.logger.warn(
+          `verifyStaffCanReply: dùng ${resolvedRecipientId} (tin INBOUND gần nhất) thay cho recipientId FE gửi (${normalizedInputExternal}) ở hội thoại ${conv.id}`,
+        );
+      }
+    } else {
+      resolvedRecipientId = matched ?? (candidates.length === 1 ? candidates[0] : undefined);
     }
-    const resolvedRecipientId = recipientId || candidates[0];
+
     if (!resolvedRecipientId) {
-      throw new ForbiddenException('Không thể xác định tài khoản khách hàng từ hội thoại.');
+      this.logger.warn(
+        `verifyStaffCanReply mismatch: conversation=${conv.id} input=${normalizedInputExternal} candidates=${JSON.stringify(candidates)}`,
+      );
+      throw new ForbiddenException(
+        candidates.length === 0
+          ? 'Không thể xác định tài khoản khách hàng từ hội thoại.'
+          : 'Người nhận không khớp với khách hàng trong hội thoại.',
+      );
     }
+
     return { channelAccountId: conv.channelAccountId, recipientId: resolvedRecipientId };
   }
 
