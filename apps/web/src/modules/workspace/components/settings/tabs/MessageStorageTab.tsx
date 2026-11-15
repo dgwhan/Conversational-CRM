@@ -160,16 +160,16 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
       <ConfigSubSectionHeader
         title={t('workspaceSettings.storage.title', 'Quản lý Dung lượng & Lưu trữ Tin nhắn')}
         actions={
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <Button
               variant="secondary"
               size="sm"
               onClick={() => fetchMetrics(true)}
               disabled={isRefreshing}
-              className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5"
+              className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-2.5 sm:px-3 py-1.5"
             >
               <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="whitespace-nowrap">{t('workspaceSettings.storage.refresh', 'Làm mới số liệu')}</span>
+              <span className="whitespace-nowrap">{t('workspaceSettings.storage.refresh', 'Làm mới')}</span>
             </Button>
 
             {isOwner && (
@@ -179,19 +179,21 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
                   size="sm"
                   onClick={handleTriggerRetentionNow}
                   disabled={isTriggeringRetention}
-                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5"
+                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-2.5 sm:px-3 py-1.5"
                 >
                   <Zap className="w-3.5 h-3.5 shrink-0 text-blue-600" />
-                  <span className="whitespace-nowrap">{t('workspaceSettings.storage.runNow', 'Chạy dọn dẹp 12 tháng ngay')}</span>
+                  <span className="hidden sm:inline">{t('workspaceSettings.storage.runNow', 'Chạy dọn dẹp 12 tháng ngay')}</span>
+                  <span className="sm:hidden">Dọn dẹp 12th</span>
                 </Button>
 
                 <button
                   type="button"
                   onClick={() => setIsPurgeModalOpen(true)}
-                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs font-medium px-3 py-1.5 rounded-md border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-colors cursor-pointer shadow-2xs"
+                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs font-medium px-2.5 sm:px-3 py-1.5 rounded-md border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Trash2 className="w-3.5 h-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">{t('workspaceSettings.storage.manualCleanup', 'Dọn dẹp thủ công')}</span>
+                  <span className="hidden sm:inline">{t('workspaceSettings.storage.manualCleanup', 'Dọn dẹp thủ công')}</span>
+                  <span className="sm:hidden">Dọn thủ công</span>
                 </button>
               </>
             )}
@@ -213,9 +215,9 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
       />
 
       {/* 2. Unified Flat KPI Strip (4-column horizontal metric strip) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 border-y border-slate-200 py-5 bg-slate-50/40">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 border-y border-slate-200 py-3 sm:py-5 bg-slate-50/40">
         {/* Col 1: Tổng dung lượng */}
-        <div className="px-5 py-2 sm:py-0">
+        <div className="px-3.5 sm:px-5 py-2.5 sm:py-0">
           <div className="text-xs font-medium text-slate-600">
             {t('workspaceSettings.storage.totalSize', 'Tổng dung lượng')}
           </div>
@@ -228,7 +230,7 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         </div>
 
         {/* Col 2: Tổng số tin nhắn */}
-        <div className="px-5 py-2 sm:py-0">
+        <div className="px-3.5 sm:px-5 py-2.5 sm:py-0">
           <div className="text-xs font-medium text-slate-600">
             {t('workspaceSettings.storage.totalMessages', 'Tổng số tin nhắn')}
           </div>
@@ -241,7 +243,7 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         </div>
 
         {/* Col 3: Tin nhắn quá hạn (> 12 tháng) */}
-        <div className="px-5 py-2 sm:py-0">
+        <div className="px-3.5 sm:px-5 py-2.5 sm:py-0">
           <div className="text-xs font-medium text-slate-600">
             {t('workspaceSettings.storage.expired', 'Tin nhắn quá hạn (> 12 tháng)')}
           </div>
@@ -259,7 +261,7 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         </div>
 
         {/* Col 4: Tự động dọn dẹp */}
-        <div className="px-5 py-2 sm:py-0">
+        <div className="px-3.5 sm:px-5 py-2.5 sm:py-0">
           <div className="text-xs font-medium text-slate-600">
             {t('workspaceSettings.storage.autoCleanup', 'Tự động dọn dẹp')}
           </div>
@@ -444,8 +446,8 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
 
         <div className="divide-y divide-slate-200 border-t border-b border-slate-200">
           {/* Row 1: Bật tự động dọn dẹp theo lịch */}
-          <div className="flex items-center justify-between py-4 gap-4">
-            <div className="max-w-xl">
+          <div className="flex items-start justify-between py-3.5 sm:py-4 gap-3">
+            <div className="max-w-xl min-w-0 flex-1">
               <div className="text-sm font-semibold text-slate-950">
                 {t('workspaceSettings.storage.enableSchedule', 'Bật tự động dọn dẹp theo lịch')}
               </div>
@@ -464,8 +466,8 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
           </div>
 
           {/* Row 2: Chế độ bảo tồn: Chỉ dọn Raw Payload (Standardized Toggle) */}
-          <div className="flex items-center justify-between py-4 gap-4">
-            <div className="max-w-xl">
+          <div className="flex items-start justify-between py-3.5 sm:py-4 gap-3">
+            <div className="max-w-xl min-w-0 flex-1">
               <div className="text-sm font-semibold text-slate-950">
                 {t('workspaceSettings.storage.slimOnly', 'Chế độ bảo tồn: Chỉ dọn Raw Payload (Khuyên dùng)')}
               </div>
@@ -484,8 +486,8 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
           </div>
 
           {/* Row 3: Thời hạn lưu trữ tin nhắn tối đa */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4">
-            <div className="max-w-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3.5 sm:py-4 gap-3 sm:gap-4">
+            <div className="max-w-xl min-w-0 flex-1">
               <div className="text-sm font-semibold text-slate-950">
                 {t('workspaceSettings.storage.maxRetention', 'Thời hạn lưu trữ tin nhắn tối đa')}
               </div>
@@ -497,7 +499,7 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
                 )}
               </div>
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 w-full sm:w-auto">
               <SearchableSelect
                 value={String(policy.retentionMonths)}
                 onChange={(val) => setPolicy({ ...policy, retentionMonths: Number(val) })}

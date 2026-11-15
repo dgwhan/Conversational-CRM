@@ -165,7 +165,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   return (
     <div className="workspace-flat-detail w-full min-h-full bg-white flex flex-col rounded-none border-none shadow-none">
       {/* 1. Header chi tiết Workspace & Dãy nút thao tác (Soft neutral tint bg-slate-50/90) */}
-      <div className="w-full bg-slate-50/90 px-6 sm:px-10 pt-4 sm:pt-5 pb-3">
+      <div className="w-full bg-slate-50/90 px-3.5 sm:px-6 md:px-10 pt-3.5 sm:pt-5 pb-3">
         <WorkspaceDetailHeader
           workspace={workspace}
           isActive={isActive}
@@ -188,8 +188,9 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
       </div>
 
       {/* 2. Thanh Tabs trượt gạch dưới hệ thống chuẩn - Full-width với crisp 1px hairline border & bg-slate-50/90 */}
-      <div className="w-full border-b border-slate-200 bg-slate-50/90 px-6 sm:px-10">
+      <div className="w-full border-b border-slate-200 bg-slate-50/90 px-3.5 sm:px-6 md:px-10">
         <Tabs<'overview' | 'channels' | 'members' | 'shifts' | 'settings'>
+          className="gap-4 sm:gap-8 md:gap-10"
           items={[
             { id: 'overview', label: 'Tổng quan' },
             { id: 'channels', label: 'Kênh kết nối' },
