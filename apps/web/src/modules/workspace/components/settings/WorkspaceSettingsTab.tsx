@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Sparkles,
@@ -82,6 +82,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
   const [leadScoringSubSection, setLeadScoringSubSection] =
     useState<LeadScoringSubSectionId>('rules');
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const presetDropdownRef = useRef<HTMLDivElement>(null);
 
   // Xử lý đóng menu khi click ra ngoài – Không dùng div fixed inset-0 để tránh tràn overlay
@@ -113,9 +114,10 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
     }));
   };
 
-  // Đồng bộ URL khi đổi subtab
+  // Đồng bộ URL khi đổi subtab và tự động đóng menu mobile
   const handleSelectSubTab = (tabId: SettingsSubTabId) => {
     setActiveSubTab(tabId);
+    setIsMobileNavOpen(false);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -232,19 +234,83 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
     },
   ];
 
+  // Tìm label và nhóm của tab đang kích hoạt để hiển thị trên thanh điều hướng mobile
+  const activeNavInfo = useMemo(() => {
+    for (const group of navCategories) {
+      for (const item of group.items) {
+        if (item.id === activeSubTab) {
+          if (activeSubTab === 'leadScoring' && item.subItems) {
+            const sub = item.subItems.find((s) => s.id === leadScoringSubSection);
+            return {
+              categoryTitle: group.title,
+              itemLabel: item.label,
+              subLabel: sub ? sub.label : undefined,
+            };
+          }
+          return {
+            categoryTitle: group.title,
+            itemLabel: item.label,
+          };
+        }
+      }
+    }
+    return {
+      categoryTitle: 'Quy trình & Dữ liệu',
+      itemLabel: t('workspaceSettings.tabs.stages', 'Giai đoạn phễu'),
+    };
+  }, [navCategories, activeSubTab, leadScoringSubSection, t]);
+
   return (
     <div className="workspace-flat-detail flex flex-col md:flex-row flex-1 w-full bg-white min-h-[calc(100vh-160px)] items-stretch">
       {/* =========================================================================
-          1. LEFT SUB-NAV RAIL (w-64, soft neutral surface tint bg-slate-50/90, border-r border-slate-200)
+          MOBILE SUB-NAV TRIGGER BAR (< md: 360px - 767px)
+          Gọn gàng, hiển thị mục đang chọn + nút mở danh mục, không tràn màn hình
+         ========================================================================= */}
+      <div className="md:hidden w-full border-b border-slate-200 bg-slate-50/95 px-3.5 py-2.5 flex items-center justify-between gap-2 select-none sticky top-0 z-20 shadow-2xs">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">
+            {activeNavInfo.categoryTitle}
+          </div>
+          <div className="text-xs font-semibold text-slate-900 flex items-center gap-1.5 truncate">
+            <span className="truncate">{activeNavInfo.itemLabel}</span>
+            {activeNavInfo.subLabel && (
+              <>
+                <span className="text-slate-400 font-normal">/</span>
+                <span className="text-blue-700 font-semibold truncate">{activeNavInfo.subLabel}</span>
+              </>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsMobileNavOpen((prev) => !prev)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs shrink-0 cursor-pointer"
+          aria-expanded={isMobileNavOpen}
+          aria-label="Chuyển đổi danh mục cấu hình"
+        >
+          <span>{isMobileNavOpen ? 'Thu gọn' : 'Đổi mục'}</span>
+          <ChevronDown
+            size={13}
+            className={`transition-transform duration-200 ${isMobileNavOpen ? 'rotate-180 text-blue-600' : 'text-slate-500'}`}
+          />
+        </button>
+      </div>
+
+      {/* =========================================================================
+          1. LEFT SUB-NAV RAIL
+          Desktop: Cố định w-64 bên trái với border-r
+          Mobile: Mặc định ẩn, mở bung khi bấm "Đổi mục", tự đóng khi chọn xong
          ========================================================================= */}
       <nav
         aria-label="Workspace Settings Sub-Navigation"
-        className="w-full md:w-64 shrink-0 border-r border-slate-200 bg-slate-50/90 py-5 px-3 select-none flex flex-col self-stretch z-10"
+        className={`${
+          isMobileNavOpen ? 'flex' : 'hidden'
+        } md:flex w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/90 py-3 md:py-5 px-3 select-none flex-col self-stretch z-10 transition-all`}
       >
         {navCategories.map((group, groupIdx) => (
           <div
             key={group.title}
-            className={groupIdx > 0 ? 'border-t border-slate-200 my-3 pt-3 space-y-0.5' : 'space-y-0.5'}
+            className={groupIdx > 0 ? 'border-t border-slate-200 my-2.5 md:my-3 pt-2.5 md:pt-3 space-y-0.5' : 'space-y-0.5'}
           >
             <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 select-none">
               {group.title}
@@ -322,6 +388,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                               onClick={() => {
                                 if (!isActive) handleSelectSubTab(item.id);
                                 setLeadScoringSubSection(sub.id);
+                                setIsMobileNavOpen(false);
                               }}
                               className={`flex items-center h-7 w-full rounded-md text-xs transition-colors text-left cursor-pointer border-none px-2 ${
                                 isSubActive
@@ -350,13 +417,14 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
       </nav>
 
       {/* =========================================================================
-          2. RIGHT MAIN CONTENT CANVAS (flex-1 px-8 sm:px-10 pt-8 pb-16)
+          2. RIGHT MAIN CONTENT CANVAS
+          Tối ưu padding từ 360px: px-3.5 sm:px-6 md:px-10, pt-4 sm:pt-8
          ========================================================================= */}
-      <main className="flex-1 px-8 sm:px-10 pt-8 pb-16 min-w-0 bg-white">
+      <main className="flex-1 px-3.5 sm:px-6 md:px-10 pt-4 sm:pt-8 pb-12 sm:pb-16 min-w-0 bg-white">
         {/* Clean Page Header Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-6 border-b border-slate-200">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-950 m-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 sm:pb-5 mb-5 sm:mb-6 border-b border-slate-200">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-semibold text-slate-950 m-0 break-words">
               {activeSubTab === 'stages' && t('workspaceSettings.tabs.stages', 'Giai đoạn phễu quy trình')}
               {activeSubTab === 'catalog' && (config.terminology?.productLabel || t('workspaceSettings.tabs.catalog', 'Sản phẩm & Dịch vụ'))}
               {activeSubTab === 'terminology' && t('workspaceSettings.tabs.terminology', 'Thuật ngữ hệ thống')}
@@ -371,22 +439,22 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
 
           {/* Contextual Actions (Chỉ hiển thị DUY NHẤT tại tab Giai đoạn phễu) */}
           {canManageWorkspace && activeSubTab === 'stages' && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Dropdown Mẫu Ngành */}
               <div ref={presetDropdownRef} className="relative inline-block text-left">
                 <button
                   type="button"
                   onClick={() => setIsPresetMenuOpen(!isPresetMenuOpen)}
                   disabled={isLoading}
-                  className="border border-slate-300 text-[13px] font-medium px-3 py-1.5 rounded-md hover:bg-slate-50 text-slate-700 bg-white shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                  className="border border-slate-300 text-xs sm:text-[13px] font-medium px-2.5 sm:px-3 py-1.5 rounded-md hover:bg-slate-50 text-slate-700 bg-white shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
                 >
-                  <Sparkles size={13} className="text-amber-500" />
+                  <Sparkles size={13} className="text-amber-500 shrink-0" />
                   <span>{t('workspaceSettings.applyIndustryTemplate', 'Áp dụng mẫu ngành')}</span>
-                  <ChevronDown size={12} className="text-slate-400" />
+                  <ChevronDown size={12} className="text-slate-400 shrink-0" />
                 </button>
 
                 {isPresetMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 w-60 max-w-[calc(100vw-24px)] bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50 divide-y divide-slate-100">
+                  <div className="absolute right-0 top-full mt-1.5 w-60 max-w-[calc(100vw-28px)] bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-50 divide-y divide-slate-100">
                     <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                       {t('workspaceSettings.chooseIndustry', 'Chọn ngành nghề mẫu')}
                     </div>
@@ -413,10 +481,10 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                 onClick={handleResetToDefault}
                 disabled={isLoading}
                 title={t('workspaceSettings.resetTooltip', 'Khôi phục về cấu hình CRM tiêu chuẩn')}
-                className="border border-red-200 text-[13px] font-medium px-3 py-1.5 rounded-md hover:bg-red-100 hover:text-red-700 hover:border-red-300 text-red-600 bg-red-50 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
+                className="border border-red-200 text-xs sm:text-[13px] font-medium px-2.5 sm:px-3 py-1.5 rounded-md hover:bg-red-100 hover:text-red-700 hover:border-red-300 text-red-600 bg-red-50 shadow-2xs inline-flex items-center gap-1.5 cursor-pointer transition-colors"
               >
-                <RotateCcw size={12} />
-                <span className="hidden sm:inline">
+                <RotateCcw size={12} className="shrink-0" />
+                <span>
                   {t('workspaceSettings.resetDefault', 'Khôi phục gốc')}
                 </span>
               </button>

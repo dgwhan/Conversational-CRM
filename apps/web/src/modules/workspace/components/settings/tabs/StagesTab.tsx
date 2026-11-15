@@ -148,32 +148,32 @@ export const StagesTab: React.FC<StagesTabProps> = ({
         {stages.map((stage, index) => (
           <div
             key={stage.id}
-            className="py-4 px-2 flex items-center justify-between hover:bg-slate-50/60 transition-colors gap-4"
+            className="py-3 sm:py-4 px-1.5 sm:px-2 flex items-center justify-between hover:bg-slate-50/60 transition-colors gap-2 sm:gap-4"
           >
             {/* Left: Status dot, bold item title, muted description */}
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
               <div
                 className="w-3.5 h-3.5 shrink-0 rounded-full border shadow-2xs"
                 style={{ backgroundColor: stage.color, borderColor: stage.borderColor }}
               />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-sm font-semibold text-slate-950 truncate">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-950 truncate max-w-full">
                     {formatStageDisplayName(stage.name, index)}
                   </span>
                   {stage.isWon && (
-                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 rounded-md">
+                    <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-emerald-50 text-emerald-700 rounded-md shrink-0">
                       {t('workspaceSettings.stages.won', 'Chốt thành công')}
                     </span>
                   )}
                   {stage.isLost && (
-                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-600 rounded-md">
+                    <span className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-600 rounded-md shrink-0">
                       {t('workspaceSettings.stages.lost', 'Thất bại / Hủy')}
                     </span>
                   )}
                 </div>
                 {stage.subtitle && (
-                  <p className="text-xs text-slate-600 mt-1 mb-0 truncate max-w-xl">
+                  <p className="text-[11px] sm:text-xs text-slate-600 mt-0.5 sm:mt-1 mb-0 truncate max-w-xl">
                     {stage.subtitle}
                   </p>
                 )}
@@ -182,7 +182,7 @@ export const StagesTab: React.FC<StagesTabProps> = ({
 
             {/* Right: Compact actions aligned cleanly */}
             {isOwner && (
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
                 <button
                   type="button"
                   disabled={index === 0 || isLoading}

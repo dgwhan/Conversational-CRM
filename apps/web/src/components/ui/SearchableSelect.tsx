@@ -65,6 +65,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   placeholder = 'Chọn...',
   allOptionLabel,
   clearable = false,
+  searchable = true,
   maxRenderItems = 40,
   size = 'md',
   disabled = false,
@@ -132,19 +133,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const minWidth = Math.max(rect.width, 180);
-    const estimatedHeight = Math.min(260, (renderedOptions.length || 1) * 28 + 16);
+    const minWidth = Math.max(rect.width, 200);
+    const estimatedHeight = Math.min(280, (renderedOptions.length || 1) * 34 + 20);
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
     const openAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
 
     let left = rect.left;
-    if (left + minWidth > window.innerWidth - 8) {
-      left = Math.max(8, window.innerWidth - minWidth - 8);
+    if (left + minWidth > window.innerWidth - 12) {
+      left = Math.max(12, window.innerWidth - minWidth - 12);
     }
 
     const top = openAbove
-      ? Math.max(8, rect.top - estimatedHeight - 4)
+      ? Math.max(12, rect.top - estimatedHeight - 4)
       : rect.bottom + 4;
 
     setCoords({
@@ -264,14 +265,17 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const handleInputFocus = () => {
     if (disabled) return;
     openDropdown();
-    inputRef.current?.select();
   };
 
   const handleTriggerClick = () => {
     if (disabled) return;
     if (!isOpen) {
       openDropdown();
-      inputRef.current?.focus();
+      if (searchable) {
+        inputRef.current?.focus();
+      } else {
+        triggerRef.current?.focus();
+      }
     } else {
       closeDropdown();
     }
@@ -282,9 +286,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     if (disabled) return;
 
     if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         openDropdown();
+        if (searchable) {
+          inputRef.current?.focus();
+        }
       }
       return;
     }
@@ -347,22 +354,29 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       {/* Single, Seamless Flat Trigger Container */}
       <div
         ref={triggerRef}
+        tabIndex={disabled ? -1 : 0}
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
         onClick={handleTriggerClick}
-        className={`relative inline-flex items-center justify-between gap-2 ${
-          size === 'sm' ? 'h-7 px-2.5 text-xs' : 'h-9 px-3 text-[13px]'
-        } ${fullWidth ? 'w-full' : ''} bg-slate-100/80 hover:bg-slate-200/70 ${
+        onKeyDown={handleKeyDown}
+        className={`relative inline-flex items-center justify-between gap-2.5 ${
+          size === 'sm' ? 'h-7.5 px-3 text-xs' : 'h-9 px-3.5 text-[13px]'
+        } ${fullWidth ? 'w-full' : ''} bg-white border border-slate-300 rounded-md hover:border-slate-400 text-slate-800 shadow-2xs transition-colors ${
           isOpen
-            ? 'bg-white ring-1 ring-blue-500 shadow-2xs'
-            : 'focus-within:bg-white focus-within:ring-1 focus-within:ring-blue-500'
+            ? 'border-blue-600 ring-2 ring-blue-100'
+            : 'focus:border-blue-600 focus:ring-2 focus:ring-blue-100 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100'
         } ${
-          disabled ? 'opacity-50 cursor-not-allowed bg-slate-100/50' : 'cursor-text'
-        } ${error ? '!ring-1 !ring-red-500' : ''} rounded-md transition-colors ${triggerClassName}`}
+          disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'
+        } ${error ? '!border-red-500 !ring-red-100' : ''} ${triggerClassName}`}
       >
         <input
           ref={inputRef}
           type="text"
           id={id}
           disabled={disabled}
+          readOnly={!searchable}
+          tabIndex={searchable ? 0 : -1}
           aria-label={ariaLabel}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
@@ -371,10 +385,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
-          className="searchable-select-input w-full min-w-0 flex-1 bg-transparent border-0 p-0 m-0 text-[13px] font-medium text-slate-800 placeholder:text-slate-500 outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 shadow-none appearance-none"
+          className={`searchable-select-input w-full min-w-0 flex-1 bg-transparent border-0 p-0 m-0 text-[13px] font-normal text-slate-800 placeholder:text-slate-400 outline-none ring-0 focus:outline-none focus:ring-0 focus:border-0 shadow-none appearance-none ${
+            searchable ? 'cursor-text select-text' : 'cursor-pointer select-none pointer-events-none'
+          }`}
           style={{
             background: 'transparent',
+            backgroundColor: 'transparent',
             border: 'none',
+            borderWidth: 0,
             boxShadow: 'none',
             padding: 0,
             margin: 0,
@@ -413,17 +431,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             style={{
               top: `${coords.top}px`,
               left: `${coords.left}px`,
-              width: `${coords.width}px`,
+              minWidth: `${coords.width}px`,
+              maxWidth: 'calc(100vw - 24px)',
+              width: 'max-content',
               zIndex: 9999,
             }}
-            className={`fixed bg-white rounded-md border border-slate-200 shadow-lg p-1 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 ${dropdownClassName}`}
+            className={`fixed bg-white rounded-lg border border-slate-200/90 shadow-md p-1.5 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100 ${dropdownClassName}`}
           >
             <ul
               ref={listRef}
-              className="max-h-60 overflow-y-auto py-0.5 divide-y-0 text-left list-none m-0 p-0"
+              className="max-h-60 overflow-y-auto py-0.5 divide-y-0 text-left list-none m-0 p-0 space-y-0.5"
             >
               {renderedOptions.length === 0 ? (
-                <li className="px-2.5 py-3 text-center text-xs text-slate-400 font-medium">
+                <li className="px-3 py-3 text-center text-xs text-slate-400 font-medium">
                   Không tìm thấy kết quả phù hợp
                 </li>
               ) : (
@@ -442,19 +462,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                         handleSelect(opt);
                       }}
                       onMouseEnter={() => setHighlightedIndex(idx)}
-                      className={`h-7 px-2 rounded flex items-center justify-between text-[13px] cursor-pointer select-none transition-colors ${
+                      className={`min-h-[34px] px-3 py-1.5 rounded-md flex items-center justify-between text-[13px] cursor-pointer select-none transition-colors ${
                         opt.disabled
                           ? 'opacity-40 cursor-not-allowed bg-transparent'
                           : isSelected
-                          ? 'bg-blue-50 text-blue-700 font-medium'
+                          ? 'bg-blue-50 text-blue-700 font-semibold'
                           : isHighlighted
                           ? 'bg-slate-100 text-slate-900'
-                          : 'text-slate-800 hover:bg-slate-100'
+                          : 'text-slate-800 hover:bg-slate-100/80'
                       }`}
                     >
-                      <span className="truncate flex-1 mr-2">{opt.label}</span>
+                      <span className="truncate flex-1 mr-2.5 leading-normal">{opt.label}</span>
                       {isSelected && (
-                        <Check size={14} className="text-blue-600 shrink-0" />
+                        <Check size={14} className="text-blue-600 shrink-0 ml-1" />
                       )}
                     </li>
                   );

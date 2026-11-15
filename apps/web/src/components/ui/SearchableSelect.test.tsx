@@ -118,4 +118,32 @@ describe('SearchableSelect component', () => {
 
     expect(handleChange).toHaveBeenCalledWith('');
   });
+
+  it('supports non-searchable mode with readonly input and click-to-open', () => {
+    const handleChange = vi.fn();
+    render(
+      <SearchableSelect
+        value="36"
+        options={[
+          { value: '12', label: '12 tháng (Chuẩn Khuyến nghị CRM)' },
+          { value: '24', label: '24 tháng (2 năm)' },
+          { value: '36', label: '36 tháng (3 năm)' },
+        ]}
+        searchable={false}
+        onChange={handleChange}
+      />
+    );
+
+    const input = screen.getByDisplayValue('36 tháng (3 năm)');
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveAttribute('readonly');
+
+    const trigger = screen.getByRole('combobox');
+    fireEvent.click(trigger);
+
+    expect(screen.getByText('12 tháng (Chuẩn Khuyến nghị CRM)')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('12 tháng (Chuẩn Khuyến nghị CRM)'));
+
+    expect(handleChange).toHaveBeenCalledWith('12');
+  });
 });

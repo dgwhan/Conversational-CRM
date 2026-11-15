@@ -117,13 +117,13 @@ body {
   -webkit-backdrop-filter: none !important;
 }
 
-.crm-app-container input:not([type="checkbox"]):not([type="radio"]),
+.crm-app-container input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input),
 .crm-app-container select {
   border: 1px solid #cbd5e1 !important;
   border-radius: 6px !important;
 }
 
-.crm-app-container input:not([type="checkbox"]):not([type="radio"]):focus,
+.crm-app-container input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input):focus,
 .crm-app-container select:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
@@ -174,22 +174,22 @@ body {
   -webkit-transform: none !important;
 }
 
-.crm-app-container .workspace-flat-detail input:not([type="checkbox"]):not([type="radio"]),
+.crm-app-container .workspace-flat-detail input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input),
 .crm-app-container .workspace-flat-detail select,
-.crm-app-container .workspace-flat-view input:not([type="checkbox"]):not([type="radio"]),
+.crm-app-container .workspace-flat-view input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input),
 .crm-app-container .workspace-flat-view select,
-.crm-app-container .crm-workspace-settings-page input:not([type="checkbox"]):not([type="radio"]),
+.crm-app-container .crm-workspace-settings-page input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input),
 .crm-app-container .crm-workspace-settings-page select {
   border: 1px solid #cbd5e1 !important;
   border-radius: 6px !important;
   background-color: #ffffff !important;
 }
 
-.crm-app-container .workspace-flat-detail input:not([type="checkbox"]):not([type="radio"]):focus,
+.crm-app-container .workspace-flat-detail input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input):focus,
 .crm-app-container .workspace-flat-detail select:focus,
-.crm-app-container .workspace-flat-view input:not([type="checkbox"]):not([type="radio"]):focus,
+.crm-app-container .workspace-flat-view input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input):focus,
 .crm-app-container .workspace-flat-view select:focus,
-.crm-app-container .crm-workspace-settings-page input:not([type="checkbox"]):not([type="radio"]):focus,
+.crm-app-container .crm-workspace-settings-page input:not([type="checkbox"]):not([type="radio"]):not(.searchable-select-input):focus,
 .crm-app-container .crm-workspace-settings-page select:focus {
   border-color: #2563eb !important;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
@@ -416,9 +416,18 @@ input[type="password"]:not(.searchable-select-input):focus {
 }
 
 /* Explicit zero-box reset for SearchableSelect inputs */
+.crm-app-container .searchable-select-input,
+.crm-app-container .searchable-select input,
+.crm-app-container .workspace-flat-detail .searchable-select-input,
+.crm-app-container .workspace-flat-detail .searchable-select input,
+.crm-app-container .workspace-flat-view .searchable-select-input,
+.crm-app-container .workspace-flat-view .searchable-select input,
+.crm-app-container .crm-workspace-settings-page .searchable-select-input,
+.crm-app-container .crm-workspace-settings-page .searchable-select input,
 .searchable-select-input,
 .searchable-select input {
   background: transparent !important;
+  background-color: transparent !important;
   border: 0 !important;
   border-width: 0 !important;
   border-style: none !important;
@@ -426,16 +435,32 @@ input[type="password"]:not(.searchable-select-input):focus {
   outline: none !important;
   padding: 0 !important;
   margin: 0 !important;
+  border-radius: 0 !important;
 }
 
+.crm-app-container .searchable-select-input:focus,
+.crm-app-container .searchable-select input:focus,
+.crm-app-container .workspace-flat-detail .searchable-select-input:focus,
+.crm-app-container .workspace-flat-detail .searchable-select input:focus,
+.crm-app-container .workspace-flat-view .searchable-select-input:focus,
+.crm-app-container .workspace-flat-view .searchable-select input:focus,
+.crm-app-container .crm-workspace-settings-page .searchable-select-input:focus,
+.crm-app-container .crm-workspace-settings-page .searchable-select input:focus,
 .searchable-select-input:focus,
 .searchable-select input:focus {
   background: transparent !important;
+  background-color: transparent !important;
   border: 0 !important;
   border-width: 0 !important;
   border-style: none !important;
   box-shadow: none !important;
   outline: none !important;
+  border-radius: 0 !important;
+}
+
+.searchable-select-input::selection {
+  background: rgba(37, 99, 235, 0.2) !important;
+  color: inherit !important;
 }
 
 /* Filter Pills & Status Buttons */

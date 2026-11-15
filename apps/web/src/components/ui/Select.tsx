@@ -30,9 +30,9 @@ export const Select: React.FC<SelectProps> = ({
   ...props
 }) => {
   const heightClasses: Record<string, string> = {
-    sm: 'py-1 pl-2.5 pr-7 text-[12px] h-[30px]',
-    md: 'py-1.5 pl-3 pr-8 text-xs h-[36px]',
-    lg: 'py-2 pl-3.5 pr-9 text-sm h-[42px]',
+    sm: 'py-1 pl-3 pr-7.5 text-[12px] h-[30px]',
+    md: 'py-1.5 pl-3.5 pr-8.5 text-[13px] h-[36px]',
+    lg: 'py-2 pl-4 pr-9.5 text-sm h-[42px]',
   };
 
   return (

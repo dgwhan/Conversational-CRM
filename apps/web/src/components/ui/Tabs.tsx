@@ -43,7 +43,7 @@ export const Tabs = <T extends string = string>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`flex w-full max-w-full items-center gap-8 overflow-x-auto overflow-y-hidden border-b border-slate-200 bg-transparent text-sm scrollbar-none sm:gap-10 md:gap-12 ${className}`}
+      className={`flex w-full max-w-full items-center gap-4 sm:gap-8 md:gap-10 overflow-x-auto overflow-y-hidden border-b border-slate-200 bg-transparent text-sm scrollbar-none ${className}`}
     >
       {items.map((tab) => {
         const isActive = activeTab === tab.id;

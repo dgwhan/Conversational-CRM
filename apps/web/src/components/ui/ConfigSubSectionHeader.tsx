@@ -69,7 +69,7 @@ export const ConfigSubSectionHeader: React.FC<ConfigSubSectionHeaderProps> = ({
   return (
     <>
       <div className={`flex flex-wrap items-center justify-between gap-3 ${className}`}>
-        <div className="inline-flex items-center gap-1.5 min-w-0">
+        <div className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
           <Component
             className={`${titleClassName} m-0 leading-snug ${truncate ? 'truncate' : ''}`}
           >
@@ -88,7 +88,7 @@ export const ConfigSubSectionHeader: React.FC<ConfigSubSectionHeaderProps> = ({
             </button>
           )}
         </div>
-        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 max-w-full">{actions}</div>}
       </div>
 
       {/* Professional Contextual Help Modal */}
