@@ -12,22 +12,23 @@ END $$;
 ALTER TYPE "notification_type" ADD VALUE IF NOT EXISTS 'TASK_REMINDER';
 ALTER TYPE "notification_type" ADD VALUE IF NOT EXISTS 'ACTIVITY_LOG';
 
--- workspace_member_role chỉ còn OWNER/STAFF. Ứng dụng vốn đã coi mọi vai trò khác OWNER là STAFF
+-- workspace_member_role chỉ còn OWNER/MANAGER/STAFF. Ứng dụng vốn coi mọi vai trò khác OWNER/MANAGER là STAFF
 -- (resolveWorkspaceMembership), nên ADMIN/AGENT cũ được chuyển thành STAFF để giữ nguyên quyền thực tế.
 DO $$ BEGIN
   IF EXISTS (
     SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
     WHERE t.typname = 'workspace_member_role' AND e.enumlabel IN ('ADMIN', 'AGENT')
   ) THEN
-    CREATE TYPE "workspace_member_role_new" AS ENUM ('OWNER', 'STAFF');
+    CREATE TYPE "workspace_member_role_new" AS ENUM ('OWNER', 'MANAGER', 'STAFF');
     ALTER TABLE "workspace_members" ALTER COLUMN "role" DROP DEFAULT;
     ALTER TABLE "workspace_members" ALTER COLUMN "role" TYPE "workspace_member_role_new"
-      USING (CASE "role"::text WHEN 'OWNER' THEN 'OWNER' ELSE 'STAFF' END::"workspace_member_role_new");
+      USING (CASE "role"::text WHEN 'OWNER' THEN 'OWNER'::"workspace_member_role_new" WHEN 'MANAGER' THEN 'MANAGER'::"workspace_member_role_new" ELSE 'STAFF'::"workspace_member_role_new" END);
     ALTER TYPE "workspace_member_role" RENAME TO "workspace_member_role_old";
     ALTER TYPE "workspace_member_role_new" RENAME TO "workspace_member_role";
     DROP TYPE "workspace_member_role_old";
   END IF;
 END $$;
+ALTER TYPE "workspace_member_role" ADD VALUE IF NOT EXISTS 'MANAGER';
 ALTER TABLE "workspace_members" ALTER COLUMN "role" SET DEFAULT 'STAFF';
 
 -- Cột mới trên contacts / customers
