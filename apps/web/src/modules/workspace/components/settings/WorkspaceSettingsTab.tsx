@@ -235,30 +235,32 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
   ];
 
   // Tìm label và nhóm của tab đang kích hoạt để hiển thị trên thanh điều hướng mobile
-  const activeNavInfo = useMemo(() => {
-    for (const group of navCategories) {
-      for (const item of group.items) {
-        if (item.id === activeSubTab) {
-          if (activeSubTab === 'leadScoring' && item.subItems) {
-            const sub = item.subItems.find((s) => s.id === leadScoringSubSection);
-            return {
-              categoryTitle: group.title,
-              itemLabel: item.label,
-              subLabel: sub ? sub.label : undefined,
-            };
-          }
-          return {
+  let activeNavInfo = {
+    categoryTitle: 'Quy trình & Dữ liệu',
+    itemLabel: t('workspaceSettings.tabs.stages', 'Giai đoạn phễu'),
+    subLabel: undefined as string | undefined,
+  };
+  for (const group of navCategories) {
+    for (const item of group.items) {
+      if (item.id === activeSubTab) {
+        if (activeSubTab === 'leadScoring' && item.subItems) {
+          const sub = item.subItems.find((s) => s.id === leadScoringSubSection);
+          activeNavInfo = {
             categoryTitle: group.title,
             itemLabel: item.label,
+            subLabel: sub ? sub.label : undefined,
+          };
+        } else {
+          activeNavInfo = {
+            categoryTitle: group.title,
+            itemLabel: item.label,
+            subLabel: undefined,
           };
         }
+        break;
       }
     }
-    return {
-      categoryTitle: 'Quy trình & Dữ liệu',
-      itemLabel: t('workspaceSettings.tabs.stages', 'Giai đoạn phễu'),
-    };
-  }, [navCategories, activeSubTab, leadScoringSubSection, t]);
+  }
 
   return (
     <div className="workspace-flat-detail flex flex-col md:flex-row flex-1 w-full bg-white min-h-[calc(100vh-160px)] items-stretch">
