@@ -52,7 +52,7 @@ export class ChannelSyncService {
     @Optional()
     @Inject(forwardRef(() => WorkingHoursService))
     private readonly workingHoursService?: WorkingHoursService,
-  ) {}
+  ) { }
 
   /** Đồng bộ thủ công cũng phải đi qua worker chung để tự phân công các tin inbound mới. */
   private async enqueueNewInboundMessages(
@@ -657,6 +657,10 @@ export class ChannelSyncService {
         }
       }
 
+      const lastInboundAt = messagesList
+        .filter((m) => m.created_time && m.from?.id && m.from.id !== pageId)
+        .map((m) => new Date(m.created_time))
+        .sort((a, b) => b.getTime() - a.getTime())[0];
       // 5. ĐỔ DỮ LIỆU CUỘC HỘI THOẠI VÀO BẢNG "conversations" TRONG DATABASE
       if (this.prisma.conversation) {
         try {
@@ -671,7 +675,7 @@ export class ChannelSyncService {
                 status: 'OPEN',
                 snippet: latestMsg,
                 lastMessageAt: convTime,
-                lastCustomerMessageAt: convTime,
+                lastCustomerMessageAt: lastInboundAt,
                 tags: convTags,
               },
             });
@@ -687,6 +691,10 @@ export class ChannelSyncService {
                   snippet: latestMsg,
                   lastMessageAt: convTime,
                 }),
+                ...(lastInboundAt &&
+                  (!dbConv.lastCustomerMessageAt || lastInboundAt > new Date(dbConv.lastCustomerMessageAt))
+                  ? { lastCustomerMessageAt: lastInboundAt }
+                  : {}),
                 tags: convTags,
                 ...(dbCustomer && !dbConv.customerId ? { customerId: dbCustomer.id } : {}),
               },

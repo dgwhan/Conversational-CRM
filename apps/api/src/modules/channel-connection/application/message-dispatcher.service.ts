@@ -73,7 +73,7 @@ export class MessageDispatcherService {
     @Inject(forwardRef(() => ZcaPersonalService))
     private readonly injectedZcaService?: any,
     @Optional() private readonly moduleRef?: ModuleRef,
-  ) {}
+  ) { }
 
   private get zcaService(): ZcaPersonalService | undefined {
     if (this._zcaServiceInstance) return this._zcaServiceInstance;
@@ -85,7 +85,7 @@ export class MessageDispatcherService {
       try {
         this._zcaServiceInstance = this.moduleRef.get(ZcaPersonalService, { strict: false });
         return this._zcaServiceInstance;
-      } catch {}
+      } catch { }
     }
     return undefined;
   }
@@ -632,11 +632,17 @@ export class MessageDispatcherService {
 
       if (!fbRes.ok || fbJson.error) {
         const errObj = fbJson.error;
+        // Log nguyên lỗi Meta để biết nguyên nhân thật
+        this.logger.warn(`FB send error: ${JSON.stringify(errObj)} recipient=${resolvedRecipientId}`);
+
         let explanation = errObj?.message || fbRes.statusText || 'Lỗi không xác định từ Meta';
 
-        if (errObj?.code === 10 || errObj?.error_subcode === 2018028) {
+        if (errObj?.error_subcode === 2018278) {
           explanation =
             'Chính sách Facebook: Tin nhắn ngoài khung giờ 24h. Fanpage chỉ được gửi phản hồi cho khách hàng trong vòng 24 giờ kể từ tin nhắn cuối cùng của khách.';
+        } else if (errObj?.code === 10) {
+          explanation =
+            `Meta từ chối do thiếu quyền gửi tin (#10): ${errObj.message || ''}. Kiểm tra app Meta có quyền pages_messaging (Advanced Access) hay chưa; nếu app đang ở Development mode thì người nhận phải có role trên app.`;
         } else if (errObj?.code === 190) {
           explanation =
             'Access Token của Fanpage Facebook đã hết hạn hoặc bị hủy quyền. Vui lòng kết nối lại tài khoản Fanpage trong Cài đặt Kênh.';
@@ -684,8 +690,8 @@ export class MessageDispatcherService {
     const isPotentialPhone =
       Boolean(resolvedRecipientId) &&
       ((resolvedRecipientId.startsWith('+84') && resolvedRecipientId.length >= 10 && resolvedRecipientId.length <= 14) ||
-       (resolvedRecipientId.startsWith('84') && resolvedRecipientId.length >= 9 && resolvedRecipientId.length <= 13) ||
-       (resolvedRecipientId.startsWith('0') && resolvedRecipientId.length >= 9 && resolvedRecipientId.length <= 12));
+        (resolvedRecipientId.startsWith('84') && resolvedRecipientId.length >= 9 && resolvedRecipientId.length <= 13) ||
+        (resolvedRecipientId.startsWith('0') && resolvedRecipientId.length >= 9 && resolvedRecipientId.length <= 12));
 
     // Tự động phân giải recipientId nếu là Customer UUID, 'khách', hoặc số điện thoại danh bạ
     const needsResolution = !/^\d+$/.test(resolvedRecipientId) || isPotentialPhone;
@@ -987,7 +993,7 @@ export class MessageDispatcherService {
       await this.prisma.conversation.update({
         where: { id: targetConversationId },
         data: { unreadCount: 0 },
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     if (metaError) {

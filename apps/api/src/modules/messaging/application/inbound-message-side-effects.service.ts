@@ -217,6 +217,10 @@ export class InboundMessageSideEffects {
             attachments: (event.attachments as any) || (raw.attachments as any) || undefined,
             sentAt: new Date(event.sentAt).toISOString(),
             workspaceId: event.workspaceId || dbCustomer?.workspaceId || undefined,
+            // Thêm senderExternalId để frontend match đúng conversation theo socialId
+            ...(customerExternalId ? { senderExternalId: customerExternalId } : {}),
+            ...(customerName ? { customerName } : {}),
+            ...(customerAvatar ? { customerAvatar } : {}),
         });
 
         // Chỉ báo cho Kanban cập nhật ứng viên khi tạo mới khách hàng (tránh reset giai đoạn khách hàng cũ)

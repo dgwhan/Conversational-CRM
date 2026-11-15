@@ -95,7 +95,7 @@ export class MessageRepository implements OnModuleInit {
     constructor(
         private readonly prisma: PrismaService,
         @Optional() private readonly locks?: DistributedLockService,
-    ) {}
+    ) { }
 
     async onModuleInit(): Promise<void> {
         // Tự động quét và chuẩn hóa các cột conversation_id, attachments bị null trong DB.
@@ -308,12 +308,12 @@ export class MessageRepository implements OnModuleInit {
                     isOutbound && recipientExternalId
                         ? recipientExternalId
                         : (raw.senderExternalId ||
-                           raw.sender?.id ||
-                           raw.from?.id ||
-                           customerFbId ||
-                           customerZaloId ||
-                           customer?.id ||
-                           'unknown');
+                            raw.sender?.id ||
+                            raw.from?.id ||
+                            customerFbId ||
+                            customerZaloId ||
+                            customer?.id ||
+                            'unknown');
 
                 const customerName =
                     customer?.fullName ||
@@ -433,8 +433,8 @@ export class MessageRepository implements OnModuleInit {
             let conversationId: string | null = isUuid(e.conversationId)
                 ? e.conversationId
                 : isUuid(raw.conversationId)
-                ? raw.conversationId
-                : null;
+                    ? raw.conversationId
+                    : null;
 
             if (!conversationId) {
                 try {
@@ -501,7 +501,7 @@ export class MessageRepository implements OnModuleInit {
                                 if (prevConv?.assignedMemberId) {
                                     initialAssignedMemberId = prevConv.assignedMemberId;
                                 }
-                            } catch {}
+                            } catch { }
                         }
 
                         conv = await this.prisma.conversation.create({
@@ -561,6 +561,7 @@ export class MessageRepository implements OnModuleInit {
                 conversationId: isUuid(conversationId) ? conversationId : null,
                 channel: e.channel,
                 direction: e.direction ?? MessageDirection.INBOUND,
+                senderExternalId: normalizeExternalUserId(e.senderExternalId),
                 content: e.content,
                 attachments: attachments ? (attachments as unknown as Prisma.InputJsonValue) : undefined,
                 sentAt: messageSentAt,
@@ -572,11 +573,37 @@ export class MessageRepository implements OnModuleInit {
         }
 
         // 4. Chỉ các dòng mới được chèn thực sự mới được trả về cho worker.
-        return this.prisma.message.createManyAndReturn({
+        // Mốc tin khách mới nhất theo từng hội thoại (chỉ tin INBOUND)
+        const latestInboundByConv = new Map<string, Date>();
+        for (const m of messagesData) {
+            if (m.direction !== MessageDirection.INBOUND || !m.conversationId) continue;
+            const at = new Date(m.sentAt as Date);
+            const prev = latestInboundByConv.get(m.conversationId);
+            if (!prev || at > prev) latestInboundByConv.set(m.conversationId, at);
+        }
+
+        const created = await this.prisma.message.createManyAndReturn({
             data: messagesData,
             skipDuplicates: true,
             select: { id: true, conversationId: true, channel: true, externalMessageId: true },
-        }) as Promise<InsertedMessage[]>;
+        });
+
+        // Chỉ tiến tới, không ghi lùi khi tin đến sai thứ tự
+        for (const [conversationId, at] of latestInboundByConv) {
+            await this.prisma.conversation
+                .updateMany({
+                    where: {
+                        id: conversationId,
+                        OR: [{ lastCustomerMessageAt: null }, { lastCustomerMessageAt: { lt: at } }],
+                    },
+                    data: { lastCustomerMessageAt: at },
+                })
+                .catch((err) =>
+                    this.logger.warn(`Could not update lastCustomerMessageAt for ${conversationId}: ${(err as Error).message}`),
+                );
+        }
+
+        return created as InsertedMessage[];
     }
 
     /** Tìm Customer theo ID người dùng ngoài của kênh (bảng channel_identities hoặc JSON channelIdentities). */
