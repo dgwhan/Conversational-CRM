@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Sparkles,
@@ -305,9 +305,8 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
          ========================================================================= */}
       <nav
         aria-label="Workspace Settings Sub-Navigation"
-        className={`${
-          isMobileNavOpen ? 'flex' : 'hidden'
-        } md:flex w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/90 py-3 md:py-5 px-3 select-none flex-col self-stretch z-10 transition-all`}
+        className={`${isMobileNavOpen ? 'flex' : 'hidden'
+          } md:flex w-full md:w-64 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/90 py-3 md:py-5 px-3 select-none flex-col self-stretch z-10 transition-all`}
       >
         {navCategories.map((group, groupIdx) => (
           <div
@@ -333,11 +332,10 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                           setExpandedItems((prev) => ({ ...prev, [item.id]: true }));
                         }
                       }}
-                      className={`flex items-center justify-between h-8 w-full rounded-md text-[13px] transition-colors text-left cursor-pointer border-none px-2.5 ${
-                        isActive
+                      className={`flex items-center justify-between h-8 w-full rounded-md text-[13px] transition-colors text-left cursor-pointer border-none px-2.5 ${isActive
                           ? 'font-semibold text-blue-700 bg-blue-50/80'
                           : 'font-medium text-slate-700 hover:text-slate-950 hover:bg-slate-100/60 bg-transparent'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center min-w-0 mr-1">
                         {isActive && (
@@ -364,9 +362,8 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                         >
                           <ChevronDown
                             size={14}
-                            className={`transition-transform duration-200 ease-in-out ${
-                              isExpanded ? 'rotate-180' : 'rotate-0'
-                            }`}
+                            className={`transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-180' : 'rotate-0'
+                              }`}
                           />
                         </span>
                       )}
@@ -376,9 +373,8 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                   {/* Nested Sub-items (Tree Guide Line chuẩn mẫu, không tự động đóng) */}
                   {hasChildren && item.subItems && (
                     <div
-                      className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                        isExpanded ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0 pointer-events-none'
-                      }`}
+                      className={`overflow-hidden transition-all duration-200 ease-in-out ${isExpanded ? 'max-h-60 opacity-100 mt-1' : 'max-h-0 opacity-0 pointer-events-none'
+                        }`}
                     >
                       <div className="ml-3.5 pl-3 border-l border-slate-300 space-y-0.5 py-0.5">
                         {item.subItems.map((sub) => {
@@ -392,11 +388,10 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
                                 setLeadScoringSubSection(sub.id);
                                 setIsMobileNavOpen(false);
                               }}
-                              className={`flex items-center h-7 w-full rounded-md text-xs transition-colors text-left cursor-pointer border-none px-2 ${
-                                isSubActive
+                              className={`flex items-center h-7 w-full rounded-md text-xs transition-colors text-left cursor-pointer border-none px-2 ${isSubActive
                                   ? 'font-semibold text-blue-700 bg-blue-50/80'
                                   : 'font-medium text-slate-600 hover:text-slate-950 hover:bg-slate-100/50 bg-transparent'
-                              }`}
+                                }`}
                             >
                               {isSubActive && (
                                 <span

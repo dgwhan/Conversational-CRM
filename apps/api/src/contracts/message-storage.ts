@@ -49,7 +49,7 @@ export type MessageStorageMetrics = z.infer<typeof MessageStorageMetricsSchema>;
 
 export const EstimatePurgeRequestSchema = z.object({
   workspaceId: z.string().optional(),
-  retentionMonths: z.number().int().min(1).max(120).optional().default(12),
+  retentionMonths: z.number().int().min(0).max(120).optional().default(12),
   beforeDate: z.string().datetime().optional(),
   slimPayloadOnly: z.boolean().optional().default(false),
   channel: z.enum(['ZALO', 'FACEBOOK', 'TIKTOK', 'MANUAL_IMPORT']).optional(),
@@ -70,7 +70,7 @@ export type EstimatePurgeResponse = z.infer<typeof EstimatePurgeResponseSchema>;
 
 export const PurgeMessagesRequestSchema = z.object({
   workspaceId: z.string().optional(),
-  retentionMonths: z.number().int().min(1).max(120).optional().default(12),
+  retentionMonths: z.number().int().min(0).max(120).optional().default(12),
   beforeDate: z.string().datetime().optional(),
   slimPayloadOnly: z.boolean().optional().default(false),
   channel: z.enum(['ZALO', 'FACEBOOK', 'TIKTOK', 'MANUAL_IMPORT']).optional(),

@@ -163,6 +163,9 @@ export class MessageStorageService {
     if (beforeDate) {
       return new Date(beforeDate);
     }
+    if (retentionMonths === 0) {
+      return new Date(Date.now() + 1000); // Tương lai gần -> Bao gồm tất cả tin nhắn
+    }
     const months = retentionMonths && retentionMonths > 0 ? retentionMonths : 12;
     const date = new Date();
     date.setMonth(date.getMonth() - months);
