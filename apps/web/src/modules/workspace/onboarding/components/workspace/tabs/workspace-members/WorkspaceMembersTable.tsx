@@ -7,6 +7,7 @@ import { StaffRole } from "../../../../../../../features/auth/constants/auth.con
 import {
   ActionOverflowMenu,
   EmptyState,
+  LoadingState,
   type ActionOverflowMenuItem,
 } from "../../../../../../../components/ui/index.js";
 import { CopyValueButton } from "./CopyValueButton.js";
@@ -30,6 +31,7 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
   currentStaffId,
   currentStaffEmail,
   canOwnerLeave,
+  isLoading,
   routingByMemberId,
   onConfigureShift,
   onToggleLeadLock,
@@ -65,7 +67,13 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-slate-200 bg-white">
-        {members.length === 0 ? (
+        {isLoading ? (
+          <tr>
+            <td colSpan={5} className="py-12">
+              <LoadingState message="Đang tải danh sách thành viên và ca trực..." />
+            </td>
+          </tr>
+        ) : members.length === 0 ? (
           <tr>
             <td colSpan={5} className="p-0">
               <EmptyState

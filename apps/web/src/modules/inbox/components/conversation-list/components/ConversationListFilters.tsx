@@ -34,28 +34,32 @@ export const ConversationListFilters: React.FC<ConversationListFiltersProps> = (
 }) => {
   const { t } = useTranslation();
 
-  const channels: Array<{ id: ConversationChannelFilter; label: string; badge?: string }> = [
+  const channels: Array<{ id: ConversationChannelFilter; label: string; count?: number }> = [
     { id: 'ALL', label: t('common.all') },
     { id: 'FACEBOOK', label: 'Facebook' },
-    { id: 'ZALO', label: 'Zalo', badge: zaloAccounts && zaloAccounts.length > 1 ? `${zaloAccounts.length}` : undefined },
+    {
+      id: 'ZALO',
+      label: 'Zalo',
+      count: zaloAccounts && zaloAccounts.length > 1 ? zaloAccounts.length : undefined,
+    },
     { id: 'TIKTOK', label: 'TikTok' },
   ];
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* 1. Thanh tìm kiếm chuẩn CUS-05 */}
-      <div className="w-full">
+    <div className="flex flex-col border-b border-slate-200">
+      {/* 1. Thanh tìm kiếm mềm */}
+      <div className="px-3 pt-2.5 pb-1.5">
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
           placeholder="Tìm tên, SĐT, tin nhắn..."
           size="sm"
-          className="w-full text-xs"
+          className="w-full text-[13px]"
         />
       </div>
 
-      {/* 2. Tabs kênh dạng Segment Control tinh gọn chuẩn B2B SaaS */}
-      <div className="w-full bg-slate-100 p-0.5 rounded-lg flex items-center text-xs font-medium text-slate-500">
+      {/* 2. Tabs kênh dạng Underline mảnh tiết kiệm chiều cao */}
+      <div className="px-3 border-b border-slate-100 flex items-center gap-4 text-xs">
         {channels.map((ch) => {
           const isActive = selectedChannel === ch.id;
           return (
@@ -63,57 +67,55 @@ export const ConversationListFilters: React.FC<ConversationListFiltersProps> = (
               key={ch.id}
               type="button"
               onClick={() => onChannelChange(ch.id)}
-              className={`flex-1 py-1 text-center rounded-md transition-all cursor-pointer truncate ${
-                isActive
-                  ? 'bg-white text-slate-900 font-semibold shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-              }`}
+              className={`relative py-2 font-medium transition-colors cursor-pointer whitespace-nowrap ${isActive
+                  ? 'text-blue-600 font-semibold after:absolute after:bottom-0 after:inset-x-0 after:h-[2px] after:bg-blue-600 after:rounded-full'
+                  : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               <span>{ch.label}</span>
-              {ch.badge && <span className="ml-1 opacity-70 text-[10px]">({ch.badge})</span>}
+              {ch.count !== undefined && (
+                <span className="ml-1 text-[11px] text-slate-400 tabular-nums">
+                  {ch.count}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* 3. Tài khoản Zalo phụ (nếu có nhiều Zalo) */}
-      {selectedChannel === 'ZALO' && zaloAccounts && zaloAccounts.length > 1 && (
-        <div className="w-full">
+      {/* 3. Bộ lọc trạng thái & tài khoản Zalo phụ */}
+      <div className="px-3 py-2 flex flex-col gap-1.5 bg-slate-50/50">
+        {selectedChannel === 'ZALO' && zaloAccounts && zaloAccounts.length > 1 && (
           <SearchableSelect
             value={selectedZaloAccount || 'ALL'}
             onChange={(val) => onZaloAccountChange?.(val)}
             options={[
-              { value: 'ALL', label: 'Tất cả tài khoản' },
+              { value: 'ALL', label: 'Tất cả tài khoản Zalo' },
               ...zaloAccounts.map((acc) => ({ value: acc.id, label: acc.name })),
             ]}
             size="sm"
             fullWidth
             searchable={false}
           />
-        </div>
-      )}
+        )}
 
-      {/* 4. Dropdown lọc trạng thái phụ tinh tế */}
-      <div className="w-full">
         <SearchableSelect
           value={statusFilter}
-          onChange={(val) =>
-            onStatusFilterChange(val as ConversationStatusFilter)
-          }
+          onChange={(val) => onStatusFilterChange(val as ConversationStatusFilter)}
           options={[
             { value: 'ALL', label: 'Mọi trạng thái hội thoại' },
             { value: 'UNREAD', label: t('inbox.filterUnread') },
             ...(alertThresholdMinutes !== undefined && alertThresholdMinutes > 0
               ? [
-                  {
-                    value: 'UNRESPONSIVE',
-                    label: `Chưa phản hồi (> ${alertThresholdMinutes} phút)`,
-                  },
-                ]
+                {
+                  value: 'UNRESPONSIVE',
+                  label: `Chưa phản hồi (> ${alertThresholdMinutes} phút)`,
+                },
+              ]
               : []),
             {
               value: 'OUT_OF_OFFICE',
-              label: '🌙 Ngoài giờ - Cần tư vấn hôm sau',
+              label: 'Ngoài giờ - Cần tư vấn hôm sau',
             },
             {
               value: 'ASSIGNED_TO_ME',

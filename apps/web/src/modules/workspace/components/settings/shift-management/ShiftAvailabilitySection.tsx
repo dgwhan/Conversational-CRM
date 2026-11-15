@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertTriangle, UsersRound } from "lucide-react";
+import { AlertTriangle, Plus, UsersRound } from "lucide-react";
 import { Button, SearchableSelect } from "../../../../../components/ui/index.js";
 import type {
   WorkShift,
@@ -83,6 +83,18 @@ export const ShiftAvailabilitySection: React.FC<
     return (
       <ShiftSection
         title="Danh sách nhân viên trực ca"
+        actions={
+          canConfigureMembers ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Plus size={13} />}
+              onClick={onAssignMembers}
+            >
+              Thêm nhanh
+            </Button>
+          ) : undefined
+        }
         help={{
           title: "Trạng thái sẵn sàng của nhân viên trực ca",
           description:

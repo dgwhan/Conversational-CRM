@@ -207,7 +207,7 @@ export class ChannelConnectorController {
 
   /**
    * POST /api/channels/:id/sync
-   * Đồng bộ tin nhắn từ kênh về CRM (OWNER/MANAGER toàn quyền, STAFF chỉ được đồng bộ Zalo để duy trì phiên)
+   * Đồng bộ tin nhắn từ kênh về CRM (Cho phép tất cả thành viên OWNER, MANAGER, STAFF trong workspace đều được sử dụng)
    */
   @Post('channels/:id/sync')
   @Roles(WorkspaceRole.OWNER, WorkspaceRole.MANAGER, WorkspaceRole.STAFF)
@@ -219,21 +219,6 @@ export class ChannelConnectorController {
     @Req() req?: any,
   ) {
     const effectiveWorkspaceId = this.requireAuthorizedWorkspace(req, queryWorkspaceId || headerWorkspaceId);
-
-    // Ngoại lệ Zalo: STAFF chỉ được đồng bộ kênh Zalo
-    const userRole = req?.workspace?.role;
-    if (userRole === WorkspaceRole.STAFF) {
-      const channelAccount = await this.channelManager.getChannelById(id, effectiveWorkspaceId);
-      if (!channelAccount) {
-        throw new NotFoundException('Không tìm thấy kênh trong không gian làm việc.');
-      }
-      if (channelAccount.channel !== 'ZALO' && (channelAccount.channel as string) !== 'ZALO_PERSONAL') {
-        throw new ForbiddenException(
-          'Nhân viên chỉ có quyền làm mới hoặc đồng bộ phiên đối với kênh Zalo (403 Forbidden).',
-        );
-      }
-    }
-
     return this.channelManager.syncChannel(id, effectiveWorkspaceId);
   }
 
@@ -279,6 +264,8 @@ export class ChannelConnectorController {
       throw new ForbiddenException('Không thể gửi tin nhắn ngoài workspace đã xác thực.');
     }
     const staffId = req?.user?.id;
+    // Lấy tên người gửi tin từ DB qua verifyStaffCanReply (assignedMember.user.fullName tại thời điểm gửi)
+    // Không dùng req.user.fullName vì AuthUser chỉ chứa {id, role}, không có fullName
     const assignment = await this.channelManager.verifyStaffCanReply(
       {
         conversationId: body.conversationId,
@@ -288,6 +275,8 @@ export class ChannelConnectorController {
       },
       staffId,
     );
+    // assignment.staffName = tên người được gán LÚC GỬI TIN (lấy từ DB), chính xác hơn req.user
+    const resolvedStaffName = assignment.staffName || 'Tư vấn viên';
     return this.channelManager.sendMessage({
       channel: body.channel || 'ZALO',
       recipientId: assignment.recipientId,
@@ -296,6 +285,7 @@ export class ChannelConnectorController {
       conversationId: body.conversationId,
       workspaceId: authorizedWorkspaceId,
       senderStaffId: staffId,
+      senderStaffName: resolvedStaffName,
       ...(attachments.length > 0 ? { attachments } : {}),
     });
   }

@@ -20,49 +20,45 @@ export const ConversationListHeader: React.FC<ConversationListHeaderProps> = ({
   isSyncingZalo,
 }) => {
   const { t } = useTranslation();
+  const isSyncingAny = Boolean(isSyncingFacebook || isSyncingZalo);
+  const canSync = Boolean(onSyncFacebook || onSyncZalo);
+
+  const handleSyncAll = () => {
+    if (onSyncFacebook && !isSyncingFacebook) onSyncFacebook();
+    if (onSyncZalo && !isSyncingZalo) onSyncZalo();
+  };
 
   return (
-    <div className="flex items-center justify-between pb-1">
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-semibold text-slate-900 m-0">
+    <div className="h-11 px-3.5 border-b border-slate-100 flex items-center justify-between">
+      <div className="flex items-center gap-1.5 min-w-0">
+        <h2 className="text-[13.5px] font-semibold text-slate-950 m-0 truncate">
           {t('inbox.conversationsTitle')}
         </h2>
-        <span className="text-xs text-slate-500 font-medium bg-slate-100 px-1.5 py-0.5 rounded">
+        <span className="text-xs font-medium text-slate-400 tabular-nums">
           {totalCount}
         </span>
         {totalUnread > 0 && (
-          <span className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200/80 px-1.5 py-0.2 rounded-full leading-none">
-            {totalUnread} mới
+          <span className="ml-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded-full leading-none tabular-nums">
+            {totalUnread} chưa đọc
           </span>
         )}
       </div>
 
-      <div className="flex items-center gap-1">
-        {onSyncFacebook && (
-          <button
-            type="button"
-            disabled={isSyncingFacebook}
-            onClick={onSyncFacebook}
-            className="inline-flex items-center gap-1 h-6 px-1.5 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded transition-colors cursor-pointer disabled:opacity-50"
-            title="Đồng bộ tin nhắn Fanpage Facebook"
-          >
-            <RefreshCw size={10} className={isSyncingFacebook ? 'animate-spin text-blue-600' : 'text-slate-400'} />
-            <span>FB</span>
-          </button>
-        )}
-        {onSyncZalo && (
-          <button
-            type="button"
-            disabled={isSyncingZalo}
-            onClick={onSyncZalo}
-            className="inline-flex items-center gap-1 h-6 px-1.5 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded transition-colors cursor-pointer disabled:opacity-50"
-            title="Đồng bộ tin nhắn Zalo"
-          >
-            <RefreshCw size={10} className={isSyncingZalo ? 'animate-spin text-blue-600' : 'text-slate-400'} />
-            <span>Zalo</span>
-          </button>
-        )}
-      </div>
+      {canSync && (
+        <button
+          type="button"
+          disabled={isSyncingAny}
+          onClick={handleSyncAll}
+          className="w-7 h-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+          title="Đồng bộ tin nhắn các kênh"
+          aria-label="Đồng bộ tin nhắn các kênh"
+        >
+          <RefreshCw
+            size={14}
+            className={isSyncingAny ? 'animate-spin text-blue-600' : ''}
+          />
+        </button>
+      )}
     </div>
   );
 };

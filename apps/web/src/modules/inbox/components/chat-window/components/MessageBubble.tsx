@@ -10,52 +10,127 @@ export interface MessageBubbleProps {
   message: ChatMessage;
   customer: CustomerProfile;
   hasMultipleChannels: boolean;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   customer,
   hasMultipleChannels,
+  isFirstInGroup = true,
+  isLastInGroup = true,
 }) => {
   const isOutbound = message.direction === 'OUTBOUND';
   const isZaloChannel =
     (message.senderName || '').toLowerCase().includes('zalo') ||
     (message.conversationId || '').startsWith('ZALO');
 
-  // Quản lý Modal Lightbox xem trước ảnh phóng to
   const [lightboxImage, setLightboxImage] = useState<{ url: string; name: string } | null>(null);
-
   const openImage = (url: string, name: string) => setLightboxImage({ url, name });
 
-  // Xác định xem tin nhắn có phải chỉ gồm duy nhất 1 nhãn dán (Sticker) hay không
   const isSingleSticker =
     message.attachments?.length === 1 &&
     message.attachments[0].type === 'STICKER' &&
     (!message.content || message.content === '[Nhãn dán]' || message.content === '[Sticker]');
 
+  const hasTextContent =
+    Boolean(message.content) &&
+    !(message.attachments && message.attachments.length > 0 && isAttachmentPlaceholder(message.content));
+
+  const hasAttachments = Boolean(message.attachments && message.attachments.length > 0);
+  const isMediaOnly = !hasTextContent && hasAttachments && !isSingleSticker;
+
+  const attributionLabel = message.isAutomation
+    ? 'Automation'
+    : message.senderStaffName?.trim() || null;
+
+  const renderStatusIcon = () => {
+    if (!isOutbound) return null;
+    const title =
+      message.status === 'SEEN'
+        ? 'Đã xem'
+        : message.status === 'DELIVERED'
+          ? 'Đã nhận'
+          : 'Đã gửi';
+
+    return (
+      <span className="inline-flex items-center shrink-0" title={title}>
+        {message.status === 'SEEN' ? (
+          <CheckCheck size={13} className="text-[#0084FF]" />
+        ) : message.status === 'DELIVERED' ? (
+          <CheckCheck size={13} className="text-slate-400" />
+        ) : (
+          <Check size={13} className="text-slate-400" />
+        )}
+      </span>
+    );
+  };
+
+  const renderFooterMetadata = () => {
+    if (!isLastInGroup) return null;
+
+    if (isOutbound) {
+      return (
+        <div className="mt-1 flex items-center justify-end gap-1.5 text-[11px] text-slate-500 select-none">
+          {hasMultipleChannels && (
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+              {isZaloChannel ? 'Zalo' : 'FB'}
+            </span>
+          )}
+          {attributionLabel && (
+            <>
+              <span
+                className="font-semibold text-slate-700 truncate max-w-[200px]"
+                title={attributionLabel}
+              >
+                {attributionLabel}
+              </span>
+              <span className="text-slate-300">•</span>
+            </>
+          )}
+          <span className="tabular-nums">{formatMessageTime(message.sentAt)}</span>
+          {renderStatusIcon()}
+        </div>
+      );
+    }
+
+    return (
+      <div className="mt-1 flex items-center justify-start gap-1.5 text-[11px] text-slate-500 select-none">
+        {hasMultipleChannels && (
+          <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-slate-100 text-slate-700">
+            {isZaloChannel ? 'Zalo' : 'FB'}
+          </span>
+        )}
+        <span className="tabular-nums">{formatMessageTime(message.sentAt)}</span>
+      </div>
+    );
+  };
+
   return (
     <>
       <div
-        className={`flex items-end gap-2 my-1.5 ${
-          isOutbound ? 'justify-end' : 'justify-start'
-        }`}
+        className={`flex items-end gap-2 ${isLastInGroup ? 'mb-2.5' : 'mb-0.5'} ${isOutbound ? 'justify-end' : 'justify-start'
+          }`}
       >
-        {/* Avatar người gửi tin nhắn đến (Inbound) */}
+        {/* Avatar khách hàng chỉ hiển thị ở tin nhắn cuối cùng trong cụm liên tiếp */}
         {!isOutbound && (
-          <Avatar
-            src={customer.avatarUrl}
-            name={message.senderName}
-            size={28}
-            className="border border-slate-200/80 shrink-0 mb-1"
-          />
+          <div className="w-7 shrink-0 flex justify-center">
+            {isLastInGroup ? (
+              <Avatar
+                src={customer.avatarUrl}
+                name={message.senderName}
+                size={28}
+              />
+            ) : null}
+          </div>
         )}
 
         {/* TRƯỜNG HỢP 1: Tin nhắn chỉ có Nhãn dán (Sticker) */}
         {isSingleSticker && message.attachments && (
           <div
-            className={`flex flex-col ${
-              isOutbound ? 'items-end' : 'items-start'
-            } max-w-[70%] group`}
+            className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'
+              } max-w-[70%]`}
           >
             <MessageAttachmentView
               messageId={message.id}
@@ -65,51 +140,34 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               onOpenImage={openImage}
               standaloneSticker
             />
-            {/* Timestamp dưới sticker */}
-            <div
-              className={`flex items-center gap-1 mt-1 text-[11px] text-slate-400 select-none ${
-                isOutbound ? 'justify-end' : 'justify-start'
-              }`}
-            >
-              <span>{formatMessageTime(message.sentAt)}</span>
-              {isOutbound && (
-                <span className="inline-flex shrink-0">
-                  {message.status === 'SEEN' ? (
-                    <CheckCheck size={13} className="text-blue-500" />
-                  ) : message.status === 'DELIVERED' ? (
-                    <CheckCheck size={13} className="text-slate-400" />
-                  ) : (
-                    <Check size={13} className="text-slate-400" />
-                  )}
-                </span>
-              )}
-            </div>
+            {renderFooterMetadata()}
           </div>
         )}
 
-        {/* TRƯỜNG HỢP 2: Tin nhắn thông thường hoặc có kèm Ảnh / Tệp / Âm thanh */}
+        {/* TRƯỜNG HỢP 2: Tin nhắn văn bản / Ảnh / Tệp đính kèm */}
         {!isSingleSticker && (
           <div
-            className={`max-w-[75%] flex flex-col ${
-              isOutbound ? 'items-end' : 'items-start'
-            }`}
+            className={`max-w-[75%] flex flex-col ${isOutbound ? 'items-end' : 'items-start'
+              }`}
           >
             <div
-              className={`px-3.5 py-2.5 text-sm leading-relaxed break-words shadow-sm ${
-                isOutbound
-                  ? 'bg-blue-600 text-white rounded-2xl rounded-br-sm'
-                  : 'bg-white border border-slate-200/90 text-slate-800 rounded-2xl rounded-tl-sm'
-              }`}
+              className={
+                isMediaOnly
+                  ? 'overflow-hidden rounded-2xl'
+                  : `px-3.5 py-2 text-[13.5px] leading-relaxed break-words border-0 shadow-none ${isOutbound
+                    ? `bg-[#0084FF] text-white rounded-2xl ${isFirstInGroup ? '' : 'rounded-tr-md'
+                    } ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-md'}`
+                    : `bg-[#F0F2F5] text-slate-900 rounded-2xl ${isFirstInGroup ? '' : 'rounded-tl-md'
+                    } ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-md'}`
+                  }`
+              }
             >
-              {/* Nội dung tin nhắn văn bản (nếu không phải là text placeholder của attachment) */}
-              {message.content &&
-                !(message.attachments && message.attachments.length > 0 && isAttachmentPlaceholder(message.content)) && (
-                  <p className="m-0 whitespace-pre-wrap">{message.content}</p>
-                )}
+              {hasTextContent && (
+                <p className="m-0 whitespace-pre-wrap">{message.content}</p>
+              )}
 
-              {/* Danh sách tệp tin / Ảnh / Sticker đính kèm */}
-              {message.attachments && message.attachments.length > 0 && (
-                <div className="flex flex-col gap-2 mt-1.5">
+              {hasAttachments && message.attachments && (
+                <div className={`flex flex-col gap-2 ${hasTextContent ? 'mt-2' : ''}`}>
                   {message.attachments.map((att, index) => (
                     <div key={att.id || index}>
                       <MessageAttachmentView
@@ -123,47 +181,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   ))}
                 </div>
               )}
-
-              {/* Meta footer: Channel Tag (nếu đa kênh), Thời gian gửi, Icon đã xem */}
-              <div
-                className={`flex items-center gap-1.5 mt-1.5 text-[11px] select-none ${
-                  isOutbound ? 'justify-end text-blue-100' : 'justify-start text-slate-400'
-                }`}
-              >
-                {hasMultipleChannels && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] font-medium ${
-                      isOutbound ? 'bg-white/20 text-white' : 'bg-slate-200/80 text-slate-700'
-                    }`}
-                  >
-                    {isZaloChannel ? 'Zalo' : 'FB'}
-                  </span>
-                )}
-
-                <span>{formatMessageTime(message.sentAt)}</span>
-
-                {isOutbound && (
-                  <span
-                    className="inline-flex shrink-0 ml-0.5"
-                    title={
-                      message.status === 'SEEN'
-                        ? 'Đã xem'
-                        : message.status === 'DELIVERED'
-                        ? 'Đã nhận'
-                        : 'Đã gửi'
-                    }
-                  >
-                    {message.status === 'SEEN' ? (
-                      <CheckCheck size={13} className="text-white" />
-                    ) : message.status === 'DELIVERED' ? (
-                      <CheckCheck size={13} className="text-blue-200" />
-                    ) : (
-                      <Check size={13} className="text-blue-200" />
-                    )}
-                  </span>
-                )}
-              </div>
             </div>
+
+            {renderFooterMetadata()}
           </div>
         )}
       </div>
@@ -176,7 +196,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in duration-150"
           onClick={() => setLightboxImage(null)}
         >
-          {/* Header công cụ */}
           <div
             className="w-full max-w-4xl flex items-center justify-between text-white pb-3 select-none"
             onClick={(e) => e.stopPropagation()}
@@ -213,7 +232,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </div>
           </div>
 
-          {/* Ảnh phóng to */}
           <div
             className="relative max-w-4xl max-h-[82vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}

@@ -38,6 +38,7 @@ export interface SendMessageInput {
   conversationId?: string;
   workspaceId?: string;
   senderStaffId?: string;
+  senderStaffName?: string;
   /** Tệp đã tải lên qua POST /messaging/outbound-media hoặc lấy từ thư viện tài liệu */
   attachments?: Array<{ assetId: string }>;
 }
@@ -329,6 +330,7 @@ export class MessageDispatcherService {
               message: content ? { text: content } : { files: attachments?.map((a) => ({ type: a.type, name: a.name })) },
               conversationKey: input.conversationId,
               senderStaffId: input.senderStaffId,
+              senderStaffName: input.senderStaffName,
             },
           },
         ]);
@@ -390,6 +392,8 @@ export class MessageDispatcherService {
           content: snippet,
           senderName: account.displayName,
           sentAt: sentAt.toISOString(),
+          senderStaffId: input.senderStaffId,
+          senderStaffName: input.senderStaffName,
           ...(attachments?.length ? { attachments: attachments as any } : {}),
           workspaceId: (account as { workspaceId?: string | null }).workspaceId || input.workspaceId || undefined,
         } as any);

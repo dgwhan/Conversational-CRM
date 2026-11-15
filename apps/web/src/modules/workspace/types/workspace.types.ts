@@ -49,6 +49,7 @@ export interface WorkspaceConfigContextType {
   deleteCriteria: (criteriaId: string) => Promise<void>;
   // Quản lý nhân sự Staff theo workspace (Xem, Mời, Xóa, Lời mời)
   staffMembers: ManagedStaffItem[];
+  isLoadingStaff?: boolean;
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
   createStaffMember: (data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER }, targetWsId?: string) => Promise<void>;
   deleteStaffMember: (staffId: string, targetWsId?: string, targetNewOwnerId?: string) => Promise<void>;

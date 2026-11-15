@@ -351,6 +351,13 @@ export class MessageRepository implements OnModuleInit {
                         }
                         : undefined);
 
+                // senderStaffName: chỉ lấy từ rawPayload (giá trị được lưu LÚC GỬI TIN).
+                // Không fallback về assignedStaff.name vì đó là người được gán HIỆN TẠI,
+                // có thể đã thay đổi sau khi hội thoại được chuyển giao.
+                const senderStaffName =
+                    raw.senderStaffName ||
+                    (raw.isAutomation ? 'Automation' : null);
+
                 return {
                     ...m,
                     senderExternalId,
@@ -360,6 +367,9 @@ export class MessageRepository implements OnModuleInit {
                     customerEmail: customer?.email || null,
                     tags,
                     assignedStaff,
+                    senderStaffId: raw.senderStaffId || null,
+                    senderStaffName: senderStaffName || null,
+                    isAutomation: Boolean(raw.isAutomation),
                 };
             } catch {
                 return m;

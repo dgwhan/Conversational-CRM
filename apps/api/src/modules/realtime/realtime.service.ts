@@ -449,6 +449,8 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
     customerName?: string;
     customerAvatar?: string;
     senderExternalId?: string;
+    senderStaffId?: string;
+    senderStaffName?: string;
     attachments?: Array<{
       id: string;
       type: string;

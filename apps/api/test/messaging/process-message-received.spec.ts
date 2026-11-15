@@ -28,6 +28,7 @@ describe('ProcessMessageReceived UseCase (Worker message.received)', () => {
         },
         processedAt: null,
         createdAt: new Date('2026-10-23T08:00:01.000Z'),
+        senderExternalId: null,
         ...overrides,
     });
 

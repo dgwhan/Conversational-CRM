@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  CheckCheck,
-  Tag,
-  Clock,
-  Moon,
-} from 'lucide-react';
+import { CheckCheck, Clock, Moon } from 'lucide-react';
 import type { ConversationItem, ChannelType } from '../../../types.js';
 import { formatConversationTime, getUnresponsiveStatus } from '../../../utils/index.js';
 import { Avatar } from '../../../../../components/common/Avatar.js';
@@ -28,6 +23,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   const hasUnread = item.unreadCount > 0;
   const { rules, settings } = useLeadScoringConfig();
   const { isOverdue, waitingMinutes } = getUnresponsiveStatus(item, alertThresholdMinutes);
+
   const isOutOfOffice = Boolean(
     item.tags?.some((t) => {
       const lower = String(t || '').toLowerCase();
@@ -46,12 +42,11 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     return evaluateConversationScore(item.messages || [], item.customer.phone, rules, settings);
   }, [item.messages, item.customer.phone, rules, settings]);
 
-  // Render icon kênh nhỏ gọn, tinh tế
   const renderChannelIndicator = (channel: ChannelType) => {
     const meta = resolveChannelInfo(channel);
     return (
       <span
-        className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center border border-white shadow-xs overflow-hidden"
+        className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full text-white text-[8px] font-bold flex items-center justify-center ring-1 ring-white overflow-hidden"
         style={{ backgroundColor: meta.badgeBg }}
         title={meta.label}
       >
@@ -71,122 +66,132 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
     );
   };
 
+  const showTier =
+    Boolean(settings && scoringData && scoringData.score > 0 && scoringData.tier !== 'IRRELEVANT');
+
   return (
     <div
       onClick={() => onSelect(item.id)}
-      className={`group relative flex items-start gap-3 p-3 transition-colors cursor-pointer border-l-[3px] select-none ${
-        isSelected
-          ? 'bg-blue-50/70 border-l-blue-600 shadow-xs'
+      className={`group relative flex items-start gap-2.5 px-3.5 py-2.5 transition-colors cursor-pointer select-none ${isSelected
+          ? 'bg-blue-50/75 before:absolute before:left-0 before:inset-y-0 before:w-[2.5px] before:bg-blue-600'
           : isOutOfOffice
-          ? 'bg-amber-50/20 border-l-amber-500 hover:bg-amber-50/50'
-          : isOverdue
-          ? 'bg-rose-50/40 border-l-rose-500 hover:bg-rose-50/70'
-          : hasUnread
-          ? 'bg-slate-50 border-l-transparent hover:bg-slate-100/70'
-          : 'bg-white border-l-transparent hover:bg-slate-50'
-      }`}
+            ? 'bg-amber-50/25 hover:bg-amber-50/50 before:absolute before:left-0 before:inset-y-0 before:w-[2px] before:bg-amber-400'
+            : isOverdue
+              ? 'bg-rose-50/30 hover:bg-rose-50/60 before:absolute before:left-0 before:inset-y-0 before:w-[2px] before:bg-rose-500'
+              : hasUnread
+                ? 'bg-slate-50/70 hover:bg-slate-100/70'
+                : 'bg-white hover:bg-slate-50'
+        }`}
     >
-      {/* 1. Avatar người gửi */}
+      {/* 1. Avatar khách hàng */}
       <div className="relative shrink-0 mt-0.5">
         <Avatar
           src={item.customer.avatarUrl}
           name={item.customer.fullName}
-          size={38}
-          className="border border-slate-200/80 rounded-full"
+          size={36}
+          className="rounded-full"
           badge={renderChannelIndicator(item.channel)}
         />
       </div>
 
-      {/* 2. Nội dung hội thoại */}
+      {/* 2. Nội dung hội thoại mật độ cao */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-0.5">
+        {/* Hàng 1: Tên khách + Cảnh báo + Giờ */}
+        <div className="flex items-center justify-between gap-2 mb-0.5">
           <span
-            className={`text-sm truncate ${hasUnread ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'
+            className={`text-[13px] truncate ${hasUnread ? 'font-semibold text-slate-950' : 'font-medium text-slate-900'
               }`}
           >
             {item.customer.fullName}
           </span>
-          <div className="flex items-center gap-1 ml-2 shrink-0">
+
+          <div className="flex items-center gap-1.5 shrink-0">
             {isOverdue && (
               <span
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/80 px-1.5 py-0.2 rounded"
-                title={`Chưa phản hồi ${waitingMinutes}p`}
+                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-rose-600 tabular-nums"
+                title={`Chưa phản hồi ${waitingMinutes} phút`}
               >
-                <Clock size={9} className="text-rose-500" />
-                <span>{waitingMinutes >= 60 ? `${Math.floor(waitingMinutes / 60)}h` : `${waitingMinutes}p`}</span>
+                <Clock size={10} />
+                <span>
+                  {waitingMinutes >= 60 ? `${Math.floor(waitingMinutes / 60)}h` : `${waitingMinutes}p`}
+                </span>
               </span>
             )}
             {isOutOfOffice && (
               <span
-                className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-800 bg-amber-100/90 border border-amber-300 px-1.5 py-0.5 rounded leading-none shadow-xs"
-                title="Tin nhắn đến ngoài giờ làm việc - Cần tư vấn trao đổi trong ngày hôm sau"
+                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-700"
+                title="Tin nhắn đến ngoài giờ làm việc - Cần tư vấn hôm sau"
               >
-                <Moon size={9} className="text-amber-700" />
+                <Moon size={10} />
                 <span>Hẹn sáng mai</span>
               </span>
             )}
-            <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
+            <span
+              className={`text-[11px] tabular-nums whitespace-nowrap ${hasUnread ? 'font-semibold text-blue-600' : 'text-slate-400'
+                }`}
+            >
               {formatConversationTime(item.lastMessageAt)}
             </span>
           </div>
         </div>
 
-        {/* Đoạn trích tin nhắn cuối */}
-        <p
-          className={`text-xs truncate leading-relaxed mb-1.5 ${hasUnread ? 'font-medium text-slate-800' : 'text-slate-500 font-normal'
-            }`}
-        >
-          {item.snippet || 'Hội thoại mới'}
-        </p>
+        {/* Hàng 2: Preview tin nhắn cuối + Chấm/số chưa đọc */}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <p
+            className={`text-xs truncate m-0 leading-snug ${hasUnread ? 'font-medium text-slate-800' : 'text-slate-500'
+              }`}
+          >
+            {item.snippet || 'Hội thoại mới'}
+          </p>
 
-        {/* Thẻ tag & trạng thái footer */}
-        <div className="flex items-center justify-between gap-1.5">
-          <div className="flex items-center gap-1 overflow-hidden">
-            {/* Trạng thái tiềm năng: Chỉ 2 tone màu (Xanh lục cho Ưu tiên, Xám cho còn lại) */}
-            {settings && scoringData && scoringData.score > 0 && scoringData.tier !== 'IRRELEVANT' && (
+          {hasUnread && (
+            <span className="shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[10px] font-semibold inline-flex items-center justify-center tabular-nums">
+              {item.unreadCount}
+            </span>
+          )}
+        </div>
+
+        {/* Hàng 3: Metadata inline phẳng (Hạng tiềm năng / Tag + Nhân sự phụ trách) */}
+        <div className="flex items-center justify-between gap-2 text-[11px]">
+          <div className="flex items-center gap-1.5 min-w-0 truncate text-slate-500">
+            {showTier && settings && scoringData && (
               <span
-                className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.2 rounded border shrink-0 ${
-                  scoringData.tier === 'HOT'
-                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200/80'
-                    : 'text-slate-600 bg-slate-100 border-slate-200/80'
-                }`}
+                className={`inline-flex items-center gap-1 font-medium shrink-0 ${scoringData.tier === 'HOT' ? 'text-emerald-700' : 'text-slate-600'
+                  }`}
                 title={`Mức độ tiềm năng: ${settings.tierLabels[scoringData.tier]}`}
               >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${scoringData.tier === 'HOT' ? 'bg-emerald-500' : 'bg-slate-400'
+                    }`}
+                />
                 <span>{settings.tierLabels[scoringData.tier]}</span>
               </span>
             )}
 
-            {/* Tags thường dạng Muted tag */}
+            {showTier && item.tags.length > 0 && (
+              <span className="text-slate-300 shrink-0">•</span>
+            )}
+
             {item.tags.slice(0, 1).map((tag: string, idx: number) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-0.5 text-[10px] font-normal text-slate-600 bg-slate-100 border border-slate-200/60 px-1.5 py-0.2 rounded truncate max-w-[80px]"
-              >
-                <Tag size={8} className="text-slate-400" />
-                <span className="truncate">{tag}</span>
+              <span key={idx} className="truncate text-slate-500">
+                {tag}
               </span>
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            {hasUnread ? (
-              <span className="text-[10px] font-semibold bg-blue-600 text-white px-1.5 py-0.2 min-w-[16px] text-center rounded-full leading-tight">
-                {item.unreadCount}
-              </span>
-            ) : (
-              <CheckCheck size={13} className="text-blue-500" />
-            )}
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            {!hasUnread && <CheckCheck size={12} className="text-slate-400" />}
 
             {item.assignedStaff ? (
               <span
-                className="text-[10px] font-normal text-slate-500 truncate max-w-[70px]"
+                className="text-slate-500 truncate max-w-[76px]"
                 title={`Phụ trách: ${item.assignedStaff.name}`}
               >
                 {item.assignedStaff.name.split(' ')[0]}
               </span>
             ) : (
               <span
-                className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200/60 px-1 rounded"
+                className="font-medium text-amber-700"
                 title="Chưa gán tư vấn viên"
               >
                 Chờ nhận

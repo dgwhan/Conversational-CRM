@@ -34,6 +34,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   // Xác định tab hiện tại từ props hoặc tự động nhận diện từ URL route
   const effectiveTab = currentTab || getTabFromPathname(location.pathname);
 
+  const isLockedViewportPage =
+    effectiveTab === 'inbox' ||
+    effectiveTab === 'calendar' ||
+    location.pathname.startsWith('/calendar');
+
+  const isScrollableFlatPage =
+    effectiveTab === 'onboarding' ||
+    effectiveTab === 'workspace-settings' ||
+    effectiveTab === 'deals' ||
+    location.pathname.startsWith('/workspace') ||
+    location.pathname.startsWith('/onboarding') ||
+    location.pathname.startsWith('/deals');
+
   return (
     <div className="crm-app-container">
       {/* Overlay mờ khi mở menu trên mobile */}
@@ -65,16 +78,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
 
         <main
-          className={`crm-content-area ${
-            effectiveTab === 'inbox'
+          className={`crm-content-area ${effectiveTab === 'inbox'
               ? 'pancake-fullscreen !p-0 !overflow-hidden flex flex-col flex-1 h-full min-h-0'
-              : effectiveTab === 'onboarding' ||
-                effectiveTab === 'workspace-settings' ||
-                location.pathname.startsWith('/workspace') ||
-                location.pathname.startsWith('/onboarding')
-              ? '!p-0 !m-0 !rounded-none !border-none !shadow-none !overflow-y-auto flex flex-col flex-1 h-full min-h-0 bg-white'
-              : ''
-          }`}
+              : isLockedViewportPage
+                ? '!p-0 !m-0 !rounded-none !border-none !shadow-none !overflow-hidden flex flex-col flex-1 h-full min-h-0 bg-white'
+                : isScrollableFlatPage
+                  ? '!p-0 !m-0 !rounded-none !border-none !shadow-none !overflow-y-auto flex flex-col flex-1 h-full min-h-0 bg-white'
+                  : ''
+            }`}
         >
           {children || <Outlet />}
         </main>

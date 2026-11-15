@@ -18,6 +18,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   const effectiveOwnerId = ownerId ?? (isOwner ? staffId : '');
   const {
     staffMembers,
+    isLoadingStaff,
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,
@@ -325,7 +326,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
 
   return {
     staffId, staffEmail, myWorkspaces, channels, isLoadingChannels, syncingChannelId,
-    togglingChannelId, contactsCount, isLoadingContacts, effectiveStaffList, activeStaffList,
+    togglingChannelId, contactsCount, isLoadingContacts, isLoadingStaff, effectiveStaffList, activeStaffList,
     resolvedAdminName, canOwnerLeave, canManageWorkspace, loadChannels, handleSyncChannel, handleToggleChannel,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
     handleInviteMember, handleCancelInvitation, handleSetWorkspaceManagerPermission,

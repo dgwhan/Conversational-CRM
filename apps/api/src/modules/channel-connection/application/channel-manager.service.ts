@@ -399,7 +399,7 @@ export class ChannelManagerService {
       workspaceId?: string;
     },
     staffId: string,
-  ): Promise<{ channelAccountId: string; recipientId: string }> {
+  ): Promise<{ channelAccountId: string; recipientId: string; staffName?: string }> {
     if (!staffId) throw new ForbiddenException('Không thể xác định người gửi tin nhắn.');
     if (!input.conversationId || !UUID_REGEX.test(input.conversationId)) {
       throw new ForbiddenException('Phải có hội thoại hợp lệ và được phân công trước khi trả lời.');
@@ -411,7 +411,17 @@ export class ChannelManagerService {
         ...(input.workspaceId ? { workspaceId: input.workspaceId } : {}),
       },
       include: {
-        assignedMember: true,
+        assignedMember: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
         customer: true,
         channelAccount: true,
         // Chỉ lấy tin INBOUND (tránh 10 tin gần nhất toàn là OUTBOUND)
@@ -515,7 +525,8 @@ export class ChannelManagerService {
       );
     }
 
-    return { channelAccountId: conv.channelAccountId, recipientId: resolvedRecipientId };
+    const resolvedStaffName = conv.assignedMember?.user?.fullName || conv.assignedMember?.user?.email;
+    return { channelAccountId: conv.channelAccountId, recipientId: resolvedRecipientId, staffName: resolvedStaffName };
   }
 
   /**

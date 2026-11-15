@@ -307,10 +307,31 @@ export const useInboxConversations = ({
             candidateAvatar ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(rawCustomerName)}&background=0284c7&color=fff&bold=true`;
 
+          const assignedStaffFromMessage =
+            (latest as any).assignedStaff ||
+            (groupItems.find((m: any) => m.assignedStaff) as any)?.assignedStaff;
+          const assignedStaffFromCust =
+            matchedCust?.assignedStaff ||
+            (matchedCust?.channelIdentities?.assignedStaffId
+              ? {
+                  id: matchedCust.channelIdentities.assignedStaffId,
+                  name: matchedCust.channelIdentities.assignedStaffName || 'Tư vấn viên',
+                  role: 'STAFF',
+                  avatar: '',
+                }
+              : undefined);
+          const effectiveAssignedStaff = assignedStaffFromMessage || assignedStaffFromCust;
+
           const formattedMessages: ChatMessage[] = sorted.map((m) => {
             const senderId = String(m.senderExternalId || 'khách');
             const suffix = senderId.length > 4 ? senderId.slice(-4) : senderId;
             const itemCustomerName = (m as any).customerName || matchedCust?.fullName;
+            // senderStaffName: CHỈ lấy từ rawPayload (giá trị được lưu lúc gửi tin thực tế).
+            // KHÔNG fallback về assignedStaff/staffName hiện tại — vì người gán có thể đã thay đổi.
+            const rawSenderStaffName =
+              (m as any).senderStaffName ||
+              (m as any).rawPayload?.senderStaffName ||
+              ((m as any).rawPayload?.isAutomation ? 'Automation' : null);
             return {
               id: m.id,
               conversationId: convId,
@@ -319,6 +340,9 @@ export const useInboxConversations = ({
               attachments: (m as any).attachments || (m as any).rawPayload?.attachments || (m as any).rawPayload?.message?.attachments,
               sentAt: m.sentAt ? new Date(m.sentAt).toISOString() : new Date().toISOString(),
               senderName: m.direction === 'OUTBOUND' ? channelName : (itemCustomerName || `Khách (${suffix})`),
+              senderStaffId: (m as any).senderStaffId || (m as any).rawPayload?.senderStaffId || null,
+              senderStaffName: rawSenderStaffName || null,
+              isAutomation: Boolean((m as any).isAutomation || (m as any).rawPayload?.isAutomation),
               status: 'DELIVERED',
             };
           });
@@ -342,21 +366,6 @@ export const useInboxConversations = ({
             }
             return false;
           });
-
-          const assignedStaffFromMessage =
-            (latest as any).assignedStaff ||
-            (groupItems.find((m: any) => m.assignedStaff) as any)?.assignedStaff;
-          const assignedStaffFromCust =
-            matchedCust?.assignedStaff ||
-            (matchedCust?.channelIdentities?.assignedStaffId
-              ? {
-                  id: matchedCust.channelIdentities.assignedStaffId,
-                  name: matchedCust.channelIdentities.assignedStaffName || 'Tư vấn viên',
-                  role: 'STAFF',
-                  avatar: '',
-                }
-              : undefined);
-          const effectiveAssignedStaff = assignedStaffFromMessage || assignedStaffFromCust;
 
           if (existingIndex >= 0) {
             const existing = updated[existingIndex];
@@ -548,6 +557,8 @@ export const useInboxConversations = ({
         const sentAtIso = msg.sentAt && !isNaN(Date.parse(msg.sentAt))
           ? new Date(msg.sentAt).toISOString()
           : new Date().toISOString();
+        const isMsgOutbound = msg.direction === 'OUTBOUND';
+        const existing = existingIdx >= 0 ? prev[existingIdx] : undefined;
         const newChatMsg: ChatMessage = {
           id: msg.id || `msg-${Date.now()}`,
           conversationId: matchedConvId,
@@ -557,11 +568,18 @@ export const useInboxConversations = ({
           sentAt: sentAtIso,
           senderName: msg.senderName,
           senderAvatar: msg.senderAvatar,
+          // senderStaffId/senderStaffName: lấy từ realtime payload (giá trị được lưu LÚC GỬI TIN).
+          // KHÔNG fallback về existing.assignedStaff — hội thoại có thể đã được chuyển giao sau đó.
+          senderStaffId: msg.senderStaffId || (msg as any).rawPayload?.senderStaffId || (isMsgOutbound ? staffId || null : null),
+          senderStaffName:
+            msg.senderStaffName ||
+            (msg as any).rawPayload?.senderStaffName ||
+            ((msg as any).isAutomation ? 'Automation' : null),
+          isAutomation: Boolean(msg.isAutomation || (msg as any).rawPayload?.isAutomation),
           status: 'DELIVERED' as const,
         };
 
-        if (existingIdx >= 0) {
-          const existing = prev[existingIdx];
+        if (existingIdx >= 0 && existing) {
           const isCurrentlyOpen = existing.id === selectedId;
 
           const updatedMessages = deduplicateMessages([...existing.messages, newChatMsg]);

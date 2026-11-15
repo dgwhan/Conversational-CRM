@@ -136,9 +136,8 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
             return (
               <div
                 key={ws.id}
-                className={`flex items-center justify-between p-3.5 sm:p-4 px-4 sm:px-5 gap-4 flex-wrap transition-colors hover:bg-slate-50/80 ${
-                  isActive ? 'border-l-[4px] border-l-blue-600 bg-blue-50/30' : 'border-l-[4px] border-l-transparent'
-                }`}
+                className={`flex items-center justify-between p-3.5 sm:p-4 px-4 sm:px-5 gap-4 flex-wrap transition-colors hover:bg-slate-50/80 ${isActive ? 'border-l-[4px] border-l-blue-600 bg-blue-50/30' : 'border-l-[4px] border-l-transparent'
+                  }`}
               >
                 {/* Tên & Lĩnh vực & Badges  */}
                 <div className="flex flex-col gap-1 min-w-[220px]">

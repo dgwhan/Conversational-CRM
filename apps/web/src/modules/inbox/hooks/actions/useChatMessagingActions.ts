@@ -148,6 +148,9 @@ export const useChatMessagingActions = ({
 
     const tempId = `temp-${Date.now()}`;
     const nowIso = new Date().toISOString();
+    // staffName = tên người dùng hiện tại (người đang gõ), lấy từ JWT/session.
+    // Đây là giá trị chính xác nhất cho optimistic UI; fallback 'Tư vấn viên' nếu chưa load xong.
+    const actualStaffName = staffName?.trim() || 'Tư vấn viên';
     const newMsg: ChatMessage = {
       id: tempId,
       conversationId: currentConv.id,
@@ -155,6 +158,8 @@ export const useChatMessagingActions = ({
       content: text,
       sentAt: nowIso,
       senderName: staffName ? `${staffName} (Bạn)` : 'Bạn',
+      senderStaffId: staffId || null,
+      senderStaffName: actualStaffName,
       status: 'SENT' as const,
       attachments,
     };

@@ -56,6 +56,15 @@ export const deduplicateMessages = (messages: ChatMessage[]): ChatMessage[] => {
     });
 
     if (existingIdx !== -1) {
+      // Cập nhật senderStaffName/senderStaffId nếu bản ghi mới có thông tin
+      if (!result[existingIdx].senderStaffName && msg.senderStaffName) {
+        result[existingIdx] = {
+          ...result[existingIdx],
+          senderStaffName: msg.senderStaffName,
+          senderStaffId: msg.senderStaffId || result[existingIdx].senderStaffId,
+          isAutomation: msg.isAutomation ?? result[existingIdx].isAutomation,
+        };
+      }
       // Cập nhật attachments nếu bản ghi trước đó bị thiếu attachments
       if ((!result[existingIdx].attachments || result[existingIdx].attachments.length === 0) && msg.attachments && msg.attachments.length > 0) {
         result[existingIdx] = {

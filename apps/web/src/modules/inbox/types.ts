@@ -62,6 +62,9 @@ export interface ChatMessage {
   sentAt: string;
   senderName: string;
   senderAvatar?: string;
+  senderStaffId?: string | null;
+  senderStaffName?: string | null;
+  isAutomation?: boolean;
   status?: 'SENT' | 'DELIVERED' | 'SEEN';
 }
 

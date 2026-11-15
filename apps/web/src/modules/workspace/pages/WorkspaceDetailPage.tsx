@@ -44,7 +44,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   const detail = useWorkspaceDetail(workspace, onBack);
   const {
     staffId, staffEmail, myWorkspaces, channels, isLoadingChannels, syncingChannelId,
-    togglingChannelId, contactsCount, isLoadingContacts, effectiveStaffList, activeStaffList,
+    togglingChannelId, contactsCount, isLoadingContacts, isLoadingStaff, effectiveStaffList, activeStaffList,
     resolvedAdminName, canOwnerLeave, handleSyncChannel, handleToggleChannel,
     canManageWorkspace,
     handleDisconnectChannel, handleConnectSuccess, handleRemoveMember, handleLeaveWorkspace,
@@ -268,6 +268,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
               currentStaffId={staffId}
               currentStaffEmail={staffEmail}
               staffMembers={effectiveStaffList}
+              isLoadingStaff={isLoadingStaff}
               onRemoveMember={handleRemoveMember}
               onLeaveWorkspace={handleOpenLeaveWorkspace}
               onInviteMember={handleInviteMember}

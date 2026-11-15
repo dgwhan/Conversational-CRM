@@ -24,6 +24,7 @@ export const useWorkspaceStaffManagement = ({
   onStaffChange,
 }: UseWorkspaceStaffManagementProps) => {
   const [staffMembers, setStaffMembers] = useState<ManagedStaffItem[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState<boolean>(false);
 
   const fetchStaffList = useCallback(
     async (targetWsId?: string): Promise<ManagedStaffItem[]> => {
@@ -35,6 +36,7 @@ export const useWorkspaceStaffManagement = ({
       if (!wsToFetch) {
         return [];
       }
+      setIsLoadingStaff(true);
       try {
         const data = await apiClient.get<ManagedStaffItem[]>('/workspaces/current/staff', {
           skipToast: true,
@@ -50,6 +52,8 @@ export const useWorkspaceStaffManagement = ({
         }
       } catch (err) {
         console.warn('Could not fetch staff from backend:', err);
+      } finally {
+        setIsLoadingStaff(false);
       }
       return [];
     },
@@ -262,6 +266,7 @@ export const useWorkspaceStaffManagement = ({
   return {
     staffMembers,
     setStaffMembers,
+    isLoadingStaff,
     fetchStaffList,
     createStaffMember,
     deleteStaffMember,

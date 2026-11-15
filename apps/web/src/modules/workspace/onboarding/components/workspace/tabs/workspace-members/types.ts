@@ -9,6 +9,7 @@ export interface WorkspaceMembersTabProps {
   currentStaffId: string;
   currentStaffEmail: string;
   staffMembers: ManagedStaffItem[];
+  isLoadingStaff?: boolean;
   onRemoveMember: (
     memberId: string,
     memberName: string,
@@ -72,6 +73,7 @@ export interface WorkspaceMembersTableProps {
   currentStaffId: string;
   currentStaffEmail: string;
   canOwnerLeave: boolean;
+  isLoading?: boolean;
   routingByMemberId: ReadonlyMap<string, WorkspaceMemberRoutingStatus>;
   onConfigureShift: (workspaceMemberId: string) => void;
   onToggleLeadLock: (
