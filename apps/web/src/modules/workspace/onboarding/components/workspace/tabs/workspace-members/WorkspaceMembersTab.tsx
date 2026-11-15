@@ -85,16 +85,12 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
     effectiveSubTab === "members" ? activeMembers : pendingInvitations;
 
   // Thành viên đang hoạt động khác ngoài tài khoản hiện tại
-  const otherActiveMembers = useMemo(
-    () =>
-      activeMembers.filter(
-        (member) =>
-          member.id !== currentStaffId &&
-          (!member.email ||
-            !currentStaffEmail ||
-            member.email.toLowerCase() !== currentStaffEmail.toLowerCase()),
-      ),
-    [activeMembers, currentStaffId, currentStaffEmail],
+  const otherActiveMembers = activeMembers.filter(
+    (member) =>
+      member.id !== currentStaffId &&
+      (!member.email ||
+        !currentStaffEmail ||
+        member.email.toLowerCase() !== currentStaffEmail.toLowerCase()),
   );
 
   // Chủ sở hữu có thể rời nếu có ít nhất 1 thành viên đang hoạt động khác để nhận chuyển giao quyền

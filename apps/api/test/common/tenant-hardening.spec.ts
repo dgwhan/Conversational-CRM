@@ -106,7 +106,7 @@ describe('ContactController chỉ trả dữ liệu của workspace đã xác mi
     const prisma = { contact: { findMany: vi.fn().mockResolvedValue([]) } } as any;
     await new ContactController(prisma, {} as any).getContacts(req);
     expect(prisma.contact.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { workspaceId: WS, isMerged: false } }),
+      expect.objectContaining({ where: expect.objectContaining({ workspaceId: WS, isMerged: false }) }),
     );
   });
 

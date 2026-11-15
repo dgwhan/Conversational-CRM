@@ -13,6 +13,8 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
 
     beforeEach(() => {
         mockPrisma = {
+            $transaction: vi.fn(async (cb: any) => cb(mockPrisma)),
+            $queryRaw: vi.fn().mockResolvedValue([{ id: memberId }]),
             workspaceMember: {
                 findUnique: vi.fn(),
                 findFirst: vi.fn(),
@@ -50,7 +52,7 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
         });
 
         it('phân giải thành công nếu staffId là WorkspaceMember.id hoặc User.id của thành viên đang hoạt động', async () => {
-            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValue({ id: memberId });
             expect(await service.resolveWorkspaceMemberId(memberId, wsId)).toBe(memberId);
             expect(mockPrisma.workspaceMember.findFirst).toHaveBeenCalledWith({
                 where: {
@@ -62,7 +64,7 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                 select: { id: true },
             });
 
-            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValue({ id: memberId });
             expect(await service.resolveWorkspaceMemberId(userId, wsId)).toBe(memberId);
             expect(mockPrisma.workspaceMember.findFirst).toHaveBeenCalledWith({
                 where: {
@@ -99,7 +101,13 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                     channelIdentities: {},
                 },
             });
-            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValue({ id: memberId });
+            mockPrisma.conversation.findFirst.mockResolvedValueOnce({
+                id: convId,
+                workspaceId: wsId,
+                customerId: custId,
+                assignedMemberId: null,
+            });
             mockPrisma.conversation.update.mockResolvedValueOnce({
                 id: convId,
                 assignedMemberId: memberId,
@@ -137,6 +145,12 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                     channelIdentities: { assignedMemberId: memberId },
                 },
             });
+            mockPrisma.conversation.findFirst.mockResolvedValueOnce({
+                id: convId,
+                workspaceId: wsId,
+                customerId: custId,
+                assignedMemberId: memberId,
+            });
             mockPrisma.conversation.update.mockResolvedValueOnce({
                 id: convId,
                 assignedMemberId: null,
@@ -164,7 +178,7 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                 channelIdentities: {},
                 conversations: [{ id: convId }],
             });
-            mockPrisma.workspaceMember.findFirst.mockResolvedValueOnce({ id: memberId });
+            mockPrisma.workspaceMember.findFirst.mockResolvedValue({ id: memberId });
             mockPrisma.customer.update.mockResolvedValueOnce({
                 id: custId,
                 fullName: 'Khách hàng A',
@@ -173,6 +187,12 @@ describe('CustomerService - Conversation Assigned Member & Referential Integrity
                     assignedStaffName: 'Nhân viên B',
                     assignedMemberId: memberId,
                 },
+            });
+            mockPrisma.conversation.findFirst.mockResolvedValueOnce({
+                id: convId,
+                workspaceId: wsId,
+                customerId: custId,
+                assignedMemberId: null,
             });
             mockPrisma.conversation.update.mockResolvedValueOnce({
                 id: convId,

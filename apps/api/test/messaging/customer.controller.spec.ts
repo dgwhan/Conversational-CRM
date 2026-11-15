@@ -173,6 +173,7 @@ describe('CustomerController', () => {
                 staffId,
                 'Nguyễn Văn Tư Vấn',
                 TEST_WS,
+                'staff-admin-99',
             );
             expect(result.success).toBe(true);
             expect(result.assignedMemberId).toBe(staffId);
