@@ -119,7 +119,6 @@ export class WorkspacesController {
    * Người tạo trực tiếp làm Chủ sở hữu (Owner) của Workspace vừa tạo
    */
   @Post()
-  @Roles(WorkspaceRole.OWNER, WorkspaceRole.STAFF)
   async createWorkspace(
     @Req() req: any,
     @Body() body: CreateWorkspaceRequestDto,
