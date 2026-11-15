@@ -8,6 +8,7 @@ import { useUserRole } from '../auth/UserRoleContext.js';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
 import { useTranslation } from '../../i18n/index.js';
 import { SearchInput } from '../../components/ui/SearchInput.js';
+import { SearchableSelect } from '../../components/ui/SearchableSelect.js';
 import { matchesSmartSearch } from '../../lib/unaccent.js';
 import { notify } from '../../components/feedback/toastEmitter.js';
 import { apiClient } from '../../lib/api-client/index.js';
@@ -27,8 +28,6 @@ import {
   Sliders,
   Plus,
   Edit2,
-  Filter,
-  Layers,
 } from 'lucide-react';
 
 import { translate } from '../../i18n/translate.js';
@@ -691,55 +690,56 @@ export const AdmissionKanbanBoard: React.FC<AdmissionKanbanBoardProps> = ({
           </div>
 
           {/* Lọc Kênh */}
-          <div className="relative inline-flex items-center">
-            <Filter size={12} className="absolute left-2.5 text-slate-400 pointer-events-none" />
-            <select
-              className="kanban-filter-select pl-7"
-              value={channelFilter}
-              onChange={(e) => setChannelFilter(e.target.value as 'ALL' | ChannelType)}
-            >
-              <option value="ALL">{t('kanban.allChannels', 'Tất cả nguồn kênh')}</option>
-              <option value="FACEBOOK">Facebook Messenger</option>
-              <option value="ZALO">Zalo OA</option>
-              <option value="ZALO_PERSONAL">{t('kanban.channelZaloPersonalFull', 'Zalo Cá nhân (Tư vấn)')}</option>
-              <option value="TIKTOK">TikTok Channel</option>
-              <option value="MANUAL">{t('kanban.channelManualFull', 'Nhập trực tiếp / Hotline')}</option>
-            </select>
-          </div>
+          <SearchableSelect
+            value={channelFilter}
+            onChange={(val) => setChannelFilter(val as 'ALL' | ChannelType)}
+            options={[
+              { value: 'ALL', label: t('kanban.allChannels', 'Tất cả nguồn kênh') },
+              { value: 'FACEBOOK', label: 'Facebook Messenger' },
+              { value: 'ZALO', label: 'Zalo OA' },
+              { value: 'ZALO_PERSONAL', label: t('kanban.channelZaloPersonalFull', 'Zalo Cá nhân (Tư vấn)') },
+              { value: 'TIKTOK', label: 'TikTok Channel' },
+              { value: 'MANUAL', label: t('kanban.channelManualFull', 'Nhập trực tiếp / Hotline') },
+            ]}
+            size="sm"
+            searchable={false}
+            className="w-44"
+          />
 
           {/* Lọc Nhân viên */}
-          <div className="relative inline-flex items-center">
-            <Users size={12} className="absolute left-2.5 text-slate-400 pointer-events-none" />
-            <select
-              className="kanban-filter-select pl-7"
-              value={staffFilter}
-              onChange={(e) => setStaffFilter(e.target.value)}
-            >
-              <option value="ALL">{t('kanban.allStaff', 'Tất cả nhân viên tư vấn')}</option>
-              {Object.values(staffPresences).map((staff) => (
-                <option key={staff.staffId} value={staff.staffId}>
-                  {staff.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            value={staffFilter}
+            onChange={(val) => setStaffFilter(val)}
+            options={[
+              { value: 'ALL', label: t('kanban.allStaff', 'Tất cả nhân viên tư vấn') },
+              ...Object.values(staffPresences).map((staff) => ({
+                value: staff.staffId,
+                label: staff.name,
+              })),
+            ]}
+            size="sm"
+            className="w-44"
+            searchPlaceholder="Tìm nhân viên..."
+          />
 
           {/* Lọc Sản phẩm / Khóa học theo catalog của workspace */}
-          <div className="relative inline-flex items-center">
-            <Layers size={12} className="absolute left-2.5 text-slate-400 pointer-events-none" />
-            <select
-              className="kanban-filter-select pl-7"
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-            >
-              <option value="ALL">{t('kanban.allProductsPrefix', 'Tất cả')} {config.terminology.productLabel.toLowerCase()}</option>
-              {config.productCatalog.map((prod) => (
-                <option key={prod.id} value={prod.name}>
-                  {prod.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableSelect
+            value={courseFilter}
+            onChange={(val) => setCourseFilter(val)}
+            options={[
+              {
+                value: 'ALL',
+                label: `${t('kanban.allProductsPrefix', 'Tất cả')} ${config.terminology.productLabel.toLowerCase()}`,
+              },
+              ...config.productCatalog.map((prod) => ({
+                value: prod.name,
+                label: prod.name,
+              })),
+            ]}
+            size="sm"
+            className="w-48"
+            searchPlaceholder={`Tìm ${config.terminology.productLabel.toLowerCase()}...`}
+          />
         </div>
 
         <div className="toolbar-right-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

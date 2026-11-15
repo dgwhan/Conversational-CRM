@@ -74,7 +74,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 mt-2">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={onClose}
           >

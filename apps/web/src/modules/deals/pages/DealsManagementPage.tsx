@@ -24,6 +24,7 @@ import { DealModal } from '../components/DealModal.js';
 import { Avatar } from '../../../components/common/Avatar.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ModalIcon } from '../../../components/ui/ModalIcon.js';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect.js';
 
 type ViewMode = 'grid' | 'table';
 type StatusFilter = 'ALL' | 'OPEN' | 'WON' | 'LOST';
@@ -422,15 +423,19 @@ export const DealsManagementPage: React.FC = () => {
                     {/* Quick status selector */}
                     <div className="flex items-center justify-between text-xs gap-1">
                       <span className="text-slate-400 text-[10px] shrink-0">Chuyển nhanh:</span>
-                      <select
+                      <SearchableSelect
                         value={deal.status}
-                        onChange={(e) => handleQuickStatusChange(deal.id, e.target.value as any)}
-                        className="h-6 px-1.5 rounded border border-slate-200 text-[10px] font-medium text-slate-700 bg-slate-50/70 hover:bg-white focus:outline-none focus:border-blue-500 cursor-pointer min-w-0 truncate"
-                      >
-                        <option value="OPEN">Đang học</option>
-                        <option value="WON">Đã tốt nghiệp</option>
-                        <option value="LOST">Đã hủy</option>
-                      </select>
+                        onChange={(val) => handleQuickStatusChange(deal.id, val as any)}
+                        options={[
+                          { value: 'OPEN', label: 'Đang học', dotColor: '#3b82f6' },
+                          { value: 'WON', label: 'Đã tốt nghiệp', dotColor: '#10b981' },
+                          { value: 'LOST', label: 'Đã hủy', dotColor: '#ef4444' },
+                        ]}
+                        size="sm"
+                        searchable={false}
+                        triggerClassName="!h-6 !text-[11px] !py-0 !px-2"
+                        className="w-32"
+                      />
                     </div>
 
                     {/* Bottom Action buttons */}

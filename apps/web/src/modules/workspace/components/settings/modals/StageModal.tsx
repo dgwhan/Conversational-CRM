@@ -180,7 +180,7 @@ export const StageModal: React.FC<StageModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer"
+            className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-2xs cursor-pointer"
           >
             {t('workspaceSettings.cancel', 'Hủy')}
           </button>

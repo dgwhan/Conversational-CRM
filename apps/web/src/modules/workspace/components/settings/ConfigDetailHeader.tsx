@@ -6,7 +6,6 @@ import {
   RotateCcw,
   Check,
   X,
-  ArrowLeft,
 } from 'lucide-react';
 import { getDomainLabel } from '../../workspaceConfig.types.js';
 import type { ConfigProfileItem } from './types.js';
@@ -28,7 +27,7 @@ export const ConfigDetailHeader: React.FC<ConfigDetailHeaderProps> = ({
   profile,
   isActive,
   isOwner,
-  onBack,
+  onBack: _onBack,
   onSelectApply,
   onEdit,
   onDelete,
@@ -86,21 +85,7 @@ export const ConfigDetailHeader: React.FC<ConfigDetailHeaderProps> = ({
 
   return (
     <div className="w-full space-y-2.5 pb-2 border-b border-slate-200/80">
-      {/* 1. Breadcrumb navigation */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1 hover:text-blue-600 transition-colors font-medium cursor-pointer border-none bg-transparent p-0"
-        >
-          <ArrowLeft size={13} />
-          <span>{t('workspaceSettings.config.management', 'Quản lý cấu hình')}</span>
-        </button>
-        <span className="text-slate-300">/</span>
-        <span className="text-slate-700 font-semibold truncate max-w-xs">{profile.name}</span>
-      </div>
-
-      {/* 2. Main Title Row: Left is Title & Badges, Right is Action Buttons */}
+      {/* Main Title Row: Left is Title & Badges, Right is Action Buttons */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Left: Title + Badges */}
         <div className="flex items-center gap-2.5 flex-wrap">

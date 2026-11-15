@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button } from '../../../../../components/ui/index.js';
+import { Modal, Button, SearchableSelect } from '../../../../../components/ui/index.js';
 import { DOMAIN_OPTIONS, type BusinessDomain } from '../../../workspaceConfig.types.js';
 import { CLIENT_INDUSTRY_PRESETS } from '../../../workspacePresets.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
@@ -112,22 +112,22 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             {t('workspaceSettings.configModal.domainLabel', 'Lĩnh vực / Mô hình kinh doanh')}
           </label>
-          <select
+          <SearchableSelect
             value={selectedDomainKey}
-            onChange={(e) => {
-              setSelectedDomainKey(e.target.value);
-              if (e.target.value in CLIENT_INDUSTRY_PRESETS) {
-                setSelectedPresetDomain(e.target.value as BusinessDomain);
+            onChange={(val) => {
+              setSelectedDomainKey(val);
+              if (val in CLIENT_INDUSTRY_PRESETS) {
+                setSelectedPresetDomain(val as BusinessDomain);
               }
             }}
-            className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:border-blue-600 shadow-2xs cursor-pointer"
-          >
-            {DOMAIN_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            options={DOMAIN_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
+            size="sm"
+            fullWidth
+            searchable={false}
+          />
         </div>
 
         {selectedDomainKey === 'CUSTOM' && (
@@ -180,18 +180,21 @@ export const CreateConfigModal: React.FC<CreateConfigModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               {t('workspaceSettings.configModal.chooseTemplate', 'Chọn mẫu ngành chuẩn')}
             </label>
-            <select
+            <SearchableSelect
               value={selectedPresetDomain}
-              onChange={(e) => setSelectedPresetDomain(e.target.value as BusinessDomain)}
-              className="w-full h-8 px-2.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 outline-none focus:border-blue-600 shadow-2xs cursor-pointer"
-            >
-              <option value="EDUCATION">{t('workspaceSettings.configModal.domains.education', 'Giáo dục & Tuyển sinh')}</option>
-              <option value="REAL_ESTATE">{t('workspaceSettings.configModal.domains.realEstate', 'Bất động sản & Dự án')}</option>
-              <option value="BEAUTY_SPA">{t('workspaceSettings.configModal.domains.beautySpa', 'Thẩm mỹ viện & Spa')}</option>
-              <option value="B2B_SAAS">{t('workspaceSettings.configModal.domains.b2bSaas', 'B2B SaaS & Phần mềm')}</option>
-              <option value="RETAIL">{t('workspaceSettings.configModal.domains.retail', 'Bán lẻ & Thương mại')}</option>
-              <option value="CUSTOM">{t('workspaceSettings.configModal.domains.custom', 'Doanh nghiệp & Dịch vụ')}</option>
-            </select>
+              onChange={(val) => setSelectedPresetDomain(val as BusinessDomain)}
+              options={[
+                { value: 'EDUCATION', label: t('workspaceSettings.configModal.domains.education', 'Giáo dục & Tuyển sinh') },
+                { value: 'REAL_ESTATE', label: t('workspaceSettings.configModal.domains.realEstate', 'Bất động sản & Dự án') },
+                { value: 'BEAUTY_SPA', label: t('workspaceSettings.configModal.domains.beautySpa', 'Thẩm mỹ viện & Spa') },
+                { value: 'B2B_SAAS', label: t('workspaceSettings.configModal.domains.b2bSaas', 'B2B SaaS & Phần mềm') },
+                { value: 'RETAIL', label: t('workspaceSettings.configModal.domains.retail', 'Bán lẻ & Thương mại') },
+                { value: 'CUSTOM', label: t('workspaceSettings.configModal.domains.custom', 'Doanh nghiệp & Dịch vụ') },
+              ]}
+              size="sm"
+              fullWidth
+              searchable={false}
+            />
           </div>
         )}
 

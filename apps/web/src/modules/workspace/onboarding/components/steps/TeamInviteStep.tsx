@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   UserPlus,
   Mail,
-  Shield,
   Trash2,
   CheckCircle,
   ArrowLeft,
@@ -14,6 +13,7 @@ import type { StaffInvite, BusinessSetupData, FanpageItem } from '../../types.js
 import { StaffRole } from '../../../../../features/auth/constants/auth.constants.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
+import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
 
 export interface TeamInviteStepProps {
   business: BusinessSetupData;
@@ -127,16 +127,18 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
           </div>
 
           <div className="invite-role-field">
-            <Shield size={18} className="field-icon" />
-            <select
-              className="onboarding-select"
+            <SearchableSelect
               value={roleInput}
-              onChange={(e) => setRoleInput(e.target.value as StaffRole)}
+              onChange={(val) => setRoleInput(val as StaffRole)}
               disabled={isSubmitting}
-            >
-              <option value={StaffRole.STAFF}>Nhân viên tư vấn (STAFF)</option>
-              <option value={StaffRole.OWNER}>Quản lý / Đồng sở hữu (OWNER)</option>
-            </select>
+              options={[
+                { value: StaffRole.STAFF, label: 'Nhân viên tư vấn (STAFF)' },
+                { value: StaffRole.OWNER, label: 'Quản lý / Đồng sở hữu (OWNER)' },
+              ]}
+              size="md"
+              searchable={false}
+              className="w-full sm:w-56"
+            />
           </div>
 
           <button

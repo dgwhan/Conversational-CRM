@@ -14,7 +14,7 @@ import { I18nProvider } from './i18n/I18nContext.js';
 import { ToastProvider } from './components/feedback/ToastContext.js';
 import { ToastContainer } from './components/feedback/ToastContainer.js';
 import { ConfirmDialogHost } from './components/feedback/ConfirmDialogHost.js';
-import { UserRoleProvider, useUserRole, WorkspaceAccessGuard } from './modules/auth/index.js';
+import { UserRoleProvider, useUserRole } from './modules/auth/index.js';
 import { RealtimeProvider } from './modules/realtime/RealtimeContext.js';
 import { WorkspaceConfigProvider, useWorkspaceConfig } from './modules/workspace/WorkspaceConfigContext.js';
 import { AuthPage } from './features/auth/pages/AuthPage.js';
@@ -52,9 +52,6 @@ const DealsManagementPage = lazy(() =>
 );
 const ReportsDashboardPage = lazy(() =>
   import('./modules/reports/pages/ReportsDashboardPage.js').then((m) => ({ default: m.ReportsDashboardPage }))
-);
-const WorkspaceSettingsPage = lazy(() =>
-  import('./modules/workspace/pages/WorkspaceSettingsPage.js').then((m) => ({ default: m.WorkspaceSettingsPage }))
 );
 const WorkspaceInvitationPage = lazy(() =>
   import('./modules/workspace/pages/WorkspaceInvitationPage.js').then((m) => ({ default: m.WorkspaceInvitationPage }))
@@ -176,7 +173,8 @@ function CalendarRoute() {
 }
 
 /**
- * Route chuyển hướng tự động khi truy cập /workspace-settings không có id (Quản lý Cấu hình)
+ * Route chuyển hướng tự động khi truy cập /workspace-settings không có id
+ * Chuyển thẳng về Tab Cấu hình bên trong Workspace view
  */
 function WorkspaceSettingsDefaultRoute() {
   const { activeWorkspaceId, myWorkspaces, isWorkspaceListLoading } = useWorkspaceConfig();
@@ -185,12 +183,21 @@ function WorkspaceSettingsDefaultRoute() {
     return <AppSkeleton />;
   }
 
-  const targetId = activeWorkspaceId || myWorkspaces[0]?.id || myWorkspaces[0]?.slug;
+  const targetId = activeWorkspaceId || myWorkspaces[0]?.slug || myWorkspaces[0]?.id;
   if (!targetId || targetId === 'undefined') {
-    return <Navigate to={ROUTES.REPORTS} replace />;
+    return <Navigate to={ROUTES.WORKSPACE_DEFAULT} replace />;
   }
 
-  return <Navigate to={buildRoute.workspaceSettings(targetId)} replace />;
+  return <Navigate to={`${buildRoute.workspace(targetId)}?tab=settings`} replace />;
+}
+
+/**
+ * Route chuyển hướng tự động khi truy cập /workspace-settings/:id
+ * Chuyển thẳng về Tab Cấu hình bên trong Workspace view của ID tương ứng
+ */
+function WorkspaceSettingsRedirectRoute() {
+  const { id } = useParams<{ id?: string }>();
+  return <Navigate to={`${buildRoute.workspace(id)}?tab=settings`} replace />;
 }
 
 /**
@@ -225,10 +232,12 @@ function WorkspaceRoute() {
   }
 
   return (
-    <OnboardingWizardPage
-      onComplete={() => navigate(ROUTES.INBOX)}
-      onSkipToInbox={() => navigate(ROUTES.INBOX)}
-    />
+    <LeadScoringConfigProvider>
+      <OnboardingWizardPage
+        onComplete={() => navigate(ROUTES.INBOX)}
+        onSkipToInbox={() => navigate(ROUTES.INBOX)}
+      />
+    </LeadScoringConfigProvider>
   );
 }
 
@@ -321,18 +330,9 @@ function CRMAppRoutes() {
             {/* Quản lý Đợt Tuyển Sinh & Lịch Sử Dịch Vụ */}
             <Route path={ROUTES.DEALS} element={<DealsManagementPage />} />
 
-            {/* Quản lý Cấu hình Không gian làm việc (Workspace Settings) - BẢO VỆ CHỐNG BROKEN ACCESS CONTROL BẰNG WorkspaceAccessGuard */}
+            {/* Quản lý Cấu hình Không gian làm việc - Tự động chuyển hướng về Tab Cấu hình trong Workspace */}
             <Route path={ROUTES.WORKSPACE_SETTINGS_DEFAULT} element={<WorkspaceSettingsDefaultRoute />} />
-            <Route
-              path={ROUTES.WORKSPACE_SETTINGS}
-              element={
-                <WorkspaceAccessGuard requireOwner={true}>
-                  <LeadScoringConfigProvider>
-                    <WorkspaceSettingsPage />
-                  </LeadScoringConfigProvider>
-                </WorkspaceAccessGuard>
-              }
-            />
+            <Route path={ROUTES.WORKSPACE_SETTINGS} element={<WorkspaceSettingsRedirectRoute />} />
 
             {/* Trang Chấp nhận Lời mời riêng biệt (ID lời mời riêng - scope độc lập với Workspace) */}
             <Route path={ROUTES.WORKSPACE_INVITED} element={<WorkspaceInvitationPage />} />

@@ -75,6 +75,115 @@ export class KeywordRulesService {
   }
 
   /**
+   * Tạo nhiều luật từ khóa cùng lúc (Bulk Import)
+   */
+  async createRulesBulk(
+    items: Array<Omit<KeywordRuleItem, 'id'>>,
+    workspaceId?: string,
+  ): Promise<{ createdCount: number }> {
+    const validItems = items
+      .map((item) => ({
+        workspaceId: workspaceId || null,
+        group: item.group?.trim() || 'Chung',
+        keyword: item.keyword?.trim() || '',
+        weight: Number.isInteger(item.weight) ? item.weight : 1,
+        isActive: typeof item.isActive === 'boolean' ? item.isActive : true,
+        description: item.description?.trim() || null,
+      }))
+      .filter(
+        (item) =>
+          item.keyword.length > 0 &&
+          item.keyword.length <= 200 &&
+          item.group.length <= 50,
+      );
+
+    if (validItems.length === 0) {
+      throw new BadRequestException('Không có từ khóa hợp lệ để nhập.');
+    }
+
+    if (this.prisma) {
+      const result = await this.prisma.keywordRule.createMany({
+        data: validItems,
+      });
+      return { createdCount: result.count };
+    }
+
+    const created: KeywordRuleItem[] = validItems.map((item, idx) => ({
+      id: `rule-bulk-${Date.now()}-${idx}`,
+      ...item,
+      workspaceId: item.workspaceId || undefined,
+      description: item.description || undefined,
+    }));
+    this.inMemoryRules.push(...created);
+    return { createdCount: created.length };
+  }
+
+  /**
+   * Cập nhật trạng thái hoặc thông số hàng loạt
+   */
+  async bulkUpdateRules(
+    ids: string[],
+    patch: Partial<KeywordRuleItem>,
+    workspaceId?: string,
+  ): Promise<{ updatedCount: number }> {
+    if (!ids || ids.length === 0) return { updatedCount: 0 };
+
+    const data: Prisma.KeywordRuleUpdateManyMutationInput = {};
+    if (typeof patch.isActive === 'boolean') data.isActive = patch.isActive;
+    if (typeof patch.weight === 'number' && Number.isInteger(patch.weight)) data.weight = patch.weight;
+    if (patch.group?.trim()) data.group = patch.group.trim();
+
+    if (this.prisma) {
+      const where: Prisma.KeywordRuleWhereInput = {
+        id: { in: ids },
+        ...(workspaceId ? { workspaceId } : {}),
+      };
+      const result = await this.prisma.keywordRule.updateMany({ where, data });
+      return { updatedCount: result.count };
+    }
+
+    let count = 0;
+    this.inMemoryRules = this.inMemoryRules.map((rule) => {
+      if (ids.includes(rule.id) && (!workspaceId || rule.workspaceId === workspaceId)) {
+        count++;
+        return {
+          ...rule,
+          ...(typeof patch.isActive === 'boolean' ? { isActive: patch.isActive } : {}),
+          ...(typeof patch.weight === 'number' ? { weight: patch.weight } : {}),
+          ...(patch.group ? { group: patch.group.trim() } : {}),
+        };
+      }
+      return rule;
+    });
+    return { updatedCount: count };
+  }
+
+  /**
+   * Xóa từ khóa hàng loạt
+   */
+  async bulkDeleteRules(
+    ids: string[],
+    workspaceId?: string,
+  ): Promise<{ deletedCount: number }> {
+    if (!ids || ids.length === 0) return { deletedCount: 0 };
+
+    if (this.prisma) {
+      const where: Prisma.KeywordRuleWhereInput = {
+        id: { in: ids },
+        ...(workspaceId ? { workspaceId } : {}),
+      };
+      const result = await this.prisma.keywordRule.deleteMany({ where });
+      return { deletedCount: result.count };
+    }
+
+    const before = this.inMemoryRules.length;
+    this.inMemoryRules = this.inMemoryRules.filter(
+      (rule) => !(ids.includes(rule.id) && (!workspaceId || rule.workspaceId === workspaceId)),
+    );
+    return { deletedCount: before - this.inMemoryRules.length };
+  }
+
+  /**
    * Cập nhật trọng số hoặc trạng thái luật (Không cần sửa code)
    */
   async updateRule(

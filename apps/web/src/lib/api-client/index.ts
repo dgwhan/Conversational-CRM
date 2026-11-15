@@ -131,6 +131,9 @@ export class ApiClient extends BaseApiClient {
   createKeywordRule = this.keywordRules.createRule;
   updateKeywordRule = this.keywordRules.updateRule;
   deleteKeywordRule = this.keywordRules.deleteRule;
+  createKeywordRulesBulk = this.keywordRules.createRulesBulk;
+  bulkUpdateKeywordRules = this.keywordRules.bulkUpdateRules;
+  bulkDeleteKeywordRules = this.keywordRules.bulkDeleteRules;
   getLeadScoringSettings = this.keywordRules.getScoringSettings;
   updateLeadScoringSettings = this.keywordRules.updateScoringSettings;
 }

@@ -68,7 +68,18 @@ export const ShiftScheduleSection: React.FC<ShiftScheduleSectionProps> = ({
   return (
     <ShiftSection
       title="Thông tin ca"
-      description="Cấu hình khung giờ và ngày áp dụng cho ca tư vấn."
+      help={{
+        title: "Thông tin khung giờ ca trực",
+        description:
+          "Cấu hình khung giờ bắt đầu, kết thúc, múi giờ và các ngày trong tuần áp dụng lịch trực tiếp nhận khách hàng.",
+        example:
+          "Thiết lập ca từ 08:00 đến 17:30 từ Thứ Hai đến Thứ Sáu → Hệ thống chỉ kích hoạt phân bổ khách hàng tự động cho các nhân viên trong ca khi đồng hồ nằm trong khung thời gian này.",
+        rules: [
+          "Hỗ trợ ca trực qua đêm khi giờ kết thúc nhỏ hơn giờ bắt đầu.",
+          "Múi giờ của ca trực được đối soát theo thời gian thực để kích hoạt trạng thái ca chính xác.",
+          "Khi ngoài giờ ca trực, các khách hàng mới sẽ được chuyển vào hàng chờ hoặc xử lý theo kịch bản ngoài giờ.",
+        ],
+      }}
     >
       <div className="grid gap-4 md:grid-cols-2">
         <label className="text-xs font-medium text-slate-700">

@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   Calendar,
-  Filter,
   Download,
   Printer,
   RotateCw,
 } from 'lucide-react';
 import type { TimeRangeFilter } from '../reports.types.js';
 import { useTranslation } from '../../../i18n/index.js';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect.js';
 
 interface ReportsFilterBarProps {
   selectedRange: TimeRangeFilter;
@@ -81,22 +81,21 @@ export const ReportsFilterBar: React.FC<ReportsFilterBarProps> = ({
       {/* 2. Cụm bộ lọc kênh & Thao tác đồng bộ */}
       <div className="flex flex-wrap items-center gap-2 min-w-0">
         {/* Dropdown Kênh tiếp nhận */}
-        <div className="relative inline-flex items-center flex-1 min-w-[140px] sm:flex-none">
-          <Filter size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
-          <select
-            className="h-8 w-full pl-7 pr-8 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-700 shadow-2xs focus:outline-hidden focus:border-slate-300 cursor-pointer appearance-none"
-            value={selectedChannel}
-            onChange={(e) => onChannelChange(e.target.value)}
-          >
-            <option value="ALL">{t('reports.channels.all', 'Tất cả kênh tiếp nhận')}</option>
-            <option value="FACEBOOK">{t('reports.channels.facebook', 'Facebook Messenger')}</option>
-            <option value="ZALO">{t('reports.channels.zalo', 'Zalo OA / Cá nhân')}</option>
-            <option value="TIKTOK">{t('reports.channels.tiktok', 'TikTok Lead Gen')}</option>
-            <option value="MANUAL">{t('reports.channels.manual', 'Nhập tay / Hotline')}</option>
-            <option value="WEBSITE">{t('reports.channels.website', 'Website / Form')}</option>
-          </select>
-          <div className="absolute right-2.5 pointer-events-none text-slate-400 text-[11px]">▼</div>
-        </div>
+        <SearchableSelect
+          value={selectedChannel}
+          onChange={(val) => onChannelChange(val)}
+          options={[
+            { value: 'ALL', label: t('reports.channels.all', 'Tất cả kênh tiếp nhận') },
+            { value: 'FACEBOOK', label: t('reports.channels.facebook', 'Facebook Messenger') },
+            { value: 'ZALO', label: t('reports.channels.zalo', 'Zalo OA / Cá nhân') },
+            { value: 'TIKTOK', label: t('reports.channels.tiktok', 'TikTok Lead Gen') },
+            { value: 'MANUAL', label: t('reports.channels.manual', 'Nhập tay / Hotline') },
+            { value: 'WEBSITE', label: t('reports.channels.website', 'Website / Form') },
+          ]}
+          size="sm"
+          searchable={false}
+          className="min-w-[160px]"
+        />
 
         {/* Nút Làm mới */}
         <button

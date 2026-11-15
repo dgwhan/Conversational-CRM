@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Modal } from '../../../../../components/ui/index.js';
+import { Modal, SearchableSelect } from '../../../../../components/ui/index.js';
 import type { LeadQualificationCriteria } from '../../../workspaceConfig.types.js';
 
 import { useTranslation } from '../../../../../i18n/index.js';
@@ -78,16 +78,19 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             {t('workspaceSettings.addCriteria.typeLabel', 'Kiểu dữ liệu')}
           </label>
-          <select
+          <SearchableSelect
             value={type}
-            onChange={(e) => setType(e.target.value as any)}
-            className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 focus:outline-hidden focus:border-blue-500 shadow-2xs cursor-pointer"
-          >
-            <option value="TEXT">{t('workspaceSettings.addCriteria.typeText', 'Văn bản (Text)')}</option>
-            <option value="SELECT">{t('workspaceSettings.addCriteria.typeSelect', 'Chọn một (Dropdown Select)')}</option>
-            <option value="NUMBER">{t('workspaceSettings.addCriteria.typeNumber', 'Số liệu (Number)')}</option>
-            <option value="BOOLEAN">{t('workspaceSettings.addCriteria.typeBoolean', 'Có / Không (Boolean)')}</option>
-          </select>
+            onChange={(val) => setType(val as any)}
+            options={[
+              { value: 'TEXT', label: t('workspaceSettings.addCriteria.typeText', 'Văn bản (Text)') },
+              { value: 'SELECT', label: t('workspaceSettings.addCriteria.typeSelect', 'Chọn một (Dropdown Select)') },
+              { value: 'NUMBER', label: t('workspaceSettings.addCriteria.typeNumber', 'Số liệu (Number)') },
+              { value: 'BOOLEAN', label: t('workspaceSettings.addCriteria.typeBoolean', 'Có / Không (Boolean)') },
+            ]}
+            size="sm"
+            searchable={false}
+            fullWidth
+          />
         </div>
 
         {type === 'SELECT' && (
@@ -122,7 +125,7 @@ export const AddCriteriaModal: React.FC<AddCriteriaModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer"
+            className="h-8 px-3 rounded-lg text-xs font-semibold border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-2xs cursor-pointer"
           >
             {t('workspaceSettings.cancel', 'Hủy')}
           </button>

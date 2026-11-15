@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Building2, Briefcase, ArrowRight } from 'lucide-react';
+import { Building2, ArrowRight } from 'lucide-react';
 import type { BusinessSetupData } from '../../types.js';
 import { useTranslation } from '../../../../../i18n/index.js';
+import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
 
 export interface BusinessSetupStepProps {
   initialData: BusinessSetupData;
@@ -75,21 +76,21 @@ export const BusinessSetupStep: React.FC<BusinessSetupStepProps> = ({
           <label className="text-xs font-bold text-slate-800" htmlFor="industry">
             {t('onboarding.step1.industry')}
           </label>
-          <div className="relative flex items-center">
-            <Briefcase size={16} className="absolute left-3 text-slate-400 pointer-events-none" />
-            <select
-              id="industry"
-              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 focus:border-blue-600 outline-none rounded-none bg-white text-slate-900 font-medium cursor-pointer"
-              value={formData.industry}
-              onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-            >
-              <option value="Giáo dục & Tuyển sinh">{t('onboarding.step1.industries.education')}</option>
-              <option value="Bán lẻ & Thương mại điện tử">{t('onboarding.step1.industries.ecommerce')}</option>
-              <option value="Dịch vụ & Tư vấn">{t('onboarding.step1.industries.services')}</option>
-              <option value="Công nghệ & Phần mềm">{t('onboarding.step1.industries.tech')}</option>
-              <option value="Khác">{t('onboarding.step1.industries.other')}</option>
-            </select>
-          </div>
+          <SearchableSelect
+            id="industry"
+            value={formData.industry}
+            onChange={(val) => setFormData({ ...formData, industry: val })}
+            options={[
+              { value: 'Giáo dục & Tuyển sinh', label: t('onboarding.step1.industries.education') },
+              { value: 'Bán lẻ & Thương mại điện tử', label: t('onboarding.step1.industries.ecommerce') },
+              { value: 'Dịch vụ & Tư vấn', label: t('onboarding.step1.industries.services') },
+              { value: 'Công nghệ & Phần mềm', label: t('onboarding.step1.industries.tech') },
+              { value: 'Khác', label: t('onboarding.step1.industries.other') },
+            ]}
+            size="md"
+            fullWidth
+            searchable={false}
+          />
         </div>
       </div>
 

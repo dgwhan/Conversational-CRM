@@ -3,9 +3,8 @@ import React from "react";
 export interface TabItem<T extends string = string> {
   id: T;
   label: React.ReactNode;
+  /** Số lượng đếm của tab (chỉ hiển thị khi showCount hoặc countTotal = true) */
   count?: number | null;
-  badge?: React.ReactNode;
-  icon?: React.ReactNode;
   disabled?: boolean;
 }
 
@@ -14,45 +13,45 @@ export interface TabsProps<T extends string = string> {
   activeTab: T;
   onChange: (tabId: T) => void;
   ariaLabel?: string;
-  variant?: "underline" | "segmented";
   className?: string;
   tabClassName?: string;
-  borderBottom?: boolean;
+  /** Cho phép hiển thị số đếm (count) bên cạnh tab (boolean: true / false) */
+  showCount?: boolean;
+  /** Tên biến thay thế cho showCount để bật hiển thị số đếm */
+  countTotal?: boolean;
 }
 
 /**
- * Tabs - Component tab dùng chung toàn hệ thống, hỗ trợ underline và segmented.
- * Tối ưu responsive: Hỗ trợ cuộn ngang mượt mà trên mobile (360px - 768px), không vỡ dòng.
+ * Tabs - Minimalist bottom-bordered tab bar.
+ * Thiết kế tối giản: background trong suốt, thanh phân cách 1px mỏng toàn chiều ngang,
+ * active indicator 2px màu xanh primary hệ thống (blue-600) đè lên viền dưới, cùng màu chữ xanh đồng bộ.
+ * Hỗ trợ hiển thị số lượng badge tinh tế khi bật countTotal / showCount={true}.
  */
 export const Tabs = <T extends string = string>({
   items,
   activeTab,
   onChange,
   ariaLabel,
-  variant = "underline",
   className = "",
   tabClassName = "",
-  borderBottom = true,
+  showCount = false,
+  countTotal = false,
 }: TabsProps<T>): React.ReactElement => {
-  const isSegmented = variant === "segmented";
+  const shouldDisplayCount = showCount || countTotal;
 
   return (
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={
-        isSegmented
-          ? `inline-flex w-fit max-w-full items-center gap-1 overflow-x-auto overflow-y-hidden rounded-xl bg-gray-100 p-1 text-xs scrollbar-none ${className}`
-          : `flex max-w-full items-center gap-4 overflow-x-auto overflow-y-hidden py-0.5 text-xs scrollbar-none sm:gap-6 sm:text-[13px] md:gap-7 ${
-              borderBottom
-                ? "border-b border-slate-200 dark:border-slate-800"
-                : ""
-            } ${className}`
-      }
+      className={`flex w-full max-w-full items-center gap-8 overflow-x-auto overflow-y-hidden border-b border-slate-200 bg-transparent text-sm scrollbar-none sm:gap-10 md:gap-12 ${className}`}
     >
       {items.map((tab) => {
         const isActive = activeTab === tab.id;
         const isDisabled = Boolean(tab.disabled);
+        const hasCount =
+          shouldDisplayCount &&
+          tab.count !== undefined &&
+          tab.count !== null;
 
         return (
           <button
@@ -63,40 +62,26 @@ export const Tabs = <T extends string = string>({
             aria-disabled={isDisabled}
             disabled={isDisabled}
             onClick={() => !isDisabled && onChange(tab.id)}
-            className={
-              isSegmented
-                ? `flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 py-2 text-xs outline-none transition-colors sm:text-[13px] ${
-                    isActive
-                      ? "border-white bg-white font-semibold text-slate-900 shadow-sm"
-                      : isDisabled
-                        ? "border-transparent text-slate-300"
-                        : "border-transparent font-medium text-slate-600 hover:text-slate-900"
-                  } ${isDisabled ? "cursor-not-allowed" : ""} ${tabClassName}`
-                : `flex shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap border-none bg-transparent text-xs font-semibold outline-none transition-colors sm:text-[13px] ${
-                    isActive
-                      ? "pb-2.5 text-blue-600"
-                      : isDisabled
-                        ? "pb-2.5 text-slate-300"
-                        : "pb-2.5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-                  } ${
-                    isActive ? "border-b-2 border-blue-600 -mb-[1px]" : ""
-                  } ${isDisabled ? "cursor-not-allowed" : ""} ${tabClassName}`
-            }
+            className={`group relative flex shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap bg-transparent pb-3 pt-2 text-sm font-medium outline-none transition-colors duration-150 ${
+              isActive
+                ? "border-b-2 border-blue-600 font-semibold text-blue-700 -mb-px"
+                : isDisabled
+                  ? "cursor-not-allowed border-b-2 border-transparent text-slate-300"
+                  : "border-b-2 border-transparent text-slate-700 hover:text-blue-700"
+            } ${tabClassName}`}
           >
-            {tab.icon && <span className="shrink-0">{tab.icon}</span>}
             <span>{tab.label}</span>
-            {tab.count !== undefined && tab.count !== null && (
+            {hasCount && (
               <span
-                className={`rounded-full px-1.5 py-0.5 text-[11px] font-bold ${
+                className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors ${
                   isActive
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
-                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                    ? "bg-blue-50 text-blue-600"
+                    : "bg-slate-100 text-slate-600 group-hover:bg-slate-200/80 group-hover:text-slate-800"
                 }`}
               >
                 {tab.count}
               </span>
             )}
-            {tab.badge && <span className="ml-0.5">{tab.badge}</span>}
           </button>
         );
       })}

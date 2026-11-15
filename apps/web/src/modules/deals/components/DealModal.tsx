@@ -13,7 +13,6 @@ import {
   BookOpen,
   Plus,
   Send,
-  Search,
 } from 'lucide-react';
 import { apiClient } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
@@ -21,6 +20,7 @@ import type { DealItem, CreateDealPayload, UpdateDealPayload } from '../../../li
 import type { PipelineStageConfig, ProductItemConfig } from '../../workspace/workspaceConfig.types.js';
 import type { AssignedStaff } from '../../inbox/types.js';
 import { useTranslation } from '../../../i18n/index.js';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect.js';
 
 export interface DealModalProps {
   isOpen: boolean;
@@ -63,7 +63,6 @@ export const DealModal: React.FC<DealModalProps> = ({
   const [customerOptions, setCustomerOptions] = useState<
     Array<{ id: string; fullName: string; phone?: string | null; email?: string | null }>
   >([]);
-  const [customerSearch, setCustomerSearch] = useState<string>('');
   const [studentName, setStudentName] = useState<string>('');
   const [studentPhone, setStudentPhone] = useState<string>('');
   const [studentEmail, setStudentEmail] = useState<string>('');
@@ -145,7 +144,6 @@ export const DealModal: React.FC<DealModalProps> = ({
         setStudentPhone(initCustPhone);
         setStudentEmail(initCustEmail);
         setCustomerMode('SELECT');
-        setCustomerSearch('');
 
         const defaultCourse = catalog[0]?.name;
         const defaultPrice = catalog[0]?.defaultPrice || 0;
@@ -181,18 +179,6 @@ export const DealModal: React.FC<DealModalProps> = ({
     catalog,
     staffList,
   ]);
-
-  // Lọc danh sách học viên theo ô tìm kiếm
-  const filteredCustomerOptions = useMemo(() => {
-    if (!customerSearch.trim()) return customerOptions;
-    const q = customerSearch.trim().toLowerCase();
-    return customerOptions.filter(
-      (c) =>
-        c.fullName?.toLowerCase().includes(q) ||
-        (c.phone && c.phone.includes(q)) ||
-        (c.email && c.email.toLowerCase().includes(q))
-    );
-  }, [customerOptions, customerSearch]);
 
   const selectedCustomerDetails = useMemo(() => {
     if (!selectedCustomerId) return null;
@@ -465,34 +451,19 @@ export const DealModal: React.FC<DealModalProps> = ({
 
               {customerMode === 'SELECT' ? (
                 <div className="space-y-2">
-                  {customerOptions.length > 5 && (
-                    <div className="relative">
-                      <Search size={13} className="absolute left-2.5 top-2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={customerSearch}
-                        onChange={(e) => setCustomerSearch(e.target.value)}
-                        placeholder="Tìm học viên theo tên, SĐT hoặc Email..."
-                        className="w-full h-7.5 pl-8 pr-2.5 rounded-lg border border-slate-200 text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  )}
-
-                  <select
+                  <SearchableSelect
                     value={selectedCustomerId}
-                    onChange={(e) => handleSelectCustomer(e.target.value)}
-                    className="w-full h-8.5 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                  >
-                    <option value="">
-                      -- Chọn học viên từ danh sách CRM ({filteredCustomerOptions.length}) --
-                    </option>
-                    {filteredCustomerOptions.map((cust) => (
-                      <option key={cust.id} value={cust.id}>
-                        {cust.fullName} {cust.phone ? `(${cust.phone})` : ''}{' '}
-                        {cust.email ? `- ${cust.email}` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => handleSelectCustomer(val)}
+                    placeholder="-- Chọn học viên từ danh sách CRM --"
+                    allOptionLabel="-- Bỏ chọn học viên --"
+                    options={customerOptions.map((cust) => ({
+                      value: cust.id,
+                      label: `${cust.fullName} ${cust.phone ? `(${cust.phone})` : ''} ${cust.email ? `- ${cust.email}` : ''}`.trim(),
+                    }))}
+                    size="md"
+                    fullWidth
+                    searchPlaceholder="Tìm học viên theo tên, SĐT hoặc Email..."
+                  />
 
                   {selectedCustomerDetails && (
                     <div className="p-2.5 rounded-lg bg-blue-50/70 border border-blue-200/60 flex items-center justify-between text-xs animate-in fade-in">
@@ -778,18 +749,19 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <span>{t('deals.assignedStaffLabel', 'Tư Vấn Viên Phụ Trách')}</span>
               </label>
               {staffList && staffList.length > 0 ? (
-                <select
+                <SearchableSelect
                   value={assignedStaffName}
-                  onChange={(e) => setAssignedStaffName(e.target.value)}
-                  className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
-                >
-                  <option value="">-- {t('common.unassigned', 'Chưa chỉ định')} --</option>
-                  {staffList.map((st) => (
-                    <option key={st.id} value={st.name}>
-                      {st.name} ({st.role})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setAssignedStaffName(val)}
+                  placeholder={`-- ${t('common.unassigned', 'Chưa chỉ định')} --`}
+                  allOptionLabel={`-- ${t('common.unassigned', 'Chưa chỉ định')} --`}
+                  options={staffList.map((st) => ({
+                    value: st.name,
+                    label: `${st.name} (${st.role})`,
+                  }))}
+                  size="sm"
+                  fullWidth
+                  searchPlaceholder="Tìm tư vấn viên..."
+                />
               ) : (
                 <input
                   type="text"
@@ -806,16 +778,19 @@ export const DealModal: React.FC<DealModalProps> = ({
                 <Tag size={13} className="text-amber-500" />
                 <span>{t('deals.priorityLabel', 'Mức Độ Ưu Tiên')}</span>
               </label>
-              <select
+              <SearchableSelect
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs text-slate-800 bg-white focus:outline-none focus:border-blue-500 cursor-pointer"
-              >
-                <option value="LOW">{t('deals.priorityLow', 'Thấp (LOW)')}</option>
-                <option value="MEDIUM">{t('deals.priorityMedium', 'Bình thường (MEDIUM)')}</option>
-                <option value="HIGH">{t('deals.priorityHigh', 'Cao (HIGH)')}</option>
-                <option value="URGENT">{t('deals.priorityUrgent', 'Khẩn cấp (URGENT)')}</option>
-              </select>
+                onChange={(val) => setPriority(val as any)}
+                options={[
+                  { value: 'LOW', label: t('deals.priorityLow', 'Thấp (LOW)'), dotColor: '#94a3b8' },
+                  { value: 'MEDIUM', label: t('deals.priorityMedium', 'Bình thường (MEDIUM)'), dotColor: '#3b82f6' },
+                  { value: 'HIGH', label: t('deals.priorityHigh', 'Cao (HIGH)'), dotColor: '#f59e0b' },
+                  { value: 'URGENT', label: t('deals.priorityUrgent', 'Khẩn cấp (URGENT)'), dotColor: '#ef4444' },
+                ]}
+                size="sm"
+                fullWidth
+                searchable={false}
+              />
             </div>
           </div>
 

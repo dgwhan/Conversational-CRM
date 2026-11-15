@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "../../../../../../../components/ui/index.js";
+import { Button, SearchableSelect } from "../../../../../../../components/ui/index.js";
 import type {
   MemberHandoverDialogProps,
   MemberHandoverMode,
@@ -34,45 +34,44 @@ export const MemberOffboardingDialog: React.FC<MemberHandoverDialogProps> = ({
           thoại đang mở cần được chuyển hoặc đưa vào hàng chờ trước khi gỡ
           workspace.
         </p>
-        <label className="mt-4 block text-xs font-semibold text-slate-700">
-          Cách bàn giao
-          <select
+        <div className="mt-4">
+          <SearchableSelect
+            label="Cách bàn giao"
             value={mode}
-            onChange={(event) => {
-              setMode(event.target.value as MemberHandoverMode);
+            onChange={(val) => {
+              setMode(val as MemberHandoverMode);
               setTargetId("");
             }}
-            className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-2 text-sm"
-          >
-            <option value="QUEUE">Đưa vào hàng chờ đội</option>
-            <option value="TRANSFER">Chuyển cho nhân viên đang trực</option>
-          </select>
-        </label>
+            options={[
+              { value: "QUEUE", label: "Đưa vào hàng chờ đội" },
+              { value: "TRANSFER", label: "Chuyển cho nhân viên đang trực" },
+            ]}
+            size="md"
+            fullWidth
+            searchable={false}
+          />
+        </div>
         {mode === "TRANSFER" && (
-          <label className="mt-3 block text-xs font-semibold text-slate-700">
-            Người nhận
-            <select
+          <div className="mt-3">
+            <SearchableSelect
+              label="Người nhận"
               value={targetId}
-              onChange={(event) => setTargetId(event.target.value)}
-              className="mt-1 h-9 w-full rounded-lg border border-slate-300 px-2 text-sm"
-            >
-              <option value="">Chọn nhân viên đang trực</option>
-              {roster
+              onChange={(val) => setTargetId(val)}
+              placeholder="Chọn nhân viên đang trực"
+              options={roster
                 .filter(
                   (row) =>
                     row.isEligible && row.workspaceMemberId !== member.memberId,
                 )
-                .map((row) => (
-                  <option
-                    key={row.workspaceMemberId}
-                    value={row.workspaceMemberId}
-                  >
-                    {row.fullName} · {row.openConversations}/
-                    {row.effectiveCapacity}
-                  </option>
-                ))}
-            </select>
-          </label>
+                .map((row) => ({
+                  value: row.workspaceMemberId,
+                  label: `${row.fullName} · ${row.openConversations}/${row.effectiveCapacity}`,
+                }))}
+              size="md"
+              fullWidth
+              searchPlaceholder="Tìm nhân viên..."
+            />
+          </div>
         )}
         <div className="mt-5 flex justify-end gap-2">
           <Button

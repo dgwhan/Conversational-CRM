@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import type { AssignedStaff } from '../../../types.js';
 import { Modal } from '../../../../../components/ui/Modal.js';
+import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
 
 export interface AssignedAgentSectionProps {
   assignedStaff?: AssignedStaff | null;
@@ -27,14 +28,6 @@ export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
     return list;
   }, [staffList, assignedStaff]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    if (!isOwner) return;
-    const nextStaffId = e.target.value;
-    if (onAssignStaff) {
-      onAssignStaff(nextStaffId);
-    }
-  };
-
   return (
     <div className="p-4 bg-white space-y-2">
       {/* 1. Tiêu đề mục & Dấu chấm than giải thích */}
@@ -58,29 +51,26 @@ export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
         </div>
       </div>
 
-      {/* 2. Dropdown lựa chọn nhân sự tối giản */}
-      <div className="relative">
-        <select
+      {/* 2. Dropdown lựa chọn nhân sự */}
+      <div>
+        <SearchableSelect
           id="assigned-staff-select"
           value={assignedStaff?.id || ''}
-          onChange={handleChange}
+          onChange={(val) => {
+            if (!isOwner) return;
+            onAssignStaff?.(val);
+          }}
           disabled={!isOwner}
-          className={`w-full h-8 pl-3 pr-8 text-xs font-medium text-slate-800 border rounded-md transition-colors appearance-none ${
-            !isOwner
-              ? 'bg-slate-50 border-slate-200/80 cursor-not-allowed opacity-80 text-slate-500'
-              : 'bg-white hover:bg-slate-50 border-slate-200/80 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer'
-          }`}
-        >
-          <option value="">-- Chưa phân công nhân sự --</option>
-          {mergedStaffList.map((st) => (
-            <option key={st.id} value={st.id}>
-              {st.name} {st.role ? `(${st.role})` : ''}
-            </option>
-          ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
-          <ChevronDown size={13} />
-        </div>
+          placeholder="-- Chưa phân công nhân sự --"
+          allOptionLabel="-- Chưa phân công nhân sự --"
+          options={mergedStaffList.map((st) => ({
+            value: st.id,
+            label: `${st.name}${st.role ? ` (${st.role})` : ''}`,
+          }))}
+          size="sm"
+          fullWidth
+          searchPlaceholder="Tìm nhân sự..."
+        />
       </div>
       {!isOwner && (
         <p className="text-[11px] text-slate-400 italic m-0">

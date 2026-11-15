@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * CUSC RECRUITMENT CRM - CENTRALIZED ROUTES CONFIGURATION
+ * RECRUITMENT CRM - CENTRALIZED ROUTES CONFIGURATION
  * Định nghĩa tập trung toàn bộ route điều hướng của ứng dụng Web.
  * ============================================================================
  */
@@ -102,8 +102,7 @@ export const TAB_TO_ROUTE_MAP: Record<string, (workspaceId?: string) => string> 
   deals: () => ROUTES.DEALS,
   'workspace-settings': (workspaceId) =>
     workspaceId && workspaceId !== 'undefined' ? buildRoute.workspaceSettings(workspaceId) : ROUTES.WORKSPACE_SETTINGS_DEFAULT,
-  onboarding: (workspaceId) =>
-    workspaceId && workspaceId !== 'undefined' ? buildRoute.workspace(workspaceId) : ROUTES.WORKSPACE_DEFAULT,
+  onboarding: () => ROUTES.WORKSPACE_DEFAULT,
 };
 
 /**

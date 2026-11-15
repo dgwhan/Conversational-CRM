@@ -48,7 +48,7 @@ export function Toggle({
 }: ToggleProps) {
   const sizeClasses = {
     sm: {
-      track: "w-8 h-4.5",
+      track: "w-8 h-[18px]",
       thumb: "size-3.5",
       translate: "peer-checked:translate-x-3.5",
     },
@@ -76,7 +76,7 @@ export function Toggle({
     <label
       title={title}
       className={`inline-flex items-center gap-2.5 select-none font-sans text-xs sm:text-sm ${
-        disabled ? "cursor-not-allowed" : "cursor-pointer"
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
       } ${className}`.trim()}
     >
       <div className="relative inline-flex shrink-0 items-center">
@@ -93,15 +93,15 @@ export function Toggle({
           onKeyDown={handleKeyDown}
           className="peer sr-only"
         />
-        {/* Track: Màu sắc đậm đà rõ nét, không dùng opacity mờ đục */}
+        {/* Track: Màu xanh thương hiệu bg-blue-600 khi bật, xám bg-slate-300 khi tắt */}
         <div
-          className={`${sizeClasses.track} rounded-full bg-slate-300 peer-checked:bg-indigo-600 transition-colors duration-200 ease-in-out peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/40 ${
+          className={`${sizeClasses.track} rounded-full bg-slate-300 peer-checked:bg-blue-600 transition-colors duration-200 ease-in-out peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/40 ${
             disabled ? "cursor-not-allowed" : "cursor-pointer"
           }`}
         />
-        {/* Thumb: Nút trượt tròn luôn giữ màu trắng tinh khiết 100% (#ffffff) sắc nét */}
+        {/* Thumb: Nút trượt tròn luôn giữ màu trắng tinh khiết 100% (#ffffff) sắc nét, cân đối 2px */}
         <span
-          className={`pointer-events-none absolute left-[2px] inline-block ${sizeClasses.thumb} rounded-full bg-white shadow-xs border border-black/5 transition-transform duration-200 ease-in-out translate-x-0 ${sizeClasses.translate}`}
+          className={`pointer-events-none absolute top-[2px] left-[2px] inline-block ${sizeClasses.thumb} rounded-full bg-white shadow-xs border border-black/5 transition-transform duration-200 ease-in-out translate-x-0 ${sizeClasses.translate}`}
           style={{ backgroundColor: "#ffffff" }}
         />
       </div>
@@ -113,7 +113,7 @@ export function Toggle({
       ) : showStatusLabel ? (
         <span
           className={`font-semibold ${
-            checked ? "text-slate-800" : "text-slate-500"
+            checked ? "text-blue-700" : "text-slate-500"
           }`}
         >
           {checked ? labelOn : labelOff}

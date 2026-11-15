@@ -1,206 +1,54 @@
 import React, { useEffect, useState } from 'react';
-import { Info } from 'lucide-react';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
-import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
-import type {
-  ConversationTier,
-  KeywordRuleItem,
-  LeadScoringSettings,
-} from '../../../../../lib/api-client/keyword-rules.js';
+import type { LeadScoringSettings } from '../../../../../lib/api-client/keyword-rules.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import { useLeadScoringConfig } from '../../../../inbox/context/leadScoringConfig.js';
+import { ConfigSubSectionHeader } from '../../../../../components/ui/ConfigSubSectionHeader.js';
+import {
+  KeywordRulesManager,
+  KeywordRuleQuickAddForm,
+  LeadTierConfigMatrix,
+  LeadDecayConfigSection,
+  LeadExclusionConfigSection,
+} from './lead-scoring/index.js';
 
-import { useTranslation } from '../../../../../i18n/index.js';
-interface LeadScoringTabProps {
+export type LeadScoringSubSectionId = 'rules' | 'thresholds' | 'decay' | 'exclusion';
+
+export interface LeadScoringTabProps {
   isOwner: boolean;
+  hideSidebar?: boolean;
+  activeSection?: LeadScoringSubSectionId;
+  onSectionChange?: (section: LeadScoringSubSectionId) => void;
 }
 
-type RuleDraft = Omit<KeywordRuleItem, 'id' | 'workspaceId'>;
-type NumericSettingKey =
-  | 'hotMinScore'
-  | 'warmMinScore'
-  | 'coldMinScore'
-  | 'phoneBonusScore'
-  | 'inactivityDecayDays'
-  | 'inactivityDecayPoints'
-  | 'inactivityDecayWeeklyPoints'
-  | 'inactivityDecayIntervalDays'
-  | 'exclusionThresholdWeight'
-  | 'exclusionPenaltyScore'
-  | 'ambiguityScoreGap'
-  | 'hotBoundaryMinMessages'
-  | 'shortMessageMaxWords'
-  | 'negationWindowWords';
-
-const tiers: ConversationTier[] = ['HOT', 'WARM', 'COLD', 'IRRELEVANT'];
-const numericSettings: Array<{ key: NumericSettingKey; label: string }> = [
-  { key: 'hotMinScore', label: 'Điểm tối thiểu cho hạng cao nhất' },
-  { key: 'warmMinScore', label: 'Điểm tối thiểu cho hạng tiếp theo' },
-  { key: 'coldMinScore', label: 'Điểm tối thiểu cho hạng mới' },
-  { key: 'phoneBonusScore', label: 'Điểm thưởng khi có số điện thoại' },
-  { key: 'inactivityDecayDays', label: 'Số ngày bắt đầu giảm điểm do không hoạt động' },
-  { key: 'inactivityDecayPoints', label: 'Điểm giảm ban đầu' },
-  { key: 'inactivityDecayWeeklyPoints', label: 'Điểm giảm thêm mỗi chu kỳ' },
-  { key: 'inactivityDecayIntervalDays', label: 'Số ngày mỗi chu kỳ giảm thêm' },
-  { key: 'exclusionThresholdWeight', label: 'Trọng số tối đa để loại trừ' },
-  { key: 'exclusionPenaltyScore', label: 'Điểm cuối khi bị loại trừ' },
-  { key: 'ambiguityScoreGap', label: 'Khoảng điểm sát ngưỡng để hiệu chỉnh' },
-  { key: 'hotBoundaryMinMessages', label: 'Số tin nhắn tối thiểu để hiệu chỉnh sát ngưỡng' },
-  { key: 'shortMessageMaxWords', label: 'Số từ tối đa để yêu cầu kiểm tra tin nhắn ngắn' },
-  { key: 'negationWindowWords', label: 'Khoảng cách từ để nhận diện phủ định' },
+const SUBSECTIONS: { id: LeadScoringSubSectionId; label: string }[] = [
+  { id: 'rules', label: 'Tiêu chí & Từ khóa' },
+  { id: 'thresholds', label: 'Ngưỡng & Hạng Lead' },
+  { id: 'decay', label: 'Điểm thưởng & Giảm điểm' },
+  { id: 'exclusion', label: 'Loại trừ & Phủ định' },
 ];
 
-const blankRule: RuleDraft = {
-  group: '',
-  keyword: '',
-  weight: 1,
-  isActive: true,
-  description: '',
-};
-
-const numericSettingGroups: Array<{
-  id: string;
-  title: string;
-  description: string;
-  keys: NumericSettingKey[];
-}> = [
-  {
-    id: 'thresholds',
-    title: 'Ngưỡng phân loại',
-    description: 'Điểm tối thiểu để xếp Lead vào từng hạng.',
-    keys: ['hotMinScore', 'warmMinScore', 'coldMinScore'],
-  },
-  {
-    id: 'bonusDecay',
-    title: 'Điểm thưởng và giảm theo thời gian',
-    description: 'Điểm cộng khi có số điện thoại và mức giảm khi khách không hoạt động.',
-    keys: [
-      'phoneBonusScore',
-      'inactivityDecayDays',
-      'inactivityDecayPoints',
-      'inactivityDecayWeeklyPoints',
-      'inactivityDecayIntervalDays',
-    ],
-  },
-  {
-    id: 'exclusion',
-    title: 'Loại trừ và xử lý trường hợp chưa rõ',
-    description: 'Cấu hình luật loại trừ và cách xử lý tin nhắn sát ngưỡng.',
-    keys: [
-      'exclusionThresholdWeight',
-      'exclusionPenaltyScore',
-      'ambiguityScoreGap',
-      'hotBoundaryMinMessages',
-      'shortMessageMaxWords',
-      'negationWindowWords',
-    ],
-  },
-];
-
-const InfoTip: React.FC<{ text: string }> = ({ text }) => (
-  <span
-    title={text}
-    aria-label={text}
-    role="img"
-    tabIndex={0}
-    className="ml-1 inline-flex align-middle text-slate-400 hover:text-blue-600 focus:text-blue-600"
-  >
-    <Info size={15} aria-hidden="true" />
-  </span>
-);
-
-function ruleDraft(rule: KeywordRuleItem): RuleDraft {
-  return {
-    group: rule.group,
-    keyword: rule.keyword,
-    weight: rule.weight,
-    isActive: rule.isActive,
-    description: rule.description || '',
-  };
-}
-
-export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
-  const { t } = useTranslation();
+export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({
+  isOwner,
+  activeSection: controlledSection,
+  onSectionChange,
+}) => {
   const { rules, settings, isLoading, reload } = useLeadScoringConfig();
-  const [newRule, setNewRule] = useState<RuleDraft>(blankRule);
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [editingRule, setEditingRule] = useState<RuleDraft>(blankRule);
+
+  const [internalSection, setInternalSection] = useState<LeadScoringSubSectionId>('rules');
+  const currentSection = controlledSection || internalSection;
+
   const [settingsDraft, setSettingsDraft] = useState<LeadScoringSettings | null>(settings);
-  const [isSavingRule, setIsSavingRule] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [prefillGroup, setPrefillGroup] = useState('');
 
   useEffect(() => {
     setSettingsDraft(settings);
   }, [settings]);
 
-  const updateRuleDraft = (
-    draft: RuleDraft,
-    setter: React.Dispatch<React.SetStateAction<RuleDraft>>,
-    field: keyof RuleDraft,
-    value: string | number | boolean,
-  ) => {
-    setter({ ...draft, [field]: value });
-  };
-
-  const handleCreateRule = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!newRule.group.trim() || !newRule.keyword.trim()) {
-      notify.error(t('workspaceSettings.leadScoring.needGroupKeyword', 'Nhập nhóm và từ khóa trước khi thêm tiêu chí.'));
-      return;
-    }
-
-    setIsSavingRule(true);
-    try {
-      await apiClient.createKeywordRule({ ...newRule, group: newRule.group.trim(), keyword: newRule.keyword.trim() });
-      setNewRule(blankRule);
-      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleAdded', 'Đã thêm tiêu chí chấm điểm.'));
-    } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleAddError', 'Không thể thêm tiêu chí chấm điểm.'));
-    } finally {
-      setIsSavingRule(false);
-    }
-  };
-
-  const handleUpdateRule = async (id: string) => {
-    if (!editingRule.group.trim() || !editingRule.keyword.trim()) {
-      notify.error(t('workspaceSettings.leadScoring.groupKeywordRequired', 'Nhóm và từ khóa không được để trống.'));
-      return;
-    }
-
-    setIsSavingRule(true);
-    try {
-      await apiClient.updateKeywordRule(id, {
-        ...editingRule,
-        group: editingRule.group.trim(),
-        keyword: editingRule.keyword.trim(),
-      });
-      setEditingRuleId(null);
-      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleUpdated', 'Đã cập nhật tiêu chí chấm điểm.'));
-    } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleUpdateError', 'Không thể cập nhật tiêu chí chấm điểm.'));
-    } finally {
-      setIsSavingRule(false);
-    }
-  };
-
-  const handleDeleteRule = async (rule: KeywordRuleItem) => {
-    const confirmed = await confirmDialog({
-      tone: 'danger',
-      title: t('confirmDialog.deleteScoringRuleTitle', 'Xóa tiêu chí chấm điểm?'),
-      message: t('workspaceSettings.leadScoring.confirmDelete', 'Xóa tiêu chí "{keyword}"?', { keyword: rule.keyword }),
-      confirmText: t('confirmDialog.deleteConfirm', 'Xóa'),
-    });
-    if (!confirmed) return;
-
-    setIsSavingRule(true);
-    try {
-      await apiClient.deleteKeywordRule(rule.id);
-      if (await reload()) notify.success(t('workspaceSettings.leadScoring.ruleDeleted', 'Đã xóa tiêu chí chấm điểm.'));
-    } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.ruleDeleteError', 'Không thể xóa tiêu chí chấm điểm.'));
-    } finally {
-      setIsSavingRule(false);
-    }
+  const handleSectionChange = (section: LeadScoringSubSectionId) => {
+    setInternalSection(section);
+    onSectionChange?.(section);
   };
 
   const handleSaveSettings = async () => {
@@ -209,397 +57,176 @@ export const LeadScoringTab: React.FC<LeadScoringTabProps> = ({ isOwner }) => {
     setIsSavingSettings(true);
     try {
       await apiClient.updateLeadScoringSettings(settingsDraft);
-      if (await reload()) notify.success(t('workspaceSettings.leadScoring.settingsSaved', 'Đã lưu cấu hình chấm điểm.'));
+      if (await reload()) notify.success('Đã lưu cấu hình chấm điểm.');
     } catch (error: unknown) {
-      notify.error(error instanceof Error ? error.message : t('workspaceSettings.leadScoring.settingsSaveError', 'Không thể lưu cấu hình chấm điểm.'));
+      notify.error(error instanceof Error ? error.message : 'Không thể lưu cấu hình chấm điểm.');
     } finally {
       setIsSavingSettings(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !settings) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">
-        {t('workspaceSettings.leadScoring.loading', 'Đang tải cấu hình chấm điểm...')}
+      <div className="py-12 text-center text-sm font-medium text-slate-500">
+        Đang tải cấu hình chấm điểm...
       </div>
     );
   }
 
-  if (!settingsDraft) {
+  if (!settings || !settingsDraft) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        {t('workspaceSettings.leadScoring.loadError', 'Không tải được cấu hình chấm điểm. Hãy tải lại trang hoặc kiểm tra quyền truy cập workspace.')}
+      <div className="py-12 text-center text-sm font-medium text-rose-600">
+        Không thể tải cấu hình chấm điểm. Vui lòng thử lại sau.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="mb-4">
-          <h2 className="m-0 text-base font-semibold text-slate-900">
-            {t('workspaceSettings.leadScoring.rulesTitle', 'Tiêu chí nhận diện')}
-            <InfoTip text={t('workspaceSettings.leadScoring.rulesTip', 'Tạo từ khóa, nhóm và trọng số riêng. Khi nội dung tin nhắn khớp từ khóa, trọng số sẽ được dùng để tính điểm Lead.')} />
-          </h2>
-          <p className="mt-1 mb-0 text-sm text-slate-500">
-            {t('workspaceSettings.leadScoring.rulesDesc', 'Tạo nhóm, từ khóa và trọng số theo cách khách hàng của bạn trao đổi. Không có bộ từ khóa mẫu được áp dụng tự động.')}
-          </p>
-        </div>
-
-        <form onSubmit={handleCreateRule} className="grid gap-3 rounded-lg bg-slate-50 p-3 md:grid-cols-12">
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.customGroup', 'Nhóm tùy chỉnh')}</span>
-            <input
-              value={newRule.group}
-              onChange={(event) => updateRuleDraft(newRule, setNewRule, 'group', event.target.value)}
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
-              maxLength={50}
-              required
-              disabled={!isOwner || isSavingRule}
-            />
-          </label>
-          <label className="space-y-1 md:col-span-3">
-            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.keyword', 'Từ khóa / cụm từ')}</span>
-            <input
-              value={newRule.keyword}
-              onChange={(event) => updateRuleDraft(newRule, setNewRule, 'keyword', event.target.value)}
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
-              maxLength={200}
-              required
-              disabled={!isOwner || isSavingRule}
-            />
-          </label>
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.weight', 'Trọng số')}</span>
-            <input
-              type="number"
-              step="1"
-              value={newRule.weight}
-              onChange={(event) => updateRuleDraft(newRule, setNewRule, 'weight', Number(event.target.value))}
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
-              required
-              disabled={!isOwner || isSavingRule}
-            />
-          </label>
-          <label className="space-y-1 md:col-span-4">
-            <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.description', 'Mô tả')}</span>
-            <input
-              value={newRule.description}
-              onChange={(event) => updateRuleDraft(newRule, setNewRule, 'description', event.target.value)}
-              className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
-              maxLength={500}
-              disabled={!isOwner || isSavingRule}
-            />
-          </label>
-          <div className="flex items-center justify-between gap-3 md:col-span-12">
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={newRule.isActive}
-                onChange={(event) => updateRuleDraft(newRule, setNewRule, 'isActive', event.target.checked)}
-                disabled={!isOwner || isSavingRule}
-              />
-              {t('workspaceSettings.leadScoring.active', 'Đang áp dụng')}
-            </label>
+    <div className="w-full space-y-6 pb-16">
+      {/* Sub-section tab switcher (Cardless flat pill tabs) */}
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 pb-3">
+        {SUBSECTIONS.map((sub) => {
+          const isActive = currentSection === sub.id;
+          return (
             <button
-              type="submit"
-              disabled={!isOwner || isSavingRule}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              key={sub.id}
+              type="button"
+              onClick={() => handleSectionChange(sub.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer border-none ${isActive
+                ? 'bg-blue-600 text-white shadow-2xs'
+                : 'bg-slate-100/80 text-slate-600 hover:bg-slate-200/70 hover:text-slate-900'
+                }`}
             >
-              {t('workspaceSettings.leadScoring.addRule', 'Thêm tiêu chí')}
+              {sub.label}
             </button>
-          </div>
-        </form>
+          );
+        })}
+      </div>
 
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs text-slate-500">
-                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colGroup', 'Nhóm')}</th>
-                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colKeyword', 'Từ khóa')}</th>
-                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colWeight', 'Trọng số')}</th>
-                <th className="px-2 py-2 font-medium">{t('workspaceSettings.leadScoring.colStatus', 'Trạng thái')}</th>
-                <th className="px-2 py-2 text-right font-medium">{t('workspaceSettings.leadScoring.colActions', 'Thao tác')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {rules.map((rule) => {
-                const isEditing = editingRuleId === rule.id;
-                return (
-                  <tr key={rule.id} className="align-top">
-                    <td className="px-2 py-3">
-                      {isEditing ? (
-                        <input
-                          value={editingRule.group}
-                          onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'group', event.target.value)}
-                          className="w-full rounded border border-slate-300 px-2 py-1.5"
-                          maxLength={50}
-                        />
-                      ) : rule.group}
-                    </td>
-                    <td className="px-2 py-3">
-                      {isEditing ? (
-                        <div className="space-y-1">
-                          <input
-                            value={editingRule.keyword}
-                            onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'keyword', event.target.value)}
-                            className="w-full rounded border border-slate-300 px-2 py-1.5"
-                            maxLength={200}
-                          />
-                          <input
-                            value={editingRule.description || ''}
-                            onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'description', event.target.value)}
-                            className="w-full rounded border border-slate-300 px-2 py-1.5 text-xs"
-                            placeholder={t('workspaceSettings.leadScoring.description', 'Mô tả')}
-                            maxLength={500}
-                          />
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="font-medium text-slate-800">{rule.keyword}</div>
-                          {rule.description && <div className="mt-0.5 text-xs text-slate-500">{rule.description}</div>}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-2 py-3">
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          step="1"
-                          value={editingRule.weight}
-                          onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'weight', Number(event.target.value))}
-                          className="w-24 rounded border border-slate-300 px-2 py-1.5"
-                        />
-                      ) : (
-                        <span className={rule.weight < 0 ? 'text-rose-600' : 'text-slate-700'}>
-                          {rule.weight > 0 ? `+${rule.weight}` : rule.weight}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-3">
-                      {isEditing ? (
-                        <label className="flex items-center gap-2 text-xs text-slate-600">
-                          <input
-                            type="checkbox"
-                            checked={editingRule.isActive}
-                            onChange={(event) => updateRuleDraft(editingRule, setEditingRule, 'isActive', event.target.checked)}
-                          />
-                          {t('workspaceSettings.leadScoring.apply', 'Áp dụng')}
-                        </label>
-                      ) : (
-                        <span className={rule.isActive ? 'text-emerald-700' : 'text-slate-400'}>
-                          {rule.isActive ? t('workspaceSettings.leadScoring.active', 'Đang áp dụng') : t('workspaceSettings.leadScoring.off', 'Đã tắt')}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-3">
-                      <div className="flex justify-end gap-2 whitespace-nowrap">
-                        {isEditing ? (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!isOwner || isSavingRule}
-                              onClick={() => void handleUpdateRule(rule.id)}
-                              className="text-xs font-medium text-blue-700 disabled:opacity-50"
-                            >
-                              {t('workspaceSettings.leadScoring.save', 'Lưu')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingRuleId(null)}
-                              className="text-xs text-slate-500"
-                            >
-                              {t('workspaceSettings.cancel', 'Hủy')}
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!isOwner || isSavingRule}
-                              onClick={() => {
-                                setEditingRule(ruleDraft(rule));
-                                setEditingRuleId(rule.id);
-                              }}
-                              className="text-xs font-medium text-blue-700 disabled:opacity-50"
-                            >
-                              {t('workspaceSettings.leadScoring.edit', 'Sửa')}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!isOwner || isSavingRule}
-                              onClick={() => void handleDeleteRule(rule)}
-                              className="text-xs font-medium text-rose-600 disabled:opacity-50"
-                            >
-                              {t('workspaceSettings.leadScoring.delete', 'Xóa')}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {rules.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-2 py-8 text-center text-sm text-slate-500">
-                    {t('workspaceSettings.leadScoring.empty', 'Chưa có tiêu chí nào. Thêm tiêu chí để bắt đầu chấm điểm theo quy tắc riêng.')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* ================= SECTION 1: TIÊU CHÍ & TỪ KHÓA ================= */}
+      {currentSection === 'rules' && (
+        <section id="lead-scoring-rules" className="space-y-4">
+          <ConfigSubSectionHeader
+            title="Tiêu chí & Từ khóa nhận diện"
+            help={{
+              title: "Tiêu chí & Từ khóa nhận diện",
+              description:
+                "Hệ thống tự động phân tích nội dung tương tác của khách hàng và tính toán điểm số tích lũy dựa trên danh sách từ khóa có gán trọng số.",
+              example:
+                "Khách hàng gửi tin nhắn: 'Tôi cần báo giá dịch vụ'. Hệ thống nhận diện từ khóa 'báo giá' (+5 điểm) và 'dịch vụ' (+5 điểm). Tự động cộng dồn +10 điểm vào hồ sơ khách hàng.",
+              rules: [
+                "Trọng số dương (+) biểu thị sự quan tâm và mức độ sẵn sàng chuyển đổi cao.",
+                "Trọng số âm (-) dùng để nhận diện tương tác rác, chào mời quảng cáo hoặc từ chối liên hệ.",
+                "Bộ máy nhận diện hỗ trợ đối soát tiếng Việt không phân biệt dấu và chữ hoa/thường.",
+              ],
+            }}
+          />
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="mb-4">
-          <h2 className="m-0 text-base font-semibold text-slate-900">
-            {t('workspaceSettings.leadScoring.behaviorTitle', 'Ngưỡng và hành vi chấm điểm')}
-            <InfoTip text={t('workspaceSettings.leadScoring.behaviorTip', 'Các thiết lập bên dưới ảnh hưởng đến cách tính điểm, phân hạng và giải thích kết quả của Lead.')} />
-          </h2>
-          <p className="mt-1 mb-0 text-sm text-slate-500">
-            {t('workspaceSettings.leadScoring.behaviorDesc', 'Mở từng mục để chỉnh các thiết lập liên quan. Các thay đổi chỉ có hiệu lực sau khi lưu.')}
-          </p>
-        </div>
+          {/* Form thêm nhanh tiêu chí mới */}
+          {isOwner && (
+            <KeywordRuleQuickAddForm
+              onSuccess={reload}
+              prefillGroup={prefillGroup}
+              onClearPrefillGroup={() => setPrefillGroup('')}
+            />
+          )}
 
-        <div className="space-y-2">
-          {numericSettingGroups.map((group, index) => (
-            <details key={group.title} open={index === 0} className="rounded-lg border border-slate-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-                {t(`workspaceSettings.leadScoring.groups.${group.id}.title`, group.title)}
-                <InfoTip text={t(`workspaceSettings.leadScoring.groups.${group.id}.description`, group.description)} />
-              </summary>
-              <p className="mb-3 mt-1 text-xs text-slate-500">{t(`workspaceSettings.leadScoring.groups.${group.id}.description`, group.description)}</p>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {group.keys.map((key) => {
-                  const setting = numericSettings.find((item) => item.key === key);
-                  if (!setting) return null;
-                  return (
-                    <label key={key} className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">{t(`workspaceSettings.leadScoring.fields.${setting.key}`, setting.label)}</span>
-                      <input
-                        type="number"
-                        step="1"
-                        value={settingsDraft[key]}
-                        onChange={(event) =>
-                          setSettingsDraft({ ...settingsDraft, [key]: Number(event.target.value) })
-                        }
-                        disabled={!isOwner}
-                        className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm disabled:bg-slate-50"
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-              {group.id === 'exclusion' && (
-                <>
-                  <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={settingsDraft.ambiguityResolutionEnabled}
-                      onChange={(event) =>
-                        setSettingsDraft({ ...settingsDraft, ambiguityResolutionEnabled: event.target.checked })
-                      }
-                      disabled={!isOwner}
-                    />
-                    {t('workspaceSettings.leadScoring.ambiguityToggle', 'Bật xử lý tin nhắn sát ngưỡng và tin nhắn ngắn')}
-                  </label>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <label className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.negationBefore', 'Từ/cụm từ phủ định phía trước')}</span>
-                      <span className="block text-xs text-slate-400">{t('workspaceSettings.leadScoring.negationBeforeHint', 'Mỗi dòng là một cụm được kiểm tra trước từ khóa.')}</span>
-                      <textarea
-                        value={settingsDraft.negationTerms.join('\n')}
-                        onChange={(event) =>
-                          setSettingsDraft({
-                            ...settingsDraft,
-                            negationTerms: event.target.value.split('\n').map((term) => term.trim()).filter(Boolean),
-                          })
-                        }
-                        rows={5}
-                        disabled={!isOwner}
-                        className="w-full resize-y rounded-md border border-slate-300 px-2.5 py-2 text-sm disabled:bg-slate-50"
-                      />
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.negationAfter', 'Từ/cụm từ phủ định phía sau')}</span>
-                      <span className="block text-xs text-slate-400">{t('workspaceSettings.leadScoring.negationAfterHint', 'Mỗi dòng là một cụm được kiểm tra sau từ khóa.')}</span>
-                      <textarea
-                        value={settingsDraft.negationPostTerms.join('\n')}
-                        onChange={(event) =>
-                          setSettingsDraft({
-                            ...settingsDraft,
-                            negationPostTerms: event.target.value.split('\n').map((term) => term.trim()).filter(Boolean),
-                          })
-                        }
-                        rows={5}
-                        disabled={!isOwner}
-                        className="w-full resize-y rounded-md border border-slate-300 px-2.5 py-2 text-sm disabled:bg-slate-50"
-                      />
-                    </label>
-                  </div>
-                </>
-              )}
-            </details>
-          ))}
-          <details className="rounded-lg border border-slate-200 p-3">
-            <summary className="cursor-pointer text-sm font-semibold text-slate-800">
-              {t('workspaceSettings.leadScoring.tiersTitle', 'Tên hạng và khuyến nghị')}
-              <InfoTip text={t('workspaceSettings.leadScoring.tiersTip', 'Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead.')} />
-            </summary>
-            <p className="mb-3 mt-1 text-xs text-slate-500">{t('workspaceSettings.leadScoring.tiersTip', 'Tùy chỉnh nhãn hiển thị và hướng xử lý cho từng hạng Lead.')}</p>
-            <div className="space-y-3">
-          {tiers.map((tier) => (
-            <div key={tier} className="grid gap-3 rounded-lg border border-slate-100 p-3 md:grid-cols-2">
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.tierName', 'Tên hạng {tier}', { tier })}</span>
-                <input
-                  value={settingsDraft.tierLabels[tier]}
-                  onChange={(event) =>
-                    setSettingsDraft({
-                      ...settingsDraft,
-                      tierLabels: { ...settingsDraft.tierLabels, [tier]: event.target.value },
-                    })
-                  }
-                  maxLength={100}
-                  disabled={!isOwner}
-                  className="w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm disabled:bg-slate-50"
-                />
-              </label>
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-slate-600">{t('workspaceSettings.leadScoring.tierRecommendation', 'Khuyến nghị cho hạng {tier}', { tier })}</span>
-                <textarea
-                  value={settingsDraft.tierRecommendations[tier]}
-                  onChange={(event) =>
-                    setSettingsDraft({
-                      ...settingsDraft,
-                      tierRecommendations: { ...settingsDraft.tierRecommendations, [tier]: event.target.value },
-                    })
-                  }
-                  maxLength={500}
-                  rows={2}
-                  disabled={!isOwner}
-                  className="w-full resize-y rounded-md border border-slate-300 px-2.5 py-2 text-sm disabled:bg-slate-50"
-                />
-              </label>
-            </div>
-          ))}
-            </div>
-          </details>
-        </div>
+          {/* Trình quản lý từ khóa quy mô 1,000+ từ */}
+          <KeywordRulesManager
+            rules={rules}
+            isOwner={isOwner}
+            onReload={reload}
+            onQuickAddGroupPrefill={(groupName) => setPrefillGroup(groupName)}
+          />
+        </section>
+      )}
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            disabled={!isOwner || isSavingSettings}
-            onClick={() => void handleSaveSettings()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSavingSettings ? t('workspaceSettings.storage.saving', 'Đang lưu...') : t('workspaceSettings.leadScoring.saveSettings', 'Lưu cấu hình')}
-          </button>
-        </div>
-      </section>
+      {/* ================= SECTION 2: NGƯỠNG PHÂN LOẠI & HẠNG ================= */}
+      {currentSection === 'thresholds' && (
+        <section id="lead-scoring-thresholds" className="space-y-4">
+          <ConfigSubSectionHeader
+            title="Ngưỡng phân loại & Tên hạng Lead"
+            help={{
+              title: "Ngưỡng phân loại & Tên hạng Lead",
+              description:
+                "Hệ thống đối chiếu tổng điểm của khách hàng với các mức điểm sàn để tự động xếp hạng tiềm năng (HOT, WARM, COLD) kèm khuyến nghị hành động cho nhân sự.",
+              example:
+                "Cấu hình HOT ≥ 10 điểm, WARM ≥ 5 điểm, COLD ≥ 1 điểm. Khách hàng tích lũy đạt 12 điểm sẽ tự động được xếp hạng HOT và hiển thị nhãn ưu tiên xử lý trong vòng 15 phút.",
+              rules: [
+                "Ngưỡng điểm phải tuân thủ nguyên tắc tăng dần: mức điểm sàn COLD < WARM < HOT.",
+                "Ngay khi đạt ngưỡng, nhãn và màu sắc nhận diện tương ứng sẽ hiển thị tức thì trên danh sách liên hệ.",
+                "Mỗi hạng cho phép cài đặt thông điệp hướng dẫn để nhân sự xử lý đúng quy trình.",
+              ],
+            }}
+          />
+
+          <LeadTierConfigMatrix
+            settingsDraft={settingsDraft}
+            setSettingsDraft={setSettingsDraft}
+            isOwner={isOwner}
+            isSaving={isSavingSettings}
+            onSave={handleSaveSettings}
+          />
+        </section>
+      )}
+
+      {/* ================= SECTION 3: ĐIỂM THƯỞNG & GIẢM THEO THỜI GIAN ================= */}
+      {currentSection === 'decay' && (
+        <section id="lead-scoring-decay" className="space-y-4">
+          <ConfigSubSectionHeader
+            title="Điểm thưởng & Giảm điểm theo thời gian"
+            help={{
+              title: "Điểm thưởng & Giảm điểm theo thời gian",
+              description:
+                "Hệ thống tự động cộng điểm khuyến khích khi khách hàng để lại thông tin liên lạc và khấu trừ dần điểm số nếu khách hàng không phát sinh tương tác mới sau thời gian quy định.",
+              example:
+                "Khách hàng cung cấp số điện thoại. Hệ thống lập tức cộng +15 điểm thưởng. Sau 7 ngày không có tin nhắn phát sinh. Hệ thống tự động trừ 2 điểm mỗi chu kỳ tuần để hạ nhiệt độ ưu tiên.",
+              rules: [
+                "Điểm thưởng thông tin liên hệ giúp khách hàng nhanh chóng đạt hạng ưu tiên để nhân viên tiếp cận sớm.",
+                "Cơ chế giảm điểm theo thời gian giữ cho danh sách xử lý luôn tập trung vào các cơ hội có tính tương tác cao.",
+                "Điểm số sau khi giảm trừ sẽ không hạ xuống dưới mức điểm sàn tối thiểu của hệ thống.",
+              ],
+            }}
+          />
+
+          <LeadDecayConfigSection
+            settingsDraft={settingsDraft}
+            setSettingsDraft={setSettingsDraft}
+            isOwner={isOwner}
+            isSaving={isSavingSettings}
+            onSave={handleSaveSettings}
+          />
+        </section>
+      )}
+
+      {/* ================= SECTION 4: LOẠI TRỪ & PHỦ ĐỊNH ================= */}
+      {currentSection === 'exclusion' && (
+        <section id="lead-scoring-exclusion" className="space-y-4">
+          <ConfigSubSectionHeader
+            title="Loại trừ & Xử lý phủ định"
+            help={{
+              title: "Loại trừ & Xử lý phủ định",
+              description:
+                "Hệ thống phát hiện các cấu trúc phủ định trong câu để vô hiệu hóa việc cộng điểm nhầm và tự động đánh dấu loại trừ các khách hàng có điểm số tiêu cực vượt ngưỡng.",
+              example:
+                "Khách hàng phản hồi 'Tôi không có nhu cầu sử dụng'. Cụm từ phủ định 'không có nhu cầu' tự động triệt tiêu trọng số của từ 'sử dụng', ngăn chặn việc cộng điểm sai lệch.",
+              rules: [
+                "Từ ngữ phủ định đứng trước hoặc sau từ khóa chính sẽ vô hiệu hóa điểm thưởng tương ứng trong phạm vi câu.",
+                "Khi tổng điểm tiêu cực chạm ngưỡng loại trừ, hệ thống tự động gắn nhãn loại trừ và ngừng phân bổ cho nhân viên.",
+                "Danh sách từ phủ định có thể tùy chỉnh linh hoạt phù hợp với ngữ cảnh giao tiếp của từng lĩnh vực.",
+              ],
+            }}
+          />
+
+          <LeadExclusionConfigSection
+            settingsDraft={settingsDraft}
+            setSettingsDraft={setSettingsDraft}
+            isOwner={isOwner}
+            isSaving={isSavingSettings}
+            onSave={handleSaveSettings}
+          />
+        </section>
+      )}
     </div>
   );
 };

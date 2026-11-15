@@ -1,5 +1,5 @@
 /* ==========================================================================
-   CUSC CRM - ONBOARDING WIZARD & OAUTH CONNECT STYLES
+   ONBOARDING WIZARD & OAUTH CONNECT STYLES
    ========================================================================== */
 
 .onboarding-page-container {
@@ -24,6 +24,10 @@
 .workspace-flat-view,
 .workspace-flat-detail {
   box-sizing: border-box;
+  width: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .workspace-flat-section {
@@ -364,7 +368,7 @@
   justify-content: center;
   font-size: 13px;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .channel-badge {
@@ -580,14 +584,14 @@
   bottom: 3px;
   background-color: white;
   transition: 0.3s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-input:checked + .crm-slider {
+input:checked+.crm-slider {
   background-color: var(--color-primary);
 }
 
-input:checked + .crm-slider:before {
+input:checked+.crm-slider:before {
   transform: translateX(18px);
 }
 
@@ -801,7 +805,7 @@ input:checked + .crm-slider:before {
    ========================================================================== */
 
 .onboarding-card-footer .skip-btn,
-.wizard-title-group ~ .skip-btn,
+.wizard-title-group~.skip-btn,
 .skip-btn {
   background: #ffffff !important;
   color: #64748b !important;
@@ -818,7 +822,7 @@ input:checked + .crm-slider:before {
 }
 
 .onboarding-card-footer .skip-btn:hover,
-.wizard-title-group ~ .skip-btn:hover,
+.wizard-title-group~.skip-btn:hover,
 .skip-btn:hover {
   background: #f0f9ff !important;
   color: #0284c7 !important;
@@ -828,7 +832,7 @@ input:checked + .crm-slider:before {
 }
 
 .onboarding-card-footer .skip-btn:active,
-.wizard-title-group ~ .skip-btn:active,
+.wizard-title-group~.skip-btn:active,
 .skip-btn:active {
   transform: translateY(0);
 }
@@ -899,8 +903,15 @@ input:checked + .crm-slider:before {
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .crm-oauth-header {

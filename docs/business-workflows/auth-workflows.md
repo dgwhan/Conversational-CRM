@@ -3,7 +3,7 @@
 > **Mã tài liệu:** `SPEC-CRM-AUTH-01`  
 > **Phiên bản:** `1.0.0`  
 > **Trạng thái:** `Đã chuẩn hóa (Standardized & Production Ready)`  
-> **Áp dụng cho:** Hệ thống CUSC Social Recruitment & Admissions CRM  
+> **Áp dụng cho:** Hệ thống Social Recruitment & Admissions CRM  
 
 ---
 
@@ -119,7 +119,7 @@ Quy trình 4 bước khép kín giúp người dùng lấy lại quyền truy c�
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Nhân sự CUSC
+    actor User as Nhân sự 
     participant UI as Giao diện Web (4 Bước)
     participant Server as Máy chủ API & Dịch vụ Khôi phục
     participant Mail as Hộp thư Email Nhân sự

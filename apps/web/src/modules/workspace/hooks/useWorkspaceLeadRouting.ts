@@ -128,8 +128,9 @@ export function useWorkspaceLeadRouting(workspaceId: string) {
     await refresh();
   };
   const handoverLead = async (conversationId: string, targetMemberId?: string | null) => {
-    await apiClient.post(`/workspaces/current/conversations/${conversationId}/handover`, { targetMemberId }, { headers: { 'x-workspace-id': workspaceId } });
+    const result = await apiClient.post<{ overCapacity?: boolean }>(`/workspaces/current/conversations/${conversationId}/handover`, { targetMemberId }, { headers: { 'x-workspace-id': workspaceId } });
     await refresh();
+    return result;
   };
   const offboardMember = async (memberId: string, mode: 'QUEUE' | 'TRANSFER', targetMemberId?: string) => {
     const result = await apiClient.post<{

@@ -1,5 +1,6 @@
 export * from './types.js';
 export * from './WorkspaceSettingsHeader.js';
+export * from './WorkspaceSettingsTab.js';
 export * from './WorkingHoursTab.js';
 export * from './WorkingHoursToggle.js';
 export * from './shift-management/index.js';

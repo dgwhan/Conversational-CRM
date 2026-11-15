@@ -46,7 +46,7 @@ export const Select: React.FC<SelectProps> = ({
       <div className="relative inline-flex items-center w-full">
         <select
           disabled={disabled}
-          className={`appearance-none w-full border border-slate-300 rounded-none bg-white text-slate-800 outline-none focus:border-blue-600 cursor-pointer transition-colors shadow-none box-border disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${
+          className={`appearance-none w-full border border-slate-300 rounded-md bg-white text-slate-800 outline-none focus:border-blue-600 cursor-pointer transition-colors shadow-2xs box-border disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${
             error ? 'border-red-500 focus:border-red-600' : ''
           } ${heightClasses[size] ?? heightClasses.md} ${className}`}
           {...props}

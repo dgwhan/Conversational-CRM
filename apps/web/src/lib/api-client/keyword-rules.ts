@@ -54,6 +54,18 @@ export function createKeywordRulesApi(client: BaseApiClient) {
       return client.delete<{ success: boolean }>(`/keyword-rules/${encodeURIComponent(id)}`);
     },
 
+    createRulesBulk(rules: Array<Omit<KeywordRuleItem, 'id' | 'workspaceId'>>) {
+      return client.post<{ createdCount: number }>('/keyword-rules/bulk', { rules });
+    },
+
+    bulkUpdateRules(ids: string[], patch: Partial<Omit<KeywordRuleItem, 'id' | 'workspaceId'>>) {
+      return client.patch<{ updatedCount: number }>('/keyword-rules/bulk', { ids, patch });
+    },
+
+    bulkDeleteRules(ids: string[]) {
+      return client.post<{ deletedCount: number }>('/keyword-rules/bulk-delete', { ids });
+    },
+
     getScoringSettings() {
       return client.get<LeadScoringSettings>('/keyword-rules/thresholds');
     },

@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "../../../../../components/ui/index.js";
+import { Button, SearchableSelect } from "../../../../../components/ui/index.js";
 import type { ManagedStaffItem } from "../../../types/staff.types.js";
 import type { AuditEntry } from "./types.js";
 import type { AuditDateRange } from "./utils.js";
@@ -129,25 +129,35 @@ export const ShiftAuditSection: React.FC<ShiftAuditSectionProps> = ({
 }) => (
   <ShiftSection
     title="Nhật ký hoạt động"
-    description="Chỉ hiển thị thao tác liên quan đến ca đang chọn."
+    help={{
+      title: "Nhật ký kiểm toán hoạt động ca",
+      description:
+        "Lưu trữ toàn bộ lịch sử thay đổi cấu hình ca trực, phân công nhân sự, báo vắng và các thao tác điều phối khách hàng.",
+      example:
+        'Ca trưởng thực hiện gán thủ công một khách hàng cho nhân sự trực ca → Hệ thống tự động ghi vết danh tính người thao tác, thời điểm chính xác và trạng thái bàn giao của hội thoại.',
+      rules: [
+        "Dữ liệu nhật ký được bảo đảm tính toàn vẹn (immutable) phục vụ công tác đối soát và kiểm toán vận hành.",
+        "Hỗ trợ bộ lọc nhanh theo các khoảng thời gian (Hôm nay, 7 ngày qua, 30 ngày qua) hoặc khoảng ngày tùy chỉnh.",
+        "Mọi thao tác thay đổi hạn mức, vai trò Ca trưởng và thời gian ca đều được ghi nhận chi tiết.",
+      ],
+    }}
     actions={
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <label className="sr-only" htmlFor="shift-audit-date-range">
-          Khoảng thời gian nhật ký
-        </label>
-        <select
+        <SearchableSelect
           id="shift-audit-date-range"
+          aria-label="Khoảng thời gian nhật ký"
           value={range}
-          onChange={(event) =>
-            onRangeChange(event.target.value as AuditDateRange)
-          }
-          className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700"
-        >
-          <option value="TODAY">Hôm nay</option>
-          <option value="YESTERDAY">Hôm qua</option>
-          <option value="THIS_WEEK">Tuần này</option>
-          <option value="CUSTOM">Tùy chỉnh</option>
-        </select>
+          onChange={(val) => onRangeChange(val as AuditDateRange)}
+          options={[
+            { value: "TODAY", label: "Hôm nay" },
+            { value: "YESTERDAY", label: "Hôm qua" },
+            { value: "THIS_WEEK", label: "Tuần này" },
+            { value: "CUSTOM", label: "Tùy chỉnh" },
+          ]}
+          size="sm"
+          searchable={false}
+          className="w-32"
+        />
         {range === "CUSTOM" && (
           <>
             <label className="sr-only" htmlFor="shift-audit-start-date">

@@ -65,9 +65,6 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
             {isOwner ? t('workspaceSettings.owner', 'Chủ sở hữu') : canManageWorkspace ? 'Quản lý workspace' : t('workspaceSettings.member', 'Thành viên')}
           </span>
         </div>
-        <p className="text-xs text-slate-500 m-0 mt-0.5 leading-relaxed">
-          {t('workspaceSettings.headerDesc', 'Tùy biến quy trình kinh doanh, giai đoạn phễu, danh mục sản phẩm, thuật ngữ và giờ làm việc.')}
-        </p>
       </div>
 
       {canManageWorkspace && (

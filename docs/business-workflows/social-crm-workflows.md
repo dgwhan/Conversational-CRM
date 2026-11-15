@@ -3,7 +3,7 @@
 > **Mã tài liệu:** `SPEC-CRM-01`  
 > **Phiên bản:** `1.0.0`  
 > **Trạng thái:** `Đã chuẩn hóa (Draft for Implementation)`  
-> **Áp dụng cho:** Hệ thống CUSC Social Recruitment & Admissions CRM  
+> **Áp dụng cho:** Hệ thống Social Recruitment & Admissions CRM  
 
 ---
 

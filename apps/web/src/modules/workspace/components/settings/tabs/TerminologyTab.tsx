@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tag, Save } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import type { WorkspaceTerminology } from '../../../workspaceConfig.types.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
+import { ConfigSubSectionHeader } from '../../../../../components/ui/index.js';
 
 import { useTranslation } from '../../../../../i18n/index.js';
 export interface TerminologyTabProps {
@@ -42,95 +43,99 @@ export const TerminologyTab: React.FC<TerminologyTabProps> = ({
   };
 
   return (
-    <div className="w-full">
-      <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-4 w-full">
-        <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200/80 text-blue-600 flex items-center justify-center shrink-0">
-            <Tag size={14} />
-          </div>
+    <div className="w-full space-y-8 pb-12">
+      <ConfigSubSectionHeader
+        title={t('workspaceSettings.terminology.title', 'Cấu hình nhãn thuật ngữ hiển thị')}
+        help={{
+          title: t('workspaceSettings.terminology.title', 'Cấu hình nhãn thuật ngữ hiển thị'),
+          description:
+            'Cấu hình chuẩn hóa các danh xưng và thuật ngữ hiển thị nhằm đồng bộ phù hợp với mô hình tổ chức và ngôn ngữ vận hành của doanh nghiệp.',
+          example:
+            'Quản trị viên đặt tên thực thể là "Khách hàng" và sản phẩm là "Gói giải pháp". Hệ thống tự động cập nhật đồng bộ các tiêu đề cột phễu, biểu mẫu hồ sơ và bảng dữ liệu phân tích.',
+          rules: [
+            'Thay đổi thuật ngữ chỉ tác động đến lớp hiển thị giao diện, không làm ảnh hưởng đến cấu trúc cơ sở dữ liệu ngầm.',
+            'Yêu cầu thẩm quyền Chủ sở hữu không gian làm việc (Owner) để thiết lập và ban hành cấu hình cho toàn bộ thành viên.',
+            'Các thay đổi có hiệu lực ngay lập tức trên mọi màn hình chức năng của hệ thống.',
+          ],
+        }}
+      />
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <h4 className="m-0 text-xs font-bold text-slate-900 uppercase tracking-wider">
-              {t('workspaceSettings.terminology.title', 'Cấu Hình Nhãn Thuật Ngữ Hiển Thị Trên Giao Diện')}
-            </h4>
-            <p className="text-[11px] text-slate-500 mt-0.5 mb-0">
-              {t('workspaceSettings.terminology.desc', 'Tự động đồng bộ tên gọi hiển thị theo toàn bộ hệ thống quản lý phễu, modal hồ sơ và bảng phân tích.')}
-            </p>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t('workspaceSettings.terminology.entityLabel', 'Tên thực thể khách hàng (Hiển thị tại Cột Hồ Sơ & Modal)')}
+            </label>
+            <input
+              type="text"
+              placeholder={t('workspaceSettings.terminology.entityPlaceholder', 'VD: Thí sinh / Học viên, Khách mua BĐS, Khách hàng')}
+              value={entityName}
+              onChange={(e) => setEntityName(e.target.value)}
+              disabled={!isOwner}
+              className="w-full h-9 rounded-md border border-transparent bg-slate-100/80 px-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all disabled:opacity-60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t('workspaceSettings.terminology.pipelineLabel', 'Tên gọi của Bảng Phễu (Bảng Kanban)')}
+            </label>
+            <input
+              type="text"
+              placeholder={t('workspaceSettings.terminology.pipelinePlaceholder', 'VD: Phễu Tuyển Sinh & Đào Tạo, Phễu Bán Hàng')}
+              value={pipelineName}
+              onChange={(e) => setPipelineName(e.target.value)}
+              disabled={!isOwner}
+              className="w-full h-9 rounded-md border border-transparent bg-slate-100/80 px-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all disabled:opacity-60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t('workspaceSettings.terminology.productLabel', 'Tên gọi danh mục kinh doanh (Sản phẩm / Dịch vụ / Khóa học / BĐS...)')}
+            </label>
+            <input
+              type="text"
+              placeholder={t('workspaceSettings.terminology.productPlaceholder', 'VD: Sản phẩm / Dịch vụ, Khóa học, Gói liệu trình, Căn hộ / Dự án...')}
+              value={productLabel}
+              onChange={(e) => setProductLabel(e.target.value)}
+              disabled={!isOwner}
+              className="w-full h-9 rounded-md border border-transparent bg-slate-100/80 px-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all disabled:opacity-60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              {t('workspaceSettings.terminology.valueLabel', 'Tên gọi Doanh số / Học phí dự kiến')}
+            </label>
+            <input
+              type="text"
+              placeholder={t('workspaceSettings.terminology.valuePlaceholder', 'VD: Học phí dự kiến (VNĐ), Giá trị đơn hàng, Giá trị giao dịch')}
+              value={valueLabel}
+              onChange={(e) => setValueLabel(e.target.value)}
+              disabled={!isOwner}
+              className="w-full h-9 rounded-md border border-transparent bg-slate-100/80 px-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all disabled:opacity-60"
+            />
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t('workspaceSettings.terminology.entityLabel', 'Tên thực thể khách hàng (Hiển thị tại Cột Hồ Sơ & Modal)')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('workspaceSettings.terminology.entityPlaceholder', 'VD: Thí sinh / Học viên, Khách mua BĐS, Khách hàng')}
-                value={entityName}
-                onChange={(e) => setEntityName(e.target.value)}
-                disabled={!isOwner}
-                className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs disabled:bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t('workspaceSettings.terminology.pipelineLabel', 'Tên gọi của Bảng Phễu (Bảng Kanban)')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('workspaceSettings.terminology.pipelinePlaceholder', 'VD: Phễu Tuyển Sinh & Đào Tạo, Phễu Bán Hàng')}
-                value={pipelineName}
-                onChange={(e) => setPipelineName(e.target.value)}
-                disabled={!isOwner}
-                className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs disabled:bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t('workspaceSettings.terminology.productLabel', 'Tên gọi danh mục kinh doanh (Sản phẩm / Dịch vụ / Khóa học / BĐS...)')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('workspaceSettings.terminology.productPlaceholder', 'VD: Sản phẩm / Dịch vụ, Khóa học, Gói liệu trình, Căn hộ / Dự án...')}
-                value={productLabel}
-                onChange={(e) => setProductLabel(e.target.value)}
-                disabled={!isOwner}
-                className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs disabled:bg-slate-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {t('workspaceSettings.terminology.valueLabel', 'Tên gọi Doanh số / Học phí dự kiến')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('workspaceSettings.terminology.valuePlaceholder', 'VD: Học phí dự kiến (VNĐ), Giá trị đơn hàng, Giá trị giao dịch')}
-                value={valueLabel}
-                onChange={(e) => setValueLabel(e.target.value)}
-                disabled={!isOwner}
-                className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-200 bg-white focus:outline-hidden focus:border-blue-500 shadow-2xs disabled:bg-slate-50"
-              />
-            </div>
+        {isOwner && (
+          <div className="pt-6 pb-12 border-t border-slate-200 flex justify-end">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer border-none shadow-2xs inline-flex flex-row items-center justify-center gap-1.5 whitespace-nowrap"
+            >
+              {isLoading ? (
+                <Loader2 size={14} className="animate-spin shrink-0" />
+              ) : (
+                <Save size={14} className="shrink-0" />
+              )}
+              <span>{isLoading ? 'Đang lưu...' : 'Lưu cài đặt'}</span>
+            </button>
           </div>
-
-          {isOwner && (
-            <div className="pt-2 border-t border-slate-100 flex justify-end">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="h-8 px-4 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
-              >
-                <Save size={13} />
-                <span>{t('workspaceSettings.terminology.save', 'Lưu Cấu Hình Thuật Ngữ')}</span>
-              </button>
-            </div>
-          )}
-        </form>
-      </div>
+        )}
+      </form>
     </div>
   );
 };

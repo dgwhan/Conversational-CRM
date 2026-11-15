@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { ProductItemConfig } from '../../../workspaceConfig.types.js';
-import { EmptyState } from '../../../../../components/ui/index.js';
+import { EmptyState, ConfigSubSectionHeader } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { AddProductModal } from '../modals/AddProductModal.js';
 
@@ -38,79 +38,88 @@ export const CatalogTab: React.FC<CatalogTabProps> = ({
   };
 
   return (
-    <div className="w-full space-y-3">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div>
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">
-            {t('workspaceSettings.catalog.title', 'Danh Sách {label} ({n})', { label: productLabel, n: catalog.length })}
-          </h3>
-          <p className="text-[11px] text-slate-500 m-0">
-            {t('workspaceSettings.catalog.desc', 'Bảng giá niêm yết và phân loại danh mục kinh doanh trực thuộc không gian làm việc này')}
-          </p>
-        </div>
-        {isOwner && (
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            disabled={isLoading}
-            className="h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
-          >
-            <Plus size={14} />
-            <span>{t('workspaceSettings.catalog.add', 'Thêm {label}', { label: productLabel.toLowerCase() })}</span>
-          </button>
-        )}
-      </div>
+    <div className="w-full space-y-6">
+      {/* Sub-Section Toolbar Row */}
+      <ConfigSubSectionHeader
+        title={t('workspaceSettings.catalog.title', 'Danh sách {label} ({n})', { label: productLabel, n: catalog.length })}
+        help={{
+          title: `Danh mục ${productLabel}`,
+          description:
+            'Danh mục chuẩn hóa các sản phẩm, hàng hóa hoặc gói dịch vụ cùng mức giá niêm yết được áp dụng trong không gian làm việc.',
+          example:
+            `Nhân viên gắn mục "${productLabel} tiêu chuẩn" (Mã: SKU-01) vào giao dịch. Hệ thống tự động áp dụng giá niêm yết tương ứng và cập nhật tổng giá trị vào báo cáo doanh số dự kiến.`,
+          rules: [
+            'Mỗi mục trong danh mục có thể liên kết trực tiếp vào cơ hội kinh doanh và hồ sơ khách hàng.',
+            'Mã định danh hỗ trợ phân loại dữ liệu báo cáo và kết nối với các hệ thống quản lý bên ngoài.',
+            'Cập nhật giá niêm yết chỉ áp dụng cho các giao dịch tạo mới, không làm thay đổi các giao dịch đã hoàn tất.',
+          ],
+        }}
+        actions={
+          isOwner && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 shadow-2xs border-none"
+            >
+              <Plus size={13} className="text-white" />
+              <span>{t('workspaceSettings.catalog.add', 'Thêm {label}', { label: productLabel.toLowerCase() })}</span>
+            </button>
+          )
+        }
+      />
 
-      {/* Table section */}
-      <div className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs w-full">
+      {/* Unboxed Flat Table */}
+      <div className="w-full border-t border-b border-slate-200 bg-white">
         {catalog.length === 0 ? (
-          <EmptyState
-            title={t('workspaceSettings.catalog.emptyTitle', 'Chưa có {label} nào', { label: productLabel.toLowerCase() })}
-            description={t('workspaceSettings.catalog.emptyDesc', 'Hãy nhấn nút Thêm ở trên để tạo sản phẩm, khóa học hoặc dịch vụ kinh doanh mới.')}
-          />
+          <div className="py-8">
+            <EmptyState
+              title={t('workspaceSettings.catalog.emptyTitle', 'Chưa có {label} nào', { label: productLabel.toLowerCase() })}
+              description={t('workspaceSettings.catalog.emptyDesc', 'Hãy nhấn nút Thêm ở trên để tạo sản phẩm, khóa học hoặc dịch vụ kinh doanh mới.')}
+            />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] border-collapse text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/50 text-slate-500 font-semibold text-[11px]">
-                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colName', 'Tên mục')}</th>
-                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colCode', 'Mã định danh')}</th>
-                  <th className="px-4 py-2.5">{t('workspaceSettings.catalog.colCategory', 'Nhóm / Danh mục')}</th>
-                  <th className="px-4 py-2.5 text-right">{t('workspaceSettings.catalog.colPrice', 'Giá niêm yết')}</th>
-                  {isOwner && <th className="px-4 py-2.5 text-center w-16">{t('workspaceSettings.catalog.colActions', 'Thao tác')}</th>}
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-slate-700 font-semibold text-xs">
+                  <th className="px-3 py-3">{t('workspaceSettings.catalog.colName', 'Tên mục')}</th>
+                  <th className="px-3 py-3">{t('workspaceSettings.catalog.colCode', 'Mã định danh')}</th>
+                  <th className="px-3 py-3">{t('workspaceSettings.catalog.colCategory', 'Nhóm / Danh mục')}</th>
+                  <th className="px-3 py-3 text-right">{t('workspaceSettings.catalog.colPrice', 'Giá niêm yết')}</th>
+                  {isOwner && <th className="px-3 py-3 text-center w-16">{t('workspaceSettings.catalog.colActions', 'Thao tác')}</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-200">
                 {catalog.map((prod) => (
                   <tr key={prod.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-4 py-2.5 font-semibold text-slate-900">
+                    <td className="px-3 py-3 font-semibold text-slate-950">
                       {prod.name}
                       {prod.description && (
-                        <div className="text-[11px] text-slate-400 font-normal mt-0.5">
+                        <div className="text-[11px] text-slate-600 font-normal mt-0.5">
                           {prod.description}
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-600 font-mono text-[11px]">
+                    <td className="px-3 py-3 text-slate-700 font-mono text-[11px]">
                       {prod.code || '—'}
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-medium border border-slate-200 rounded-md">
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200 rounded">
                         {prod.category}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-semibold text-blue-600 font-mono text-xs whitespace-nowrap">
+                    <td className="px-3 py-3 text-right font-semibold text-blue-700 font-mono text-xs whitespace-nowrap">
                       {new Intl.NumberFormat('vi-VN').format(prod.defaultPrice)} đ
                     </td>
                     {isOwner && (
-                      <td className="px-4 py-2.5 text-center">
+                      <td className="px-3 py-3 text-center">
                         <button
                           type="button"
                           onClick={() => handleDelete(prod.id)}
                           disabled={isLoading}
                           title={t('workspaceSettings.catalog.deleteItem', 'Xóa mục')}
-                          className="h-6 w-6 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-rose-200 disabled:opacity-30"
+                          className="h-7 w-7 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 text-red-600 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 shadow-2xs"
                         >
                           <Trash2 size={13} />
                         </button>

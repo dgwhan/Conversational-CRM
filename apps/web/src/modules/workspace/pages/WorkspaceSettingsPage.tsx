@@ -62,14 +62,12 @@ export const WorkspaceSettingsPage: React.FC = () => {
     {
       id: "stages",
       label: t("workspaceSettings.tabs.stages", "Giai đoạn phễu"),
-      count: config.pipelineStages?.length || 0,
     },
     {
       id: "catalog",
       label:
         config.terminology?.productLabel ||
         t("workspaceSettings.tabs.catalog", "Sản phẩm & Dịch vụ"),
-      count: config.productCatalog?.length || 0,
     },
     {
       id: "terminology",
@@ -78,7 +76,6 @@ export const WorkspaceSettingsPage: React.FC = () => {
     {
       id: "criteria",
       label: t("workspaceSettings.tabs.criteria", "Tiêu chí phân loại"),
-      count: config.criteria?.length || 0,
     },
     {
       id: "workingHours",

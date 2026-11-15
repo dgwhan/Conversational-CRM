@@ -6,7 +6,6 @@ import {
   BarChart3,
   Layers,
   LayoutGrid,
-  Sliders,
   Calendar,
   GraduationCap,
   X,
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/index.js';
 import { useRealtime } from '../modules/realtime/RealtimeContext.js';
-import { useUserRole } from '../modules/auth/UserRoleContext.js';
 import { useWorkspaceConfig } from '../modules/workspace/WorkspaceConfigContext.js';
 import { notify } from '../components/feedback/toastEmitter.js';
 import { TAB_TO_ROUTE_MAP, getTabFromPathname } from '../config/routes.js';
@@ -37,8 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const { unreadCount } = useRealtime();
-  const { config, activeWorkspaceId, canManageWorkspace } = useWorkspaceConfig();
-  const { isAgent } = useUserRole();
+  const { config, activeWorkspaceId } = useWorkspaceConfig();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -63,7 +60,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     });
   };
 
-  const mainNavItems = [
+  interface NavItem {
+    id: ActiveNavTab;
+    label: string;
+    icon: React.ReactNode;
+    badgeCount?: number;
+    restricted?: boolean;
+  }
+
+  const mainNavItems: NavItem[] = [
     {
       id: 'reports' as ActiveNavTab,
       label: t('nav.reportsStats'),
@@ -96,12 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'deals' as ActiveNavTab,
       label: t('nav.deals', 'Lịch Sử & Đợt Tuyển Sinh'),
       icon: <GraduationCap size={18} />,
-    },
-    {
-      id: 'workspace-settings' as ActiveNavTab,
-      label: t('nav.workspaceSettings', 'Quản lý cấu hình'),
-      icon: <Sliders size={18} />,
-      restricted: isAgent && !canManageWorkspace,
     },
     {
       id: 'onboarding' as ActiveNavTab,

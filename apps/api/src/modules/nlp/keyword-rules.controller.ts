@@ -54,6 +54,50 @@ export class KeywordRulesController {
     return created;
   }
 
+  @Post('bulk')
+  async createRulesBulk(
+    @Body() body: { rules: Array<Omit<KeywordRuleItem, 'id'>> },
+    @Req() req?: any
+  ): Promise<{ createdCount: number }> {
+    const workspaceId = requireWorkspaceId(req);
+    this.assertWorkspaceOwner(req);
+    const result = await this.service.createRulesBulk(body.rules || [], workspaceId);
+    this.classificationService?.invalidateCache(workspaceId);
+    return result;
+  }
+
+  @Patch('bulk')
+  async bulkUpdateRules(
+    @Body() body: { ids: string[]; patch: Partial<KeywordRuleItem> },
+    @Req() req?: any
+  ): Promise<{ updatedCount: number }> {
+    const workspaceId = requireWorkspaceId(req);
+    this.assertWorkspaceOwner(req);
+    const result = await this.service.bulkUpdateRules(body.ids || [], body.patch || {}, workspaceId);
+    this.classificationService?.invalidateCache(workspaceId);
+    return result;
+  }
+
+  @Post('bulk-delete')
+  async bulkDeleteRules(
+    @Body() body: { ids: string[] },
+    @Req() req?: any
+  ): Promise<{ deletedCount: number }> {
+    const workspaceId = requireWorkspaceId(req);
+    this.assertWorkspaceOwner(req);
+    const result = await this.service.bulkDeleteRules(body.ids || [], workspaceId);
+    this.classificationService?.invalidateCache(workspaceId);
+    return result;
+  }
+
+  @Delete('bulk')
+  async bulkDeleteRulesDelete(
+    @Body() body: { ids: string[] },
+    @Req() req?: any
+  ): Promise<{ deletedCount: number }> {
+    return this.bulkDeleteRules(body, req);
+  }
+
   @Patch(':id')
   async updateRule(
     @Param('id') id: string,

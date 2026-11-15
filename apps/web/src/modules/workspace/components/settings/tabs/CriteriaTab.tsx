@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { LeadQualificationCriteria } from '../../../workspaceConfig.types.js';
-import { EmptyState } from '../../../../../components/ui/index.js';
+import { EmptyState, ConfigSubSectionHeader } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { AddCriteriaModal } from '../modals/AddCriteriaModal.js';
 
@@ -35,63 +35,74 @@ export const CriteriaTab: React.FC<CriteriaTabProps> = ({
   };
 
   return (
-    <div className="w-full space-y-3">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div>
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">
-            {t('workspaceSettings.criteria.title', 'Tiêu Chí Đánh Giá & Phân Loại ({n})', { n: criteria.length })}
-          </h3>
-          <p className="text-[11px] text-slate-500 m-0">
-            {t('workspaceSettings.criteria.desc', 'Các câu hỏi, tiêu chuẩn sàng lọc ứng viên/khách hàng được lưu vào cơ sở dữ liệu theo tài khoản không gian làm việc.')}
-          </p>
-        </div>
-        {isOwner && (
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            disabled={isLoading}
-            className="h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
-          >
-            <Plus size={14} />
-            <span>{t('workspaceSettings.criteria.add', 'Thêm tiêu chí')}</span>
-          </button>
-        )}
-      </div>
+    <div className="w-full space-y-6">
+      {/* Sub-Section Toolbar Row */}
+      <ConfigSubSectionHeader
+        title={t('workspaceSettings.criteria.title', 'Tiêu chí đánh giá & phân loại ({n})', { n: criteria.length })}
+        help={{
+          title: 'Tiêu chí đánh giá & phân loại khách hàng',
+          description:
+            'Bộ tiêu chuẩn sàng lọc giúp thu thập các trường thông tin trọng yếu và phân loại khách hàng tiềm năng một cách nhất quán.',
+          example:
+            'Nhân sự cập nhật thông tin theo tiêu chí "Quy mô nhu cầu" trên hồ sơ. Hệ thống tự động ghi nhận dữ liệu vào hồ sơ khách hàng và kích hoạt nhãn phân nhóm tương ứng trên giao diện.',
+          rules: [
+            'Hỗ trợ 4 định dạng dữ liệu linh hoạt: Văn bản (Text), Danh sách tùy chọn (Select), Số liệu (Number) và Xác nhận Có/Không (Boolean).',
+            'Tiêu chí bắt buộc yêu cầu nhân viên điền đầy đủ thông tin trước khi chuyển khách hàng sang giai đoạn tiếp theo của quy trình.',
+            'Các trường tiêu chí được hiển thị và tìm kiếm nhanh chóng tại bảng thông tin chi tiết khách hàng.',
+          ],
+        }}
+        actions={
+          isOwner && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 shadow-2xs border-none"
+            >
+              <Plus size={13} className="text-white" />
+              <span>{t('workspaceSettings.criteria.add', 'Thêm tiêu chí')}</span>
+            </button>
+          )
+        }
+      />
 
-      {criteria.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200/80 p-4 shadow-2xs">
-          <EmptyState
-            title={t('workspaceSettings.criteria.emptyTitle', 'Chưa có tiêu chí đánh giá nào')}
-            description={t('workspaceSettings.criteria.emptyDesc', 'Hãy nhấn nút Thêm tiêu chí ở trên để tạo câu hỏi sàng lọc khách hàng.')}
-          />
-        </div>
-      ) : (
-        <div className="space-y-2 w-full">
-          {criteria.map((crit) => (
+      {/* Unboxed Flat List */}
+      <div className="w-full border-t border-b border-slate-200 bg-white divide-y divide-slate-200">
+        {criteria.length === 0 ? (
+          <div className="py-8">
+            <EmptyState
+              title={t('workspaceSettings.criteria.emptyTitle', 'Chưa có tiêu chí đánh giá nào')}
+              description={t('workspaceSettings.criteria.emptyDesc', 'Hãy nhấn nút Thêm tiêu chí ở trên để tạo câu hỏi sàng lọc khách hàng.')}
+            />
+          </div>
+        ) : (
+          criteria.map((crit) => (
             <div
               key={crit.id}
-              className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-colors"
+              className="py-4 px-2 flex items-center justify-between hover:bg-slate-50/60 transition-colors gap-3"
             >
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
-                  <span className="text-xs font-bold text-slate-900">
-                    {crit.name}
-                  </span>
-                  <span className="px-1.5 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 rounded-md">
-                    {crit.type}
-                  </span>
-                  {crit.isRequired && (
-                    <span className="px-1.5 py-0.5 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 rounded-md">
-                      {t('workspaceSettings.criteria.required', 'Bắt buộc')}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="text-sm font-semibold text-slate-950 truncate">
+                      {crit.name}
                     </span>
+                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-blue-50 text-blue-700 rounded-md">
+                      {crit.type}
+                    </span>
+                    {crit.isRequired && (
+                      <span className="px-2 py-0.5 text-[11px] font-semibold bg-rose-50 text-rose-700 rounded-md">
+                        {t('workspaceSettings.criteria.required', 'Bắt buộc')}
+                      </span>
+                    )}
+                  </div>
+                  {crit.options && crit.options.length > 0 && (
+                    <div className="text-xs text-slate-600 mt-1 truncate max-w-xl">
+                      {t('workspaceSettings.criteria.options', 'Tùy chọn: {list}', { list: crit.options.join(', ') })}
+                    </div>
                   )}
                 </div>
-                {crit.options && crit.options.length > 0 && (
-                  <div className="text-[11px] text-slate-500">
-                    {t('workspaceSettings.criteria.options', 'Tùy chọn: {list}', { list: crit.options.join(', ') })}
-                  </div>
-                )}
               </div>
 
               {isOwner && (
@@ -100,15 +111,15 @@ export const CriteriaTab: React.FC<CriteriaTabProps> = ({
                   onClick={() => handleDelete(crit.id)}
                   disabled={isLoading}
                   title={t('workspaceSettings.criteria.delete', 'Xóa tiêu chí')}
-                  className="h-6 w-6 shrink-0 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 inline-flex items-center justify-center transition-colors cursor-pointer border border-transparent hover:border-rose-200 disabled:opacity-30"
+                  className="h-7 w-7 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 text-red-600 inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 shrink-0 shadow-2xs"
                 >
                   <Trash2 size={13} />
                 </button>
               )}
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Add Criteria Modal */}
       <AddCriteriaModal

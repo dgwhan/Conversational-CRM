@@ -62,7 +62,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
         <button
           type="button"
           onClick={onCreateNewWorkspace}
-          className="h-8 px-3 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
+          className="h-8 px-3 text-xs font-semibold rounded-md bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
         >
           <Plus size={14} />
           <span>Thêm không gian làm việc</span>
@@ -101,7 +101,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
       {/* Trạng thái rỗng  */}
       {!isLoading && filteredWorkspaces.length === 0 && (
         <div className="py-14 px-6 text-center flex flex-col items-center gap-3">
-          <div className="w-12 h-12 bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
+          <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-center text-slate-400">
             <Building2 size={22} />
           </div>
           <div>
@@ -118,7 +118,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
             <button
               type="button"
               onClick={onCreateNewWorkspace}
-              className="h-8 px-3 text-xs font-semibold rounded-none bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 cursor-pointer mt-1"
+              className="h-8 px-3 text-xs font-semibold rounded-md bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 cursor-pointer mt-1 shadow-2xs"
             >
               <Plus size={14} />
               <span>Tạo không gian làm việc</span>
@@ -129,7 +129,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
 
       {/* Danh sách thẻ Workspace */}
       {!isLoading && filteredWorkspaces.length > 0 && (
-        <div className="bg-white border border-slate-200/80 rounded-xl shadow-2xs divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-2xs divide-y divide-slate-200 overflow-hidden">
           {filteredWorkspaces.map((ws) => {
             const isActive = ws.id === activeWorkspaceId;
 
@@ -176,7 +176,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
                     <button
                       type="button"
                       onClick={() => onSelectWorkspace(ws.id)}
-                      className="h-7 px-3 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs cursor-pointer transition-colors"
+                      className="h-7 px-3 text-xs font-semibold rounded-md border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-2xs cursor-pointer transition-colors"
                       title="Kích hoạt làm việc trên không gian này"
                     >
                       Chọn
@@ -186,7 +186,7 @@ export const WorkspaceListPage: React.FC<WorkspaceListPageProps> = ({
                   <button
                     type="button"
                     onClick={() => onViewDetail(ws)}
-                    className="h-7 px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg inline-flex items-center gap-1 transition-colors cursor-pointer border border-transparent hover:border-blue-200"
+                    className="h-7 px-3 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md inline-flex items-center gap-1 transition-colors cursor-pointer border-none shadow-2xs"
                   >
                     <span>Mở không gian làm việc</span>
                     <ArrowUpRight size={13} />

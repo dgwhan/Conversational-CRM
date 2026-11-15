@@ -68,6 +68,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           className={`crm-content-area ${
             effectiveTab === 'inbox'
               ? 'pancake-fullscreen !p-0 !overflow-hidden flex flex-col flex-1 h-full min-h-0'
+              : effectiveTab === 'onboarding' ||
+                effectiveTab === 'workspace-settings' ||
+                location.pathname.startsWith('/workspace') ||
+                location.pathname.startsWith('/onboarding')
+              ? '!p-0 !m-0 !rounded-none !border-none !shadow-none !overflow-y-auto flex flex-col flex-1 h-full min-h-0 bg-white'
               : ''
           }`}
         >

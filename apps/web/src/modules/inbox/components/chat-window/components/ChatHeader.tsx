@@ -9,6 +9,7 @@ import {
 import type { ConversationItem, AssignedStaff } from '../../../types.js';
 import { Avatar } from '../../../../../components/common/Avatar.js';
 import { Button } from '../../../../../components/ui/Button.js';
+import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
 import { resolveChannelInfo } from '../../../../../lib/channel-meta.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { useUserRole } from '../../../../auth/UserRoleContext.js';
@@ -146,26 +147,31 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         {/* Phân công nhân viên - Tối ưu kích thước trên Mobile */}
         {isOwner ? (
-          <div className="relative inline-flex items-center shrink-0">
-            <UserCheck size={12} className="absolute left-2 text-slate-400 pointer-events-none" />
-            <select
-              className="h-7 sm:h-8 pl-6 pr-2 sm:pr-3 text-[11px] sm:text-xs font-medium text-slate-700 bg-slate-50/80 border border-slate-200/80 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:bg-white transition-colors cursor-pointer max-w-[85px] xs:max-w-[105px] sm:max-w-[140px] truncate"
+          <div className="shrink-0 min-w-[90px] xs:min-w-[120px] sm:min-w-[140px]">
+            <SearchableSelect
               value={conversation.assignedStaff?.id || ''}
-              onChange={(e) => onAssignStaff(e.target.value)}
-              title="Phân công tư vấn viên"
-            >
-              <option value="">{t('inbox.chatHeader.unassigned')}</option>
-              {conversation.assignedStaff?.id && !staffList.some((st) => st.id === conversation.assignedStaff?.id) && (
-                <option value={conversation.assignedStaff.id}>
-                  {conversation.assignedStaff.name}
-                </option>
-              )}
-              {staffList.map((st) => (
-                <option key={st.id} value={st.id}>
-                  {st.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => onAssignStaff(val)}
+              placeholder={t('inbox.chatHeader.unassigned')}
+              allOptionLabel={t('inbox.chatHeader.unassigned')}
+              options={[
+                ...(conversation.assignedStaff?.id &&
+                !staffList.some((st) => st.id === conversation.assignedStaff?.id)
+                  ? [
+                      {
+                        value: conversation.assignedStaff.id,
+                        label: conversation.assignedStaff.name,
+                      },
+                    ]
+                  : []),
+                ...staffList.map((st) => ({
+                  value: st.id,
+                  label: st.name,
+                })),
+              ]}
+              size="sm"
+              triggerClassName="!h-7 sm:!h-8 !text-[11px] sm:!text-xs"
+              searchPlaceholder="Tìm tư vấn viên..."
+            />
           </div>
         ) : (
           <div className="shrink-0">

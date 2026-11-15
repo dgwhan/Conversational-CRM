@@ -17,6 +17,7 @@ import { OFFICIAL_CHANNEL_ICONS } from '../../../../../lib/channel-meta.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
+import { Toggle } from '../../../../../components/ui/index.js';
 
 export interface ChannelConnectStepProps {
   connectedChannels: ChannelKey[];
@@ -310,22 +311,13 @@ export const ChannelConnectStep: React.FC<ChannelConnectStepProps> = ({
                   )}
 
                   {/* Switch Toggle Bật/Tắt đồng bộ tin nhắn */}
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={page.selected}
-                    onClick={() => onTogglePage(page.id)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer border border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      page.selected ? 'bg-blue-600' : 'bg-slate-300'
-                    }`}
+                  <Toggle
+                    checked={page.selected}
+                    onChange={() => onTogglePage(page.id)}
+                    size="sm"
+                    aria-label={`Bật/Tắt đồng bộ tin nhắn cho ${page.name}`}
                     title={page.selected ? 'Đang bật nhận tin nhắn' : 'Đang tạm dừng nhận tin nhắn'}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform bg-white shadow-sm transition duration-200 ease-in-out ${
-                        page.selected ? 'translate-x-4' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
+                  />
 
                   {/* Nút Ngắt kết nối kênh khỏi hệ thống */}
                   {onDisconnectPage && (

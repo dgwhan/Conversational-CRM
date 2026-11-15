@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button } from '../../../../../../../components/ui/index.js';
+import { Modal, Button, SearchableSelect } from '../../../../../../../components/ui/index.js';
 import type { WorkspaceItem } from '../../../../../WorkspaceConfigContext.js';
 import { DOMAIN_OPTIONS, getDomainLabel } from '../../../../../workspaceConfig.types.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
@@ -95,17 +95,17 @@ export const EditWorkspaceModal: React.FC<EditWorkspaceModalProps> = ({
           <label className="block text-xs font-semibold text-slate-700 mb-1">
             Lĩnh vực / Mô hình kinh doanh
           </label>
-          <select
+          <SearchableSelect
             value={selectedDomainKey}
-            onChange={(e) => setSelectedDomainKey(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
-          >
-            {DOMAIN_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedDomainKey(val)}
+            options={DOMAIN_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
+            size="md"
+            fullWidth
+            searchable={false}
+          />
         </div>
 
         {selectedDomainKey === 'CUSTOM' && (

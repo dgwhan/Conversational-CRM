@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button } from '../../../../../components/ui/index.js';
+import { RefreshCw } from 'lucide-react';
+import { Button, SearchableSelect } from '../../../../../components/ui/index.js';
 import type { LeadQueueItem, StaffRoutingStatus } from '../../../hooks/useWorkspaceLeadRouting.js';
 import { ShiftSection } from './ShiftSection.js';
 
@@ -28,10 +29,28 @@ export const LeadQueueSection: React.FC<LeadQueueSectionProps> = ({
 }) => (
   <ShiftSection
     title="Hàng chờ chưa phân công"
-    description="Thông báo trong CRM: lead khẩn cấp sau 2/5/10 phút; lead khác sau 5/15/30 phút."
+    help={{
+      title: "Hàng chờ chưa phân công",
+      description:
+        "Danh sách tập trung các khách hàng mới phát sinh tương tác nhưng chưa có nhân sự trực ca tiếp nhận hoặc hàng đợi đang quá tải.",
+      example:
+        "Khách hàng gửi tin nhắn khi toàn bộ nhân viên trong ca đã chạm hạn mức. Hội thoại tự động chuyển vào hàng chờ và gửi thông báo nhắc nhở định kỳ cho toàn bộ ca trực.",
+      rules: [
+        "Hội thoại được đánh dấu khẩn cấp sẽ kích hoạt chuông nhắc nhở sau các mốc 2, 5 và 10 phút.",
+        "Các hội thoại tiêu chuẩn kích hoạt nhắc nhở sau các mốc 5, 15 và 30 phút.",
+        "Nhân sự trong ca có thể chủ động nhận khách (Claim) hoặc Ca trưởng điều phối chỉ định cho nhân viên cụ thể.",
+      ],
+    }}
     actions={(
-      <Button size="sm" variant="secondary" onClick={onRefresh} disabled={isLoading}>
-        Làm mới
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={onRefresh}
+        disabled={isLoading}
+        className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5"
+      >
+        <RefreshCw size={13} className={`shrink-0 ${isLoading ? 'animate-spin' : ''}`} />
+        <span>Làm mới</span>
       </Button>
     )}
   >
@@ -50,19 +69,21 @@ export const LeadQueueSection: React.FC<LeadQueueSectionProps> = ({
             </div>
             {canManageQueue ? (
               <div className="flex flex-wrap items-center gap-2">
-                <select
+                <SearchableSelect
                   aria-label="Chọn nhân viên nhận lead"
                   value={targets[item.conversationId] || ''}
-                  onChange={(event) => onTargetChange(item.conversationId, event.target.value)}
-                  className="h-8 rounded-md border border-slate-300 bg-white px-2 text-xs"
-                >
-                  <option value="">Chọn người nhận</option>
-                  {roster.filter((row) => row.isEligible).map((row) => (
-                    <option key={row.workspaceMemberId} value={row.workspaceMemberId}>
-                      {row.fullName} · {row.openConversations}/{row.effectiveCapacity}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => onTargetChange(item.conversationId, val)}
+                  placeholder="Chọn người nhận"
+                  options={roster
+                    .filter((row) => row.isEligible)
+                    .map((row) => ({
+                      value: row.workspaceMemberId,
+                      label: `${row.fullName} · ${row.openConversations}/${row.effectiveCapacity}`,
+                    }))}
+                  size="sm"
+                  className="min-w-[180px]"
+                  searchPlaceholder="Tìm nhân viên..."
+                />
                 <Button
                   size="sm"
                   variant="primary"

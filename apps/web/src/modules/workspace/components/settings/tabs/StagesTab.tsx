@@ -3,6 +3,7 @@ import { Plus, ArrowUp, ArrowDown, Edit2, Trash2 } from 'lucide-react';
 import type { PipelineStageConfig } from '../../../workspaceConfig.types.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { StageModal } from '../modals/StageModal.js';
+import { ConfigSubSectionHeader } from '../../../../../components/ui/ConfigSubSectionHeader.js';
 
 import { useTranslation } from '../../../../../i18n/index.js';
 export interface StagesTabProps {
@@ -86,41 +87,48 @@ export const StagesTab: React.FC<StagesTabProps> = ({
   };
 
   return (
-    <div className="w-full space-y-3">
-      {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-        <div>
-          <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider m-0">
-            {t('workspaceSettings.stages.title', 'Giai đoạn phễu quy trình ({n})', { n: stages.length })}
-          </h3>
-          <p className="text-[11px] text-slate-500 m-0">
-            {t('workspaceSettings.stages.desc', 'Tự do kéo chỉnh thứ tự, cập nhật trạng thái chốt/hủy và màu sắc nhận diện từng bước')}
-          </p>
-        </div>
-        {isOwner && (
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            disabled={isLoading}
-            className="h-8 px-3 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white inline-flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors shrink-0"
-          >
-            <Plus size={14} />
-            <span>{t('workspaceSettings.stages.add', 'Thêm giai đoạn')}</span>
-          </button>
-        )}
-      </div>
+    <div className="w-full space-y-6">
+      {/* Sub-Section Toolbar Row */}
+      <ConfigSubSectionHeader
+        title={t('workspaceSettings.stages.title', 'Giai đoạn phễu quy trình ({n})', { n: stages.length })}
+        help={{
+          title: 'Giai đoạn phễu quy trình',
+          description:
+            'Cấu hình quy trình chuyển đổi khách hàng qua các giai đoạn kinh doanh từ khi tiếp cận ban đầu đến khi hoàn tất giao dịch.',
+          example:
+            'Nhân sự chuyển khách hàng sang giai đoạn "Thỏa thuận hoàn tất". Hệ thống tự động ghi nhận tỷ lệ chuyển đổi của phễu và cập nhật giá trị giao dịch vào báo cáo kết quả kinh doanh.',
+          rules: [
+            'Phễu quy trình yêu cầu duy trì tối thiểu 2 giai đoạn để bảo đảm tính liên tục của luồng vận hành.',
+            'Giai đoạn Thành công và Thất bại được dùng để đo lường chính xác tỷ lệ chuyển đổi hiệu quả công việc.',
+            'Thứ tự các bước chuyển đổi có thể điều chỉnh nhanh chóng bằng thao tác mũi tên lên hoặc xuống.',
+          ],
+        }}
+        actions={
+          isOwner && (
+            <button
+              type="button"
+              onClick={handleOpenAdd}
+              disabled={isLoading}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-medium px-3 py-1.5 rounded-md inline-flex items-center gap-1.5 cursor-pointer transition-colors shrink-0 shadow-2xs border-none"
+            >
+              <Plus size={13} className="text-white" />
+              <span>{t('workspaceSettings.stages.add', 'Thêm giai đoạn')}</span>
+            </button>
+          )
+        }
+      />
 
-      {/* Live Preview Mini Card */}
-      <div className="p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs w-full">
-        <div className="text-xs font-semibold text-slate-600 mb-2 flex items-center justify-between">
-          <span>{t('workspaceSettings.stages.flow', 'Dòng chảy phễu trực quan:')}</span>
-          <span className="text-[11px] text-slate-400 font-normal">{t('workspaceSettings.stages.scrollHint', 'Kéo cuộn ngang để xem tất cả')}</span>
+      {/* 1. Unboxed Visual pipeline preview strip - wrap cleanly without clipping */}
+      <div className="flex flex-col gap-2 pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-700">Dòng chảy phễu trực quan:</span>
+          <span className="text-xs text-slate-500">({stages.length} bước)</span>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex flex-wrap items-center gap-2 py-0.5">
           {stages.map((s, idx) => (
             <div
               key={s.id}
-              className="px-2.5 py-1 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 rounded-lg border shadow-2xs"
+              className="px-2.5 py-1 text-xs font-medium flex items-center gap-1.5 rounded-md border shadow-2xs"
               style={{
                 backgroundColor: s.bgColor,
                 borderColor: s.borderColor,
@@ -128,55 +136,59 @@ export const StagesTab: React.FC<StagesTabProps> = ({
               }}
             >
               <span>{formatStageDisplayName(s.name, idx)}</span>
-              {s.isWon && <span className="text-emerald-600 text-xs">★</span>}
-              {s.isLost && <span className="text-slate-400 text-xs">✕</span>}
+              {s.isWon && <span className="text-emerald-600 font-bold">★</span>}
+              {s.isLost && <span className="text-slate-400 font-bold">✕</span>}
             </div>
           ))}
         </div>
       </div>
 
-      {/* List Stages Cards */}
-      <div className="space-y-2 w-full">
+      {/* 2. Flatten Stage Rows (Borderless flat list separated only by hairline dividers) */}
+      <div className="divide-y divide-slate-200 border-t border-b border-slate-200">
         {stages.map((stage, index) => (
           <div
             key={stage.id}
-            className="flex items-center justify-between gap-2 p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-colors"
+            className="py-4 px-2 flex items-center justify-between hover:bg-slate-50/60 transition-colors gap-4"
           >
-            <div className="flex min-w-0 items-center gap-3">
+            {/* Left: Status dot, bold item title, muted description */}
+            <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-3.5 h-3.5 shrink-0 rounded-full border shadow-2xs"
                 style={{ backgroundColor: stage.color, borderColor: stage.borderColor }}
               />
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-xs font-bold text-slate-900">
+                  <span className="text-sm font-semibold text-slate-950 truncate">
                     {formatStageDisplayName(stage.name, index)}
                   </span>
                   {stage.isWon && (
-                    <span className="px-1.5 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 rounded-md">
+                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 rounded-md">
                       {t('workspaceSettings.stages.won', 'Chốt thành công')}
                     </span>
                   )}
                   {stage.isLost && (
-                    <span className="px-1.5 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 rounded-md">
+                    <span className="px-2 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-600 rounded-md">
                       {t('workspaceSettings.stages.lost', 'Thất bại / Hủy')}
                     </span>
                   )}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  {stage.subtitle}
-                </div>
+                {stage.subtitle && (
+                  <p className="text-xs text-slate-600 mt-1 mb-0 truncate max-w-xl">
+                    {stage.subtitle}
+                  </p>
+                )}
               </div>
             </div>
 
+            {/* Right: Compact actions aligned cleanly */}
             {isOwner && (
-              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
                   disabled={index === 0 || isLoading}
                   onClick={() => onReorderStages(index, index - 1)}
                   title={t('workspaceSettings.stages.moveUp', 'Di chuyển lên')}
-                  className="h-7 w-7 rounded-md text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 hover:bg-slate-50 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  className="h-7 w-7 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
                 >
                   <ArrowUp size={13} />
                 </button>
@@ -185,7 +197,7 @@ export const StagesTab: React.FC<StagesTabProps> = ({
                   disabled={index === stages.length - 1 || isLoading}
                   onClick={() => onReorderStages(index, index + 1)}
                   title={t('workspaceSettings.stages.moveDown', 'Di chuyển xuống')}
-                  className="h-7 w-7 rounded-md text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 hover:bg-slate-50 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  className="h-7 w-7 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
                 >
                   <ArrowDown size={13} />
                 </button>
@@ -193,17 +205,17 @@ export const StagesTab: React.FC<StagesTabProps> = ({
                   type="button"
                   onClick={() => handleOpenEdit(stage)}
                   disabled={isLoading}
-                  title={t('workspaceSettings.stages.edit', 'Sửa giai đoạn')}
-                  className="h-7 w-7 rounded-md text-slate-500 hover:text-blue-600 border border-transparent hover:border-blue-200 hover:bg-blue-50 flex items-center justify-center cursor-pointer transition-colors"
+                  className="h-7 px-2.5 rounded-md border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[13px] font-medium flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
                 >
-                  <Edit2 size={13} />
+                  <Edit2 size={12} />
+                  <span>Sửa</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(stage.id)}
                   disabled={isLoading || stages.length <= 2}
                   title={t('workspaceSettings.stages.delete', 'Xóa giai đoạn')}
-                  className="h-7 w-7 rounded-md text-slate-500 hover:text-rose-600 border border-transparent hover:border-rose-200 hover:bg-rose-50 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  className="h-7 w-7 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 text-red-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors shadow-2xs"
                 >
                   <Trash2 size={13} />
                 </button>

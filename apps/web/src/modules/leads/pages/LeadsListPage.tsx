@@ -16,6 +16,7 @@ import {
 import { Avatar } from '../../../components/common/Avatar.js';
 import { Button } from '../../../components/ui/Button.js';
 import { SearchInput } from '../../../components/ui/SearchInput.js';
+import { SearchableSelect } from '../../../components/ui/SearchableSelect.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { useTranslation } from '../../../i18n/index.js';
 import { apiClient } from '../../../lib/api-client/index.js';
@@ -224,20 +225,23 @@ export const LeadsListPage: React.FC<LeadsListPageProps> = ({ onOpenChat }) => {
             ))}
           </div>
 
-          <label className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
+          <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
             <Filter size={14} className="shrink-0" />
             <span className="shrink-0">{t('leads.stageLabel', 'Giai đoạn')}</span>
-            <select
+            <SearchableSelect
               value={stageFilter}
-              onChange={(event) => handleStageFilter(event.target.value)}
-              className="h-9 min-w-0 flex-1 sm:flex-none sm:min-w-40 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            >
-              <option value="">{t('leads.allStages', 'Tất cả giai đoạn')}</option>
-              {config.pipelineStages.map((stage) => (
-                <option key={stage.id} value={stage.id}>{stage.name}</option>
-              ))}
-            </select>
-          </label>
+              onChange={handleStageFilter}
+              placeholder={t('leads.allStages', 'Tất cả giai đoạn')}
+              allOptionLabel={t('leads.allStages', 'Tất cả giai đoạn')}
+              options={config.pipelineStages.map((stage) => ({
+                value: stage.id,
+                label: stage.name,
+              }))}
+              size="md"
+              className="min-w-40"
+              searchPlaceholder="Tìm giai đoạn..."
+            />
+          </div>
         </div>
       </div>
 

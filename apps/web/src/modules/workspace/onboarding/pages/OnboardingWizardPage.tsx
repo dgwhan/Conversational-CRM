@@ -26,13 +26,15 @@ export const OnboardingWizardPage: React.FC<OnboardingWizardPageProps> = ({
     onSkipToInbox,
   });
 
-  // Tự động mở chi tiết Workspace nếu có param :id trên URL
+  // Tự động mở chi tiết Workspace nếu có param :id trên URL, ngược lại hiển thị danh sách workspace
   useEffect(() => {
     if (id && id !== 'undefined' && wizard.myWorkspaces.length > 0) {
       const found = wizard.myWorkspaces.find((ws) => ws.id === id || ws.slug === id);
       if (found) {
         wizard.handleViewDetail(found);
       }
+    } else if (!id || id === 'undefined') {
+      wizard.handleBackToList();
     }
   }, [id, wizard.myWorkspaces]);
 
@@ -70,7 +72,7 @@ export const OnboardingWizardPage: React.FC<OnboardingWizardPageProps> = ({
   // =========================================================================
   if (wizard.viewMode === 'detail' && wizard.selectedDetailWorkspace) {
     return (
-      <div className="w-full min-h-full">
+      <div className="w-full min-h-full flex flex-col bg-white">
         <WorkspaceDetailPage
           workspace={wizard.selectedDetailWorkspace}
           isActive={wizard.selectedDetailWorkspace.id === wizard.activeWorkspaceId}

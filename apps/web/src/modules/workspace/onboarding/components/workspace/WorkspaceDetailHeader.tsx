@@ -168,10 +168,6 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
       description={domainLabel}
       onBack={onBack}
       hasDivider={false}
-      breadcrumbs={[
-        { label: 'Không gian làm việc', onClick: onBack },
-        { label: workspace.name, isCurrent: true },
-      ]}
       badges={
         <>
           {isActive && (
@@ -229,8 +225,8 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
             }
             className={
               workspace.isOwner && !canOwnerLeave
-                ? 'text-slate-400 border-slate-200'
-                : 'text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300'
+                ? 'text-slate-400 border-slate-200 bg-slate-50'
+                : 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300'
             }
           >
             Rời workspace
@@ -238,12 +234,11 @@ export const WorkspaceDetailHeader: React.FC<WorkspaceDetailHeaderProps> = ({
 
           {workspace.isOwner && onDeleteWorkspace && (
             <Button
-              variant="secondary"
+              variant="danger"
               size="sm"
-              icon={<Trash2 size={13} className="text-red-600" />}
+              icon={<Trash2 size={13} className="text-white" />}
               onClick={onDeleteWorkspace}
               title="Xóa Không gian làm việc này"
-              className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
             >
               Xóa
             </Button>

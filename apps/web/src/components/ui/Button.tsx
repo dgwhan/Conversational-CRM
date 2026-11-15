@@ -27,26 +27,26 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseClasses =
-    "inline-flex items-center justify-center font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none box-border whitespace-nowrap shadow-none";
+    "inline-flex flex-row items-center justify-center font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 select-none box-border whitespace-nowrap shadow-none";
 
   const radiusClass = className.includes("rounded-") ? "" : flat ? "rounded-md" : "rounded-control";
 
   const variantClasses: Record<string, string> = {
     primary:
-      "border border-transparent bg-blue-600 hover:bg-blue-700 text-white",
+      "border border-transparent bg-blue-600 hover:bg-blue-700 text-white shadow-2xs",
     secondary:
-      "border border-slate-300 bg-white hover:bg-slate-50 text-slate-700",
+      "border border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-2xs",
     outline:
-      "border border-blue-600 bg-transparent hover:bg-blue-50 text-blue-600",
+      "border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs",
     danger:
-      "border border-transparent bg-red-600 hover:bg-red-700 text-white",
+      "border border-transparent bg-red-600 hover:bg-red-700 text-white shadow-2xs",
     ghost:
       "border border-transparent bg-transparent hover:bg-slate-100 text-slate-700",
   };
 
   const sizeClasses: Record<string, string> = {
-    sm: "text-xs px-2.5 py-1 h-8 gap-1.5",
-    md: "text-xs px-3.5 py-1.5 h-9 gap-1.5",
+    sm: "text-[13px] font-medium px-3 py-1.5 h-8 gap-1.5",
+    md: "text-[13px] font-medium px-3.5 py-1.5 h-9 gap-1.5",
     lg: "text-sm px-4 py-2 h-10 gap-2",
   };
 
@@ -55,9 +55,9 @@ export function Button({
 
   return (
     <button className={classes} type={type} disabled={disabled || loading} {...props}>
-      {loading && <Loader2 size={size === 'sm' ? 12 : 14} className="animate-spin" />}
+      {loading && <Loader2 size={size === 'sm' ? 12 : 14} className="animate-spin shrink-0" />}
       {!loading && icon && iconPosition === "left" && <span className="inline-flex shrink-0">{icon}</span>}
-      <span>{children}</span>
+      {children}
       {!loading && icon && iconPosition === "right" && <span className="inline-flex shrink-0">{icon}</span>}
     </button>
   );

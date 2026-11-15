@@ -8,7 +8,7 @@ import {
   Calendar,
   Filter,
 } from 'lucide-react';
-import { Modal, Button } from '../../../../../components/ui/index.js';
+import { Modal, Button, SearchableSelect } from '../../../../../components/ui/index.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
 import type {
   EstimatePurgeResponse,
@@ -130,35 +130,41 @@ export const PurgeConfirmModal: React.FC<PurgeConfirmModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-indigo-500" /> {t('workspaceSettings.purge.cutoffLabel', 'Mốc thời gian lưu trữ')}
             </label>
-            <select
+            <SearchableSelect
               disabled={isPurging}
-              value={retentionMonths}
-              onChange={(e) => setRetentionMonths(Number(e.target.value))}
-              className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value={3}>{t('workspaceSettings.purge.older3', 'Cũ hơn 3 tháng')}</option>
-              <option value={6}>{t('workspaceSettings.purge.older6', 'Cũ hơn 6 tháng')}</option>
-              <option value={12}>{t('workspaceSettings.purge.older12', 'Cũ hơn 12 tháng (Khuyến nghị chuẩn)')}</option>
-              <option value={24}>{t('workspaceSettings.purge.older24', 'Cũ hơn 24 tháng')}</option>
-            </select>
+              value={String(retentionMonths)}
+              onChange={(val) => setRetentionMonths(Number(val))}
+              options={[
+                { value: '3', label: t('workspaceSettings.purge.older3', 'Cũ hơn 3 tháng') },
+                { value: '6', label: t('workspaceSettings.purge.older6', 'Cũ hơn 6 tháng') },
+                { value: '12', label: t('workspaceSettings.purge.older12', 'Cũ hơn 12 tháng (Khuyến nghị chuẩn)') },
+                { value: '24', label: t('workspaceSettings.purge.older24', 'Cũ hơn 24 tháng') },
+              ]}
+              searchable={false}
+              size="md"
+              fullWidth
+            />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-indigo-500" /> {t('workspaceSettings.purge.channelLabel', 'Kênh giao tiếp')}
             </label>
-            <select
+            <SearchableSelect
               disabled={isPurging}
               value={channel}
-              onChange={(e) => setChannel(e.target.value)}
-              className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="ALL">{t('workspaceSettings.purge.allChannels', 'Tất cả các kênh')}</option>
-              <option value="ZALO">Zalo OA</option>
-              <option value="FACEBOOK">Facebook Messenger</option>
-              <option value="TIKTOK">TikTok</option>
-              <option value="MANUAL_IMPORT">{t('workspaceSettings.storage.manualImport', 'Nhập thủ công / CSV')}</option>
-            </select>
+              onChange={(val) => setChannel(val)}
+              options={[
+                { value: 'ALL', label: t('workspaceSettings.purge.allChannels', 'Tất cả các kênh') },
+                { value: 'ZALO', label: 'Zalo OA' },
+                { value: 'FACEBOOK', label: 'Facebook Messenger' },
+                { value: 'TIKTOK', label: 'TikTok' },
+                { value: 'MANUAL_IMPORT', label: t('workspaceSettings.storage.manualImport', 'Nhập thủ công / CSV') },
+              ]}
+              searchable={false}
+              size="md"
+              fullWidth
+            />
           </div>
         </div>
 

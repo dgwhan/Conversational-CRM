@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { History, Settings } from "lucide-react";
 import { apiClient } from "../../../../../lib/api-client/index.js";
 import { notify } from "../../../../../components/feedback/toastEmitter.js";
 import { Button, Modal, Toggle } from "../../../../../components/ui/index.js";
@@ -16,10 +17,8 @@ import {
 import type { ManagedStaffItem } from "../../../types/staff.types.js";
 import { useUserRole } from "../../../../auth/UserRoleContext.js";
 import { LeadQueueSection } from "./LeadQueueSection.js";
-import { ShiftAuditSection } from "./ShiftAuditSection.js";
 import { ShiftAvailabilitySection } from "./ShiftAvailabilitySection.js";
-import { ShiftMembersSection } from "./ShiftMembersSection.js";
-import { ShiftScheduleSection } from "./ShiftScheduleSection.js";
+import { ShiftAuditDrawer, ShiftConfigModal } from "./components/index.js";
 import type { AuditEntry, AuditPage, MemberDraft } from "./types.js";
 import {
   getAuditDateBounds,
@@ -27,8 +26,6 @@ import {
   toLocalDateTimeValue,
   type AuditDateRange,
 } from "./utils.js";
-
-type DetailsTab = "operations" | "configuration" | "audit";
 
 export interface ShiftManagementTabProps {
   workspaceId: string;
@@ -136,7 +133,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   const [staffLoadError, setStaffLoadError] = useState("");
   const [selectedShiftId, setSelectedShiftId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<DetailsTab>("operations");
+  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [name, setName] = useState("");
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("17:00");
@@ -174,7 +171,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   const auditWorkspaceId = useRef(workspaceId);
   const auditRequestId = useRef(0);
   const handledFocusKey = useRef("");
-  const [shouldScrollToMembers, setShouldScrollToMembers] = useState(false);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [queueTargets, setQueueTargets] = useState<Record<string, string>>({});
 
   const selectedShift = useMemo(
@@ -259,7 +256,6 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   useEffect(() => {
     setSelectedShiftId("");
     setIsCreating(false);
-    setActiveTab("operations");
     setIsDeleteConfirmOpen(false);
     setIsOverflowOpen(false);
     setQueueTargets({});
@@ -366,17 +362,24 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     workspaceId,
   ]);
 
+  // Tự động chọn ca đầu tiên nếu chưa chọn ca nào và không ở chế độ tạo mới
+  useEffect(() => {
+    if (!selectedShiftId && !isCreating && routing.shifts.length > 0) {
+      setSelectedShiftId(routing.shifts[0].id);
+    }
+  }, [routing.shifts, selectedShiftId, isCreating]);
+
   useEffect(() => {
     if (
       isOwner &&
-      activeTab === "audit" &&
+      isAuditDrawerOpen &&
       selectedShiftId &&
       (auditRange !== "CUSTOM" || appliedCustomAuditRange)
     ) {
       void loadAudit();
     }
   }, [
-    activeTab,
+    isAuditDrawerOpen,
     appliedCustomAuditRange,
     auditRange,
     isOwner,
@@ -384,17 +387,32 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     selectedShiftId,
   ]);
 
+  // Khóa cuộn trang và hỗ trợ phím Esc khi Drawer Nhật ký hoạt động mở
   useEffect(() => {
-    if (activeTab !== "configuration" || !shouldScrollToMembers) return;
-    document
-      .getElementById(
-        focusMemberId
-          ? `shift-member-${focusMemberId}`
-          : "shift-members-section",
-      )
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setShouldScrollToMembers(false);
-  }, [activeTab, focusMemberId, shouldScrollToMembers]);
+    if (!isAuditDrawerOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsAuditDrawerOpen(false);
+      }
+    };
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isAuditDrawerOpen]);
+
+  useEffect(() => {
+    if (!focusMemberId || !isConfigModalOpen) return;
+    const timer = setTimeout(() => {
+      document
+        .getElementById(`shift-member-${focusMemberId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [focusMemberId, isConfigModalOpen]);
 
   useEffect(() => {
     if (!isOverflowOpen) return;
@@ -439,9 +457,8 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       routing.shifts[0];
     setSelectedShiftId(preferredShift.id);
     setIsCreating(false);
-    setActiveTab("configuration");
     loadShiftDraft(preferredShift);
-    setShouldScrollToMembers(true);
+    setIsConfigModalOpen(true);
   }, [focusMemberId, loadShiftDraft, routing.shifts, workspaceId]);
 
   useEffect(() => {
@@ -467,7 +484,6 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       routing.shifts.find((shift) => shift.isActive) ||
       routing.shifts[0];
     setSelectedShiftId(preferredShift.id);
-    setActiveTab("operations");
     loadShiftDraft(preferredShift);
   }, [
     focusMemberId,
@@ -486,7 +502,6 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       return;
     setSelectedShiftId(shift.id);
     setIsCreating(false);
-    setActiveTab("operations");
     loadShiftDraft(shift);
   };
 
@@ -496,21 +511,20 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     handledFocusKey.current = "";
     setSelectedShiftId("");
     setIsCreating(true);
-    setActiveTab("configuration");
     setName("");
     setStartTime("08:00");
     setEndTime("17:00");
     setTimezone("Asia/Ho_Chi_Minh");
     setWeekdays([1, 2, 3, 4, 5]);
     setMembers([]);
+    setIsConfigModalOpen(true);
   };
 
   const cancelChanges = () => {
     if (isCreating) {
       handledFocusKey.current = "";
       setIsCreating(false);
-      setSelectedShiftId("");
-      setActiveTab("operations");
+      setSelectedShiftId(routing.shifts[0]?.id || "");
       setName("");
       setStartTime("08:00");
       setEndTime("17:00");
@@ -520,6 +534,15 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       return;
     }
     if (selectedShift) loadShiftDraft(selectedShift);
+  };
+
+  const handleCloseConfigModal = () => {
+    if (isDirty && !window.confirm("Bỏ các thay đổi chưa lưu?")) {
+      return;
+    }
+    cancelChanges();
+    setIsConfigModalOpen(false);
+    setIsCreating(false);
   };
 
   const saveConfiguration = async (event: React.FormEvent) => {
@@ -562,6 +585,8 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
         await routing.replaceMembers(targetShiftId, members);
       }
       notify.success("Đã lưu cấu hình và phân công nhân sự của ca.");
+      setIsConfigModalOpen(false);
+      setIsCreating(false);
     } catch (error) {
       const message = getErrorMessage(error, "Không thể lưu cấu hình ca.");
       notify.error(
@@ -600,6 +625,26 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     );
   };
 
+  const bulkAddStaff = (workspaceMemberIds: string[], defaultCapacity = 10) => {
+    setMembers((current) => {
+      const existingIds = new Set(current.map((item) => item.workspaceMemberId));
+      const newItems = workspaceMemberIds
+        .filter((id) => !existingIds.has(id))
+        .map((workspaceMemberId) => ({
+          workspaceMemberId,
+          leadCapacity: defaultCapacity,
+          isShiftManager: false,
+        }));
+      return [...current, ...newItems];
+    });
+  };
+
+  const bulkSetQuota = (capacity: number) => {
+    setMembers((current) =>
+      current.map((item) => ({ ...item, leadCapacity: capacity })),
+    );
+  };
+
   const toggleShift = async (shift: WorkShift) => {
     try {
       await routing.updateShift(shift.id, { isActive: !shift.isActive });
@@ -618,7 +663,6 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       setIsOverflowOpen(false);
       setSelectedShiftId("");
       setIsCreating(false);
-      setActiveTab("operations");
       setName("");
       setMembers([]);
       notify.success("Đã xóa ca chưa sử dụng.");
@@ -702,10 +746,10 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     targetMemberId: string,
   ) => {
     try {
-      const result = (await routing.handoverLead(
+      const result = await routing.handoverLead(
         conversationId,
         targetMemberId,
-      )) as { overCapacity?: boolean } | undefined;
+      );
       setQueueTargets((current) => ({ ...current, [conversationId]: "" }));
       if (result?.overCapacity) {
         notify.info(
@@ -727,22 +771,6 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     }
   };
 
-  const detailTitle = isCreating
-    ? name.trim() || "Ca mới"
-    : selectedShift?.name || "";
-  const tabs: Array<{ id: DetailsTab; label: string; disabled?: boolean }> = [
-    { id: "operations", label: "Vận hành & Trực ca", disabled: !selectedShift },
-    { id: "configuration", label: "Cấu hình & Nhân sự" },
-    ...(isOwner
-      ? [
-          {
-            id: "audit" as const,
-            label: "Nhật ký hoạt động",
-            disabled: !selectedShift,
-          },
-        ]
-      : []),
-  ];
   const isCustomAuditRangeValid = Boolean(
     customAuditStartDate &&
     customAuditEndDate &&
@@ -750,367 +778,307 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   );
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(220px,0.28fr)_minmax(0,0.72fr)]">
-      <aside className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs sm:p-4 lg:sticky lg:top-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div>
-            <h2 className="m-0 text-sm font-bold text-slate-900">
-              Ca làm việc
-            </h2>
-            <p className="mb-0 mt-1 text-xs text-slate-500">
-              {routing.shifts.length} ca đã cấu hình
-            </p>
-          </div>
-          {isOwner && (
-            <Button size="sm" variant="primary" onClick={startNewShift}>
-              + Tạo ca mới
-            </Button>
-          )}
-        </div>
-        <div className="grid max-h-[65vh] gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-1">
+    <div className="w-full space-y-8 pb-16">
+      {/* 1. Top Shift Selector Bar (Horizontal Pill Switcher) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {routing.shifts.map((shift) => {
             const isSelected = selectedShiftId === shift.id && !isCreating;
             return (
               <button
                 key={shift.id}
                 type="button"
-                aria-pressed={isSelected}
                 onClick={() => selectShift(shift)}
-                className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer border ${
                   isSelected
-                    ? "border-blue-400 bg-blue-50/70 ring-1 ring-blue-100"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                    ? "bg-blue-50 border-blue-600 text-blue-700 font-semibold shadow-2xs"
+                    : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
                 }`}
               >
-                <span className="flex items-start justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-semibold text-slate-800">
-                    {shift.name}
-                  </span>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      shift.isActive
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {shift.isActive ? "Đang bật" : "Đang tắt"}
-                  </span>
-                </span>
-                <span className="mt-2 block text-xs text-slate-600">
-                  {shift.startTime}–{shift.endTime} ·{" "}
-                  {formatWeekdays(shift.weekdays)}
-                </span>
-                <span className="mt-1 block text-[11px] text-slate-500">
-                  {shift.members.length} nhân viên
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    shift.isActive ? "bg-emerald-500" : "bg-slate-300"
+                  }`}
+                />
+                <span className="truncate">{shift.name}</span>
+                <span className="text-[11px] text-slate-500 font-normal">
+                  ({shift.startTime}–{shift.endTime})
                 </span>
               </button>
             );
           })}
           {!routing.shifts.length && (
-            <p className="mb-0 rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-xs text-slate-500 sm:col-span-2 lg:col-span-1">
-              Chưa có ca làm việc. Tạo ca đầu tiên để cấu hình lịch và phân
-              lead.
-            </p>
+            <span className="text-xs text-slate-500 italic">
+              Chưa có ca làm việc nào.
+            </span>
           )}
         </div>
-      </aside>
 
-      <main className="min-w-0">
-        {selectedShift || isCreating ? (
-          <>
-            <header className="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-4 py-1">
-              <div className="min-w-0 flex-1">
-                <div className="min-w-0">
-                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    {isCreating ? "TẠO LỊCH TRỰC MỚI" : "CHI TIẾT CA TRỰC"}
-                  </p>
-                  <h2 className="m-0 truncate text-lg font-bold text-slate-900">
-                    {detailTitle}
-                  </h2>
-                  {selectedShift && (
-                    <p className="mb-0 mt-1 text-xs text-slate-500">
-                      {selectedShift.startTime} – {selectedShift.endTime} ·{" "}
-                      {formatWeekdays(selectedShift.weekdays)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              {selectedShift && (
-                <div className="ml-auto flex shrink-0 items-center gap-3">
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Toggle
-                      checked={selectedShift.isActive}
-                      onChange={() => void toggleShift(selectedShift)}
-                      disabled={!isOwner}
-                      size="md"
-                      showStatusLabel
-                      labelOn="Đang hoạt động"
-                      labelOff="Đang tắt"
-                      aria-label={selectedShift.isActive ? "Tắt ca" : "Bật ca"}
-                    />
-                  </div>
-                  {isOwner && (
-                    <div className="relative" ref={overflowRef}>
+        {isOwner && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={startNewShift}
+            className="shrink-0 text-xs px-3 py-1.5"
+          >
+            + Tạo ca mới
+          </Button>
+        )}
+      </div>
+
+      {/* 2. Main Content Area */}
+      {selectedShift ? (
+        <div className="space-y-8">
+          {/* Active Shift Summary Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+            <div>
+              <h2 className="text-base font-semibold text-slate-950 m-0">
+                {selectedShift.name}
+              </h2>
+              <p className="text-xs text-slate-600 mt-0.5 mb-0">
+                {selectedShift.startTime} – {selectedShift.endTime} ·{" "}
+                {formatWeekdays(selectedShift.weekdays)} ({selectedShift.members.length} nhân viên)
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setIsConfigModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <Settings size={13} className="text-slate-500" />
+                  <span>Cấu hình & Nhân sự</span>
+                </button>
+              )}
+
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAuditDrawerOpen(true);
+                    if (auditEntries.length === 0) void loadAudit();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs"
+                >
+                  <History size={13} className="text-slate-500" />
+                  <span>Nhật ký hoạt động</span>
+                </button>
+              )}
+
+              <Toggle
+                checked={selectedShift.isActive}
+                onChange={() => void toggleShift(selectedShift)}
+                disabled={!isOwner}
+                size="md"
+                showStatusLabel
+                labelOn="Đang hoạt động"
+                labelOff="Đang tắt"
+                aria-label={selectedShift.isActive ? "Tắt ca" : "Bật ca"}
+              />
+
+              {isOwner && (
+                <div className="relative" ref={overflowRef}>
+                  <button
+                    type="button"
+                    aria-label="Thao tác khác"
+                    aria-haspopup="menu"
+                    aria-expanded={isOverflowOpen}
+                    onClick={() => setIsOverflowOpen((open) => !open)}
+                    className="flex size-8 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 border border-slate-200 bg-white cursor-pointer transition-colors"
+                  >
+                    …
+                  </button>
+                  {isOverflowOpen && (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg border border-slate-200 shadow-lg py-1 z-20"
+                    >
                       <button
                         type="button"
-                        aria-label="Thao tác khác"
-                        aria-haspopup="menu"
-                        aria-expanded={isOverflowOpen}
-                        onClick={() => setIsOverflowOpen((open) => !open)}
-                        className="flex size-8 items-center justify-center rounded-md text-xl leading-none text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        role="menuitem"
+                        onClick={() => {
+                          setIsOverflowOpen(false);
+                          setIsConfigModalOpen(true);
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 cursor-pointer border-none bg-transparent"
                       >
-                        …
+                        Chỉnh sửa cấu hình & nhân sự
                       </button>
-                      {isOverflowOpen && (
-                        <div
-                          role="menu"
-                          className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
-                        >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            disabled={Boolean(selectedShift.usedAt)}
-                            onClick={() => {
-                              setIsOverflowOpen(false);
-                              setIsDeleteConfirmOpen(true);
-                            }}
-                            className="w-full rounded-md px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-white"
-                          >
-                            {selectedShift.usedAt
-                              ? "Không thể xóa ca đã sử dụng"
-                              : "Xóa ca"}
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        disabled={Boolean(selectedShift.usedAt)}
+                        onClick={() => {
+                          setIsOverflowOpen(false);
+                          setIsDeleteConfirmOpen(true);
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:hover:bg-transparent cursor-pointer border-none bg-transparent"
+                      >
+                        {selectedShift.usedAt
+                          ? "Không thể xóa ca đã dùng"
+                          : "Xóa ca này"}
+                      </button>
                     </div>
                   )}
                 </div>
               )}
-            </header>
-
-            <div
-              role="tablist"
-              aria-label="Nội dung ca trực"
-              className="mb-3 flex gap-1 overflow-x-auto border-b border-slate-200"
-            >
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  role="tab"
-                  id={`shift-tab-${tab.id}`}
-                  aria-selected={activeTab === tab.id}
-                  aria-controls={`shift-panel-${tab.id}`}
-                  disabled={tab.disabled}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`shrink-0 border-b-2 px-3 py-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                    activeTab === tab.id
-                      ? "border-blue-600 text-blue-700"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
             </div>
-
-            <div
-              id="shift-panel-operations"
-              role="tabpanel"
-              aria-labelledby="shift-tab-operations"
-              hidden={activeTab !== "operations"}
-              className="space-y-4"
-            >
-              {selectedShift && (
-                <>
-                  <ShiftAvailabilitySection
-                    shift={selectedShift}
-                    staff={staff}
-                    roster={routing.roster}
-                    userId={userId}
-                    canManage={canManageSelectedShift}
-                    canConfigureMembers={isOwner}
-                    absenceMemberId={absenceMemberId}
-                    absenceMode={absenceMode}
-                    absenceTargetId={absenceTargetId}
-                    absenceNote={absenceNote}
-                    overtimeStart={overtimeStart}
-                    overtimeEnd={overtimeEnd}
-                    onEndLeave={(exceptionId) =>
-                      void endUnexpectedLeave(exceptionId)
-                    }
-                    onStartLeave={(memberId) => {
-                      setAbsenceMemberId(memberId);
-                      setAbsenceMode("QUEUE");
-                      setAbsenceTargetId("");
-                    }}
-                    onHandoverOutsideShift={(memberId) =>
-                      void handoverOutsideShift(memberId)
-                    }
-                    onAbsenceModeChange={setAbsenceMode}
-                    onAbsenceTargetChange={setAbsenceTargetId}
-                    onAbsenceNoteChange={setAbsenceNote}
-                    onCancelLeave={() => setAbsenceMemberId("")}
-                    onSubmitLeave={() => void submitUnexpectedLeave()}
-                    onOvertimeStartChange={setOvertimeStart}
-                    onOvertimeEndChange={setOvertimeEnd}
-                    onRecordOvertimeConsent={() => void recordOvertimeConsent()}
-                    onAssignMembers={() => {
-                      setShouldScrollToMembers(true);
-                      setActiveTab("configuration");
-                    }}
-                  />
-                  <LeadQueueSection
-                    queue={routing.queue}
-                    roster={routing.roster}
-                    targets={queueTargets}
-                    canManageQueue={canManageQueue}
-                    isLoading={routing.isLoading}
-                    onRefresh={() => void routing.refresh()}
-                    onTargetChange={(conversationId, memberId) =>
-                      setQueueTargets((current) => ({
-                        ...current,
-                        [conversationId]: memberId,
-                      }))
-                    }
-                    onAssign={(conversationId, memberId) =>
-                      void assignQueuedLead(conversationId, memberId)
-                    }
-                    onClaim={(conversationId) =>
-                      void claimQueuedLead(conversationId)
-                    }
-                  />
-                </>
-              )}
-            </div>
-
-            <div
-              id="shift-panel-configuration"
-              role="tabpanel"
-              aria-labelledby="shift-tab-configuration"
-              hidden={activeTab !== "configuration"}
-            >
-              <form
-                id="shift-configuration-form"
-                onSubmit={(event) => void saveConfiguration(event)}
-                className="space-y-4"
-              >
-                <ShiftScheduleSection
-                  name={name}
-                  startTime={startTime}
-                  endTime={endTime}
-                  timezone={timezone}
-                  weekdays={weekdays}
-                  disabled={!isOwner}
-                  onNameChange={setName}
-                  onStartTimeChange={setStartTime}
-                  onEndTimeChange={setEndTime}
-                  onTimezoneChange={setTimezone}
-                  onWeekdaysChange={setWeekdays}
-                />
-                {isOwner && (
-                  <ShiftMembersSection
-                    staff={activeStaff}
-                    members={members}
-                    loadError={staffLoadError}
-                    focusMemberId={focusMemberId}
-                    onToggleStaff={toggleStaff}
-                    onPatchMember={patchMember}
-                  />
-                )}
-              </form>
-            </div>
-
-            {isOwner && (
-              <div
-                id="shift-panel-audit"
-                role="tabpanel"
-                aria-labelledby="shift-tab-audit"
-                hidden={activeTab !== "audit"}
-              >
-                <ShiftAuditSection
-                  entries={auditEntries}
-                  staff={staff}
-                  cursor={auditCursor}
-                  isLoading={isLoadingAudit}
-                  loadError={auditLoadError}
-                  range={auditRange}
-                  customStartDate={customAuditStartDate}
-                  customEndDate={customAuditEndDate}
-                  isCustomApplied={Boolean(
-                    appliedCustomAuditRange &&
-                    appliedCustomAuditRange.start === customAuditStartDate &&
-                    appliedCustomAuditRange.end === customAuditEndDate,
-                  )}
-                  isCustomRangeValid={isCustomAuditRangeValid}
-                  onRangeChange={(range) => {
-                    setAuditRange(range);
-                    setAppliedCustomAuditRange(null);
-                    setAuditEntries([]);
-                    setAuditCursor(null);
-                  }}
-                  onCustomDatesChange={(startDate, endDate) => {
-                    setCustomAuditStartDate(startDate);
-                    setCustomAuditEndDate(endDate);
-                    setAppliedCustomAuditRange(null);
-                    setAuditEntries([]);
-                    setAuditCursor(null);
-                  }}
-                  onApplyCustomRange={() =>
-                    setAppliedCustomAuditRange({
-                      start: customAuditStartDate,
-                      end: customAuditEndDate,
-                    })
-                  }
-                  onLoad={(cursor) => void loadAudit(cursor)}
-                />
-              </div>
-            )}
-
-            {isOwner && isDirty && (
-              <div className="sticky bottom-2 z-30 mt-4 flex justify-end gap-2 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={cancelChanges}
-                  disabled={isSaving}
-                >
-                  Hủy thay đổi
-                </Button>
-                <Button
-                  type="submit"
-                  form="shift-configuration-form"
-                  variant="primary"
-                  loading={isSaving}
-                >
-                  Lưu thay đổi
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
-            <h2 className="m-0 text-base font-semibold text-slate-800">
-              Chọn một ca làm việc
-            </h2>
-            <p className="mb-0 mt-2 max-w-sm text-sm text-slate-500">
-              Chọn ca ở danh sách bên trái để theo dõi trực ca, phân lead và
-              quản lý nhân sự.
-            </p>
-            {!routing.shifts.length && isOwner && (
-              <Button
-                size="sm"
-                variant="primary"
-                className="mt-4"
-                onClick={startNewShift}
-              >
-                + Tạo ca mới
-              </Button>
-            )}
           </div>
-        )}
-      </main>
 
+          {/* 1. Hàng chờ chưa phân công (LeadQueueSection) - LÊN ĐẦU */}
+          <LeadQueueSection
+            queue={routing.queue}
+            roster={routing.roster}
+            targets={queueTargets}
+            canManageQueue={canManageQueue}
+            isLoading={routing.isLoading}
+            onRefresh={() => void routing.refresh()}
+            onTargetChange={(conversationId, memberId) =>
+              setQueueTargets((current) => ({
+                ...current,
+                [conversationId]: memberId,
+              }))
+            }
+            onAssign={(conversationId, memberId) =>
+              void assignQueuedLead(conversationId, memberId)
+            }
+            onClaim={(conversationId) =>
+              void claimQueuedLead(conversationId)
+            }
+          />
+
+          {/* 2. Danh sách nhân viên trực ca + Đánh dấu nghỉ đột xuất (ở cuối) - TIẾP ĐẾN */}
+          <ShiftAvailabilitySection
+            shift={selectedShift}
+            staff={staff}
+            roster={routing.roster}
+            userId={userId}
+            canManage={canManageSelectedShift}
+            canConfigureMembers={isOwner}
+            absenceMemberId={absenceMemberId}
+            absenceMode={absenceMode}
+            absenceTargetId={absenceTargetId}
+            absenceNote={absenceNote}
+            overtimeStart={overtimeStart}
+            overtimeEnd={overtimeEnd}
+            onEndLeave={(exceptionId) =>
+              void endUnexpectedLeave(exceptionId)
+            }
+            onStartLeave={(memberId) => {
+              setAbsenceMemberId(memberId);
+              setAbsenceMode("QUEUE");
+              setAbsenceTargetId("");
+            }}
+            onHandoverOutsideShift={(memberId) =>
+              void handoverOutsideShift(memberId)
+            }
+            onAbsenceModeChange={setAbsenceMode}
+            onAbsenceTargetChange={setAbsenceTargetId}
+            onAbsenceNoteChange={setAbsenceNote}
+            onCancelLeave={() => setAbsenceMemberId("")}
+            onSubmitLeave={() => void submitUnexpectedLeave()}
+            onOvertimeStartChange={setOvertimeStart}
+            onOvertimeEndChange={setOvertimeEnd}
+            onRecordOvertimeConsent={() => void recordOvertimeConsent()}
+            onAssignMembers={() => {
+              setIsConfigModalOpen(true);
+            }}
+          />
+        </div>
+      ) : (
+        <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+          <h2 className="m-0 text-base font-semibold text-slate-800">
+            Chưa có ca làm việc nào
+          </h2>
+          <p className="mb-0 mt-2 max-w-sm text-sm text-slate-500">
+            Tạo ca đầu tiên để cấu hình lịch trực, phân bổ hạn mức và điều phối lead tự động.
+          </p>
+          {isOwner && (
+            <Button
+              size="sm"
+              variant="primary"
+              className="mt-4"
+              onClick={startNewShift}
+            >
+              + Tạo ca mới
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Slide-over Drawer cho Nhật ký hoạt động */}
+      <ShiftAuditDrawer
+        isOpen={isAuditDrawerOpen}
+        onClose={() => setIsAuditDrawerOpen(false)}
+        shiftName={selectedShift?.name}
+        entries={auditEntries}
+        staff={staff}
+        cursor={auditCursor}
+        isLoading={isLoadingAudit}
+        loadError={auditLoadError}
+        range={auditRange}
+        customStartDate={customAuditStartDate}
+        customEndDate={customAuditEndDate}
+        isCustomApplied={Boolean(
+          appliedCustomAuditRange &&
+          appliedCustomAuditRange.start === customAuditStartDate &&
+          appliedCustomAuditRange.end === customAuditEndDate,
+        )}
+        isCustomRangeValid={isCustomAuditRangeValid}
+        onRangeChange={(range) => {
+          setAuditRange(range);
+          setAppliedCustomAuditRange(null);
+          setAuditEntries([]);
+          setAuditCursor(null);
+        }}
+        onCustomDatesChange={(startDate, endDate) => {
+          setCustomAuditStartDate(startDate);
+          setCustomAuditEndDate(endDate);
+          setAppliedCustomAuditRange(null);
+          setAuditEntries([]);
+          setAuditCursor(null);
+        }}
+        onApplyCustomRange={() =>
+          setAppliedCustomAuditRange({
+            start: customAuditStartDate,
+            end: customAuditEndDate,
+          })
+        }
+        onLoad={(cursor) => void loadAudit(cursor)}
+      />
+
+      {/* Modal Cấu hình & Nhân sự ca trực */}
+      <ShiftConfigModal
+        isOpen={isConfigModalOpen || isCreating}
+        onClose={handleCloseConfigModal}
+        isCreating={isCreating}
+        shiftTitle={name.trim() || selectedShift?.name || ""}
+        name={name}
+        startTime={startTime}
+        endTime={endTime}
+        timezone={timezone}
+        weekdays={weekdays}
+        isOwner={isOwner}
+        isSaving={isSaving}
+        onNameChange={setName}
+        onStartTimeChange={setStartTime}
+        onEndTimeChange={setEndTime}
+        onTimezoneChange={setTimezone}
+        onWeekdaysChange={setWeekdays}
+        activeStaff={activeStaff}
+        members={members}
+        staffLoadError={staffLoadError}
+        focusMemberId={focusMemberId}
+        onToggleStaff={toggleStaff}
+        onPatchMember={patchMember}
+        onBulkAddStaff={bulkAddStaff}
+        onBulkSetQuota={bulkSetQuota}
+        onSave={(event) => void saveConfiguration(event)}
+      />
+
+      {/* Modal xác nhận xóa ca */}
       <Modal
         isOpen={isDeleteConfirmOpen}
         onClose={() => {

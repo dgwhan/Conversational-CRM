@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs } from '../../../components/ui/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import type { WorkspaceItem } from '../WorkspaceConfigContext.js';
@@ -11,6 +12,8 @@ import {
   type ConnectRenewTarget,
   WorkspaceMembersTab,
 } from '../onboarding/components/workspace/tabs/index.js';
+import { WorkspaceSettingsTab } from '../components/settings/WorkspaceSettingsTab.js';
+import { ShiftManagementTab } from '../components/settings/shift-management/ShiftManagementTab.js';
 import {
   EditWorkspaceModal,
   DeleteWorkspaceModal,
@@ -50,7 +53,35 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   } = detail;
 
   // Tab điều hướng dùng component Tabs hệ thống
-  const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'members'>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'members' | 'shifts' | 'settings'>(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'shifts') return 'shifts';
+    if (tab === 'settings') return 'settings';
+    if (tab === 'channels') return 'channels';
+    if (tab === 'members') return 'members';
+    return 'overview';
+  });
+
+  const handleTabChange = (tab: 'overview' | 'channels' | 'members' | 'shifts' | 'settings') => {
+    setActiveTab(tab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (tab === 'overview') {
+          next.delete('tab');
+          next.delete('subtab');
+        } else {
+          next.set('tab', tab);
+          if (tab !== 'settings') {
+            next.delete('subtab');
+          }
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
 
   // Modal Sửa & Xóa Workspace
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -132,50 +163,19 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
   const domainLabel = getDomainLabel(workspace.domain);
 
   return (
-    <div className="workspace-flat-detail w-full max-w-[1600px] mx-auto p-3 sm:p-4 min-h-full space-y-3.5 sm:space-y-4">
-      {/* 1. Header chi tiết Workspace & Dãy nút thao tác */}
-      <WorkspaceDetailHeader
-        workspace={workspace}
-        isActive={isActive}
-        domainLabel={domainLabel}
-        canOwnerLeave={canOwnerLeave}
-        canManageWorkspace={canManageWorkspace}
-        onBack={onBack}
-        onSelectWorkspace={onSelectWorkspace}
-        onGoToInbox={onGoToInbox}
-        onLeaveWorkspace={handleOpenLeaveWorkspace}
-        onEditWorkspace={() => setIsEditModalOpen(true)}
-        onSaveWorkspaceName={async (newName) => {
-          await handleSaveWorkspaceInfo(workspace.id, {
-            name: newName,
-            domain: workspace.domain,
-          });
-        }}
-        onDeleteWorkspace={myWorkspaces.length > 1 ? () => setIsDeleteModalOpen(true) : undefined}
-      />
-
-      {/* 2. Thanh Tabs trượt gạch dưới hệ thống chuẩn */}
-      <Tabs<'overview' | 'channels' | 'members'>
-        items={[
-          { id: 'overview', label: 'Tổng quan' },
-          { id: 'channels', label: 'Kênh kết nối', count: channels.length },
-          { id: 'members', label: 'Thành viên', count: activeStaffList.length },
-        ]}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
-
-      {/* 3. Tab 1: Tổng quan */}
-      {activeTab === 'overview' && (
-        <WorkspaceOverviewTab
+    <div className="workspace-flat-detail w-full min-h-full bg-white flex flex-col rounded-none border-none shadow-none">
+      {/* 1. Header chi tiết Workspace & Dãy nút thao tác (Soft neutral tint bg-slate-50/90) */}
+      <div className="w-full bg-slate-50/90 px-6 sm:px-10 pt-4 sm:pt-5 pb-3">
+        <WorkspaceDetailHeader
           workspace={workspace}
+          isActive={isActive}
           domainLabel={domainLabel}
-          membersCount={activeStaffList.length}
-          channelsCount={channels.length}
-          contactsCount={contactsCount}
-          isLoadingContacts={isLoadingContacts}
-          adminName={resolvedAdminName}
+          canOwnerLeave={canOwnerLeave}
           canManageWorkspace={canManageWorkspace}
+          onBack={onBack}
+          onSelectWorkspace={onSelectWorkspace}
+          onGoToInbox={onGoToInbox}
+          onLeaveWorkspace={handleOpenLeaveWorkspace}
           onEditWorkspace={() => setIsEditModalOpen(true)}
           onSaveWorkspaceName={async (newName) => {
             await handleSaveWorkspaceInfo(workspace.id, {
@@ -185,48 +185,117 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           }}
           onDeleteWorkspace={myWorkspaces.length > 1 ? () => setIsDeleteModalOpen(true) : undefined}
         />
-      )}
+      </div>
 
-      {/* 4. Tab 2: Kênh kết nối */}
-      {activeTab === 'channels' && (
-        <WorkspaceChannelsTab
-          workspaceId={workspace.id}
-          workspaceName={workspace.name}
-          isOwner={Boolean(workspace.isOwner)}
-          canManageChannels={canManageWorkspace}
-          channels={channels}
-          isLoading={isLoadingChannels}
-          syncingChannelId={syncingChannelId}
-          togglingChannelId={togglingChannelId}
-          onSyncChannel={handleSyncChannel}
-          onToggleChannel={handleToggleChannel}
-          onDisconnectChannel={handleDisconnectChannel}
-          onOpenConnectModal={(chKey, target) => {
-            setModalChannel(chKey);
-            setRenewTarget(target ?? null);
-            setIsConnectModalOpen(true);
-          }}
+      {/* 2. Thanh Tabs trượt gạch dưới hệ thống chuẩn - Full-width với crisp 1px hairline border & bg-slate-50/90 */}
+      <div className="w-full border-b border-slate-200 bg-slate-50/90 px-6 sm:px-10">
+        <Tabs<'overview' | 'channels' | 'members' | 'shifts' | 'settings'>
+          items={[
+            { id: 'overview', label: 'Tổng quan' },
+            { id: 'channels', label: 'Kênh kết nối' },
+            { id: 'members', label: 'Thành viên' },
+            { id: 'shifts', label: 'Nhân viên trực ca' },
+            { id: 'settings', label: 'Cấu hình' },
+          ]}
+          activeTab={activeTab}
+          onChange={handleTabChange}
         />
-      )}
+      </div>
 
-      {/* 5. Tab 3: Thành viên */}
-      {activeTab === 'members' && (
-        <WorkspaceMembersTab
-          workspaceId={workspace.id}
-          workspaceName={workspace.name}
-          isOwner={Boolean(workspace.isOwner)}
-          canManageMembers={canManageWorkspace}
-          currentStaffId={staffId}
-          currentStaffEmail={staffEmail}
-          staffMembers={effectiveStaffList}
-          onRemoveMember={handleRemoveMember}
-          onLeaveWorkspace={handleOpenLeaveWorkspace}
-          onInviteMember={handleInviteMember}
-          onCancelInvitation={handleCancelInvitation}
-          onSetWorkspaceManagerPermission={handleSetWorkspaceManagerPermission}
-          onTransferOwnership={handleOpenTransferModal}
-          onToggleStaffLock={handleToggleStaffLock}
-        />
+      {/* 3. Nội dung Tab: Split-pane liền mạch (Flush) cho Cấu hình, và Container có padding cho các Tab khác */}
+      {activeTab === 'settings' ? (
+        <div className="w-full flex-1 bg-white flex min-h-0 items-stretch">
+          <WorkspaceSettingsTab
+            workspaceId={workspace.id}
+            isOwner={Boolean(workspace.isOwner)}
+            canManageWorkspace={canManageWorkspace}
+          />
+        </div>
+      ) : (
+        <div className="w-full max-w-[1600px] mx-auto p-6 sm:p-10 space-y-6">
+          {/* Tab 1: Tổng quan */}
+          {activeTab === 'overview' && (
+            <WorkspaceOverviewTab
+              workspace={workspace}
+              domainLabel={domainLabel}
+              membersCount={activeStaffList.length}
+              channelsCount={channels.length}
+              contactsCount={contactsCount}
+              isLoadingContacts={isLoadingContacts}
+              adminName={resolvedAdminName}
+              canManageWorkspace={canManageWorkspace}
+              onEditWorkspace={() => setIsEditModalOpen(true)}
+              onSaveWorkspaceName={async (newName) => {
+                await handleSaveWorkspaceInfo(workspace.id, {
+                  name: newName,
+                  domain: workspace.domain,
+                });
+              }}
+              onDeleteWorkspace={myWorkspaces.length > 1 ? () => setIsDeleteModalOpen(true) : undefined}
+            />
+          )}
+
+          {/* Tab 2: Kênh kết nối */}
+          {activeTab === 'channels' && (
+            <WorkspaceChannelsTab
+              workspaceId={workspace.id}
+              workspaceName={workspace.name}
+              isOwner={Boolean(workspace.isOwner)}
+              canManageChannels={canManageWorkspace}
+              channels={channels}
+              isLoading={isLoadingChannels}
+              syncingChannelId={syncingChannelId}
+              togglingChannelId={togglingChannelId}
+              onSyncChannel={handleSyncChannel}
+              onToggleChannel={handleToggleChannel}
+              onDisconnectChannel={handleDisconnectChannel}
+              onOpenConnectModal={(chKey, target) => {
+                setModalChannel(chKey);
+                setRenewTarget(target ?? null);
+                setIsConnectModalOpen(true);
+              }}
+            />
+          )}
+
+          {/* Tab 3: Thành viên */}
+          {activeTab === 'members' && (
+            <WorkspaceMembersTab
+              workspaceId={workspace.id}
+              workspaceName={workspace.name}
+              isOwner={Boolean(workspace.isOwner)}
+              canManageMembers={canManageWorkspace}
+              currentStaffId={staffId}
+              currentStaffEmail={staffEmail}
+              staffMembers={effectiveStaffList}
+              onRemoveMember={handleRemoveMember}
+              onLeaveWorkspace={handleOpenLeaveWorkspace}
+              onInviteMember={handleInviteMember}
+              onCancelInvitation={handleCancelInvitation}
+              onSetWorkspaceManagerPermission={handleSetWorkspaceManagerPermission}
+              onTransferOwnership={handleOpenTransferModal}
+              onToggleStaffLock={handleToggleStaffLock}
+            />
+          )}
+
+          {/* Tab 4: Danh sách nhân viên trực ca */}
+          {activeTab === 'shifts' && (
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sm:p-8">
+              <div className="pb-5 mb-6 border-b border-slate-200">
+                <h1 className="text-lg font-semibold text-slate-950 m-0">
+                  Danh sách nhân viên trực ca
+                </h1>
+                <p className="text-[13px] text-slate-600 mt-1 mb-0 max-w-xl">
+                  Theo dõi trạng thái trực, phân bổ hạn mức lead và điều phối nhân sự theo ca làm việc.
+                </p>
+              </div>
+              <ShiftManagementTab
+                workspaceId={workspace.id}
+                isOwner={canManageWorkspace}
+                focusMemberId={searchParams.get('memberId') || undefined}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Modal kết nối kênh OAuth */}

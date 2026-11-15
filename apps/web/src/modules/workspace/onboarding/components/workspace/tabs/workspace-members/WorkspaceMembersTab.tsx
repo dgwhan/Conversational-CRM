@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Plus, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 import { buildRoute } from "../../../../../../../config/routes.js";
 import {
   WORKSPACE_MEMBER_STATUS,
@@ -113,7 +113,17 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
       matchesUnaccent(member.email, normalizedSearch) ||
       (member.phoneNumber && member.phoneNumber.toLowerCase().includes(lowerSearch)) ||
       (digitsSearch.length >= 3 && rawPhone.includes(digitsSearch));
-    const matchesRole = roleFilter === "ALL" || member.role === roleFilter;
+
+    const isOwnerMember = member.role === StaffRole.OWNER;
+    const isManagerMember = Boolean(member.isWorkspaceManager || member.role === "MANAGER");
+    const isStaffMember = !isOwnerMember && !isManagerMember;
+
+    const matchesRole =
+      roleFilter === "ALL" ||
+      (roleFilter === StaffRole.OWNER && isOwnerMember) ||
+      (roleFilter === "MANAGER" && isManagerMember) ||
+      (roleFilter === StaffRole.STAFF && isStaffMember);
+
     return matchesSearch && matchesRole;
   });
   const totalPages = Math.ceil(filteredStaff.length / pageSize) || 1;
@@ -124,6 +134,7 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
   const roleFilterOptions = [
     { value: "ALL", label: "Tất cả vai trò" },
     { value: StaffRole.OWNER, label: "Chủ sở hữu" },
+    { value: "MANAGER", label: "Quản lý" },
     { value: StaffRole.STAFF, label: "Nhân viên tư vấn" },
   ];
 
@@ -233,20 +244,17 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
             setActiveSubTab(tab);
             setMemberPage(1);
           }}
-          variant="segmented"
-          borderBottom={false}
+          countTotal={true}
           items={[
             {
               id: "members" as const,
               label: "Thành viên",
               count: activeMembers.length,
-              icon: <Users size={14} />,
             },
             {
               id: "invitations" as const,
               label: "Lời mời đã gửi",
-              count: pendingInvitations.length || undefined,
-              icon: <Mail size={14} />,
+              count: pendingInvitations.length,
             },
           ]}
         />

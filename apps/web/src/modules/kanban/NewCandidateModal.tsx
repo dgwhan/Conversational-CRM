@@ -8,6 +8,7 @@ import { useUserRole } from '../auth/UserRoleContext.js';
 import { useRealtime } from '../realtime/RealtimeContext.js';
 import { useTranslation } from '../../i18n/index.js';
 import { apiClient } from '../../lib/api-client/index.js';
+import { SearchableSelect } from '../../components/ui/SearchableSelect.js';
 
 interface NewCandidateModalProps {
   isOpen: boolean;
@@ -150,17 +151,20 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
             </div>
             <div className="form-group">
               <label className="form-label">{t('kanban.newCandidateModal.channelLabel', 'Kênh tiếp nhận')}</label>
-              <select
-                className="crm-form-select"
+              <SearchableSelect
                 value={channel}
-                onChange={(e) => setChannel(e.target.value as ChannelType)}
-              >
-                <option value="FACEBOOK">Facebook Messenger / Fanpage</option>
-                <option value="ZALO">Zalo Official Account (OA)</option>
-                <option value="ZALO_PERSONAL">Zalo Personal</option>
-                <option value="TIKTOK">TikTok Channel</option>
-                <option value="MANUAL">Direct / Hotline</option>
-              </select>
+                onChange={(val) => setChannel(val as ChannelType)}
+                options={[
+                  { value: 'FACEBOOK', label: 'Facebook Messenger / Fanpage' },
+                  { value: 'ZALO', label: 'Zalo Official Account (OA)' },
+                  { value: 'ZALO_PERSONAL', label: 'Zalo Personal' },
+                  { value: 'TIKTOK', label: 'TikTok Channel' },
+                  { value: 'MANUAL', label: 'Direct / Hotline' },
+                ]}
+                size="md"
+                searchable={false}
+                fullWidth
+              />
             </div>
           </div>
 
@@ -190,54 +194,59 @@ export const NewCandidateModal: React.FC<NewCandidateModalProps> = ({
           <div className="form-group-row">
             <div className="form-group">
               <label className="form-label">{t('kanban.newCandidateModal.initialStageLabel', 'Giai đoạn ban đầu')}</label>
-              <select
-                className="crm-form-select"
+              <SearchableSelect
                 value={stage}
-                onChange={(e) => setStage(e.target.value as LeadStage)}
-              >
-                {config.pipelineStages.map((col) => (
-                  <option key={col.id} value={col.id}>
-                    {col.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setStage(val as LeadStage)}
+                options={config.pipelineStages.map((col) => ({
+                  value: col.id,
+                  label: col.name,
+                }))}
+                size="md"
+                searchable={false}
+                fullWidth
+              />
             </div>
             <div className="form-group">
               <label className="form-label">{t('kanban.newCandidateModal.assignedStaffLabel', 'Nhân viên phụ trách')}</label>
-              <select
-                className="crm-form-select"
+              <SearchableSelect
                 value={assignedStaff}
-                onChange={(e) => setAssignedStaff(e.target.value)}
-              >
-                {Object.values(staffPresences).length > 0 ? (
-                  Object.values(staffPresences).map((staff) => (
-                    <option key={staff.staffId} value={staff.staffId}>
-                      {staff.name} - {staff.status}
-                    </option>
-                  ))
-                ) : (
-                  <option value="staff-me">
-                    {staffName ? `${staffName} (${locale === 'en' ? 'You' : 'Bạn'}) - Online` : `${locale === 'en' ? 'You' : 'Bạn'} - Online`}
-                  </option>
-                )}
-              </select>
+                onChange={(val) => setAssignedStaff(val)}
+                options={
+                  Object.values(staffPresences).length > 0
+                    ? Object.values(staffPresences).map((staff) => ({
+                        value: staff.staffId,
+                        label: `${staff.name} - ${staff.status}`,
+                      }))
+                    : [
+                        {
+                          value: 'staff-me',
+                          label: staffName
+                            ? `${staffName} (${locale === 'en' ? 'You' : 'Bạn'}) - Online`
+                            : `${locale === 'en' ? 'You' : 'Bạn'} - Online`,
+                        },
+                      ]
+                }
+                size="md"
+                searchable={Object.values(staffPresences).length > 5}
+                fullWidth
+              />
             </div>
           </div>
 
           <div className="form-group-row">
             <div className="form-group">
               <label className="form-label">{config.terminology.productLabel}</label>
-              <select
-                className="crm-form-select"
+              <SearchableSelect
                 value={course}
-                onChange={(e) => handleProductChange(e.target.value)}
-              >
-                {config.productCatalog.map((prod) => (
-                  <option key={prod.id} value={prod.name}>
-                    {prod.name} ({new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN').format(prod.defaultPrice)} đ)
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => handleProductChange(val)}
+                options={config.productCatalog.map((prod) => ({
+                  value: prod.name,
+                  label: `${prod.name} (${new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN').format(prod.defaultPrice)} đ)`,
+                }))}
+                size="md"
+                searchPlaceholder={`Tìm ${config.terminology.productLabel}...`}
+                fullWidth
+              />
             </div>
             <div className="form-group">
               <label className="form-label">{config.terminology.valueLabel}</label>

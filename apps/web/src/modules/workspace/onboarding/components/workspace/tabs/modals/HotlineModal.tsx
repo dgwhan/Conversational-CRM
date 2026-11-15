@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, Check } from 'lucide-react';
-import { Modal, Button } from '../../../../../../../components/ui/index.js';
+import { Modal, Button, SearchableSelect } from '../../../../../../../components/ui/index.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
 
 export interface HotlineItem {
@@ -163,17 +163,14 @@ export const HotlineModal: React.FC<HotlineModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Phòng ban phụ trách
             </label>
-            <select
+            <SearchableSelect
               value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
-            >
-              {DEPARTMENTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setDepartment(val)}
+              options={DEPARTMENTS.map((d) => ({ value: d, label: d }))}
+              size="md"
+              fullWidth
+              searchable={false}
+            />
           </div>
 
           <div>
@@ -208,14 +205,17 @@ export const HotlineModal: React.FC<HotlineModalProps> = ({
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Trạng thái tiếp nhận
             </label>
-            <select
+            <SearchableSelect
               value={status}
-              onChange={(e) => setStatus(e.target.value as 'ACTIVE' | 'INACTIVE')}
-              className="w-full px-3 py-2 text-xs border border-slate-300 rounded-md bg-white text-slate-700 outline-none focus:border-blue-600 shadow-xs cursor-pointer box-border transition-all"
-            >
-              <option value="ACTIVE">Đang nhận cuộc gọi (Sẵn sàng)</option>
-              <option value="INACTIVE">Tạm dừng tiếp nhận</option>
-            </select>
+              onChange={(val) => setStatus(val as 'ACTIVE' | 'INACTIVE')}
+              options={[
+                { value: 'ACTIVE', label: 'Đang nhận cuộc gọi (Sẵn sàng)', dotColor: '#10b981' },
+                { value: 'INACTIVE', label: 'Tạm dừng tiếp nhận', dotColor: '#94a3b8' },
+              ]}
+              size="md"
+              fullWidth
+              searchable={false}
+            />
           </div>
         </div>
 

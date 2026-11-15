@@ -5,6 +5,7 @@ import type {
 } from '../../../types.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { SearchInput } from '../../../../../components/ui/SearchInput.js';
+import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
 
 export interface ConversationListFiltersProps {
   searchQuery: string;
@@ -77,45 +78,56 @@ export const ConversationListFilters: React.FC<ConversationListFiltersProps> = (
 
       {/* 3. Tài khoản Zalo phụ (nếu có nhiều Zalo) */}
       {selectedChannel === 'ZALO' && zaloAccounts && zaloAccounts.length > 1 && (
-        <div className="w-full flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200/80 rounded-md">
-          <span className="text-[11px] font-medium text-slate-500 shrink-0">TK:</span>
-          <select
-            className="flex-1 h-5 text-[11px] font-medium text-slate-700 bg-transparent border-0 focus:outline-none cursor-pointer truncate"
+        <div className="w-full">
+          <SearchableSelect
             value={selectedZaloAccount || 'ALL'}
-            onChange={(e) => onZaloAccountChange?.(e.target.value)}
-          >
-            <option value="ALL">Tất cả ({zaloAccounts.length})</option>
-            {zaloAccounts.map((acc) => (
-              <option key={acc.id} value={acc.id}>
-                {acc.name}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => onZaloAccountChange?.(val)}
+            options={[
+              { value: 'ALL', label: 'Tất cả tài khoản' },
+              ...zaloAccounts.map((acc) => ({ value: acc.id, label: acc.name })),
+            ]}
+            size="sm"
+            fullWidth
+            searchable={false}
+          />
         </div>
       )}
 
       {/* 4. Dropdown lọc trạng thái phụ tinh tế */}
       <div className="w-full">
-        <select
-          className="w-full h-7 px-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:border-slate-300 transition-colors cursor-pointer"
+        <SearchableSelect
           value={statusFilter}
-          onChange={(e) =>
-            onStatusFilterChange(e.target.value as ConversationStatusFilter)
+          onChange={(val) =>
+            onStatusFilterChange(val as ConversationStatusFilter)
           }
-        >
-          <option value="ALL">Mọi trạng thái hội thoại</option>
-          <option value="UNREAD">{t('inbox.filterUnread')}</option>
-          {alertThresholdMinutes !== undefined && alertThresholdMinutes > 0 && (
-            <option value="UNRESPONSIVE">
-              Chưa phản hồi (&gt; {alertThresholdMinutes} phút)
-            </option>
-          )}
-          <option value="OUT_OF_OFFICE">
-            🌙 Ngoài giờ - Cần tư vấn hôm sau
-          </option>
-          <option value="ASSIGNED_TO_ME">{t('inbox.filterAssignedToMe')}</option>
-          <option value="UNASSIGNED">{t('inbox.filterUnassigned')}</option>
-        </select>
+          options={[
+            { value: 'ALL', label: 'Mọi trạng thái hội thoại' },
+            { value: 'UNREAD', label: t('inbox.filterUnread') },
+            ...(alertThresholdMinutes !== undefined && alertThresholdMinutes > 0
+              ? [
+                  {
+                    value: 'UNRESPONSIVE',
+                    label: `Chưa phản hồi (> ${alertThresholdMinutes} phút)`,
+                  },
+                ]
+              : []),
+            {
+              value: 'OUT_OF_OFFICE',
+              label: '🌙 Ngoài giờ - Cần tư vấn hôm sau',
+            },
+            {
+              value: 'ASSIGNED_TO_ME',
+              label: t('inbox.filterAssignedToMe'),
+            },
+            {
+              value: 'UNASSIGNED',
+              label: t('inbox.filterUnassigned'),
+            },
+          ]}
+          size="sm"
+          fullWidth
+          searchable={false}
+        />
       </div>
     </div>
   );

@@ -1,19 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Database,
-  HardDrive,
   Trash2,
-  Clock,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  ShieldCheck,
-  Calendar,
-  Layers,
-  Sparkles,
   Zap,
+  Save,
 } from 'lucide-react';
-import { Button, Badge, Toggle } from '../../../../../components/ui/index.js';
+import { Button, Toggle, SearchableSelect, ConfigSubSectionHeader } from '../../../../../components/ui/index.js';
 import { notify } from '../../../../../components/feedback/toastEmitter.js';
 import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
 import { apiClient } from '../../../../../lib/api-client/index.js';
@@ -163,148 +155,133 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
   const olderThan12mSize = metrics?.ageBreakdown?.olderThan12Months?.estimatedSizeFormatted || '0 B';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 w-full pb-12">
       {/* 1. Header & Điều khiển thao tác nhanh */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-              <Database className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                {t('workspaceSettings.storage.title', 'Quản lý Dung lượng & Lưu trữ Tin nhắn')}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('workspaceSettings.storage.desc', 'Đo lường dung lượng lưu trữ PostgreSQL, chống phình dữ liệu và tự động dọn dẹp tin nhắn cũ sau 12 tháng.')}
-              </p>
-            </div>
+      <ConfigSubSectionHeader
+        title={t('workspaceSettings.storage.title', 'Quản lý Dung lượng & Lưu trữ Tin nhắn')}
+        actions={
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => fetchMetrics(true)}
+              disabled={isRefreshing}
+              className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="whitespace-nowrap">{t('workspaceSettings.storage.refresh', 'Làm mới số liệu')}</span>
+            </Button>
+
+            {isOwner && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleTriggerRetentionNow}
+                  disabled={isTriggeringRetention}
+                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs px-3 py-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                  <span className="whitespace-nowrap">{t('workspaceSettings.storage.runNow', 'Chạy dọn dẹp 12 tháng ngay')}</span>
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPurgeModalOpen(true)}
+                  className="inline-flex flex-row items-center gap-1.5 whitespace-nowrap text-xs font-medium px-3 py-1.5 rounded-md border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">{t('workspaceSettings.storage.manualCleanup', 'Dọn dẹp thủ công')}</span>
+                </button>
+              </>
+            )}
           </div>
-        </div>
+        }
+        help={{
+          title: t('workspaceSettings.storage.title', 'Quản lý Dung lượng & Lưu trữ Tin nhắn'),
+          description:
+            'Hệ thống giám sát chi tiết dung lượng lưu trữ cơ sở dữ liệu và lượng tài nguyên tiêu thụ theo từng giai đoạn thời gian phát sinh.',
+          example:
+            'Quản trị viên nhấn "Chạy dọn dẹp 12 tháng ngay". Hệ thống tự động kích hoạt tiến trình xử lý ngầm để giải phóng các dữ liệu tin nhắn quá hạn và tối ưu dung lượng lưu trữ.',
+          rules: [
+            'Chỉ tài khoản Chủ sở hữu không gian làm việc mới có thẩm quyền thực thi tác vụ dọn dẹp dữ liệu.',
+            'Quá trình dọn dẹp chỉ áp dụng với nội dung tin nhắn và tệp đính kèm quá hạn, bảo toàn toàn bộ danh sách liên hệ và lịch sử giao dịch cốt lõi.',
+            'Số liệu dung lượng sau dọn dẹp sẽ được đồng bộ và làm mới trên bảng chỉ số ngay khi tiến trình hoàn tất.',
+          ],
+        }}
+        className="pb-4 border-b border-slate-200"
+      />
 
-        <div className="flex items-center flex-wrap gap-2.5">
-          <Button
-            variant="secondary"
-            onClick={() => fetchMetrics(true)}
-            disabled={isRefreshing}
-            className="flex items-center gap-1.5 text-xs py-2"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{t('workspaceSettings.storage.refresh', 'Làm mới số liệu')}</span>
-          </Button>
-
-          {isOwner && (
-            <>
-              <Button
-                variant="secondary"
-                onClick={handleTriggerRetentionNow}
-                disabled={isTriggeringRetention}
-                className="flex items-center gap-1.5 text-xs py-2 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>{t('workspaceSettings.storage.runNow', 'Chạy dọn dẹp 12 tháng ngay')}</span>
-              </Button>
-
-              <Button
-                variant="danger"
-                onClick={() => setIsPurgeModalOpen(true)}
-                className="flex items-center gap-1.5 text-xs py-2 shadow-sm"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{t('workspaceSettings.storage.manualCleanup', 'Dọn dẹp thủ công')}</span>
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Hàng Thống kê (Stat Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Tổng dung lượng */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('workspaceSettings.storage.totalSize', 'Tổng dung lượng')}</span>
-            <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-              <HardDrive className="w-4 h-4" />
-            </div>
+      {/* 2. Unified Flat KPI Strip (4-column horizontal metric strip) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 border-y border-slate-200 py-5 bg-slate-50/40">
+        {/* Col 1: Tổng dung lượng */}
+        <div className="px-5 py-2 sm:py-0">
+          <div className="text-xs font-medium text-slate-600">
+            {t('workspaceSettings.storage.totalSize', 'Tổng dung lượng')}
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+          <div className="text-xl font-semibold text-slate-950 mt-1">
             {metrics?.totalSizeFormatted || '0 B'}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 space-x-2">
-            <span>TOAST: {apiClient.messageStorageApi ? metrics?.toastSizeBytes ? `${(metrics.toastSizeBytes / (1024 * 1024)).toFixed(1)} MB` : '0 MB' : '0 MB'}</span>
-            <span>•</span>
-            <span>Index: {metrics?.indexSizeBytes ? `${(metrics.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB` : '0 MB'}</span>
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+            TOAST: {apiClient.messageStorageApi ? metrics?.toastSizeBytes ? `${(metrics.toastSizeBytes / (1024 * 1024)).toFixed(1)} MB` : '0 MB' : '0 MB'} · Index: {metrics?.indexSizeBytes ? `${(metrics.indexSizeBytes / (1024 * 1024)).toFixed(1)} MB` : '0 MB'}
           </div>
         </div>
 
-        {/* Card 2: Tổng số tin nhắn */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('workspaceSettings.storage.totalMessages', 'Tổng số tin nhắn')}</span>
-            <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400">
-              <Layers className="w-4 h-4" />
-            </div>
+        {/* Col 2: Tổng số tin nhắn */}
+        <div className="px-5 py-2 sm:py-0">
+          <div className="text-xs font-medium text-slate-600">
+            {t('workspaceSettings.storage.totalMessages', 'Tổng số tin nhắn')}
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+          <div className="text-xl font-semibold text-slate-950 mt-1">
             {metrics?.totalMessages?.toLocaleString('vi-VN') || 0}
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
             {t('workspaceSettings.storage.average', 'Trung bình: ~{n} bytes / tin nhắn', { n: metrics?.averageMessageSizeBytes || 0 })}
           </div>
         </div>
 
-        {/* Card 3: Dữ liệu quá hạn (> 12 tháng) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('workspaceSettings.storage.expired', 'Tin nhắn quá hạn (> 12 tháng)')}</span>
-            <div className={`p-1.5 rounded-lg ${olderThan12mCount > 0 ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600' : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600'}`}>
-              <Clock className="w-4 h-4" />
-            </div>
+        {/* Col 3: Tin nhắn quá hạn (> 12 tháng) */}
+        <div className="px-5 py-2 sm:py-0">
+          <div className="text-xs font-medium text-slate-600">
+            {t('workspaceSettings.storage.expired', 'Tin nhắn quá hạn (> 12 tháng)')}
           </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1 flex items-baseline gap-2">
+          <div className="text-xl font-semibold text-slate-950 mt-1 flex items-baseline gap-1.5">
             <span>{olderThan12mCount.toLocaleString('vi-VN')}</span>
             <span className="text-xs font-normal text-slate-500">({olderThan12mSize})</span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+          <div className="text-[11px] mt-0.5 truncate">
             {olderThan12mCount > 0 ? (
-              <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                <AlertCircle className="w-3 h-3" /> {t('workspaceSettings.storage.readyToClean', 'Sẵn sàng dọn dẹp')}
-              </span>
+              <span className="text-amber-600 font-medium">Sẵn sàng dọn dẹp</span>
             ) : (
-              <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> {t('workspaceSettings.storage.optimized', 'Database tối ưu, không có tin quá hạn')}
-              </span>
+              <span className="text-emerald-600 font-medium">Tối ưu, không có tin quá hạn</span>
             )}
           </div>
         </div>
 
-        {/* Card 4: Tự động dọn dẹp (Retention Status) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('workspaceSettings.storage.autoCleanup', 'Tự động dọn dẹp')}</span>
-            <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
+        {/* Col 4: Tự động dọn dẹp */}
+        <div className="px-5 py-2 sm:py-0">
+          <div className="text-xs font-medium text-slate-600">
+            {t('workspaceSettings.storage.autoCleanup', 'Tự động dọn dẹp')}
           </div>
-          <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mb-1 flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>{policy.autoCleanupEnabled ? t('workspaceSettings.storage.active', 'Đang hoạt động') : t('workspaceSettings.storage.paused', 'Tạm dừng')}</span>
+          <div className="text-xl font-semibold text-slate-950 mt-1 flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${policy.autoCleanupEnabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+            <span className={policy.autoCleanupEnabled ? 'text-emerald-700' : 'text-slate-600'}>
+              {policy.autoCleanupEnabled ? t('workspaceSettings.storage.active', 'Đang hoạt động') : t('workspaceSettings.storage.paused', 'Tạm dừng')}
+            </span>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="text-[11px] text-slate-500 mt-0.5 truncate">
             {t('workspaceSettings.storage.scheduleSummary', 'Hàng ngày lúc 02:00 AM • Sau {n} tháng', { n: policy.retentionMonths || 12 })}
           </div>
         </div>
       </div>
 
-      {/* 3. Phân bổ dữ liệu (Theo Kênh & Theo Độ tuổi) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 3. Flat Two-Column Distribution Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 py-6 border-b border-slate-200">
         {/* Phân bổ theo Kênh giao tiếp */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Database className="w-4 h-4 text-indigo-500" />
-              <span>{t('workspaceSettings.storage.byChannel', 'Phân bổ Dung lượng theo Kênh')}</span>
+            <h3 className="text-sm font-semibold text-slate-950 m-0">
+              {t('workspaceSettings.storage.byChannel', 'Phân bổ Dung lượng theo Kênh')}
             </h3>
             <span className="text-xs text-slate-500">{t('workspaceSettings.storage.estimate', 'Ước tính Payload & Text')}</span>
           </div>
@@ -314,29 +291,29 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
               const totalEst = metrics.totalSizeBytes || 1;
               const percent = Math.min(100, Math.round((ch.estimatedSizeBytes / totalEst) * 100)) || 0;
 
-              const channelLabels: Record<string, { name: string; color: string; badge: string }> = {
-                ZALO: { name: 'Zalo Official Account', color: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' },
-                FACEBOOK: { name: 'Facebook Messenger', color: 'bg-indigo-600', badge: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300' },
-                TIKTOK: { name: 'TikTok Shop / Chat', color: 'bg-slate-800', badge: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200' },
-                MANUAL_IMPORT: { name: t('workspaceSettings.storage.manualImport', 'Nhập thủ công / CSV'), color: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' },
+              const channelLabels: Record<string, { name: string; color: string }> = {
+                ZALO: { name: 'Zalo Official Account', color: 'bg-blue-500' },
+                FACEBOOK: { name: 'Facebook Messenger', color: 'bg-indigo-600' },
+                TIKTOK: { name: 'TikTok Shop / Chat', color: 'bg-slate-800' },
+                MANUAL_IMPORT: { name: t('workspaceSettings.storage.manualImport', 'Nhập thủ công / CSV'), color: 'bg-emerald-500' },
               };
 
-              const meta = channelLabels[ch.channel] || { name: ch.channel, color: 'bg-slate-400', badge: 'bg-slate-100 text-slate-700' };
+              const meta = channelLabels[ch.channel] || { name: ch.channel, color: 'bg-slate-400' };
 
               return (
                 <div key={ch.channel} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    <span className="font-medium text-slate-800">
                       {meta.name}
                     </span>
-                    <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center gap-2 text-slate-600">
                       <span>{ch.messageCount.toLocaleString('vi-VN')} tin</span>
                       <span>•</span>
-                      <span className="font-semibold text-slate-900 dark:text-white">{ch.estimatedSizeFormatted}</span>
+                      <span className="font-semibold text-slate-900">{ch.estimatedSizeFormatted}</span>
                       <span className="text-[11px] text-slate-400">({percent}%)</span>
                     </div>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                     <div
                       className={`h-full ${meta.color} transition-all duration-500 rounded-full`}
                       style={{ width: `${percent}%` }}
@@ -349,11 +326,10 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         </div>
 
         {/* Phân bổ theo Độ tuổi dữ liệu */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-500" />
-              <span>{t('workspaceSettings.storage.byLifecycle', 'Phân bổ theo Vòng đời Tin nhắn')}</span>
+            <h3 className="text-sm font-semibold text-slate-950 m-0">
+              {t('workspaceSettings.storage.byLifecycle', 'Phân bổ theo Vòng đời Tin nhắn')}
             </h3>
             <span className="text-xs text-slate-500">{t('workspaceSettings.storage.sentTime', 'Mốc thời gian gửi')}</span>
           </div>
@@ -362,14 +338,14 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
             {/* < 30 ngày */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <span className="font-medium text-slate-700 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {t('workspaceSettings.storage.lt30', 'Dưới 30 ngày (Dữ liệu nóng / Đang tương tác)')}
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
+                <span className="font-semibold text-slate-900">
                   {metrics?.ageBreakdown?.lessThan30Days?.count?.toLocaleString('vi-VN') || 0} tin ({metrics?.ageBreakdown?.lessThan30Days?.estimatedSizeFormatted || '0 B'})
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full bg-emerald-500 rounded-full"
                   style={{
@@ -382,14 +358,14 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
             {/* 1 - 6 tháng */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                <span className="font-medium text-slate-700 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-500"></span> {t('workspaceSettings.storage.m1to6', '1 đến 6 tháng (Dữ liệu ấm / Chăm sóc)')}
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
+                <span className="font-semibold text-slate-900">
                   {metrics?.ageBreakdown?.oneToSixMonths?.count?.toLocaleString('vi-VN') || 0} tin ({metrics?.ageBreakdown?.oneToSixMonths?.estimatedSizeFormatted || '0 B'})
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full bg-blue-500 rounded-full"
                   style={{
@@ -402,14 +378,14 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
             {/* 6 - 12 tháng */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                <span className="font-medium text-slate-700 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span> {t('workspaceSettings.storage.m6to12', '6 đến 12 tháng (Dữ liệu lưu trữ định kỳ)')}
                 </span>
-                <span className="font-semibold text-slate-900 dark:text-white">
+                <span className="font-semibold text-slate-900">
                   {metrics?.ageBreakdown?.sixToTwelveMonths?.count?.toLocaleString('vi-VN') || 0} tin ({metrics?.ageBreakdown?.sixToTwelveMonths?.estimatedSizeFormatted || '0 B'})
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full bg-amber-500 rounded-full"
                   style={{
@@ -422,14 +398,14 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
             {/* > 12 tháng */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                <span className="font-medium text-slate-700 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-red-500"></span> {t('workspaceSettings.storage.gt12', 'Quá 12 tháng (Hết hạn / Cần dọn dẹp)')}
                 </span>
-                <span className="font-bold text-red-600 dark:text-red-400">
+                <span className="font-bold text-red-600">
                   {olderThan12mCount.toLocaleString('vi-VN')} tin ({olderThan12mSize})
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full bg-red-500 rounded-full"
                   style={{
@@ -442,35 +418,42 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
         </div>
       </div>
 
-      {/* 4. Cấu hình Chính sách Tự động Dọn dẹp (Retention Policy Settings) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-500" />
-              <span>{t('workspaceSettings.storage.policyTitle', 'Chính sách Tự động Dọn dẹp & Lưu trữ (Retention Policy)')}</span>
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              {t('workspaceSettings.storage.policyDesc', 'Quy tắc hệ thống chạy định kỳ hàng ngày giúp cơ sở dữ liệu luôn gọn gàng và đạt hiệu năng cao nhất.')}
-            </p>
-          </div>
-          <Badge variant={policy.enabled ? 'success' : 'secondary'}>
-            {policy.enabled ? t('workspaceSettings.storage.enabled', 'Đã kích hoạt') : t('workspaceSettings.storage.disabled', 'Vô hiệu hóa')}
-          </Badge>
-        </div>
+      {/* 4. Cấu hình Chính sách Tự động Dọn dẹp (Retention Policy Settings - Consistent Flat Setting Rows) */}
+      <div className="pt-2 space-y-4">
+        <ConfigSubSectionHeader
+          title={t('workspaceSettings.storage.policyTitle', 'Chính sách Tự động Dọn dẹp & Lưu trữ (Retention Policy)')}
+          badge={
+            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${policy.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+              }`}>
+              {policy.enabled ? t('workspaceSettings.storage.enabled', 'Đã kích hoạt') : t('workspaceSettings.storage.disabled', 'Vô hiệu hóa')}
+            </span>
+          }
+          help={{
+            title: t('workspaceSettings.storage.policyTitle', 'Chính sách Tự động Dọn dẹp & Lưu trữ'),
+            description:
+              'Chính sách lưu trữ quy định thời hạn lưu giữ dữ liệu và lịch trình tự động thu hồi tài nguyên để duy trì hiệu năng vận hành ổn định.',
+            example:
+              'Kích hoạt chính sách lưu trữ định kỳ 365 ngày. Hệ thống tự động chạy tác vụ ngầm vào lúc 02:00 sáng hàng ngày để quét và giải phóng các tin nhắn cũ hơn 365 ngày.',
+            rules: [
+              'Tiến trình thu hồi tài nguyên thực hiện hoàn toàn dưới nền và không gây gián đoạn hoạt động tương tác của người dùng.',
+              'Các tệp đa phương tiện dung lượng lớn sẽ được ưu tiên dọn dẹp trước để tối ưu hóa không gian lưu trữ.',
+              'Thời hạn lưu trữ có thể cấu hình linh hoạt từ 30 ngày đến 365 ngày tùy theo chính sách quản lý dữ liệu.',
+            ],
+          }}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Toggle Bật/tắt */}
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
-              <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-white block">
-                  {t('workspaceSettings.storage.enableSchedule', 'Bật tự động dọn dẹp theo lịch')}
-                </label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {t('workspaceSettings.storage.enableScheduleDesc', 'Hệ thống tự động kích hoạt Worker quét và giải phóng các tin nhắn quá hạn vào lúc 02:00 AM hàng ngày.')}
-                </p>
+        <div className="divide-y divide-slate-200 border-t border-b border-slate-200">
+          {/* Row 1: Bật tự động dọn dẹp theo lịch */}
+          <div className="flex items-center justify-between py-4 gap-4">
+            <div className="max-w-xl">
+              <div className="text-sm font-semibold text-slate-950">
+                {t('workspaceSettings.storage.enableSchedule', 'Bật tự động dọn dẹp theo lịch')}
               </div>
+              <div className="text-xs text-slate-600 mt-0.5">
+                {t('workspaceSettings.storage.enableScheduleDesc', 'Hệ thống tự động kích hoạt Worker quét và giải phóng các tin nhắn quá hạn vào lúc 02:00 AM hàng ngày.')}
+              </div>
+            </div>
+            <div className="shrink-0">
               <Toggle
                 checked={policy.autoCleanupEnabled}
                 onChange={(checked) => setPolicy({ ...policy, autoCleanupEnabled: checked })}
@@ -478,80 +461,81 @@ export const MessageStorageTab: React.FC<MessageStorageTabProps> = ({
                 size="md"
               />
             </div>
+          </div>
 
-            {/* Thời gian lưu trữ */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-indigo-500" />
-                <span>{t('workspaceSettings.storage.maxRetention', 'Thời hạn lưu trữ tin nhắn tối đa')}</span>
-              </label>
-              <select
-                value={policy.retentionMonths}
-                onChange={(e) => setPolicy({ ...policy, retentionMonths: Number(e.target.value) })}
+          {/* Row 2: Chế độ bảo tồn: Chỉ dọn Raw Payload (Standardized Toggle) */}
+          <div className="flex items-center justify-between py-4 gap-4">
+            <div className="max-w-xl">
+              <div className="text-sm font-semibold text-slate-950">
+                {t('workspaceSettings.storage.slimOnly', 'Chế độ bảo tồn: Chỉ dọn Raw Payload (Khuyên dùng)')}
+              </div>
+              <div className="text-xs text-slate-600 mt-0.5">
+                {t('workspaceSettings.storage.slimOnlyDesc', 'Loại bỏ các đoạn JSON thô nặng nề của Zalo/Facebook, nhưng vẫn bảo tồn trọn vẹn văn bản tin nhắn và lịch sử tư vấn khách hàng.')}
+              </div>
+            </div>
+            <div className="shrink-0">
+              <Toggle
+                checked={policy.slimPayloadOnly}
+                onChange={(checked) => setPolicy({ ...policy, slimPayloadOnly: checked })}
                 disabled={!isOwner}
-                className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2.5 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 font-medium"
-              >
-                <option value={3}>{t('workspaceSettings.storage.months3', '3 tháng')}</option>
-                <option value={6}>{t('workspaceSettings.storage.months6', '6 tháng')}</option>
-                <option value={12}>{t('workspaceSettings.storage.months12', '12 tháng (Chuẩn Khuyến nghị CRM)')}</option>
-                <option value={24}>{t('workspaceSettings.storage.months24', '24 tháng (2 năm)')}</option>
-                <option value={36}>{t('workspaceSettings.storage.months36', '36 tháng (3 năm)')}</option>
-              </select>
+                size="md"
+              />
             </div>
           </div>
 
-          {/* Tùy chọn dọn dẹp nhẹ */}
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3 p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40">
-              <div>
-                <label className="text-sm font-semibold text-slate-900 dark:text-white block">
-                  {t('workspaceSettings.storage.slimOnly', 'Chế độ bảo tồn: Chỉ dọn Raw Payload (Khuyên dùng)')}
-                </label>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {t('workspaceSettings.storage.slimOnlyDesc', 'Loại bỏ các đoạn JSON thô nặng nề của Zalo/Facebook, nhưng vẫn bảo tồn trọn vẹn văn bản tin nhắn và lịch sử tư vấn khách hàng.')}
-                </p>
+          {/* Row 3: Thời hạn lưu trữ tin nhắn tối đa */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4">
+            <div className="max-w-xl">
+              <div className="text-sm font-semibold text-slate-950">
+                {t('workspaceSettings.storage.maxRetention', 'Thời hạn lưu trữ tin nhắn tối đa')}
               </div>
-              <input
-                type="checkbox"
-                checked={policy.slimPayloadOnly}
-                onChange={(e) => setPolicy({ ...policy, slimPayloadOnly: e.target.checked })}
-                disabled={!isOwner}
-                className="mt-1 w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-              />
+              <div className="text-xs text-slate-600 mt-0.5 space-y-0.5">
+                <div>• {t('workspaceSettings.storage.scanSchedule', 'Lịch quét: Hàng ngày lúc 02:00 AM (giờ Việt Nam)')}</div>
+                <div>• {t('workspaceSettings.storage.lastRun', 'Lần chạy gần nhất: {time}', { time: policy.lastRunAt ? new Date(policy.lastRunAt).toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN') : t('workspaceSettings.storage.never', 'Chưa có') })}</div>
+                {typeof policy.lastDeletedCount === 'number' && policy.lastDeletedCount > 0 && (
+                  <div>• {t('workspaceSettings.storage.lastDeleted', 'Đã dọn dẹp đợt gần nhất: {n} tin nhắn', { n: policy.lastDeletedCount.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN') })}</div>
+                )}
+              </div>
             </div>
-
-            {/* Thông tin lần chạy gần nhất */}
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 space-y-1.5 text-xs text-slate-600 dark:text-slate-400">
-              <span className="font-semibold text-slate-800 dark:text-slate-200 block">{t('workspaceSettings.storage.opStatus', 'Trạng thái vận hành:')}</span>
-              <p>• {t('workspaceSettings.storage.scanSchedule', 'Lịch quét: Hàng ngày lúc 02:00 AM (giờ Việt Nam)')}</p>
-              <p>• {t('workspaceSettings.storage.lastRun', 'Lần chạy gần nhất: {time}', { time: policy.lastRunAt ? new Date(policy.lastRunAt).toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN') : t('workspaceSettings.storage.never', 'Chưa có') })}</p>
-              {typeof policy.lastDeletedCount === 'number' && policy.lastDeletedCount > 0 && (
-                <p>• {t('workspaceSettings.storage.lastDeleted', 'Đã dọn dẹp đợt gần nhất: {n} tin nhắn', { n: policy.lastDeletedCount.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN') })}</p>
-              )}
+            <div className="shrink-0">
+              <SearchableSelect
+                value={String(policy.retentionMonths)}
+                onChange={(val) => setPolicy({ ...policy, retentionMonths: Number(val) })}
+                disabled={!isOwner}
+                options={[
+                  { value: '3', label: t('workspaceSettings.storage.months3', '3 tháng') },
+                  { value: '6', label: t('workspaceSettings.storage.months6', '6 tháng') },
+                  { value: '12', label: t('workspaceSettings.storage.months12', '12 tháng (Chuẩn Khuyến nghị CRM)') },
+                  { value: '24', label: t('workspaceSettings.storage.months24', '24 tháng (2 năm)') },
+                  { value: '36', label: t('workspaceSettings.storage.months36', '36 tháng (3 năm)') },
+                ]}
+                searchable={false}
+                size="md"
+                className="w-full sm:w-64"
+              />
             </div>
           </div>
         </div>
 
         {isOwner && (
-          <div className="pt-2 flex justify-end">
-            <Button
-              variant="primary"
-              onClick={handleSavePolicy}
+          <div className="pt-6 pb-12 flex justify-end">
+            <button
+              type="button"
               disabled={isSavingPolicy}
-              className="flex items-center gap-2 py-2 px-5 shadow-sm"
+              onClick={handleSavePolicy}
+              className="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer border-none shadow-2xs inline-flex flex-row items-center justify-center gap-1.5 whitespace-nowrap"
             >
               {isSavingPolicy ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{t('workspaceSettings.storage.saving', 'Đang lưu...')}</span>
-                </>
+                <RefreshCw size={14} className="animate-spin shrink-0" />
               ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{t('workspaceSettings.storage.savePolicy', 'Lưu Chính Sách Lưu Trữ')}</span>
-                </>
+                <Save size={14} className="shrink-0" />
               )}
-            </Button>
+              <span>
+                {isSavingPolicy
+                  ? t('workspaceSettings.storage.saving', 'Đang lưu...')
+                  : 'Lưu cài đặt'}
+              </span>
+            </button>
           </div>
         )}
       </div>
