@@ -95,7 +95,8 @@ export class FacebookAdapter implements ChannelAdapter {
             this.configService?.get<string>('FB_VERIFY_TOKEN') ??
             process.env.META_WEBHOOK_VERIFY_TOKEN ??
             process.env.FB_VERIFY_TOKEN ??
-            'cusc_recruitment_crm_webhook_verify_secret'
+            // Token mặc định chỉ cho dev; production bắt buộc cấu hình (env.schema) nên không bao giờ rơi vào đây
+            (process.env.NODE_ENV === 'production' ? '' : 'polarisx_recruitment_crm_webhook_verify_secret')
         );
     }
 

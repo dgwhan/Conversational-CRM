@@ -548,7 +548,7 @@ export class ChannelManagerService {
     pageAccessToken: string,
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const url = `https://graph.facebook.com/v19.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${pageAccessToken}`;
+      const url = `https://graph.facebook.com/v19.0/${pageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,message_echoes&access_token=${pageAccessToken}`;
       const res = await fetch(url, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || json.success !== true) {
