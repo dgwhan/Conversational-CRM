@@ -33,6 +33,10 @@ export interface InboundEvent {
     readonly externalAccountId: string;
     readonly externalMessageId: string;
     readonly senderExternalId: string;
+    /** CRM user who actually sent the message, when known from a trusted source. */
+    readonly senderStaffId?: string | null;
+    /** Snapshot of the CRM user's display name at send time. */
+    readonly senderStaffName?: string | null;
     readonly direction: MessageDirection;
     readonly content: string | null;
     readonly sentAt: Date;

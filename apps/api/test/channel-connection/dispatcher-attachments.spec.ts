@@ -64,6 +64,8 @@ describe('MessageDispatcherService – gửi tệp đính kèm', () => {
             conversationId: CONV,
             workspaceId: WS,
             channelAccountId: 'acc-1',
+            senderStaffId: 'staff-1',
+            senderStaffName: 'Nguyễn An',
             attachments: [{ assetId: 'a1' }],
         });
 
@@ -73,7 +75,13 @@ describe('MessageDispatcherService – gửi tệp đính kèm', () => {
 
         expect(insert).toHaveBeenCalledTimes(2);
         const imageEvent = insert.mock.calls[1][0][0];
-        expect(imageEvent).toMatchObject({ externalMessageId: 'm_img', content: '[Hình ảnh]', direction: 'OUTBOUND' });
+        expect(imageEvent).toMatchObject({
+            externalMessageId: 'm_img',
+            content: '[Hình ảnh]',
+            direction: 'OUTBOUND',
+            senderStaffId: 'staff-1',
+            senderStaffName: 'Nguyễn An',
+        });
         expect(imageEvent.attachments[0]).toMatchObject({ id: 'm_img_0', type: 'IMAGE', storageKey: 'outbound/ws-1/a1.jpg' });
 
         expect(outbound.markSent).toHaveBeenCalledWith(expect.objectContaining({ assetId: 'a1' }), { facebookAttachmentId: '999' });

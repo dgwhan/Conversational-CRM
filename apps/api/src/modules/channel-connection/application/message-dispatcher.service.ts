@@ -308,7 +308,7 @@ export class MessageDispatcherService {
     const snippet = content || (attachments?.length ? summarizeAttachments(attachments) ?? '[Tệp đính kèm]' : '');
 
     let insertedId: string | null = null;
-    let isAlreadyPersistedByWebhook = false;
+    let isAlreadyPersisted = false;
 
     if (this.messageRepo) {
       try {
@@ -318,6 +318,8 @@ export class MessageDispatcherService {
             externalAccountId: account.externalAccountId,
             externalMessageId,
             senderExternalId: account.externalAccountId,
+            senderStaffId: input.senderStaffId,
+            senderStaffName: input.senderStaffName,
             direction: MessageDirection.OUTBOUND,
             content: snippet,
             sentAt,
@@ -338,7 +340,12 @@ export class MessageDispatcherService {
           insertedId = inserted[0].id;
         } else {
           // Bản ghi đã được chèn trước đó (ví dụ Meta webhook echo đến nhanh hơn)
-          isAlreadyPersistedByWebhook = true;
+          isAlreadyPersisted = true;
+          const existing = await this.prisma.message.findUnique({
+            where: { channel_externalMessageId: { channel: channelEnum, externalMessageId } },
+            select: { id: true },
+          });
+          insertedId = existing?.id ?? null;
           if (attachments?.length) await this.attachToEchoedMessage(channelEnum, externalMessageId, attachments);
         }
       } catch (err) {
@@ -381,8 +388,9 @@ export class MessageDispatcherService {
       // Non-critical
     }
 
-    // Phát tín hiệu Realtime: chỉ khi webhook echo chưa chèn và broadcast trước đó, tránh nhân đôi tin ở Frontend
-    if (this.realtime && !isAlreadyPersistedByWebhook) {
+    // Nếu echo đã insert trước, phát cùng message DB ID kèm attribution từ API.
+    // Frontend deduplicate theo ID và merge metadata còn thiếu.
+    if (this.realtime && (!isAlreadyPersisted || input.senderStaffId || input.senderStaffName)) {
       try {
         this.realtime.broadcastNewMessage({
           id: insertedId || externalMessageId,

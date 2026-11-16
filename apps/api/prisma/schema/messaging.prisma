@@ -164,6 +164,8 @@ model Message {
     externalMessageId String           @map("external_message_id")
     rawPayload        Json             @map("raw_payload") @db.JsonB
     senderExternalId  String?          @map("sender_external_id")
+    senderStaffId     String?          @map("sender_staff_id")
+    senderStaffName   String?          @map("sender_staff_name")
     processedAt       DateTime?        @map("processed_at") @db.Timestamptz(3)
     createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 

@@ -163,6 +163,7 @@ describe('STAFF Permissions - Zalo Exception & Handover Security', () => {
 
       const res = await controller.syncChannel('zalo-ch-1', 'ws-1', undefined, req);
       expect(res.syncedCount).toBe(5);
+      expect(mockChannelManager.getChannelById).toHaveBeenCalledWith('zalo-ch-1', 'ws-1');
       expect(mockChannelManager.syncChannel).toHaveBeenCalledWith('zalo-ch-1', 'ws-1');
     });
 
@@ -179,6 +180,7 @@ describe('STAFF Permissions - Zalo Exception & Handover Security', () => {
       await expect(
         controller.syncChannel('fb-ch-1', 'ws-1', undefined, req),
       ).rejects.toThrow(ForbiddenException);
+      expect(mockChannelManager.syncChannel).not.toHaveBeenCalled();
     });
   });
 

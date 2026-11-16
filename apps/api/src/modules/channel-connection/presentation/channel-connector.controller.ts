@@ -219,6 +219,21 @@ export class ChannelConnectorController {
     @Req() req?: any,
   ) {
     const effectiveWorkspaceId = this.requireAuthorizedWorkspace(req, queryWorkspaceId || headerWorkspaceId);
+
+    // STAFF may use the temporary Zalo sync exception, but cannot use it to sync
+    // a Facebook channel by supplying another channel account ID.
+    if (req?.workspace?.role === WorkspaceRole.STAFF) {
+      const channelAccount = await this.channelManager.getChannelById(id, effectiveWorkspaceId);
+      if (!channelAccount) {
+        throw new NotFoundException('Không tìm thấy kênh trong workspace hiện tại.');
+      }
+      if (channelAccount.channel !== 'ZALO') {
+        throw new ForbiddenException(
+          'Nhân viên chỉ có quyền đồng bộ kênh Zalo (403 Forbidden).',
+        );
+      }
+    }
+
     return this.channelManager.syncChannel(id, effectiveWorkspaceId);
   }
 

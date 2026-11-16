@@ -1,0 +1,1 @@
+ALTER TABLE "messages" ADD COLUMN "sender_staff_id" TEXT, ADD COLUMN "sender_staff_name" TEXT;

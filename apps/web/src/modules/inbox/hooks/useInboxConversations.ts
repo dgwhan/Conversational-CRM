@@ -557,7 +557,6 @@ export const useInboxConversations = ({
         const sentAtIso = msg.sentAt && !isNaN(Date.parse(msg.sentAt))
           ? new Date(msg.sentAt).toISOString()
           : new Date().toISOString();
-        const isMsgOutbound = msg.direction === 'OUTBOUND';
         const existing = existingIdx >= 0 ? prev[existingIdx] : undefined;
         const newChatMsg: ChatMessage = {
           id: msg.id || `msg-${Date.now()}`,
@@ -570,7 +569,7 @@ export const useInboxConversations = ({
           senderAvatar: msg.senderAvatar,
           // senderStaffId/senderStaffName: lấy từ realtime payload (giá trị được lưu LÚC GỬI TIN).
           // KHÔNG fallback về existing.assignedStaff — hội thoại có thể đã được chuyển giao sau đó.
-          senderStaffId: msg.senderStaffId || (msg as any).rawPayload?.senderStaffId || (isMsgOutbound ? staffId || null : null),
+          senderStaffId: msg.senderStaffId || (msg as any).rawPayload?.senderStaffId || null,
           senderStaffName:
             msg.senderStaffName ||
             (msg as any).rawPayload?.senderStaffName ||

@@ -219,6 +219,8 @@ export class InboundMessageSideEffects {
             workspaceId: event.workspaceId || dbCustomer?.workspaceId || undefined,
             // Thêm senderExternalId để frontend match đúng conversation theo socialId
             ...(customerExternalId ? { senderExternalId: customerExternalId } : {}),
+            ...(event.senderStaffId ? { senderStaffId: event.senderStaffId } : {}),
+            ...(event.senderStaffName ? { senderStaffName: event.senderStaffName } : {}),
             ...(customerName ? { customerName } : {}),
             ...(customerAvatar ? { customerAvatar } : {}),
         });

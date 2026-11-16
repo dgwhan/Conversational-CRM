@@ -18,8 +18,9 @@ export const MessageStream: React.FC<MessageStreamProps> = ({
   const getSenderKey = (m: ChatMessage) => {
     if (m.direction === 'INBOUND') return `__inbound_${m.senderName || 'customer'}__`;
     if (m.isAutomation) return '__automation__';
+    if (m.senderStaffId) return `__staff_${m.senderStaffId}__`;
     if (m.senderStaffName?.trim()) return m.senderStaffName.trim();
-    return m.senderStaffId || '__unknown__';
+    return '__unknown__';
   };
 
   return (

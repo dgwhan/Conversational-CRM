@@ -1043,6 +1043,36 @@ export class ZcaPersonalService implements OnModuleInit {
       };
 
       try {
+        const existingMessage = typeof this.prisma.message.findUnique === 'function'
+          ? await this.prisma.message.findUnique({
+            where: {
+              channel_externalMessageId: {
+                channel: 'ZALO',
+                externalMessageId,
+              },
+            },
+            select: { rawPayload: true, senderStaffId: true, senderStaffName: true },
+          })
+          : null;
+        const existingRaw =
+          existingMessage?.rawPayload && typeof existingMessage.rawPayload === 'object'
+            ? existingMessage.rawPayload as Record<string, unknown>
+            : {};
+        const selfListenPayload = { ...enrichedPayload };
+        // The Zalo account identity is not a CRM staff identity. Never trust staff
+        // attribution fields carried by a platform payload.
+        delete selfListenPayload.senderStaffId;
+        delete selfListenPayload.senderStaffName;
+        const mergedPayload = {
+          ...existingRaw,
+          ...selfListenPayload,
+          ...((existingMessage?.senderStaffId || existingRaw.senderStaffId)
+            ? { senderStaffId: existingMessage?.senderStaffId || existingRaw.senderStaffId }
+            : {}),
+          ...((existingMessage?.senderStaffName || existingRaw.senderStaffName)
+            ? { senderStaffName: existingMessage?.senderStaffName || existingRaw.senderStaffName }
+            : {}),
+        };
         const saved = await this.prisma.message.upsert({
           where: {
             channel_externalMessageId: {
@@ -1053,7 +1083,7 @@ export class ZcaPersonalService implements OnModuleInit {
           update: {
             content,
             sentAt,
-            rawPayload: enrichedPayload,
+            rawPayload: mergedPayload,
           },
           create: {
             channelAccountId: channelAccount.id,

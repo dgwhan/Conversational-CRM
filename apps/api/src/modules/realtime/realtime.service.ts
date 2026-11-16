@@ -439,7 +439,7 @@ export class RealtimeService implements OnModuleInit, OnModuleDestroy {
   broadcastNewMessage(messageData: {
     id: string;
     conversationId: string;
-    channel: 'FACEBOOK' | 'ZALO' | 'TIKTOK' | 'MANUAL';
+    channel: 'FACEBOOK' | 'ZALO' | 'ZALO_PERSONAL' | 'TIKTOK' | 'MANUAL';
     direction: 'INBOUND' | 'OUTBOUND';
     content: string;
     senderName: string;

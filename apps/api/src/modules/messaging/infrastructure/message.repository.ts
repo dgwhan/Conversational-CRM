@@ -351,11 +351,11 @@ export class MessageRepository implements OnModuleInit {
                         }
                         : undefined);
 
-                // senderStaffName: chỉ lấy từ rawPayload (giá trị được lưu LÚC GỬI TIN).
+                // Prefer the sender snapshot columns; rawPayload remains the legacy fallback.
                 // Không fallback về assignedStaff.name vì đó là người được gán HIỆN TẠI,
                 // có thể đã thay đổi sau khi hội thoại được chuyển giao.
                 const senderStaffName =
-                    raw.senderStaffName ||
+                    m.senderStaffName || raw.senderStaffName ||
                     (raw.isAutomation ? 'Automation' : null);
 
                 return {
@@ -367,7 +367,7 @@ export class MessageRepository implements OnModuleInit {
                     customerEmail: customer?.email || null,
                     tags,
                     assignedStaff,
-                    senderStaffId: raw.senderStaffId || null,
+                    senderStaffId: m.senderStaffId || raw.senderStaffId || null,
                     senderStaffName: senderStaffName || null,
                     isAutomation: Boolean(raw.isAutomation),
                 };
@@ -572,6 +572,8 @@ export class MessageRepository implements OnModuleInit {
                 channel: e.channel,
                 direction: e.direction ?? MessageDirection.INBOUND,
                 senderExternalId: normalizeExternalUserId(e.senderExternalId),
+                senderStaffId: e.senderStaffId || undefined,
+                senderStaffName: e.senderStaffName || undefined,
                 content: e.content,
                 attachments: attachments ? (attachments as unknown as Prisma.InputJsonValue) : undefined,
                 sentAt: messageSentAt,
@@ -597,6 +599,35 @@ export class MessageRepository implements OnModuleInit {
             skipDuplicates: true,
             select: { id: true, conversationId: true, channel: true, externalMessageId: true },
         });
+
+        // A send API may arrive after an echo/sync inserted the same message. Enrich
+        // only missing attribution fields; never replace a sender already recorded.
+        const insertedKeys = new Set(created.map((m) => inboundEventKey(m)));
+        for (const event of uniqueEvents) {
+            if (insertedKeys.has(inboundEventKey(event))) continue;
+            if (event.senderStaffId) {
+                await this.prisma.message.updateMany({
+                    where: {
+                        channel: event.channel,
+                        externalMessageId: event.externalMessageId,
+                        direction: MessageDirection.OUTBOUND,
+                        senderStaffId: null,
+                    },
+                    data: { senderStaffId: event.senderStaffId },
+                });
+            }
+            if (event.senderStaffName) {
+                await this.prisma.message.updateMany({
+                    where: {
+                        channel: event.channel,
+                        externalMessageId: event.externalMessageId,
+                        direction: MessageDirection.OUTBOUND,
+                        senderStaffName: null,
+                    },
+                    data: { senderStaffName: event.senderStaffName },
+                });
+            }
+        }
 
         // Chỉ tiến tới, không ghi lùi khi tin đến sai thứ tự
         for (const [conversationId, at] of latestInboundByConv) {

@@ -163,4 +163,29 @@ describe('MessageRepository.findMany', () => {
         expect(result.items[0].senderExternalId).toBe('sender-1');
         expect(result.items[0].customerName).toBe('Nguyen Van A');
     });
+
+    it('prefers official sender staff fields over stale rawPayload metadata', async () => {
+        const prisma = {
+            message: {
+                findMany: vi.fn().mockResolvedValue([{
+                    id: 'msg-outbound',
+                    channel: Channel.FACEBOOK,
+                    direction: 'OUTBOUND',
+                    content: 'Hello',
+                    rawPayload: { senderStaffId: 'stale-id', senderStaffName: 'Old Name' },
+                    senderStaffId: 'staff-1',
+                    senderStaffName: 'Current Snapshot',
+                    sentAt: new Date(),
+                    conversation: { customer: { channelIdentities: {} } },
+                }]),
+                count: vi.fn().mockResolvedValue(1),
+            },
+        } as unknown as PrismaService;
+
+        const result = await new MessageRepository(prisma).findMany();
+        expect(result.items[0]).toMatchObject({
+            senderStaffId: 'staff-1',
+            senderStaffName: 'Current Snapshot',
+        });
+    });
 });

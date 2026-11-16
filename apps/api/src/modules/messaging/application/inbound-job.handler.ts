@@ -31,6 +31,8 @@ export class InboundJobHandler {
                         ...job.context,
                         sentAt: new Date(job.context.sentAt),
                         rawPayload: message.rawPayload,
+                        senderStaffId: message.senderStaffId,
+                        senderStaffName: message.senderStaffName,
                     },
                     { id: message.id, conversationId: message.conversationId ?? job.context.conversationId ?? null },
                 );

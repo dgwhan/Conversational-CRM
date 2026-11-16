@@ -56,15 +56,14 @@ export const deduplicateMessages = (messages: ChatMessage[]): ChatMessage[] => {
     });
 
     if (existingIdx !== -1) {
-      // Cập nhật senderStaffName/senderStaffId nếu bản ghi mới có thông tin
-      if (!result[existingIdx].senderStaffName && msg.senderStaffName) {
-        result[existingIdx] = {
-          ...result[existingIdx],
-          senderStaffName: msg.senderStaffName,
-          senderStaffId: msg.senderStaffId || result[existingIdx].senderStaffId,
-          isAutomation: msg.isAutomation ?? result[existingIdx].isAutomation,
-        };
-      }
+      const existing = result[existingIdx];
+      // Retain the best attribution when optimistic, API and realtime copies merge.
+      result[existingIdx] = {
+        ...existing,
+        senderStaffId: existing.senderStaffId || msg.senderStaffId,
+        senderStaffName: existing.senderStaffName || msg.senderStaffName,
+        isAutomation: existing.isAutomation ?? msg.isAutomation,
+      };
       // Cập nhật attachments nếu bản ghi trước đó bị thiếu attachments
       if ((!result[existingIdx].attachments || result[existingIdx].attachments.length === 0) && msg.attachments && msg.attachments.length > 0) {
         result[existingIdx] = {
@@ -80,6 +79,9 @@ export const deduplicateMessages = (messages: ChatMessage[]): ChatMessage[] => {
       ) {
         result[existingIdx] = {
           ...msg,
+          senderStaffId: msg.senderStaffId || result[existingIdx].senderStaffId,
+          senderStaffName: msg.senderStaffName || result[existingIdx].senderStaffName,
+          isAutomation: msg.isAutomation ?? result[existingIdx].isAutomation,
           attachments: msg.attachments || result[existingIdx].attachments,
         };
       }
