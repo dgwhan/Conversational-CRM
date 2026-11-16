@@ -267,7 +267,7 @@ export class OAuthService {
         let webhookWarning: string | undefined;
 
         try {
-          const subUrl = `https://graph.facebook.com/v19.0/${pageData.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${effectivePageToken}`;
+          const subUrl = `https://graph.facebook.com/v19.0/${pageData.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,message_echoes&access_token=${effectivePageToken}`;
           const subRes = await fetch(subUrl, { method: 'POST' });
           const subJson = await subRes.json().catch(() => ({}));
 

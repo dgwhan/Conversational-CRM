@@ -267,6 +267,20 @@ export const envSchema = z
             'In production, ZALO_OA_SECRET_KEY (or ZALO_APP_SECRET) is required to verify Zalo webhook signatures',
         });
       }
+      if (config.META_APP_ID && !config.META_APP_SECRET) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['META_APP_SECRET'],
+          message: 'In production, META_APP_SECRET is required to verify Facebook webhook signatures',
+        });
+      }
+      if (config.META_APP_ID && !config.META_WEBHOOK_VERIFY_TOKEN) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['META_WEBHOOK_VERIFY_TOKEN'],
+          message: 'In production, META_WEBHOOK_VERIFY_TOKEN is required for the Meta webhook handshake',
+        });
+      }
       if (!config.REDIS_URL) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
