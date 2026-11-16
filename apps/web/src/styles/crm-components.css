@@ -321,7 +321,9 @@
 
 /* Spinner Animation */
 .animate-spin {
-  animation: spin 1s linear infinite;
+  animation: spin 0.85s linear infinite;
+  transform-origin: center;
+  will-change: transform;
 }
 
 @keyframes spin {

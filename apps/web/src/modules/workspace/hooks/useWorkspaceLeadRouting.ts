@@ -57,11 +57,12 @@ export function useWorkspaceLeadRouting(workspaceId: string) {
   const [shifts, setShifts] = useState<WorkShift[]>([]);
   const [roster, setRoster] = useState<StaffRoutingStatus[]>([]);
   const [queue, setQueue] = useState<LeadQueueItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(workspaceId));
   const currentWorkspaceId = useRef(workspaceId);
 
   useEffect(() => {
     currentWorkspaceId.current = workspaceId;
+    setIsLoading(Boolean(workspaceId));
     setShifts([]);
     setRoster([]);
     setQueue([]);

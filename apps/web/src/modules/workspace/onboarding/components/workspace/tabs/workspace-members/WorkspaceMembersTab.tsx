@@ -310,7 +310,7 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
         currentStaffId={currentStaffId}
         currentStaffEmail={currentStaffEmail}
         canOwnerLeave={canOwnerLeave}
-        isLoading={isLoadingStaff || (routing.isLoading && staffMembers.length === 0)}
+        isLoading={isLoadingStaff || routing.isLoading}
         routingByMemberId={routingByMemberId}
         onConfigureShift={(memberId) => {
           const query = new URLSearchParams({

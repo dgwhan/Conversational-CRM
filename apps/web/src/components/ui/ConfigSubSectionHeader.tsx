@@ -96,7 +96,7 @@ export const ConfigSubSectionHeader: React.FC<ConfigSubSectionHeaderProps> = ({
         help &&
         createPortal(
           <div
-            className="fixed inset-0 z-[100] bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center p-4 animate-in fade-in duration-150"
+            className="fixed inset-0 z-[10001] bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center p-4 animate-in fade-in duration-150"
             onClick={(e) => {
               if (e.target === e.currentTarget) setIsHelpOpen(false);
             }}

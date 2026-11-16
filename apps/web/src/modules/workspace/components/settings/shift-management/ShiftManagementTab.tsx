@@ -8,7 +8,7 @@ import React, {
 import { History, Settings } from "lucide-react";
 import { apiClient } from "../../../../../lib/api-client/index.js";
 import { notify } from "../../../../../components/feedback/toastEmitter.js";
-import { Button, Modal, Toggle } from "../../../../../components/ui/index.js";
+import { Button, LoadingState, Modal, Toggle } from "../../../../../components/ui/index.js";
 import {
   useWorkspaceLeadRouting,
   WEEKDAY_LABELS,
@@ -18,6 +18,7 @@ import type { ManagedStaffItem } from "../../../types/staff.types.js";
 import { useUserRole } from "../../../../auth/UserRoleContext.js";
 import { LeadQueueSection } from "./LeadQueueSection.js";
 import { ShiftAvailabilitySection } from "./ShiftAvailabilitySection.js";
+import { ShiftMembersSection } from "./ShiftMembersSection.js";
 import { ShiftAuditDrawer, ShiftConfigModal } from "./components/index.js";
 import type { AuditEntry, AuditPage, MemberDraft } from "./types.js";
 import {
@@ -130,6 +131,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   const routing = useWorkspaceLeadRouting(workspaceId);
   const { userId } = useUserRole();
   const [staff, setStaff] = useState<ManagedStaffItem[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true);
   const [staffLoadError, setStaffLoadError] = useState("");
   const [selectedShiftId, setSelectedShiftId] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -172,6 +174,9 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   const auditRequestId = useRef(0);
   const handledFocusKey = useRef("");
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isAddMembersModalOpen, setIsAddMembersModalOpen] = useState(false);
+  const [quickAddMembers, setQuickAddMembers] = useState<MemberDraft[]>([]);
+  const [isSavingQuickAddMembers, setIsSavingQuickAddMembers] = useState(false);
   const [queueTargets, setQueueTargets] = useState<Record<string, string>>({});
 
   const selectedShift = useMemo(
@@ -227,9 +232,14 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     : configChanged || membersChanged;
 
   useEffect(() => {
-    if (!workspaceId) return;
+    if (!workspaceId) {
+      setStaff([]);
+      setIsLoadingStaff(false);
+      return;
+    }
     let isCurrent = true;
     setStaff([]);
+    setIsLoadingStaff(true);
     setStaffLoadError("");
     void apiClient
       .get<ManagedStaffItem[]>("/workspaces/current/staff", {
@@ -247,6 +257,9 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
         );
         setStaffLoadError(message);
         notify.error(message);
+      })
+      .finally(() => {
+        if (isCurrent) setIsLoadingStaff(false);
       });
     return () => {
       isCurrent = false;
@@ -645,6 +658,32 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     );
   };
 
+  const openAddMembersModal = () => {
+    if (!selectedShift) return;
+    setQuickAddMembers(
+      selectedShift.members.map((item) => ({
+        workspaceMemberId: item.workspaceMemberId,
+        leadCapacity: item.leadCapacity,
+        isShiftManager: item.isShiftManager,
+      })),
+    );
+    setIsAddMembersModalOpen(true);
+  };
+
+  const saveQuickAddMembers = async () => {
+    if (!selectedShift) return;
+    setIsSavingQuickAddMembers(true);
+    try {
+      await routing.replaceMembers(selectedShift.id, quickAddMembers);
+      setIsAddMembersModalOpen(false);
+      notify.success("Đã cập nhật nhân viên trực ca.");
+    } catch (error) {
+      notify.error(getErrorMessage(error, "Không thể cập nhật nhân viên trực ca."));
+    } finally {
+      setIsSavingQuickAddMembers(false);
+    }
+  };
+
   const toggleShift = async (shift: WorkShift) => {
     try {
       await routing.updateShift(shift.id, { isActive: !shift.isActive });
@@ -807,11 +846,17 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
               </button>
             );
           })}
-          {!routing.shifts.length && (
+          {routing.isLoading && !routing.shifts.length ? (
+            <LoadingState
+              size="sm"
+              className="py-2"
+              message="Đang tải ca trực và trạng thái nhân viên..."
+            />
+          ) : !routing.isLoading && !routing.shifts.length ? (
             <span className="text-xs text-slate-500 italic">
               Chưa có ca làm việc nào.
             </span>
-          )}
+          ) : null}
         </div>
 
         {isOwner && (
@@ -827,7 +872,9 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       </div>
 
       {/* 2. Main Content Area */}
-      {selectedShift ? (
+      {routing.isLoading && !selectedShift && !isCreating ? (
+        <LoadingState message="Đang tải dữ liệu ca trực và điều phối lead..." />
+      ) : selectedShift ? (
         <div className="space-y-8">
           {/* Active Shift Summary Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
@@ -954,6 +1001,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
             shift={selectedShift}
             staff={staff}
             roster={routing.roster}
+            isLoading={routing.isLoading || isLoadingStaff}
             userId={userId}
             canManage={canManageSelectedShift}
             canConfigureMembers={isOwner}
@@ -983,7 +1031,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
             onOvertimeEndChange={setOvertimeEnd}
             onRecordOvertimeConsent={() => void recordOvertimeConsent()}
             onAssignMembers={() => {
-              setIsConfigModalOpen(true);
+              openAddMembersModal();
             }}
           />
         </div>
@@ -1077,6 +1125,80 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
         onBulkSetQuota={bulkSetQuota}
         onSave={(event) => void saveConfiguration(event)}
       />
+
+      <Modal
+        isOpen={isAddMembersModalOpen}
+        onClose={() => {
+          if (!isSavingQuickAddMembers) setIsAddMembersModalOpen(false);
+        }}
+        size="xl"
+        variant="flat"
+        title={`Nhân viên trực ca · ${selectedShift?.name ?? ""}`}
+        description="Thêm hoặc cập nhật nhân viên, vai trò và hạn mức lead cho ca này."
+        primaryAction={{
+          label: "Lưu nhân viên",
+          onClick: () => void saveQuickAddMembers(),
+          loading: isSavingQuickAddMembers,
+          disabled: !selectedShift || Boolean(staffLoadError),
+        }}
+        secondaryAction={{
+          label: "Hủy",
+          onClick: () => setIsAddMembersModalOpen(false),
+          disabled: isSavingQuickAddMembers,
+        }}
+        closeOnOverlayClick={!isSavingQuickAddMembers}
+        closeOnEsc={!isSavingQuickAddMembers}
+      >
+        {isLoadingStaff ? (
+          <LoadingState
+            size="sm"
+            className="py-8"
+            message="Đang tải danh sách nhân viên..."
+          />
+        ) : (
+          <ShiftMembersSection
+            staff={activeStaff}
+            members={quickAddMembers}
+            loadError={staffLoadError}
+            onToggleStaff={(workspaceMemberId, checked) =>
+              setQuickAddMembers((current) =>
+                checked
+                  ? current.some((item) => item.workspaceMemberId === workspaceMemberId)
+                    ? current
+                    : [...current, { workspaceMemberId, leadCapacity: 10, isShiftManager: false }]
+                  : current.filter((item) => item.workspaceMemberId !== workspaceMemberId),
+              )
+            }
+            onPatchMember={(workspaceMemberId, patch) =>
+              setQuickAddMembers((current) =>
+                current.map((item) =>
+                  item.workspaceMemberId === workspaceMemberId ? { ...item, ...patch } : item,
+                ),
+              )
+            }
+            onBulkAddStaff={(workspaceMemberIds, defaultCapacity = 10) =>
+              setQuickAddMembers((current) => {
+                const existingIds = new Set(current.map((item) => item.workspaceMemberId));
+                return [
+                  ...current,
+                  ...workspaceMemberIds
+                    .filter((id) => !existingIds.has(id))
+                    .map((workspaceMemberId) => ({
+                      workspaceMemberId,
+                      leadCapacity: defaultCapacity,
+                      isShiftManager: false,
+                    })),
+                ];
+              })
+            }
+            onBulkSetQuota={(capacity) =>
+              setQuickAddMembers((current) =>
+                current.map((item) => ({ ...item, leadCapacity: capacity })),
+              )
+            }
+          />
+        )}
+      </Modal>
 
       {/* Modal xác nhận xóa ca */}
       <Modal

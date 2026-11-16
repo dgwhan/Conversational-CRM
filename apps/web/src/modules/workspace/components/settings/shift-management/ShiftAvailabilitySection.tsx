@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle, Plus, UsersRound } from "lucide-react";
-import { Button, SearchableSelect } from "../../../../../components/ui/index.js";
+import { Button, LoadingState, SearchableSelect } from "../../../../../components/ui/index.js";
 import type {
   WorkShift,
   StaffRoutingStatus,
@@ -12,6 +12,7 @@ interface ShiftAvailabilitySectionProps {
   shift: WorkShift;
   staff: ManagedStaffItem[];
   roster: StaffRoutingStatus[];
+  isLoading: boolean;
   userId?: string;
   canManage: boolean;
   canConfigureMembers: boolean;
@@ -41,6 +42,7 @@ export const ShiftAvailabilitySection: React.FC<
   shift,
   staff,
   roster,
+  isLoading,
   userId,
   canManage,
   canConfigureMembers,
@@ -108,7 +110,13 @@ export const ShiftAvailabilitySection: React.FC<
           ],
         }}
       >
-        {shift.members.length ? (
+        {isLoading ? (
+          <LoadingState
+            size="sm"
+            className="py-6"
+            message="Đang tải nhân viên và trạng thái ca trực..."
+          />
+        ) : shift.members.length ? (
           <div className="space-y-4">
             <div className="divide-y divide-slate-100">
               {shift.members.map((assignment) => {
