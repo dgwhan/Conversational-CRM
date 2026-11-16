@@ -13,6 +13,7 @@ interface UseInboxConversationsProps {
   activeWorkspaceId?: string | null;
   ownerId?: string | null;
   isOwner?: boolean;
+  canViewAllConversations?: boolean;
   staffId?: string | null;
   staffName?: string | null;
   initialConversationId?: string | null;
@@ -40,6 +41,7 @@ export const useInboxConversations = ({
   activeWorkspaceId,
   ownerId,
   isOwner,
+  canViewAllConversations = isOwner,
   staffId,
   staffName,
   initialConversationId,
@@ -481,8 +483,8 @@ export const useInboxConversations = ({
             updated.unshift(newConv);
           }
         }
-        // Role STAFF: chỉ xem các hội thoại mà mình được phân công (OWNER xem tất cả)
-        const visibleList = (!isOwner && staffId)
+        // STAFF chỉ xem hội thoại được phân công cho mình; Owner và Manager xem toàn workspace.
+        const visibleList = (!canViewAllConversations && staffId)
           ? updated.filter((c) => {
               const assigned = c.assignedStaff;
               return (
@@ -497,7 +499,7 @@ export const useInboxConversations = ({
     } catch {
       // Backend có thể chưa khởi động hoặc chưa có tin nhắn
     }
-  }, [activeWorkspaceId, storageKey, staffName, isOwner, staffId]);
+  }, [activeWorkspaceId, storageKey, staffName, isOwner, canViewAllConversations, staffId]);
 
   useEffect(() => {
     loadSavedMessages();

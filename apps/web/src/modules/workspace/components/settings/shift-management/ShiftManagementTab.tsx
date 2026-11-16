@@ -30,7 +30,7 @@ import {
 
 export interface ShiftManagementTabProps {
   workspaceId: string;
-  isOwner: boolean;
+  canManageShifts: boolean;
   focusMemberId?: string;
 }
 
@@ -125,7 +125,7 @@ const isCurrentlyRunning = (shift: WorkShift, now = new Date()) => {
 
 export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
   workspaceId,
-  isOwner,
+  canManageShifts,
   focusMemberId,
 }) => {
   const routing = useWorkspaceLeadRouting(workspaceId);
@@ -188,9 +188,9 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
       (item) => item.isShiftManager && item.workspaceMember?.userId === userId,
     ),
   );
-  const canManageSelectedShift = isOwner || selectedShiftManager;
+  const canManageSelectedShift = canManageShifts || selectedShiftManager;
   const canManageQueue =
-    isOwner ||
+    canManageShifts ||
     routing.shifts.some((shift) =>
       shift.members.some(
         (item) =>
@@ -286,7 +286,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
 
   const loadAudit = useCallback(
     async (cursor?: string) => {
-      if (!workspaceId || !isOwner || !selectedShiftId || !selectedShift)
+      if (!workspaceId || !canManageShifts || !selectedShiftId || !selectedShift)
         return;
       if (auditRange === "CUSTOM" && !appliedCustomAuditRange) return;
       const requestedWorkspaceId = workspaceId;
@@ -348,7 +348,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     [
       appliedCustomAuditRange,
       auditRange,
-      isOwner,
+      canManageShifts,
       selectedShift,
       selectedShiftId,
       workspaceId,
@@ -384,7 +384,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
 
   useEffect(() => {
     if (
-      isOwner &&
+      canManageShifts &&
       isAuditDrawerOpen &&
       selectedShiftId &&
       (auditRange !== "CUSTOM" || appliedCustomAuditRange)
@@ -395,7 +395,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
     isAuditDrawerOpen,
     appliedCustomAuditRange,
     auditRange,
-    isOwner,
+    canManageShifts,
     loadAudit,
     selectedShiftId,
   ]);
@@ -560,7 +560,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
 
   const saveConfiguration = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!isOwner || (!isCreating && !selectedShift)) return;
+    if (!canManageShifts || (!isCreating && !selectedShift)) return;
     if (!name.trim() || weekdays.length === 0) {
       notify.error("Nhập tên ca và chọn ít nhất một ngày làm việc.");
       return;
@@ -859,7 +859,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
           ) : null}
         </div>
 
-        {isOwner && (
+        {canManageShifts && (
           <Button
             size="sm"
             variant="primary"
@@ -889,7 +889,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {isOwner && (
+              {canManageShifts && (
                 <button
                   type="button"
                   onClick={() => setIsConfigModalOpen(true)}
@@ -900,7 +900,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
                 </button>
               )}
 
-              {isOwner && (
+              {canManageShifts && (
                 <button
                   type="button"
                   onClick={() => {
@@ -917,7 +917,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
               <Toggle
                 checked={selectedShift.isActive}
                 onChange={() => void toggleShift(selectedShift)}
-                disabled={!isOwner}
+                disabled={!canManageShifts}
                 size="md"
                 showStatusLabel
                 labelOn="Đang hoạt động"
@@ -925,7 +925,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
                 aria-label={selectedShift.isActive ? "Tắt ca" : "Bật ca"}
               />
 
-              {isOwner && (
+              {canManageShifts && (
                 <div className="relative" ref={overflowRef}>
                   <button
                     type="button"
@@ -1004,7 +1004,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
             isLoading={routing.isLoading || isLoadingStaff}
             userId={userId}
             canManage={canManageSelectedShift}
-            canConfigureMembers={isOwner}
+            canConfigureMembers={canManageShifts}
             absenceMemberId={absenceMemberId}
             absenceMode={absenceMode}
             absenceTargetId={absenceTargetId}
@@ -1043,7 +1043,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
           <p className="mb-0 mt-2 max-w-sm text-sm text-slate-500">
             Tạo ca đầu tiên để cấu hình lịch trực, phân bổ hạn mức và điều phối lead tự động.
           </p>
-          {isOwner && (
+          {canManageShifts && (
             <Button
               size="sm"
               variant="primary"
@@ -1108,7 +1108,7 @@ export const ShiftManagementTab: React.FC<ShiftManagementTabProps> = ({
         endTime={endTime}
         timezone={timezone}
         weekdays={weekdays}
-        isOwner={isOwner}
+        canManageShifts={canManageShifts}
         isSaving={isSaving}
         onNameChange={setName}
         onStartTimeChange={setStartTime}

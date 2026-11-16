@@ -18,7 +18,7 @@ export interface ShiftConfigModalProps {
   endTime: string;
   timezone: string;
   weekdays: number[];
-  isOwner: boolean;
+  canManageShifts: boolean;
   isSaving: boolean;
   onNameChange: (name: string) => void;
   onStartTimeChange: (time: string) => void;
@@ -49,7 +49,7 @@ export const ShiftConfigModal: React.FC<ShiftConfigModalProps> = ({
   endTime,
   timezone,
   weekdays,
-  isOwner,
+  canManageShifts,
   isSaving,
   onNameChange,
   onStartTimeChange,
@@ -90,7 +90,7 @@ export const ShiftConfigModal: React.FC<ShiftConfigModalProps> = ({
           endTime={endTime}
           timezone={timezone}
           weekdays={weekdays}
-          disabled={!isOwner}
+          disabled={!canManageShifts}
           onNameChange={onNameChange}
           onStartTimeChange={onStartTimeChange}
           onEndTimeChange={onEndTimeChange}
@@ -98,7 +98,7 @@ export const ShiftConfigModal: React.FC<ShiftConfigModalProps> = ({
           onWeekdaysChange={onWeekdaysChange}
         />
 
-        {isOwner && (
+        {canManageShifts && (
           <div className="pt-6 border-t border-slate-200">
             <ShiftMembersSection
               staff={activeStaff}

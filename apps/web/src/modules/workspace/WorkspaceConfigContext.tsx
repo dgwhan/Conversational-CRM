@@ -147,8 +147,8 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Cập nhật cấu hình lên backend
   const updateConfig = async (patch: Partial<WorkspaceConfig>) => {
-    if (!canManageWorkspace) {
-      notify.warning('Bạn chưa được cấp quyền quản lý cấu hình workspace.', 'Bảo Mật RBAC');
+    if (!workspaceManager.isCurrentWorkspaceOwner) {
+      notify.warning('Chỉ Owner mới được thay đổi cấu hình workspace.', 'Bảo Mật RBAC');
       return;
     }
 
@@ -183,8 +183,8 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
 
   // Áp dụng Preset mẫu theo ngành
   const applyPreset = async (domain: BusinessDomain, customName?: string) => {
-    if (!canManageWorkspace) {
-      notify.warning('Bạn chưa được cấp quyền quản lý cấu hình workspace.');
+    if (!workspaceManager.isCurrentWorkspaceOwner) {
+      notify.warning('Chỉ Owner mới được thay đổi cấu hình workspace.');
       return;
     }
     const preset = CLIENT_INDUSTRY_PRESETS[domain] || CLIENT_INDUSTRY_PRESETS.EDUCATION;
@@ -211,7 +211,7 @@ export const WorkspaceConfigProvider: React.FC<{ children: React.ReactNode }> = 
   });
 
   const resetToDefault = async () => {
-    if (!canManageWorkspace) return;
+    if (!workspaceManager.isCurrentWorkspaceOwner) return;
     await applyPreset('EDUCATION');
     notify.success('Đã khôi phục cấu hình CRM tiêu chuẩn.');
   };

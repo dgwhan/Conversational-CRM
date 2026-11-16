@@ -76,6 +76,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
   isLoading,
   hasActiveFilters,
   canManageChannels,
+  canConnectChannels,
   canDisconnect,
   syncingChannelId,
   togglingChannelId,
@@ -103,7 +104,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
             : 'Nhấn "Thêm kênh" để kết nối Facebook Pages, Zalo OA hoặc TikTok và bắt đầu tiếp nhận tin nhắn khách hàng.'
         }
         action={
-          canManageChannels && !hasActiveFilters ? (
+          canConnectChannels && !hasActiveFilters ? (
             <Button
               variant="primary"
               size="sm"
@@ -231,7 +232,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                       Đồng bộ
                     </Button>
 
-                    {canManageChannels && (status === "Expired" || status === "Error") && (
+                    {(canConnectChannels || channel.channel === "ZALO") && (status === "Expired" || status === "Error") && (
                       <Button
                         variant="danger"
                         size="sm"

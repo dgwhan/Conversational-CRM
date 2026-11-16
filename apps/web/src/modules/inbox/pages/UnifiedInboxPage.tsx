@@ -37,7 +37,13 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
 }) => {
   const { onNewMessage, onPipelineChange, staffPresences, setUnreadCount } = useRealtime();
   const { staffName, staffId, ownerId, isOwner, staffEmail } = useUserRole();
-  const { config, activeWorkspaceId, staffMembers, isCurrentWorkspaceOwner } = useWorkspaceConfig();
+  const {
+    config,
+    activeWorkspaceId,
+    staffMembers,
+    isCurrentWorkspaceOwner,
+    canManageWorkspace,
+  } = useWorkspaceConfig();
 
   const [isProfileMobileOpen, setIsProfileMobileOpen] = useState(false);
 
@@ -136,6 +142,7 @@ export const UnifiedInboxPage: React.FC<UnifiedInboxPageProps> = ({
     activeWorkspaceId,
     ownerId,
     isOwner,
+    canViewAllConversations: canManageWorkspace || isCurrentWorkspaceOwner,
     staffId,
     staffName,
     initialConversationId,

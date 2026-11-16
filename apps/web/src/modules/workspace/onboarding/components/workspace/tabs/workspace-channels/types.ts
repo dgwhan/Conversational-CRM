@@ -37,6 +37,9 @@ export interface WorkspaceChannelsTabProps {
   workspaceId: string;
   workspaceName: string;
   isOwner: boolean;
+  /** Owner/Manager may establish or renew channels; STAFF remains limited by the API to Zalo. */
+  canConnectChannels?: boolean;
+  /** Owner-only channel administration such as activation toggles and detail management. */
   canManageChannels?: boolean;
   channels: ConnectedChannelItem[];
   isLoading: boolean;
@@ -54,6 +57,7 @@ export interface ConnectedChannelsListProps {
   isLoading: boolean;
   hasActiveFilters: boolean;
   canManageChannels: boolean;
+  canConnectChannels: boolean;
   canDisconnect: boolean;
   syncingChannelId: string | null;
   togglingChannelId: string | null;
@@ -66,6 +70,6 @@ export interface ConnectedChannelsListProps {
 }
 
 export interface AvailablePlatformsSectionProps {
-  canManageChannels: boolean;
+  canConnectChannels: boolean;
   onOpenConnectModal: (channelKey: ChannelKey) => void;
 }

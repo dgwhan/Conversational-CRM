@@ -171,7 +171,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
           isActive={isActive}
           domainLabel={domainLabel}
           canOwnerLeave={canOwnerLeave}
-          canManageWorkspace={canManageWorkspace}
+          canManageWorkspace={Boolean(workspace.isOwner)}
           onBack={onBack}
           onSelectWorkspace={onSelectWorkspace}
           onGoToInbox={onGoToInbox}
@@ -224,7 +224,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
               contactsCount={contactsCount}
               isLoadingContacts={isLoadingContacts}
               adminName={resolvedAdminName}
-              canManageWorkspace={canManageWorkspace}
+              canManageWorkspace={Boolean(workspace.isOwner)}
               onEditWorkspace={() => setIsEditModalOpen(true)}
               onSaveWorkspaceName={async (newName) => {
                 await handleSaveWorkspaceInfo(workspace.id, {
@@ -242,7 +242,8 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
               workspaceId={workspace.id}
               workspaceName={workspace.name}
               isOwner={Boolean(workspace.isOwner)}
-              canManageChannels={canManageWorkspace}
+              canManageChannels={Boolean(workspace.isOwner)}
+              canConnectChannels={canManageWorkspace}
               channels={channels}
               isLoading={isLoadingChannels}
               syncingChannelId={syncingChannelId}
@@ -292,7 +293,7 @@ export const WorkspaceDetailPage: React.FC<WorkspaceDetailPageProps> = ({
               </div>
               <ShiftManagementTab
                 workspaceId={workspace.id}
-                isOwner={canManageWorkspace}
+                canManageShifts={canManageWorkspace}
                 focusMemberId={searchParams.get('memberId') || undefined}
               />
             </div>

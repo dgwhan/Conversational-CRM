@@ -435,7 +435,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
           </div>
 
           {/* Contextual Actions (Chỉ hiển thị DUY NHẤT tại tab Giai đoạn phễu) */}
-          {canManageWorkspace && activeSubTab === 'stages' && (
+          {isOwner && activeSubTab === 'stages' && (
             <div className="flex flex-wrap items-center gap-2">
               {/* Dropdown Mẫu Ngành */}
               <div ref={presetDropdownRef} className="relative inline-block text-left">
@@ -493,7 +493,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'stages' && (
           <StagesTab
             stages={config.pipelineStages || []}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onAddStage={addStage}
             onUpdateStage={updateStage}
@@ -506,7 +506,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
           <CatalogTab
             catalog={config.productCatalog || []}
             productLabel={config.terminology?.productLabel}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onAddProduct={addProduct}
             onDeleteProduct={deleteProduct}
@@ -516,7 +516,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'terminology' && (
           <TerminologyTab
             terminology={config.terminology}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onSave={handleSaveTerminology}
           />
@@ -525,7 +525,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'criteria' && (
           <CriteriaTab
             criteria={config.criteria || []}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onAddCriteria={addCriteria}
             onDeleteCriteria={deleteCriteria}
@@ -534,7 +534,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
 
         {activeSubTab === 'leadScoring' && (
           <LeadScoringTab
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             hideSidebar={true}
             activeSection={leadScoringSubSection}
             onSectionChange={setLeadScoringSubSection}
@@ -544,7 +544,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'alerts' && (
           <AlertsTab
             unresponsiveAlertMinutes={config.unresponsiveAlertMinutes}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onSave={handleSaveAlerts}
           />
@@ -553,7 +553,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'workingHours' && (
           <WorkingHoursTab
             workingHours={config.workingHours}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
             isLoading={isLoading}
             onSave={handleSaveWorkingHours}
           />
@@ -562,7 +562,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'shifts' && (
           <ShiftManagementTab
             workspaceId={config.workspaceId || workspaceId}
-            isOwner={canManageWorkspace}
+            canManageShifts={canManageWorkspace}
             focusMemberId={searchParams.get('memberId') || undefined}
           />
         )}
@@ -570,7 +570,7 @@ export const WorkspaceSettingsTab: React.FC<WorkspaceSettingsTabProps> = ({
         {activeSubTab === 'storage' && (
           <MessageStorageTab
             workspaceId={config.workspaceId || workspaceId}
-            isOwner={canManageWorkspace}
+            isOwner={isOwner}
           />
         )}
       </main>

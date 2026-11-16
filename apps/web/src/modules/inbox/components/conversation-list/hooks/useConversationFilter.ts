@@ -5,6 +5,7 @@ import type {
   ConversationStatusFilter,
 } from '../../../types.js';
 import { useUserRole } from '../../../../auth/UserRoleContext.js';
+import { useWorkspaceConfig } from '../../../../workspace/WorkspaceConfigContext.js';
 import { matchesSmartSearch } from '../../../../../lib/unaccent.js';
 import { getUnresponsiveStatus } from '../../../utils/index.js';
 
@@ -42,6 +43,7 @@ export function useConversationFilter({
   alertThresholdMinutes = 15,
 }: UseConversationFilterOptions): UseConversationFilterReturn {
   const { isAgent, staffId } = useUserRole();
+  const { canManageWorkspace } = useWorkspaceConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<ConversationChannelFilter>('ALL');
   const [selectedZaloAccount, setSelectedZaloAccount] = useState<string>('ALL');
@@ -91,7 +93,7 @@ export function useConversationFilter({
       .filter((item) => {
         // PHƯƠNG ÁN A: Phân quyền theo vai trò (RBAC)
         // Nhân viên tư vấn (AGENT): Chỉ thấy tin nhắn gán cho mình hoặc chưa ai nhận (Unassigned)
-        if (isAgent) {
+        if (isAgent && !canManageWorkspace) {
           const isAssignedToMe = item.assignedStaff?.id === staffId;
           const isUnassigned = !item.assignedStaff;
           if (!isAssignedToMe && !isUnassigned) {
@@ -184,6 +186,7 @@ export function useConversationFilter({
   }, [
     conversations,
     isAgent,
+    canManageWorkspace,
     staffId,
     selectedChannel,
     selectedZaloAccount,

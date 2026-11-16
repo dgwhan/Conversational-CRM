@@ -127,6 +127,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
         activeWorkspace={activeWorkspace}
         isOwner={isCurrentWorkspaceOwner}
         canManageWorkspace={canManageWorkspace}
+        canEditWorkspaceConfig={isCurrentWorkspaceOwner}
         isLoading={isLoading}
         onApplyPreset={(domain: BusinessDomain) => applyPreset(domain)}
         onResetDefault={resetToDefault}
@@ -143,7 +144,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "stages" && (
         <StagesTab
           stages={config.pipelineStages || []}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onAddStage={addStage}
           onUpdateStage={updateStage}
@@ -156,7 +157,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
         <CatalogTab
           catalog={config.productCatalog || []}
           productLabel={config.terminology?.productLabel}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onAddProduct={addProduct}
           onDeleteProduct={deleteProduct}
@@ -166,7 +167,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "terminology" && (
         <TerminologyTab
           terminology={config.terminology}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onSave={handleSaveTerminology}
         />
@@ -175,7 +176,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "criteria" && (
         <CriteriaTab
           criteria={config.criteria || []}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onAddCriteria={addCriteria}
           onDeleteCriteria={deleteCriteria}
@@ -185,7 +186,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "workingHours" && (
         <WorkingHoursTab
           workingHours={config.workingHours}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onSave={handleSaveWorkingHours}
         />
@@ -194,7 +195,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "shifts" && (
         <ShiftManagementTab
           workspaceId={config.workspaceId || activeWorkspace?.id || ""}
-          isOwner={canManageWorkspace}
+          canManageShifts={canManageWorkspace}
           focusMemberId={searchParams.get("memberId") || undefined}
         />
       )}
@@ -202,7 +203,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       {activeTab === "alerts" && (
         <AlertsTab
           unresponsiveAlertMinutes={config.unresponsiveAlertMinutes}
-          isOwner={canManageWorkspace}
+          isOwner={isCurrentWorkspaceOwner}
           isLoading={isLoading}
           onSave={handleSaveAlerts}
         />
@@ -216,7 +217,7 @@ export const WorkspaceSettingsPage: React.FC = () => {
       )}
 
       {activeTab === "leadScoring" && (
-        <LeadScoringTab isOwner={canManageWorkspace} />
+        <LeadScoringTab isOwner={isCurrentWorkspaceOwner} />
       )}
     </div>
   );

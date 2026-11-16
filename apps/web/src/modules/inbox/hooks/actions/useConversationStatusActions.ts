@@ -47,7 +47,7 @@ export const useConversationStatusActions = ({
         )
         .then((result) => {
           if (result && typeof result === 'object' && 'overCapacity' in result && result.overCapacity) {
-            notify.info(`${staff?.name || 'Nhân viên'} đang vượt hạn mức hội thoại mở. Đây là cảnh báo thông tin; Owner vẫn có thể tiếp tục phân công.`);
+            notify.info(`${staff?.name || 'Nhân viên'} đang vượt hạn mức hội thoại mở. Đây là cảnh báo thông tin; Owner hoặc Quản lý workspace vẫn có thể tiếp tục phân công.`);
             return;
           }
           notify.success(

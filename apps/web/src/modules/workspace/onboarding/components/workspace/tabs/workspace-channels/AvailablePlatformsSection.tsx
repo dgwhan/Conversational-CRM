@@ -6,13 +6,13 @@ import type { AvailablePlatformsSectionProps } from "./types.js";
 
 export const AvailablePlatformsSection: React.FC<
   AvailablePlatformsSectionProps
-> = ({ canManageChannels, onOpenConnectModal }) => (
+> = ({ canConnectChannels, onOpenConnectModal }) => (
   <PageSection
     title="Nền tảng khả dụng"
     subtitle="Khám phá các tích hợp bổ sung để mở rộng kênh tiếp cận khách hàng."
     className="border-t border-slate-200 pt-6"
   >
-    {canManageChannels && (
+    {canConnectChannels && (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {CHANNEL_PLATFORMS_CONFIG.map((platform) => (
           <div

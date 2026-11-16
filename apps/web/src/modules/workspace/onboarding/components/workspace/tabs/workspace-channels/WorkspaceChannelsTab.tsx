@@ -18,6 +18,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
   channels,
   isOwner,
   canManageChannels = isOwner,
+  canConnectChannels = canManageChannels,
   isLoading,
   syncingChannelId,
   togglingChannelId,
@@ -75,7 +76,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
           />
         }
         actions={
-          canManageChannels ? (
+          canConnectChannels ? (
             <Button
               variant="primary"
               size="sm"
@@ -104,6 +105,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
         isLoading={isLoading}
         hasActiveFilters={hasActiveFilters}
         canManageChannels={canManageChannels}
+        canConnectChannels={canConnectChannels}
         canDisconnect={isOwner}
         syncingChannelId={syncingChannelId}
         togglingChannelId={togglingChannelId}
@@ -117,7 +119,7 @@ export const WorkspaceChannelsTab: React.FC<WorkspaceChannelsTabProps> = ({
 
       {/* 3. Nền tảng khả dụng (Sử dụng PageSection chuẩn hệ thống) */}
       <AvailablePlatformsSection
-        canManageChannels={canManageChannels}
+        canConnectChannels={canConnectChannels}
         onOpenConnectModal={onOpenConnectModal}
       />
 

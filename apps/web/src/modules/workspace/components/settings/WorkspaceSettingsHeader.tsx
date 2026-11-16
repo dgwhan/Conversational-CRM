@@ -18,6 +18,7 @@ export interface WorkspaceSettingsHeaderProps {
   activeWorkspace: WorkspaceItem | null;
   isOwner: boolean;
   canManageWorkspace?: boolean;
+  canEditWorkspaceConfig?: boolean;
   isLoading?: boolean;
   onApplyPreset: (domain: BusinessDomain) => void;
   onResetDefault: () => void;
@@ -29,6 +30,7 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
   activeWorkspace,
   isOwner,
   canManageWorkspace = isOwner,
+  canEditWorkspaceConfig = isOwner,
   isLoading = false,
   onApplyPreset,
   onResetDefault,
@@ -67,7 +69,7 @@ export const WorkspaceSettingsHeader: React.FC<WorkspaceSettingsHeaderProps> = (
         </div>
       </div>
 
-      {canManageWorkspace && (
+      {canEditWorkspaceConfig && (
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           {/* Preset Selector Dropdown */}
           <div className="relative">

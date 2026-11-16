@@ -8,14 +8,14 @@ export interface AssignedAgentSectionProps {
   assignedStaff?: AssignedStaff | null;
   staffList?: AssignedStaff[];
   onAssignStaff?: (staffId: string) => void;
-  isOwner?: boolean;
+  canAssignStaff?: boolean;
 }
 
 export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
   assignedStaff,
   staffList = [],
   onAssignStaff,
-  isOwner = true,
+  canAssignStaff = false,
 }) => {
   const [isExplainModalOpen, setIsExplainModalOpen] = useState(false);
 
@@ -57,10 +57,10 @@ export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
           id="assigned-staff-select"
           value={assignedStaff?.id || ''}
           onChange={(val) => {
-            if (!isOwner) return;
+            if (!canAssignStaff) return;
             onAssignStaff?.(val);
           }}
-          disabled={!isOwner}
+          disabled={!canAssignStaff}
           placeholder="-- Chưa phân công nhân sự --"
           allOptionLabel="-- Chưa phân công nhân sự --"
           options={mergedStaffList.map((st) => ({
@@ -72,9 +72,9 @@ export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
           searchPlaceholder="Tìm nhân sự..."
         />
       </div>
-      {!isOwner && (
+      {!canAssignStaff && (
         <p className="text-[11px] text-slate-400 italic m-0">
-          Chỉ Quản lý (Owner) mới có quyền phân công nhân sự.
+          Chỉ Owner hoặc Quản lý workspace mới có quyền phân công nhân sự.
         </p>
       )}
 
@@ -106,7 +106,7 @@ export const AssignedAgentSection: React.FC<AssignedAgentSectionProps> = ({
               2. Quyền điều phối (Chủ doanh nghiệp)
             </h5>
             <p className="m-0 text-slate-600">
-              Chỉ Quản lý (Owner) hoặc cấp điều phối mới có quyền đổi hoặc thu hồi nhân sự phụ trách. Tư vấn viên thông thường chỉ xem được người đang đảm nhiệm.
+              Chỉ Owner hoặc Quản lý workspace mới có quyền đổi hoặc thu hồi nhân sự phụ trách. Tư vấn viên thông thường chỉ xem được người đang đảm nhiệm.
             </p>
           </div>
 

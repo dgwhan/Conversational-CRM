@@ -415,7 +415,7 @@ export const ShiftAvailabilitySection: React.FC<
               </Button>
             ) : (
               <p className="mb-0 text-xs text-slate-500">
-                Liên hệ Owner để phân công nhân viên.
+                Liên hệ Owner hoặc Quản lý workspace để phân công nhân viên.
               </p>
             )}
           </div>
