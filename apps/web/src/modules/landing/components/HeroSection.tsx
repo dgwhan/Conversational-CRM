@@ -4,16 +4,28 @@ import { PlayCircle, Lock } from 'lucide-react';
 import { useUserRole } from '../../auth/UserRoleContext.js';
 import { ROUTES } from '../../../config/routes.js';
 import { Reveal } from './Reveal.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 import desktopUI from '../../../assets/images/reponsive/DesktopUI.png';
 import mobileUI from '../../../assets/images/reponsive/MobileUI.png';
 
 const CONTENT = {
-  headline: 'Quản Lý Mọi Hội Thoại Khách Hàng',
-  supporting:
-    'Gom tin nhắn, quản lý khách hàng và theo dõi tư vấn trên một nền tảng duy nhất.',
-  ctaPrimary: 'Truy cập hệ thống',
-  ctaSecondary: 'Xem demo trực tiếp',
+  vi: {
+    headline: 'Quản lý mọi hội thoại khách hàng',
+    supporting: 'Gom tin nhắn, quản lý khách hàng và theo dõi tư vấn trên một nền tảng duy nhất.',
+    ctaPrimary: 'Truy cập hệ thống',
+    ctaSecondary: 'Xem demo trực tiếp',
+    desktopAlt: 'Giao diện Inbox PolarisX trên máy tính: danh sách hội thoại, nội dung trao đổi và thông tin khách hàng',
+    mobileAlt: 'Giao diện PolarisX trên điện thoại',
+  },
+  en: {
+    headline: 'Manage Every Customer Conversation',
+    supporting: 'Bring messages, customer profiles, and sales follow-ups together in one workspace.',
+    ctaPrimary: 'Open your workspace',
+    ctaSecondary: 'Explore the live demo',
+    desktopAlt: 'PolarisX desktop inbox showing conversations, messages, and customer details',
+    mobileAlt: 'PolarisX mobile interface',
+  },
 } as const;
 
 const FOCUS =
@@ -21,6 +33,8 @@ const FOCUS =
 
 export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = false }) => {
   const { isAuthenticated } = useUserRole();
+  const { locale } = useTranslation();
+  const content = CONTENT[locale] ?? CONTENT.vi;
 
   return (
     <section
@@ -35,13 +49,13 @@ export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = 
               className="text-4xl leading-[1.05] tracking-[-0.04em] text-[#0B1F3A] text-balance sm:text-6xl sm:leading-[1.02] lg:text-[4.75rem] landing-dark:text-white"
               style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: 800 }}
             >
-              {CONTENT.headline}
+              {content.headline}
             </h1>
           </Reveal>
 
           <Reveal delay={100}>
             <p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-slate-600 sm:text-xl landing-dark:text-slate-300">
-              {CONTENT.supporting}
+              {content.supporting}
             </p>
           </Reveal>
 
@@ -51,14 +65,14 @@ export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = 
                 to={isAuthenticated ? ROUTES.REPORTS : ROUTES.LOGIN}
                 className={`inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#0074F0] px-6 text-sm font-medium text-white transition-colors hover:bg-[#0063CC] sm:w-auto ${FOCUS}`}
               >
-                {CONTENT.ctaPrimary}
+                {content.ctaPrimary}
               </Link>
               <a
                 href="#live-demo"
                 className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-6 text-sm font-medium text-[#0B1F3A] transition-colors hover:border-[#0B1F3A] sm:w-auto landing-dark:border-white/20 landing-dark:text-white landing-dark:hover:border-white ${FOCUS}`}
               >
                 <PlayCircle size={18} className="text-[#0074F0] landing-dark:text-[#4DA3FF]" aria-hidden="true" />
-                {CONTENT.ctaSecondary}
+                {content.ctaSecondary}
               </a>
             </div>
           </Reveal>
@@ -84,7 +98,7 @@ export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = 
               </div>
               <img
                 src={desktopUI}
-                alt="Giao diện Inbox PolarisX trên máy tính: danh sách hội thoại, nội dung trao đổi và thông tin khách hàng"
+                alt={content.desktopAlt}
                 className="block h-auto w-full"
                 width={1600}
                 height={1000}
@@ -99,7 +113,7 @@ export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = 
               <div className="relative overflow-hidden rounded-[1.6rem] bg-white sm:rounded-[2rem]">
                 <img
                   src={mobileUI}
-                  alt="Giao diện PolarisX trên điện thoại iPhone"
+                  alt={content.mobileAlt}
                   className="block h-auto w-full"
                   width={540}
                   height={1170}

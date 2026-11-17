@@ -209,6 +209,7 @@ export interface LandingContent {
     channels: string[];
     securityTitle: string;
     securityItems: [string, string];
+    legalLabel: string;
     privacy: string;
     terms: string;
     status: string;
@@ -687,6 +688,7 @@ const vi: LandingContent = {
     ],
     securityTitle: 'An toàn dữ liệu',
     securityItems: ['Phân quyền RBAC đa cấp', 'Chống rò rỉ BOLA / IDOR'],
+    legalLabel: 'Pháp lý',
     privacy: 'Chính sách bảo mật',
     terms: 'Điều khoản dịch vụ',
     status: 'Trạng thái hệ thống (99.9% uptime)',
@@ -1164,6 +1166,7 @@ const en: LandingContent = {
     ],
     securityTitle: 'Data security',
     securityItems: ['Multi-level RBAC', 'BOLA / IDOR protection'],
+    legalLabel: 'Legal',
     privacy: 'Privacy policy',
     terms: 'Terms of service',
     status: 'System status (99.9% uptime)',

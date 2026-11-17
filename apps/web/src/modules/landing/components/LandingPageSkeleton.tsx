@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from '../../../i18n/index.js';
 
 type LandingSkeletonVariant = 'page' | 'demo' | 'steps' | 'testimonials' | 'cta' | 'footer';
 
 const LandingPageSkeleton: React.FC<{ variant?: LandingSkeletonVariant }> = ({ variant = 'page' }) => {
+  const { locale } = useTranslation();
   let isDark = false;
   try {
     isDark = typeof window !== 'undefined' && window.localStorage.getItem('polarisx_landing_theme') === 'dark';
@@ -15,10 +17,10 @@ const LandingPageSkeleton: React.FC<{ variant?: LandingSkeletonVariant }> = ({ v
     <div
       data-landing-theme={isDark ? 'dark' : 'light'}
       role="status"
-      aria-label="Đang tải PolarisX"
+      aria-label={locale === 'en' ? 'Loading PolarisX' : 'Đang tải PolarisX'}
       className="min-h-screen overflow-hidden bg-slate-50 font-sans text-slate-900 landing-dark:bg-[#0B0F19] landing-dark:text-white"
     >
-      <span className="sr-only">Đang tải PolarisX</span>
+      <span className="sr-only">{locale === 'en' ? 'Loading PolarisX' : 'Đang tải PolarisX'}</span>
       <div className="animate-pulse motion-reduce:animate-none" aria-hidden="true">
         {variant === 'page' ? (
           <>

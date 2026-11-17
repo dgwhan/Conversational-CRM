@@ -525,12 +525,152 @@ input[type="password"]:not(.searchable-select-input):focus {
    ========================================================================== */
 
 .auth-glass-bg {
-  background:
-    radial-gradient(circle at 10% 12%, rgba(191, 219, 254, 0.5) 0%, transparent 45%),
-    radial-gradient(circle at 90% 88%, rgba(199, 210, 254, 0.45) 0%, transparent 48%),
-    radial-gradient(circle at 50% 50%, rgba(224, 231, 255, 0.35) 0%, transparent 55%),
-    linear-gradient(135deg, #f8faff 0%, #f0f4fc 45%, #e8f0fe 100%) !important;
-  background-attachment: fixed !important;
+  background: #f8fafc !important;
+}
+
+/* Auth uses the same restrained blue and neutral surfaces as the CRM shell. */
+.auth-page .auth-page-card.glass-card {
+  max-width: min(440px, 92vw);
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: none !important;
+}
+
+.auth-page .auth-page-card.glass-card > .pointer-events-none {
+  display: none;
+}
+
+.auth-brand-mark {
+  width: 64px;
+  height: 64px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.auth-page .glass-field-input,
+.auth-page input.glass-field-input {
+  border-radius: 10px !important;
+}
+
+.auth-page .crm-lang-switcher {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.auth-page .lang-btn.active {
+  background: transparent;
+}
+
+.auth-page .glass-btn-primary {
+  background: #2563eb !important;
+  border: 1px solid #2563eb !important;
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+
+.auth-page .glass-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8 !important;
+  box-shadow: none !important;
+}
+
+.auth-page .glass-field-input:focus,
+.auth-page input.glass-field-input:focus {
+  box-shadow: none !important;
+  outline: none !important;
+  border-color: #2563eb !important;
+}
+
+html.dark .auth-page .auth-page-card.glass-card,
+[data-theme="dark"] .auth-page .auth-page-card.glass-card {
+  border-color: #263449 !important;
+  background: #111c2e !important;
+  box-shadow: 0 20px 55px -30px rgba(0, 0, 0, 0.85) !important;
+}
+
+html.dark .auth-page.auth-glass-bg,
+[data-theme="dark"] .auth-page.auth-glass-bg {
+  background: #0b1220 !important;
+}
+
+html.dark .auth-page .auth-brand-mark,
+[data-theme="dark"] .auth-page .auth-brand-mark {
+  border-color: #263449;
+  background: #ffffff;
+}
+
+html.dark .auth-page .text-slate-900,
+[data-theme="dark"] .auth-page .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .auth-page .text-slate-700,
+[data-theme="dark"] .auth-page .text-slate-700 {
+  color: #d1d9e6 !important;
+}
+
+html.dark .auth-page .text-slate-600,
+html.dark .auth-page .text-slate-500,
+[data-theme="dark"] .auth-page .text-slate-600,
+[data-theme="dark"] .auth-page .text-slate-500 {
+  color: #9caec4 !important;
+}
+
+html.dark .auth-page .glass-field-input,
+html.dark .auth-page input.glass-field-input,
+[data-theme="dark"] .auth-page .glass-field-input,
+[data-theme="dark"] .auth-page input.glass-field-input {
+  border-color: #35465d !important;
+  background: #0b1524 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .auth-page .glass-field-input:focus,
+html.dark .auth-page input.glass-field-input:focus,
+[data-theme="dark"] .auth-page .glass-field-input:focus,
+[data-theme="dark"] .auth-page input.glass-field-input:focus {
+  border-color: #60a5fa !important;
+  background: #0b1524 !important;
+}
+
+html.dark .auth-page .border-slate-200,
+html.dark .auth-page .border-slate-300,
+[data-theme="dark"] .auth-page .border-slate-200,
+[data-theme="dark"] .auth-page .border-slate-300 {
+  border-color: #35465d !important;
+}
+
+html.dark .auth-page .bg-white\/85,
+[data-theme="dark"] .auth-page .bg-white\/85 {
+  background: #111c2e !important;
+}
+
+html.dark .auth-page .bg-slate-50\/90,
+[data-theme="dark"] .auth-page .bg-slate-50\/90 {
+  background: #0b1524 !important;
+}
+
+html.dark .auth-page .crm-lang-switcher,
+html.dark .auth-page .lang-divider,
+[data-theme="dark"] .auth-page .crm-lang-switcher,
+[data-theme="dark"] .auth-page .lang-divider {
+  color: #9caec4;
+}
+
+html.dark .auth-page .lang-btn,
+[data-theme="dark"] .auth-page .lang-btn {
+  color: #9caec4;
+}
+
+html.dark .auth-page .lang-btn.active,
+[data-theme="dark"] .auth-page .lang-btn.active {
+  color: #60a5fa;
 }
 
 @keyframes blobPulse {

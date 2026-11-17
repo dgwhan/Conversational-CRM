@@ -1,8 +1,10 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Reveal } from './Reveal.js';
+import { useTranslation } from '../../../i18n/index.js';
 
 const CONTENT = {
+  vi: {
   headline: 'Quy trình vận hành thống nhất',
   supporting:
     'Hợp nhất toàn bộ điểm chạm khách hàng trên một nền tảng duy nhất — sẵn sàng mở rộng theo quy mô doanh nghiệp.',
@@ -39,10 +41,53 @@ const CONTENT = {
     },
   ],
   cta: 'Xem trải nghiệm thực tế',
+  },
+  en: {
+    headline: 'A Unified Customer Workflow',
+    supporting:
+      'Bring every customer touchpoint into one workspace that scales with your business.',
+    steps: [
+      {
+        id: 1,
+        title: 'Unify conversations across channels',
+        description:
+          'Bring customer interactions from every channel into one shared workspace and keep context in one place.',
+      },
+      {
+        id: 2,
+        title: 'Understand each customer’s needs',
+        description:
+          'Keep customer profiles in sync and capture intent and priority as soon as a conversation begins.',
+      },
+      {
+        id: 3,
+        title: 'Coordinate your team',
+        description:
+          'Route each conversation to the right owner and let teammates collaborate in the same thread.',
+      },
+      {
+        id: 4,
+        title: 'Manage sales opportunities',
+        description:
+          'Turn conversations into opportunities and track every stage from the first consultation to close.',
+      },
+      {
+        id: 5,
+        title: 'Maintain service quality and response times',
+        description:
+          'Monitor response times in real time and trigger alerts so every prospective customer gets a timely reply.',
+      },
+    ],
+    cta: 'Explore the live experience',
+  },
 } as const;
 
 /** A concise process overview with a sticky summary and scannable steps. */
-export const HowItWorksSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = false }) => (
+export const HowItWorksSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = false }) => {
+  const { locale } = useTranslation();
+  const content = CONTENT[locale] ?? CONTENT.vi;
+
+  return (
   <section
     id="how-it-works"
     aria-labelledby="how-heading"
@@ -55,22 +100,22 @@ export const HowItWorksSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isD
           className="max-w-lg text-4xl font-bold leading-[1.08] tracking-[-0.025em] text-[#0B1F3A] text-balance landing-dark:text-white"
           style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: 800 }}
         >
-          {CONTENT.headline}
+          {content.headline}
         </h2>
         <p className="mt-5 max-w-md text-lg leading-8 text-slate-600 landing-dark:text-slate-300">
-          {CONTENT.supporting}
+          {content.supporting}
         </p>
         <a
           href="#live-demo"
           className="mt-7 inline-flex h-11 items-center gap-2 rounded-lg bg-[#0074F0] px-5 text-sm font-medium text-white transition-colors hover:bg-[#0063CC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0074F0] focus-visible:ring-offset-2 landing-dark:focus-visible:ring-offset-[#081628]"
         >
-          {CONTENT.cta}
+          {content.cta}
           <ArrowRight size={16} aria-hidden="true" />
         </a>
       </Reveal>
 
       <ol className="divide-y divide-[#D0D7DE] border-y border-[#D0D7DE] lg:col-span-7 landing-dark:divide-white/10 landing-dark:border-white/10">
-        {CONTENT.steps.map((step, i) => (
+        {content.steps.map((step, i) => (
           <li key={step.id}>
             <Reveal variant="fade-up" delay={i * 60} className="py-6 sm:py-7">
               <div className="grid grid-cols-[3rem_minmax(0,1fr)] items-baseline gap-x-4">
@@ -98,4 +143,5 @@ export const HowItWorksSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isD
       </ol>
     </div>
   </section>
-);
+  );
+};

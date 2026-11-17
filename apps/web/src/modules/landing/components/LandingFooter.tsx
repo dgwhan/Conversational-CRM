@@ -30,7 +30,7 @@ export const LandingFooter: React.FC = () => {
             <p className="mt-4 text-base leading-relaxed text-slate-300">{footer.description}</p>
           </div>
 
-          <nav aria-label="Pháp lý">
+          <nav aria-label={footer.legalLabel}>
             <ul className="flex flex-col gap-3">
               <li>
                 <Link to="/privacy" className={LINK_CLASS}>

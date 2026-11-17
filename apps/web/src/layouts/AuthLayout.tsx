@@ -15,29 +15,15 @@ export type AuthLayoutProps = {
  */
 export function AuthLayout({ children, footer, topBar }: AuthLayoutProps) {
   return (
-    <main className="auth-glass-bg relative flex min-h-svh w-full flex-col items-center overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-      {/* 1. Subtle Pastel Decorative Blobs behind the card for gentle refraction */}
-      <div
-        className="pointer-events-none absolute -top-20 -left-20 h-80 w-80 sm:h-96 sm:w-96 rounded-full bg-blue-300/40 blur-[100px] animate-blob-pulse"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -bottom-20 -right-20 h-80 w-80 sm:h-96 sm:w-96 rounded-full bg-indigo-300/35 blur-[110px] animate-blob-pulse-delayed"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-72 w-72 rounded-full bg-sky-200/50 blur-[90px]"
-        aria-hidden="true"
-      />
-
+    <main className="auth-page auth-glass-bg relative flex min-h-svh w-full flex-col items-center overflow-x-clip overflow-y-visible px-4 py-4 sm:px-6 sm:py-6">
       {topBar && (
         <div className="relative z-20 flex w-full max-w-5xl items-center justify-between gap-2">
           {topBar}
         </div>
       )}
 
-      {/* 2. Frosted Glass Card Container */}
-      <GlassCard className="p-6 sm:p-8 my-auto">
+      {/* Auth content stays in the document flow so long forms use the page scroll. */}
+      <GlassCard className="auth-page-card p-6 sm:p-8 my-auto">
         {children}
         {footer}
       </GlassCard>

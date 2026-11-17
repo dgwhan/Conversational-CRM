@@ -6,7 +6,7 @@ import { AUTH_TAB, type AuthTab } from '../constants/auth.constants.js';
 import type { LoginResponse } from '../types/auth.types.js';
 import { PasswordRecoveryFlow } from '../components/PasswordRecoveryFlow.js';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Moon, Sun } from 'lucide-react';
 import { useTranslation, LanguageSwitcher } from '../../../i18n/index.js';
 import { ROUTES } from '../../../config/routes.js';
 import polarisxLogo from '../../../assets/logo/polarisx-logo.svg';
@@ -23,6 +23,17 @@ export function AuthPage({
   defaultTab = AUTH_TAB.LOGIN,
 }: AuthPageProps = {}) {
   const { t } = useTranslation();
+  const [isDark, setIsDark] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem('polarisx_auth_theme');
+      if (savedTheme) return savedTheme === 'dark';
+      const landingTheme = localStorage.getItem('polarisx_landing_theme');
+      if (landingTheme) return landingTheme === 'dark';
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
   const [activeTab, setActiveTab] = useState<AuthTab>(defaultTab);
   const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -34,37 +45,61 @@ export function AuthPage({
     }
   };
 
+  const handleThemeToggle = () => {
+    setIsDark((current) => {
+      const next = !current;
+      try {
+        localStorage.setItem('polarisx_auth_theme', next ? 'dark' : 'light');
+      } catch {
+        // Keep the control usable when storage is unavailable.
+      }
+      return next;
+    });
+  };
+
   const isLoginActive = activeTab === AUTH_TAB.LOGIN;
   const isSignUpActive = activeTab === AUTH_TAB.SIGN_UP;
 
   return (
+    <div className="contents" data-theme={isDark ? 'dark' : 'light'}>
     <AuthLayout
       topBar={
         <>
           <Link
             to={ROUTES.HOME}
-            className="inline-flex h-8 min-w-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white/85 px-3 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-md transition-colors hover:text-[#1A5CFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1A5CFF] sm:text-sm"
+            className="inline-flex h-9 min-w-0 items-center gap-2 px-2 text-sm font-medium text-slate-600 transition-colors hover:text-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb] sm:px-0"
           >
             <ArrowLeft size={15} className="shrink-0" aria-hidden="true" />
             <span className="truncate">{t('auth.backToHome', 'Quay lại trang chủ')}</span>
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <button
+              type="button"
+              onClick={handleThemeToggle}
+              className="auth-theme-toggle inline-flex size-9 items-center justify-center text-slate-600 transition-colors hover:text-[#2563eb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563eb]"
+              aria-label={isDark ? t('auth.switchToLight', 'Chuyển sang giao diện sáng') : t('auth.switchToDark', 'Chuyển sang giao diện tối')}
+              title={isDark ? t('auth.switchToLight', 'Chuyển sang giao diện sáng') : t('auth.switchToDark', 'Chuyển sang giao diện tối')}
+            >
+              {isDark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
+            </button>
+          </div>
         </>
       }
     >
-      {/* Logo in a frosted glass rounded container with subtle brand glow */}
-      <div className="flex flex-col items-center justify-center mb-6">
-        <div className="relative p-2.5 rounded-2xl bg-white/85 border border-white shadow-[0_4px_16px_rgba(26,92,255,0.12),0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-md flex items-center justify-center">
+      {/* Keep the original brand asset intact; use a quiet lockup matching the app shell. */}
+      <div className="auth-brand flex flex-col items-center justify-center mb-6">
+        <div className="auth-brand-mark relative flex items-center justify-center">
           <img
             src={polarisxLogo}
-            alt="Conversational CRM Logo"
-            className="h-12 w-12 object-contain rounded-xl"
+            alt="PolarisX"
+            className="h-12 w-12 object-contain"
             width={48}
             height={48}
           />
         </div>
         <h1 className="mt-3.5 text-xl sm:text-2xl font-bold text-slate-900 tracking-tight text-center">
-          Conversational CRM
+          PolarisX
         </h1>
       </div>
 
@@ -129,7 +164,7 @@ export function AuthPage({
 
             {/* Glowing Blue Sliding Tab Indicator */}
             <span
-              className="absolute -bottom-px left-0 h-[2.5px] w-1/2 rounded-full bg-[#1A5CFF] shadow-[0_2px_8px_rgba(26,92,255,0.45)] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
+              className="absolute -bottom-px left-0 h-[2.5px] w-1/2 rounded-full bg-[#2563eb] transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none"
               style={{
                 transform: isLoginActive ? 'translateX(0%)' : 'translateX(100%)',
               }}
@@ -169,5 +204,6 @@ export function AuthPage({
         </>
       )}
     </AuthLayout>
+    </div>
   );
 }
