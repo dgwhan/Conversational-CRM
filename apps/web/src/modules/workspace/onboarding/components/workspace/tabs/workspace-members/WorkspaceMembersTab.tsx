@@ -6,7 +6,7 @@ import {
   WORKSPACE_MEMBER_STATUS,
   type ManagedStaffItem,
 } from "../../../../../WorkspaceConfigContext.js";
-import { StaffRole } from "../../../../../../../features/auth/constants/auth.constants.js";
+import { WORKSPACE_ROLES } from "../../../../../types/workspace-role.js";
 import {
   Button,
   PageToolbar,
@@ -111,15 +111,15 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
       (member.phoneNumber && member.phoneNumber.toLowerCase().includes(lowerSearch)) ||
       (digitsSearch.length >= 3 && rawPhone.includes(digitsSearch));
 
-    const isOwnerMember = member.role === StaffRole.OWNER;
-    const isManagerMember = Boolean(member.isWorkspaceManager || member.role === "MANAGER");
+    const isOwnerMember = member.role === WORKSPACE_ROLES.OWNER;
+    const isManagerMember = member.role === WORKSPACE_ROLES.MANAGER;
     const isStaffMember = !isOwnerMember && !isManagerMember;
 
     const matchesRole =
       roleFilter === "ALL" ||
-      (roleFilter === StaffRole.OWNER && isOwnerMember) ||
+      (roleFilter === WORKSPACE_ROLES.OWNER && isOwnerMember) ||
       (roleFilter === "MANAGER" && isManagerMember) ||
-      (roleFilter === StaffRole.STAFF && isStaffMember);
+      (roleFilter === WORKSPACE_ROLES.STAFF && isStaffMember);
 
     return matchesSearch && matchesRole;
   });
@@ -130,9 +130,9 @@ export const WorkspaceMembersTab: React.FC<WorkspaceMembersTabProps> = ({
   );
   const roleFilterOptions = [
     { value: "ALL", label: "Tất cả vai trò" },
-    { value: StaffRole.OWNER, label: "Chủ sở hữu" },
+    { value: WORKSPACE_ROLES.OWNER, label: "Chủ sở hữu" },
     { value: "MANAGER", label: "Quản lý" },
-    { value: StaffRole.STAFF, label: "Nhân viên tư vấn" },
+    { value: WORKSPACE_ROLES.STAFF, label: "Nhân viên" },
   ];
 
   const handleOffboarding = async (

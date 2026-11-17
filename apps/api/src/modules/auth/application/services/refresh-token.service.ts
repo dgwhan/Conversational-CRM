@@ -149,7 +149,6 @@ export class RefreshTokenService {
             const response: LoginResponseDto = {
                 accessToken: tokenResult.accessToken,
                 user: userProfile,
-                staff: userProfile,
             };
 
             return {

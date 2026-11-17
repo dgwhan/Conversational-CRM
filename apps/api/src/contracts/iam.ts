@@ -2,8 +2,7 @@ import { z } from 'zod';
 import { WorkspaceRole, WORKSPACE_ROLES } from './roles.js';
 
 export { WorkspaceRole, WORKSPACE_ROLES };
-export const STAFF_ROLES = WORKSPACE_ROLES;
-export const StaffRoleSchema = z.enum(STAFF_ROLES);
+export const WorkspaceRoleSchema = z.enum(WORKSPACE_ROLES);
 
 export const LoginSchema = z.object({
   email: z.string().email().toLowerCase(),
@@ -23,7 +22,7 @@ export const CreateStaffSchema = z
     email: z.string().email().toLowerCase().optional(),
     phoneNumber: z.string().trim().optional(),
     fullName: z.string().min(1).max(100).optional(),
-    role: StaffRoleSchema.default('STAFF'),
+    role: WorkspaceRoleSchema.default('STAFF'),
   })
   .refine(
     (data) => Boolean(data.identifier?.trim() || data.email?.trim() || data.phoneNumber?.trim()),
@@ -34,7 +33,7 @@ export const UpdateStaffSchema = z
   .object({
     email: z.string().email().toLowerCase().optional(),
     fullName: z.string().min(1).max(100).optional(),
-    role: StaffRoleSchema.optional(),
+    role: WorkspaceRoleSchema.optional(),
     phoneNumber: z.string().trim().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'Must be least one field');
@@ -46,7 +45,7 @@ export const SetTelegramChatIdSchema = z.object({
     .nullable(),
 });
 
-export type StaffRole = z.infer<typeof StaffRoleSchema>;
+export type WorkspaceRoleType = z.infer<typeof WorkspaceRoleSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;
 export type ChangePasswordDto = z.infer<typeof ChangePasswordSchema>;
 export type CreateStaffDto = z.infer<typeof CreateStaffSchema>;

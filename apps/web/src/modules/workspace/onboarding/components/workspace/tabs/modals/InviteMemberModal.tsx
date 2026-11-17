@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Modal, Button } from '../../../../../../../components/ui/index.js';
 import { notify } from '../../../../../../../components/feedback/toastEmitter.js';
-import { StaffRole } from '../../../../../../../features/auth/constants/auth.constants.js';
+import { WORKSPACE_ROLES, type WorkspaceRole } from '../../../../../types/workspace-role.js';
 
 export interface InviteMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onInviteMember: (identifier: string, role: StaffRole) => Promise<void>;
+  onInviteMember: (identifier: string, role: WorkspaceRole) => Promise<void>;
   allowOwnerRole?: boolean;
 }
 
@@ -28,7 +28,7 @@ export const InviteMemberModal: React.FC<InviteMemberModalProps> = ({
     setIsInviting(true);
     try {
       // Mặc định luôn mời thành viên mới với vai trò STAFF; Chủ sở hữu có thể đặt làm Quản lý tại cột Thao tác
-      await onInviteMember(cleanId, StaffRole.STAFF);
+      await onInviteMember(cleanId, WORKSPACE_ROLES.STAFF);
       setIdentifier('');
       onClose();
     } catch {

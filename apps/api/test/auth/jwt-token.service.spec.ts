@@ -33,7 +33,6 @@ describe('JwtTokenService', () => {
       id: 'staff-uuid-001',
       email: 'staff@cusc.vn',
       fullName: 'Nguyen Van A',
-      role: 'STAFF',
       tokenVersion: 1,
     };
 
@@ -53,7 +52,7 @@ describe('JwtTokenService', () => {
     expect(decoded.sub).toBe('staff-uuid-001');
     expect(decoded.unique_name).toBe('Nguyen Van A');
     expect(decoded.email).toBe('staff@cusc.vn');
-    expect(decoded.role).toBe('STAFF');
+    expect(decoded.role).toBeUndefined();
     expect(decoded.tokenVersion).toBe(1);
     expect(decoded.jti).toBeDefined();
     expect(decoded.iss).toBe('CUSC-Test-Issuer');

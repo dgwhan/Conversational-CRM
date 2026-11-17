@@ -1,15 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import {
-  Quote,
-  ChevronLeft,
-  ChevronRight,
-  Star,
-  CheckCircle,
-} from 'lucide-react';
+import { Quote, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useLandingContent } from '../hooks/useLandingContent.js';
+import { Reveal } from './Reveal.js';
 
-export const TestimonialsSection: React.FC = () => {
+export const TestimonialsSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = false }) => {
   const { testimonials: tm } = useLandingContent();
   const TESTIMONIALS = tm.items;
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -39,122 +34,115 @@ export const TestimonialsSection: React.FC = () => {
   return (
     <section
       id="testimonials"
-      className="relative py-16 sm:py-28 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden"
+      aria-labelledby="testimonials-heading"
+      className="relative overflow-hidden bg-[#F4F7FB] font-['Roboto',ui-sans-serif,system-ui,sans-serif] py-16 sm:py-28 landing-dark:bg-[#0B1F3A]"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Background soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] sm:w-[600px] h-[250px] sm:h-[300px] bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Header */}
-      <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/50 backdrop-blur-md mb-4 shadow-sm">
-          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-          <span>{tm.pill}</span>
-        </div>
-        <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
-          {tm.titleLead}{' '}
-          <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
-            {tm.titleHighlight}
-          </span>
-        </h2>
-        <p className="mt-3 sm:mt-4 text-sm sm:text-lg text-slate-600 dark:text-slate-300">
-          {tm.subtitleBefore}
-          <span className="text-blue-600 dark:text-blue-400 font-bold">X</span>
-          {tm.subtitleAfter}
-        </p>
-      </div>
-
-      {/* Carousel Main Card */}
-      <div className="max-w-4xl mx-auto relative">
-        <div className="relative bg-white/70 dark:bg-slate-900/60 backdrop-blur-2xl border border-white/40 dark:border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-12 shadow-2xl shadow-blue-950/5 min-h-[280px] sm:min-h-[320px] flex flex-col justify-between">
-          {/* Quote icon watermark */}
-          <div className="absolute top-4 sm:top-6 right-6 sm:right-8 text-blue-500/10 dark:text-blue-400/10 pointer-events-none">
-            <Quote className="w-16 h-16 sm:w-24 sm:h-24" />
-          </div>
-
-          {/* Stars */}
-          <div className="flex items-center gap-1 mb-4 sm:mb-6 text-amber-400">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-            ))}
-          </div>
-
-          {/* Quote body */}
-          <motion.p
-            key={currentItem.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4 }}
-            className="text-base sm:text-xl md:text-2xl font-medium text-slate-800 dark:text-slate-100 leading-relaxed italic relative z-10 mb-6 sm:mb-8"
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+        {/* Header */}
+        <Reveal className="mx-auto mb-10 max-w-3xl text-center sm:mb-16">
+          <h2
+            id="testimonials-heading"
+            className="text-[1.75rem] leading-[1.15] tracking-[-0.03em] text-[#0B1F3A] text-balance antialiased sm:text-4xl sm:leading-[1.1] lg:text-[2.75rem] landing-dark:text-white"
+            style={{
+              fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif",
+              fontWeight: 800,
+            }}
           >
-            "{currentItem.quote}"
-          </motion.p>
+            {tm.titleLead} {tm.titleHighlight}
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg landing-dark:text-slate-300">
+            {tm.subtitleBefore}
+            <span className="font-bold text-[#0074F0] landing-dark:text-[#4DA3FF]">X</span>
+            {tm.subtitleAfter}
+          </p>
+        </Reveal>
 
-          {/* Bottom author and outcome info */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-slate-200/60 dark:border-slate-800/60">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-xs sm:text-sm shadow-md shadow-blue-500/20 shrink-0">
+        {/* Carousel Main Card */}
+        <Reveal variant="slide-left" delay={100} className="relative mx-auto max-w-4xl">
+          <div className="relative flex min-h-[280px] flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 sm:min-h-[320px]  sm:p-8 md:p-12 landing-dark:border-white/10 landing-dark:bg-[#081628]">
+            {/* Quote icon watermark */}
+            <div className="pointer-events-none absolute right-6 top-4 text-[#0074F0]/10 sm:right-8 sm:top-6 landing-dark:text-[#4DA3FF]/10">
+              <Quote className="h-16 w-16 sm:h-24 sm:w-24" />
+            </div>
+
+            {/* Stars */}
+            <div className="mb-4 flex items-center gap-1 sm:mb-6" aria-hidden="true">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="h-4 w-4 fill-[#0074F0] text-[#0074F0] landing-dark:fill-[#4DA3FF] landing-dark:text-[#4DA3FF]" />
+              ))}
+            </div>
+
+            {/* Quote body */}
+            <motion.p
+              key={currentItem.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="relative z-10 mb-6 text-base font-medium italic leading-relaxed text-[#0B1F3A] sm:mb-8 sm:text-xl md:text-2xl landing-dark:text-slate-100"
+            >
+              “{currentItem.quote}”
+            </motion.p>
+
+            {/* Bottom author info */}
+            <div className="flex items-center gap-3 border-t border-slate-200 pt-4 sm:pt-6 landing-dark:border-white/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0074F0] text-xs font-bold text-white sm:h-12 sm:w-12 sm:text-sm">
                 {currentItem.avatarText}
               </div>
               <div>
-                <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
+                <h4 className="text-sm font-bold text-[#0B1F3A] sm:text-base landing-dark:text-white">
                   {currentItem.author}
                 </h4>
-                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[11px] text-slate-500 sm:text-xs landing-dark:text-slate-400">
                   {currentItem.role} • {currentItem.organization}
                 </p>
               </div>
             </div>
+          </div>
 
-            {/* Achievement metric pill */}
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 shrink-0">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{currentItem.metricsResult}</span>
+          {/* Carousel Arrows and Dots */}
+          <div className="mt-6 flex items-center justify-between px-2 sm:mt-8">
+            {/* Dots */}
+            <div className="flex items-center gap-2">
+              {TESTIMONIALS.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  aria-label={`${tm.goTo} ${idx + 1}`}
+                  className={`h-2.5 rounded-full transition-all duration-300 ${
+                    currentIndex === idx
+                      ? 'w-7 bg-[#0074F0] sm:w-8 landing-dark:bg-[#4DA3FF]'
+                      : 'w-2.5 bg-slate-300 hover:bg-slate-400 landing-dark:bg-slate-700'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Navigation Arrows */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrev}
+                aria-label={tm.prev}
+                className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:bg-[#E8F2FE] sm:p-2.5 landing-dark:border-white/20 landing-dark:bg-transparent landing-dark:text-slate-200 landing-dark:hover:bg-white/10"
+              >
+                <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-label={tm.next}
+                className="rounded-lg border border-slate-300 bg-white p-2 text-slate-700 transition-colors hover:bg-[#E8F2FE] sm:p-2.5 landing-dark:border-white/20 landing-dark:bg-transparent landing-dark:text-slate-200 landing-dark:hover:bg-white/10"
+              >
+                <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Carousel Arrows and Dots */}
-        <div className="flex items-center justify-between mt-6 sm:mt-8 px-2">
-          {/* Dots */}
-          <div className="flex items-center gap-2">
-            {TESTIMONIALS.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setCurrentIndex(idx)}
-                aria-label={`${tm.goTo} ${idx + 1}`}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  currentIndex === idx
-                    ? 'w-7 sm:w-8 bg-blue-600 dark:bg-blue-400'
-                    : 'w-2.5 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Navigation Arrows */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handlePrev}
-              aria-label={tm.prev}
-              className="p-2 sm:p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-            >
-              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              aria-label={tm.next}
-              className="p-2 sm:p-2.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-            >
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

@@ -2,14 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { notify } from '../../components/feedback/toastEmitter.js';
 import type { LoginResponse } from '../../features/auth/types/auth.types.js';
 import { apiClient } from '../../lib/api-client/index.js';
-import { USER_ROLES } from './userRole.types.js';
-import type { UserRole, UserRoleContextValue } from './userRole.types.js';
+import { WORKSPACE_ROLES } from '../workspace/types/workspace-role.js';
+import type { WorkspaceRole } from '../workspace/types/workspace-role.js';
+import type { UserRoleContextValue } from './userRole.types.js';
 import { STORAGE_KEYS } from '../../config/storage-keys.js';
 import { AuthApiError, refreshAccessToken } from '../../features/auth/api/auth.api.js';
 
 import { translate } from '../../i18n/translate.js';
-export { USER_ROLES };
-export type { UserRole, UserRoleContextValue } from './userRole.types.js';
+export type { UserRoleContextValue } from './userRole.types.js';
 
 // Truy vấn các khóa định danh lưu trữ từ cấu hình tập trung (.env)
 const AUTH_SESSION_KEY = STORAGE_KEYS.AUTH_SESSION;
@@ -74,7 +74,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Role được nạp In-Memory từ Backend theo Workspace đang làm việc.
   // Tuyệt đối không lưu / đọc role từ storage để chống Client-Side Privilege Escalation.
-  const [role, setRoleState] = useState<UserRole>(USER_ROLES.EMPTY);
+  const [role, setRoleState] = useState<WorkspaceRole | null>(null);
   const [workspaceOwnerId, setWorkspaceOwnerId] = useState<string>('');
 
   useEffect(() => {
@@ -119,14 +119,14 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Đăng ký trực tiếp sự kiện token refresh và session expiration trong bộ nhớ từ apiClient
   // Tuyệt đối không dùng CustomEvent toàn cục trên window để tránh bị giả mạo / DOM event injection
   useEffect(() => {
-    const unsubRefreshed = apiClient.onTokenRefreshed((newAccessToken, staff) => {
+    const unsubRefreshed = apiClient.onTokenRefreshed((newAccessToken, user) => {
       apiClient.setAccessToken(newAccessToken);
       setSession((prev) => {
         if (!prev) return null;
         return {
           ...prev,
           accessToken: newAccessToken,
-          staff: staff ?? prev.staff,
+          user: user ?? prev.user,
         };
       });
     });
@@ -135,7 +135,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       clearAccountCache();
       apiClient.setAccessToken(null);
       setSession(null);
-      setRoleState(USER_ROLES.EMPTY);
+      setRoleState(null);
       setWorkspaceOwnerId('');
       try {
         sessionStorage.clear();
@@ -155,7 +155,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Trả về dữ liệu chính xác theo trạng thái xác thực: nếu chưa đăng nhập thì trả về null
   // Tuyệt đối không trả về chuỗi rỗng '' (dữ liệu ảo)
   const isAuthenticated = Boolean(session?.accessToken);
-  const currentUser = session?.user ?? session?.staff ?? null;
+  const currentUser = session?.user ?? null;
   const userId = currentUser ? currentUser.id : '';
   const userName = currentUser ? currentUser.fullName : '';
   const userEmail = currentUser ? currentUser.email : '';
@@ -164,14 +164,16 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const staffEmail = userEmail;
 
   // Xác thực quyền hạn chính xác theo vai trò thực tế
-  const isOwner = Boolean(isAuthenticated && role === USER_ROLES.OWNER);
-  const isStaff = Boolean(isAuthenticated && role === USER_ROLES.STAFF);
+  const isOwner = Boolean(isAuthenticated && role === WORKSPACE_ROLES.OWNER);
+  const isManager = Boolean(isAuthenticated && role === WORKSPACE_ROLES.MANAGER);
+  const isStaff = Boolean(isAuthenticated && role === WORKSPACE_ROLES.STAFF);
+  const canManageWorkspace = isOwner || isManager;
   const isAgent = isStaff;
   const isRoleLocked = isAuthenticated;
   const ownerId = workspaceOwnerId || (isOwner ? userId : '');
 
   // Cập nhật vai trò từ Backend Workspace Context (chỉ lưu trong React State in-memory)
-  const setRole = useCallback((newRole: UserRole, newOwnerId?: string) => {
+  const setRole = useCallback((newRole: WorkspaceRole | null, newOwnerId?: string) => {
     setRoleState(newRole);
     if (newOwnerId !== undefined) {
       setWorkspaceOwnerId(newOwnerId);
@@ -197,10 +199,10 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } catch { }
 
-    setRoleState(USER_ROLES.EMPTY);
+    setRoleState(null);
     setWorkspaceOwnerId('');
 
-    const userObj = newSession.user || newSession.staff;
+    const userObj = newSession.user;
     notify.success(
       translate('header.welcomeUser', 'Chào mừng {name}!', { name: userObj?.fullName || translate('header.welcomeFallbackName', 'bạn') }),
       translate('header.loginSuccessTitle', 'Đăng nhập thành công')
@@ -211,7 +213,7 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     apiClient.clearAuth();
     clearAccountCache();
     setSession(null);
-    setRoleState(USER_ROLES.EMPTY);
+    setRoleState(null);
     setWorkspaceOwnerId('');
 
     try {
@@ -235,6 +237,8 @@ export const UserRoleProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         role,
         isOwner,
         isStaff,
+        isManager,
+        canManageWorkspace,
         isAgent,
         isRoleLocked,
         user: currentUser,

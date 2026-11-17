@@ -1,148 +1,55 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Sparkles,
-  MessageSquare,
-  Send,
-  Mail,
-  Shield,
-  Heart,
-  Globe,
-} from 'lucide-react';
 import { useLandingContent } from '../hooks/useLandingContent.js';
+import { Reveal } from './Reveal.js';
+import polarisxLogo from '../../../assets/logo/polarisx-logo.svg';
 
-const FEATURE_LINK_TARGETS = ['#features', '#features', '#how-it-works', '#features', '#dashboard-preview'];
+const LINK_CLASS =
+  'inline-block rounded-sm text-sm font-medium text-slate-300 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4DA3FF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1F3A] sm:text-base';
 
 export const LandingFooter: React.FC = () => {
   const { footer } = useLandingContent();
 
   return (
-    <footer className="relative mt-20 border-t border-slate-200/60 dark:border-slate-800/60 bg-white/40 dark:bg-slate-950/60 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-          {/* Brand Col (2 cols) */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-                <Sparkles className="w-5 h-5" />
+    <footer className="bg-[#0B1F3A] font-['Roboto',ui-sans-serif,system-ui,sans-serif] text-white landing-dark:bg-[#050F1E]">
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-14 sm:px-6 sm:pt-16 lg:px-8">
+        <Reveal className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-md">
+            <div className="flex items-center gap-2.5">
+              <img src={polarisxLogo} alt="" aria-hidden="true" className="h-9 w-9 shrink-0 object-contain" />
+              <div className="flex flex-col">
+                <div
+                  className="text-2xl leading-none tracking-[-0.03em] text-white sm:text-3xl"
+                  style={{ fontFamily: "'Inter', ui-sans-serif, system-ui, sans-serif", fontWeight: 800 }}
+                >
+                  Polaris<span className="text-[#4DA3FF]">X</span>
+                </div>
+                <span className="mt-1 text-xs text-slate-400">Conversational CRM</span>
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Polaris<span className="text-blue-600 dark:text-blue-400 font-black">X</span>
-              </span>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mb-6">
-              {footer.description}
-            </p>
-            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-              <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:text-blue-600 transition-colors"
-                aria-label="Facebook Fanpage"
-              >
-                <MessageSquare className="w-4 h-4" />
-              </a>
-              <a
-                href="https://t.me"
-                target="_blank"
-                rel="noreferrer"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:text-sky-500 transition-colors"
-                aria-label="Telegram Channel"
-              >
-                <Send className="w-4 h-4" />
-              </a>
-              <a
-                href="mailto:contact@polarisx.vn"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:text-rose-500 transition-colors"
-                aria-label={footer.emailAria}
-              >
-                <Mail className="w-4 h-4" />
-              </a>
-              <a
-                href="#"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 hover:text-indigo-500 transition-colors"
-                aria-label={footer.portalAria}
-              >
-                <Globe className="w-4 h-4" />
-              </a>
-            </div>
+            <p className="mt-4 text-base leading-relaxed text-slate-300">{footer.description}</p>
           </div>
 
-          {/* Col 1: Tính năng */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-4">
-              {footer.featuresTitle}
-            </h4>
-            <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
-              {footer.featureLinks.map((label, i) => (
-                <li key={label}>
-                  <a
-                    href={FEATURE_LINK_TARGETS[i] ?? '#features'}
-                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  >
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 2: Kênh tích hợp */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-4">
-              {footer.channelsTitle}
-            </h4>
-            <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
-              {footer.channels.map((label) => (
-                <li key={label}>
-                  <span className="hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-1">
-                    {label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 3: Bảo mật & Tuân thủ */}
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white mb-4">
-              {footer.securityTitle}
-            </h4>
-            <ul className="space-y-2.5 text-xs text-slate-600 dark:text-slate-400">
-              <li className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{footer.securityItems[0]}</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{footer.securityItems[1]}</span>
-              </li>
+          <nav aria-label="Pháp lý">
+            <ul className="flex flex-col gap-3">
               <li>
-                <Link to="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link to="/privacy" className={LINK_CLASS}>
                   {footer.privacy}
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <Link to="/terms" className={LINK_CLASS}>
                   {footer.terms}
                 </Link>
               </li>
-              <li>
-                <span className="hover:text-slate-900 dark:hover:text-white transition-colors">
-                  {footer.status}
-                </span>
-              </li>
             </ul>
-          </div>
-        </div>
+          </nav>
+        </Reveal>
 
-        {/* Bottom sub-footer */}
-        <div className="pt-8 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-          <p>© {new Date().getFullYear()} Polaris<span className="text-blue-600 dark:text-blue-400 font-bold">X</span> Conversational CRM. {footer.rights}</p>
-          <p className="flex items-center gap-1">
-            {footer.madeFor}
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+        <div className="mt-12 border-t border-white/15 pt-6 text-sm text-slate-400 sm:mt-14">
+          <p>
+            © {new Date().getFullYear()} Polaris<span className="font-bold text-[#4DA3FF]">X</span> Conversational
+            CRM. {footer.rights}
           </p>
         </div>
       </div>

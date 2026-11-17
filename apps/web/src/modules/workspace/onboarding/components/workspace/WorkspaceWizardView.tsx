@@ -11,7 +11,7 @@ import type {
   ChannelKey,
   DiscoveredPageDto,
 } from '../../types.js';
-import type { StaffRole } from '../../../../../features/auth/constants/auth.constants.js';
+import type { WorkspaceRole } from '../../../types/workspace-role.js';
 import type { WorkspaceItem } from '../../../WorkspaceConfigContext.js';
 import { OnboardingStepper } from '../OnboardingStepper.js';
 import {
@@ -37,7 +37,7 @@ export interface WorkspaceWizardViewProps {
   onNextToStep3: () => void;
   onBackToStep1: () => void;
   onBackToStep2: () => void;
-  onAddInvite: (email: string, role: StaffRole) => Promise<void>;
+  onAddInvite: (email: string, role: WorkspaceRole) => Promise<void>;
   onRemoveInvite: (id: string) => Promise<void>;
   onFinish: () => Promise<void>;
 }

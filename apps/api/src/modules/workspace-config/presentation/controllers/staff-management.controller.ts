@@ -18,7 +18,6 @@ import { resolveCallerId } from '../../application/workspace-resolver.js';
 import type {
   CreateStaffRequestDto,
   StaffItemResponseDto,
-  UpdateStaffPermissionsRequestDto,
   ToggleStaffLockRequestDto,
 } from '../dto/index.js';
 import { Roles } from '../../../../common/decorators/roles.decorator.js';
@@ -59,31 +58,6 @@ export class StaffManagementController {
     return this.staffService.getWorkspacePermissions(callerId, queryWsId || headerWsId);
   }
 
-  @Patch(':id/permissions')
-  @Roles(WorkspaceRole.OWNER)
-  async updateMemberPermissions(
-    @Req() req: any,
-    @Param('id') targetUserId: string,
-    @Body() dto: UpdateStaffPermissionsRequestDto & { role?: WorkspaceRole },
-    @Query('workspaceId') queryWsId?: string,
-    @Headers('x-workspace-id') headerWsId?: string,
-  ) {
-    let isManager = dto?.isWorkspaceManager;
-    if (dto?.role) {
-      isManager = dto.role === WorkspaceRole.MANAGER;
-    }
-    if (typeof isManager !== 'boolean') {
-      throw new BadRequestException('isWorkspaceManager hoặc role không hợp lệ.');
-    }
-    const callerId = resolveCallerId(req);
-    return this.staffService.setWorkspaceManagerPermission(
-      callerId,
-      targetUserId,
-      isManager,
-      queryWsId || headerWsId,
-    );
-  }
-
   @Patch(':id/role')
   @Roles(WorkspaceRole.OWNER)
   async updateMemberRole(
@@ -97,10 +71,10 @@ export class StaffManagementController {
       throw new BadRequestException('Role phải là MANAGER hoặc STAFF.');
     }
     const callerId = resolveCallerId(req);
-    return this.staffService.setWorkspaceManagerPermission(
+    return this.staffService.setWorkspaceMemberRole(
       callerId,
       targetUserId,
-      dto.role === WorkspaceRole.MANAGER,
+      dto.role,
       queryWsId || headerWsId,
     );
   }

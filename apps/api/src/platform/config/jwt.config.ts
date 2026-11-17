@@ -122,10 +122,6 @@ export class JwtTokenService {
       email: user.email,
     };
 
-    if (user.role) {
-      claims.role = user.role;
-    }
-
     if (typeof user.tokenVersion === 'number') {
       claims.tokenVersion = user.tokenVersion;
     }

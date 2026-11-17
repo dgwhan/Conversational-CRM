@@ -1,7 +1,3 @@
-import type { StaffRole } from '../constants/auth.constants.js';
-
-export type { StaffRole };
-
 export type AuthUser = {
   id: string;
   email: string;
@@ -21,7 +17,6 @@ export type LoginRequest = {
 export type LoginResponse = {
   accessToken: string;
   user: AuthUser;
-  staff?: AuthUser;
 };
 
 export type RegisterRequest = {
@@ -34,5 +29,4 @@ export type RegisterRequest = {
 export type RegisterResponse = {
   accessToken: string;
   user: AuthUser;
-  staff?: AuthUser;
 };

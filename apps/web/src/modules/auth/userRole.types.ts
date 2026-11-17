@@ -1,17 +1,12 @@
 import type { LoginResponse, AuthUser } from '../../features/auth/types/auth.types.js';
-
-export const USER_ROLES = {
-  OWNER: 'OWNER',
-  STAFF: 'STAFF',
-  EMPTY: '',
-} as const;
-
-export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
+import type { WorkspaceRole } from '../workspace/types/workspace-role.js';
 
 export interface UserRoleContextValue {
-  role: UserRole;
+  role: WorkspaceRole | null;
   isOwner: boolean;
   isStaff: boolean;
+  isManager: boolean;
+  canManageWorkspace: boolean;
   isAgent: boolean;
   isRoleLocked: boolean;
   user: AuthUser | null;
@@ -27,6 +22,6 @@ export interface UserRoleContextValue {
   isInitializing: boolean;
   login: (newSession: LoginResponse, rememberMe?: boolean) => void;
   logout: () => void;
-  setRole: (newRole: UserRole, ownerId?: string) => void;
+  setRole: (newRole: WorkspaceRole | null, ownerId?: string) => void;
   toggleRole: () => void;
 }

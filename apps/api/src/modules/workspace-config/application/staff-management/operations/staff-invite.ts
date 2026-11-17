@@ -25,11 +25,10 @@ export async function createStaff(
     throw new BadRequestException(USER_IDENTIFIER_CONFIG.MESSAGES.MISSING_INPUT);
   }
 
-  // Mỗi workspace chỉ có duy nhất 1 Owner (người tạo hoặc nhận chuyển nhượng).
-  // Thành viên mới luôn được mời với vai trò mặc định duy nhất là STAFF; Manager sẽ được cấp quyền sau tại cột Thao tác.
-  if (dto.role && dto.role !== WorkspaceRole.STAFF) {
+  // Owner chỉ được chuyển qua quy trình chuyển quyền sở hữu, không mời trực tiếp.
+  if (dto.role === WorkspaceRole.OWNER) {
     throw new BadRequestException(
-      'Chỉ được mời thành viên mới với vai trò Nhân viên tư vấn (STAFF). Sau khi gia nhập, Chủ sở hữu có thể đặt làm Quản lý tại cột Thao tác.',
+      'Không thể mời Owner trực tiếp. Hãy sử dụng chức năng chuyển quyền sở hữu workspace.',
     );
   }
 
@@ -55,6 +54,9 @@ export async function createStaff(
       throw new ForbiddenException(
         'Bạn không có quyền mời thành viên vào workspace này.',
       );
+    }
+    if (dto.role === WorkspaceRole.MANAGER && currentUserRole !== WorkspaceRole.OWNER) {
+      throw new ForbiddenException('Chỉ Owner mới có thể mời thành viên với vai trò Manager.');
     }
 
     // Tìm kiếm theo Email hoặc Số điện thoại qua magic string 'user' trên Prisma
@@ -102,8 +104,9 @@ export async function createStaff(
       }
     }
 
-    // Vai trò khi mời luôn luôn là STAFF
-    const finalRole: WorkspaceMemberRole = WorkspaceMemberRole.STAFF;
+    const finalRole: WorkspaceMemberRole = dto.role === WorkspaceRole.MANAGER
+      ? WorkspaceMemberRole.MANAGER
+      : WorkspaceMemberRole.STAFF;
 
     const member = await prisma.workspaceMember.upsert({
       where: {
@@ -131,7 +134,7 @@ export async function createStaff(
       },
     });
 
-    const roleLabel = 'Nhân viên tư vấn';
+    const roleLabel = finalRole === WorkspaceMemberRole.MANAGER ? 'Quản lý (Manager)' : 'Nhân viên (Staff)';
 
     // Tạo bản ghi Notification cho người được mời
     try {

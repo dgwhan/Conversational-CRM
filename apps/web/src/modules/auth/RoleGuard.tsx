@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserRole } from './UserRoleContext.js';
 import { useWorkspaceConfig } from '../workspace/WorkspaceConfigContext.js';
-import { USER_ROLES, type UserRole } from './userRole.types.js';
+import type { WorkspaceRole } from '../workspace/types/workspace-role.js';
+import { WORKSPACE_ROLES } from '../workspace/types/workspace-role.js';
 import { HttpErrorPage } from '../../pages/errors/HttpErrorPage.js';
 import { ROUTES } from '../../config/routes.js';
 
@@ -10,7 +11,7 @@ import { useTranslation } from '../../i18n/index.js';
 import { translate } from '../../i18n/translate.js';
 export interface RoleGuardProps {
   children?: React.ReactNode;
-  allowedRoles?: UserRole[];
+  allowedRoles?: WorkspaceRole[];
   requireOwner?: boolean;
   featureName?: string;
 }
@@ -25,7 +26,7 @@ export interface RoleGuardProps {
  */
 export const RoleGuard: React.FC<RoleGuardProps> = ({
   children,
-  allowedRoles = [USER_ROLES.OWNER],
+  allowedRoles = [WORKSPACE_ROLES.OWNER],
   requireOwner = true,
   featureName = translate('errors.defaultFeatureName', 'Tính năng Quản trị Hệ thống'),
 }) => {
@@ -35,7 +36,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   const navigate = useNavigate();
 
   const hasOwnerPrivilege = isOwner || isCurrentWorkspaceOwner;
-  const isRolePermitted = allowedRoles.includes(role) || (requireOwner && hasOwnerPrivilege);
+  const isRolePermitted = (role !== null && allowedRoles.includes(role)) || (requireOwner && hasOwnerPrivilege);
 
   if (requireOwner && !hasOwnerPrivilege && isAgent) {
     return (

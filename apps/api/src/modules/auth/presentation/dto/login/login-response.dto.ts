@@ -7,13 +7,6 @@ export type LoginResponseDto = {
         mustChangePassword: boolean;
         phoneNumber?: string | null;
     };
-    staff?: {
-        id: string;
-        email: string;
-        fullName: string;
-        mustChangePassword: boolean;
-        phoneNumber?: string | null;
-    };
 };
 
 export type AuthLoginResult = {

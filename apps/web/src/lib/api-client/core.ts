@@ -24,7 +24,7 @@ export class BaseApiClient {
   protected accessToken: string | null = null;
   protected refreshPromise: Promise<string | null> | null = null;
   protected isLoggingOut: boolean = false;
-  private tokenRefreshedListeners: Array<(token: string, staff?: any) => void> = [];
+  private tokenRefreshedListeners: Array<(token: string, user?: any) => void> = [];
   private sessionExpiredListeners: Array<() => void> = [];
   private workspaceChangedListeners: Array<(workspaceId: string) => void> = [];
 
@@ -36,7 +36,7 @@ export class BaseApiClient {
     };
   }
 
-  onTokenRefreshed(listener: (token: string, staff?: any) => void): () => void {
+  onTokenRefreshed(listener: (token: string, user?: any) => void): () => void {
     this.tokenRefreshedListeners.push(listener);
     return () => {
       this.tokenRefreshedListeners = this.tokenRefreshedListeners.filter((l) => l !== listener);
@@ -172,7 +172,6 @@ export class BaseApiClient {
           const updated = {
             ...prev,
             accessToken: newAccessToken,
-            staff: data.staff ?? prev.staff,
           };
           sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(updated));
           localStorage.removeItem(AUTH_SESSION_KEY);
@@ -181,7 +180,7 @@ export class BaseApiClient {
         // Thông báo trực tiếp cho các listeners đăng ký trong bộ nhớ (không phát sự kiện toàn cục ra window)
         this.tokenRefreshedListeners.forEach((listener) => {
           try {
-            listener(newAccessToken, data.staff);
+          listener(newAccessToken, data.user);
           } catch {}
         });
 
@@ -319,7 +318,7 @@ export class BaseApiClient {
         if (savedSession) {
           const parsed = JSON.parse(savedSession);
           if (parsed && (parsed.accessToken || token)) {
-            currentStaffId = parsed?.user?.id || parsed?.staff?.id || '';
+            currentStaffId = parsed?.user?.id || '';
           }
         }
       } catch {}

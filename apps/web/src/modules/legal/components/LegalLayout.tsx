@@ -1,11 +1,7 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowUp, ArrowRightLeft, Printer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Printer } from 'lucide-react';
 import type { LegalDocument } from '../types/legal.types.js';
-import { useActiveSection } from '../hooks/useActiveSection.js';
-import { useScrollProgress, useLandingTheme } from '../../landing/hooks/useLandingInteractions.js';
-import { LandingNavbar } from '../../landing/components/LandingNavbar.js';
-import { LandingFooter } from '../../landing/components/LandingFooter.js';
 import { LegalHeader } from './LegalHeader.js';
 import { LegalToc } from './LegalToc.js';
 import { LegalQuickSummary } from './LegalQuickSummary.js';
@@ -16,130 +12,193 @@ export interface LegalLayoutProps {
 }
 
 export const LegalLayout: React.FC<LegalLayoutProps> = ({ document }) => {
-  const { isDark, toggleTheme } = useLandingTheme();
-  const scrollProgress = useScrollProgress();
   const location = useLocation();
 
-  // Tự động scroll lên đỉnh trang khi chuyển trang sang Privacy hoặc Terms
-  useEffect(() => {
-    if (location.hash) {
-      const targetId = location.hash.replace('#', '');
-      const el = window.document.getElementById(targetId);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-        return;
-      }
+  // Lấy mục đầu tiên hoặc mục theo URL hash
+  const getInitialSectionId = () => {
+    const hashId = location.hash.replace('#', '');
+    if (hashId && document.sections.some((s) => s.id === hashId)) {
+      return hashId;
     }
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [location.pathname]);
-
-  const sectionIds = useMemo(() => document.sections.map((s) => s.id), [document.sections]);
-  const activeSectionId = useActiveSection(sectionIds, 120);
-
-  const isPrivacy = document.documentType === 'privacy';
-  const otherPageUrl = isPrivacy ? '/terms' : '/privacy';
-  const otherPageTitle = isPrivacy ? 'Xem Điều khoản dịch vụ' : 'Xem Chính sách bảo mật';
-
-  const handlePrint = () => {
-    window.print();
+    return document.sections[0]?.id ?? '';
   };
 
-  const handleBackToTop = () => {
+  const [selectedSectionId, setSelectedSectionId] = useState<string>(getInitialSectionId);
+
+  // Cập nhật lại mục đang chọn khi chuyển đổi giữa /privacy và /terms
+  useEffect(() => {
+    setSelectedSectionId(getInitialSectionId());
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [location.pathname, document]);
+
+  const currentIndex = document.sections.findIndex((s) => s.id === selectedSectionId);
+  const activeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const activeSection = document.sections[activeIndex];
+  const prevSection = activeIndex > 0 ? document.sections[activeIndex - 1] : null;
+  const nextSection =
+    activeIndex < document.sections.length - 1 ? document.sections[activeIndex + 1] : null;
+
+  const handleSelectSection = (id: string) => {
+    setSelectedSectionId(id);
+    window.history.replaceState(window.history.state, '', `${location.pathname}#${id}`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const isPrivacy = document.documentType === 'privacy';
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-800 dark:text-slate-100 font-sans antialiased relative transition-colors duration-300">
-      {/* 1. Thanh tiến trình đọc (Reading Progress Bar) */}
-      <div
-        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-400 z-50 transition-all duration-75 no-print"
-        style={{ width: `${scrollProgress * 100}%` }}
-        role="progressbar"
-        aria-valuenow={Math.round(scrollProgress * 100)}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label="Tiến trình đọc tài liệu"
-      />
-
-      {/* 2. Sticky Glass Navbar tái sử dụng từ Landing */}
-      <div className="no-print">
-        <LandingNavbar isDark={isDark} onToggleTheme={toggleTheme} />
-      </div>
-
-      {/* 3. Header tài liệu pháp lý */}
-      <LegalHeader document={document} />
-
-      {/* 4. Thân trang: Bố cục 2 cột (Desktop) và 1 cột (Mobile) */}
-      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
-          {/* Cột trái: Mục lục nội dung (Table of Contents) */}
-          <div className="w-full lg:w-auto no-print">
-            <LegalToc sections={document.sections} activeId={activeSectionId} />
+    <div className="min-h-screen bg-white text-slate-900 font-sans antialiased">
+      {/* 1. Minimalist Docs Top Bar */}
+      <header className="sticky top-0 z-30 h-14 border-b border-slate-200 bg-white/95 backdrop-blur-sm no-print">
+        <div className="max-w-[1400px] mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 text-sm">
+            <Link to="/" className="font-semibold tracking-tight text-slate-900">
+              PolarisX
+            </Link>
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-500">Tài liệu pháp lý</span>
           </div>
 
-          {/* Cột phải: Toàn văn tài liệu với độ rộng tối ưu khoảng 72ch */}
-          <article className="flex-1 w-full max-w-[76ch] mx-auto lg:mx-0">
-            {/* Tóm tắt nhanh các điểm quan trọng */}
-            <LegalQuickSummary items={document.quickSummary} />
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              In mục này
+            </button>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Về trang chủ
+            </Link>
+          </div>
+        </div>
+      </header>
 
-            {/* Danh sách các phần điều khoản / chính sách */}
-            <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-              {document.sections.map((section) => (
-                <LegalSectionView key={section.id} section={section} />
-              ))}
+      {/* 2. 3-Column Docs Container */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 flex items-start">
+        {/* Cột trái: Điều hướng danh mục văn bản */}
+        <aside className="hidden lg:block w-60 flex-shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] border-r border-slate-200 py-10 pr-6 no-print">
+          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2.5">
+            Văn bản pháp lý
+          </div>
+          <nav className="space-y-1" aria-label="Danh mục văn bản pháp lý">
+            <Link
+              to="/privacy"
+              className={`block px-2.5 py-1.5 text-sm rounded-md transition-colors ${
+                isPrivacy
+                  ? 'bg-slate-100 text-slate-900 font-medium'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Chính sách bảo mật
+            </Link>
+            <Link
+              to="/terms"
+              className={`block px-2.5 py-1.5 text-sm rounded-md transition-colors ${
+                !isPrivacy
+                  ? 'bg-slate-100 text-slate-900 font-medium'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              Điều khoản dịch vụ
+            </Link>
+          </nav>
+        </aside>
+
+        {/* Cột giữa: Chỉ hiển thị nội dung của mục đang chọn */}
+        <main id="main-content" className="flex-1 min-w-0 py-8 sm:py-10 lg:px-14 max-w-3xl">
+          {/* Mobile TOC */}
+          <div className="xl:hidden no-print">
+            <LegalToc
+              sections={document.sections}
+              activeId={activeSection?.id ?? ''}
+              onSelect={handleSelectSection}
+            />
+          </div>
+
+          <LegalHeader document={document} />
+
+          {/* Chỉ hiện Tóm tắt nhanh khi đang ở mục đầu tiên (Mục 1) để tránh chiếm diện tích khi xem các mục sau */}
+          {activeIndex === 0 && <LegalQuickSummary items={document.quickSummary} />}
+
+          {/* Render duy nhất mục đang được chọn */}
+          {activeSection && (
+            <div role="tabpanel" className="min-h-[320px]">
+              <LegalSectionView section={activeSection} />
             </div>
+          )}
 
-            {/* Thanh công cụ phụ cuối bài (Print, Switch page, Back to top) */}
-            <div className="mt-12 pt-8 border-t border-slate-200/80 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 no-print">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm transition-colors"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  In văn bản này
-                </button>
-
-                <Link
-                  to={otherPageUrl}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100/60 transition-colors shadow-sm"
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5" />
-                  {otherPageTitle}
-                </Link>
-              </div>
-
+          {/* Điều hướng Mục trước / Mục tiếp theo chuẩn Docs (Prev / Next Pagination) */}
+          <div className="mt-8 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-4 no-print">
+            {prevSection ? (
               <button
                 type="button"
-                onClick={handleBackToTop}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                onClick={() => handleSelectSection(prevSection.id)}
+                className="group flex flex-col items-start py-3 pr-3 text-left transition-colors hover:text-[#0969DA]"
               >
-                <ArrowUp className="w-3.5 h-3.5" />
-                Về đầu trang
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-slate-600">
+                  <ArrowLeft className="w-3 h-3" /> Mục trước
+                </span>
+                <span className="mt-1 text-sm font-semibold text-slate-900 line-clamp-1">
+                  {prevSection.title}
+                </span>
               </button>
-            </div>
-          </article>
-        </div>
-      </main>
+            ) : (
+              <div />
+            )}
 
-      {/* 5. Footer tái sử dụng */}
-      <div className="no-print">
-        <LandingFooter />
+            {nextSection ? (
+              <button
+                type="button"
+                onClick={() => handleSelectSection(nextSection.id)}
+                className="group flex flex-col items-end py-3 pl-3 text-right transition-colors hover:text-[#0969DA]"
+              >
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-slate-600">
+                  Mục tiếp theo <ArrowRight className="w-3 h-3" />
+                </span>
+                <span className="mt-1 text-sm font-semibold text-slate-900 line-clamp-1">
+                  {nextSection.title}
+                </span>
+              </button>
+            ) : (
+              <Link
+                to={isPrivacy ? '/terms' : '/privacy'}
+                className="group flex flex-col items-end py-3 pl-3 text-right transition-colors hover:text-[#0969DA]"
+              >
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 group-hover:text-slate-600">
+                  Văn bản tiếp theo <ArrowRight className="w-3 h-3" />
+                </span>
+                <span className="mt-1 text-sm font-semibold text-slate-900">
+                  {isPrivacy ? 'Điều khoản dịch vụ' : 'Chính sách bảo mật'}
+                </span>
+              </Link>
+            )}
+          </div>
+        </main>
+
+        {/* Cột phải: Danh sách mục để click chuyển nội dung */}
+        <div className="no-print">
+          <LegalToc
+            sections={document.sections}
+            activeId={activeSection?.id ?? ''}
+            onSelect={handleSelectSection}
+          />
+        </div>
       </div>
 
-      {/* Print stylesheet - ẩn navbar, footer, mục lục khi in ấn */}
       <style>{`
         @media print {
           .no-print {
             display: none !important;
           }
-          body {
-            background: #ffffff !important;
-            color: #000000 !important;
-          }
-          article {
+          main {
             max-width: 100% !important;
+            padding: 0 !important;
           }
         }
       `}</style>

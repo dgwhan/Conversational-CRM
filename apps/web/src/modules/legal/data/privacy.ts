@@ -4,10 +4,10 @@ import { ORGANIZATION_INFO } from './organization.js';
 export const PRIVACY_POLICY_DATA: LegalDocument = {
   title: 'Chính sách bảo mật thông tin',
   subtitle:
-    'Cam kết bảo vệ dữ liệu cá nhân của ứng viên, học viên và nhân sự vận hành trên nền tảng PolarisX Conversational CRM',
+    'Cách PolarisX xử lý dữ liệu trong tài khoản, workspace, hội thoại đa kênh và quy trình chăm sóc khách hàng của doanh nghiệp.',
   version: '1.0.0',
-  effectiveDate: '01/01/2026',
-  lastUpdated: '10/11/2026',
+  effectiveDate: '01/11/2026',
+  lastUpdated: '17/11/2026',
   documentType: 'privacy',
   quickSummary: [
     {
@@ -18,17 +18,17 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
     {
       iconName: 'database',
       title: 'Xử lý đa kênh hợp nhất',
-      description: 'Chỉ thu thập tin nhắn và thông tin từ Zalo, Facebook Fanpage và tệp nhập liệu nhằm phục vụ tư vấn tuyển sinh.',
+      description: 'Xử lý dữ liệu từ các kênh doanh nghiệp kết nối và thông tin được đơn vị sử dụng chủ động nhập vào hệ thống.',
     },
     {
       iconName: 'lock',
       title: 'Bảo mật đa tầng',
-      description: 'Mã hóa truyền tải HTTPS/TLS, băm mật khẩu bảo mật, kiểm soát truy cập RBAC và bảo vệ BOLA/IDOR.',
+      description: 'Áp dụng các biện pháp bảo vệ tài khoản, kiểm soát truy cập và bảo vệ dữ liệu trong quá trình vận hành dịch vụ.',
     },
     {
       iconName: 'user-check',
-      title: 'Toàn quyền kiểm soát',
-      description: 'Chủ thể dữ liệu có đầy đủ quyền tra cứu, chỉnh sửa, yêu cầu xóa dữ liệu hoặc rút lại sự đồng ý bất kỳ lúc nào.',
+      title: 'Thực hiện quyền dữ liệu',
+      description: 'Chủ thể dữ liệu có thể gửi yêu cầu liên quan đến dữ liệu của mình theo quy định áp dụng.',
     },
   ],
   sections: [
@@ -36,48 +36,48 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
       id: 'gioi-thieu',
       title: '1. Giới thiệu và phạm vi áp dụng',
       paragraphs: [
-        `Chính sách bảo mật này mô tả cách thức ${ORGANIZATION_INFO.name} (sau đây gọi là "chúng tôi", "Ban quản trị") thu thập, lưu trữ, sử dụng và bảo vệ dữ liệu cá nhân khi vận hành nền tảng PolarisX Conversational CRM (sau đây gọi tắt là "Hệ thống" hoặc "Dịch vụ").`,
-        'Chính sách này áp dụng đối với hai nhóm chủ thể dữ liệu chính:',
+        `Chính sách này mô tả cách ${ORGANIZATION_INFO.name} ("PolarisX", "chúng tôi") xử lý dữ liệu khi cung cấp và vận hành PolarisX Conversational CRM ("Hệ thống"). Nội dung tập trung vào các hoạt động thực tế như tạo tài khoản, tham gia workspace, kết nối kênh nhắn tin, quản lý hội thoại và theo dõi hiệu suất chăm sóc khách hàng.`,
+        'Dữ liệu trong Hệ thống thường liên quan đến hai nhóm:',
       ],
       list: [
-        'Người dùng nội bộ: Cán bộ quản lý, chuyên viên tư vấn tuyển sinh và quản trị viên hệ thống có tài khoản đăng nhập.',
-        'Ứng viên / Khách hàng tiềm năng: Người học, phụ huynh và thí sinh gửi tin nhắn hoặc để lại thông tin quan tâm qua các kênh kết nối (Facebook Fanpage, Zalo Official Account, Zalo cá nhân kết nối và tệp dữ liệu nhập thủ công).',
+        'Người dùng dịch vụ: Cá nhân đăng ký tài khoản hoặc tham gia workspace với vai trò Owner, Manager hoặc Staff. Vai trò được gán riêng theo từng workspace; tài khoản không có role toàn cục.',
+        'Khách hàng và người liên hệ của doanh nghiệp: Cá nhân nhắn tin qua kênh đã kết nối hoặc có thông tin được doanh nghiệp nhập vào CRM.',
       ],
-      note: 'Hệ thống tuân thủ các nguyên tắc chung của pháp luật Việt Nam về an toàn thông tin mạng và quy định về bảo vệ dữ liệu cá nhân (bao gồm tinh thần của Nghị định 13/2023/NĐ-CP).',
+      note: 'Doanh nghiệp sử dụng Hệ thống quyết định mục đích chăm sóc khách hàng và dữ liệu được đưa vào workspace. PolarisX xử lý dữ liệu cần thiết để cung cấp, bảo vệ và hỗ trợ dịch vụ theo cấu hình của doanh nghiệp.',
     },
     {
       id: 'du-lieu-thu-thap',
       title: '2. Dữ liệu chúng tôi thu thập',
       paragraphs: [
-        'Nhằm phục vụ công tác tư vấn tuyển sinh và hỗ trợ người học kịp thời, Hệ thống ghi nhận các nhóm dữ liệu cụ thể sau:',
+        'Tùy theo cách đơn vị sử dụng cấu hình và vận hành dịch vụ, hệ thống có thể xử lý các nhóm dữ liệu sau:',
       ],
       table: {
         headers: ['Nhóm đối tượng', 'Loại dữ liệu thu thập', 'Nguồn phát sinh'],
         rows: [
           [
-            'Nhân sự vận hành (Admin / Staff)',
-            'Họ và tên, địa chỉ email công vụ, mật khẩu băm (salted hash), vai trò (Role), Telegram Chat ID (nhận cảnh báo SLA).',
-            'Được tạo và cấu hình bởi Quản trị viên hệ thống.',
+            'Tài khoản thành viên workspace',
+            'Họ tên, email, số điện thoại, thông tin xác thực được lưu dưới dạng hash, phiên đăng nhập và thông tin workspace. Owner, Manager hoặc Staff được gán theo từng workspace; tài khoản tự đăng ký không có role riêng.',
+            'Tài khoản do cá nhân đăng ký; Owner workspace mời tài khoản tham gia và gán vai trò.',
           ],
           [
-            'Ứng viên & Khách hàng tiềm năng',
-            'Họ tên, số điện thoại, email, định danh Zalo (Zalo ID/OA User ID), định danh Facebook (Page-scoped ID - PSID), nội dung tin nhắn, tệp đính kèm gửi trong cuộc trò chuyện, nhãn ngành học quan tâm và điểm tiềm năng do AI ước tính.',
-            'Do ứng viên chủ động cung cấp khi gửi tin nhắn hoặc được tải lên từ tệp danh sách ứng viên (Excel/CSV).',
+            'Khách hàng & Người liên hệ',
+            'Thông tin nhận diện và liên hệ, định danh trên kênh tích hợp, nội dung hội thoại và tệp đính kèm, nhãn phân loại, lịch sử tương tác và điểm ưu tiên nếu tính năng này được bật.',
+            'Phát sinh từ tin nhắn/kênh doanh nghiệp kết nối hoặc do doanh nghiệp nhập, đồng bộ vào workspace.',
           ],
           [
             'Dữ liệu kỹ thuật & Nhật ký',
-            'Địa chỉ IP, loại trình duyệt, hệ điều hành, thời điểm đăng nhập, lịch sử thao tác điều hướng và cookie phiên làm việc.',
+            'Thông tin thiết bị và trình duyệt, địa chỉ IP, thời điểm đăng nhập, nhật ký thao tác cần thiết cho vận hành và cookie/định danh phiên.',
             'Tự động thu thập từ trình duyệt khi truy cập giao diện CRM.',
           ],
         ],
       },
-      note: 'Chúng tôi không chủ động thu thập các danh mục dữ liệu cá nhân nhạy cảm (như thông tin tôn giáo, tài chính cá nhân, hồ sơ bệnh án) trừ khi thí sinh tự nguyện đề cập trong nội dung trao đổi tuyển sinh.',
+      note: 'Đơn vị sử dụng cần cân nhắc dữ liệu đưa vào hệ thống, giới hạn ở phạm vi cần thiết cho mục đích đã thông báo và có căn cứ xử lý phù hợp đối với dữ liệu nhạy cảm.',
     },
     {
       id: 'muc-dich-xu-ly',
       title: '3. Mục đích xử lý dữ liệu',
       paragraphs: [
-        'Toàn bộ thông tin thu thập được chỉ sử dụng cho các mục đích hợp pháp và minh bạch liên quan trực tiếp đến quy trình tuyển sinh và chăm sóc học viên:',
+        'Dữ liệu được xử lý cho các mục đích vận hành dịch vụ và quy trình chăm sóc khách hàng do đơn vị sử dụng thiết lập:',
       ],
       table: {
         headers: ['Mục đích xử lý', 'Hoạt động cụ thể trong Hệ thống', 'Mức độ ưu tiên'],
@@ -89,12 +89,12 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
           ],
           [
             'Phân loại & Chấm điểm tiềm năng (AI)',
-            'Phân tích nội dung thắc mắc để gắn nhãn khóa học (Lập trình, Thiết kế, v.v.) và tính điểm tiềm năng phục vụ ưu tiên tư vấn.',
+            'Phân loại nội dung hội thoại theo nhu cầu, sản phẩm hoặc dịch vụ và hỗ trợ xác định mức độ ưu tiên chăm sóc.',
             'Nâng cao hiệu suất',
           ],
           [
             'Phân công tư vấn & Giám sát SLA',
-            'Tự động phân bổ ứng viên cho tư vấn viên theo thuật toán vòng tròn (Round-robin) và kích hoạt bộ đếm thời gian phản hồi.',
+            'Phân bổ hội thoại cho nhân sự phụ trách theo cấu hình workspace và theo dõi thời gian phản hồi.',
             'Vận hành dịch vụ',
           ],
           [
@@ -104,8 +104,8 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
           ],
           [
             'Báo cáo & Phân tích tổng hợp',
-            'Xây dựng các biểu đồ thống kê xu hướng tuyển sinh, tỷ lệ chuyển đổi ngành học và đo lường hiệu quả các kênh truyền thông.',
-            'Chiến lược đào tạo',
+            'Tổng hợp hiệu suất hội thoại, cơ hội bán hàng và hiệu quả các kênh phục vụ hoạt động quản trị.',
+            'Quản trị kinh doanh',
           ],
           [
             'An toàn & Kiểm toán bảo mật',
@@ -122,59 +122,59 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
         'Việc xử lý dữ liệu trên PolarisX Conversational CRM được thực hiện dựa trên các căn cứ hợp pháp sau:',
       ],
       list: [
-        'Sự đồng ý của người dùng: Ứng viên chủ động nhắn tin vào trang Fanpage/Zalo OA hoặc điền biểu mẫu tư vấn tuyển sinh biểu thị sự đồng ý để đơn vị liên hệ trao đổi thông tin khóa học.',
-        'Thực hiện thỏa thuận tư vấn: Xử lý dữ liệu cần thiết nhằm đáp ứng nguyện vọng tìm hiểu chương trình đào tạo, học bổng và thủ tục nhập học của thí sinh.',
-        'Nghĩa vụ pháp lý của cơ sở đào tạo: Lưu trữ hồ sơ tuyển sinh và kế toán theo đúng các quy chuẩn quản lý giáo dục hiện hành tại Việt Nam.',
-        'Lợi ích chính đáng: Nâng cao chất lượng phục vụ, ngăn chặn gian lận và tối ưu hóa thời gian chờ đợi của người học.',
+        'Sự đồng ý hoặc căn cứ xử lý phù hợp khác: Đơn vị sử dụng có trách nhiệm xác định căn cứ xử lý dữ liệu cho từng mục đích và thông báo cho chủ thể dữ liệu theo quy định áp dụng.',
+        'Cung cấp dịch vụ: Xử lý dữ liệu cần thiết để tiếp nhận, quản lý và phản hồi yêu cầu của khách hàng hoặc thực hiện thỏa thuận với khách hàng.',
+        'Nghĩa vụ pháp lý: Lưu trữ hoặc cung cấp dữ liệu khi cần thiết để thực hiện nghĩa vụ theo quy định pháp luật.',
+        'Vận hành và bảo vệ dịch vụ: Duy trì chất lượng hỗ trợ, ngăn chặn gian lận và bảo đảm an toàn hệ thống trong phạm vi phù hợp.',
       ],
     },
     {
       id: 'chia-se-ben-thu-ba',
       title: '5. Chia sẻ dữ liệu với bên thứ ba',
       paragraphs: [
-        'Chúng tôi cam kết không bán, không cho thuê và không thương mại hóa dữ liệu cá nhân của người học dưới bất kỳ hình thức nào. Dữ liệu chỉ được trao đổi với các đối tác kỹ thuật hạ tầng trong phạm vi tối cần thiết:',
+        'Dữ liệu cá nhân không được bán hoặc sử dụng cho mục đích tiếp thị riêng. Dữ liệu có thể được chia sẻ trong phạm vi cần thiết để cung cấp dịch vụ hoặc khi pháp luật yêu cầu:',
       ],
       list: [
         'Nền tảng Meta (Facebook Graph API) & Zalo (Zalo OpenAPI): Đồng bộ tin nhắn hai chiều giữa khách hàng và Hộp thư hội thoại CRM.',
         'Nền tảng Telegram: Gửi tin nhắn bot cảnh báo SLA tới tài khoản nội bộ của nhân viên tư vấn.',
-        'Nhà cung cấp hạ tầng máy chủ & cơ sở dữ liệu: Các trung tâm dữ liệu đạt chuẩn bảo mật để lưu trữ mã nguồn và cơ sở dữ liệu có mã hóa.',
+        'Nhà cung cấp hạ tầng và dịch vụ kỹ thuật: Chỉ xử lý dữ liệu trong phạm vi cần thiết để lưu trữ, truyền tải, giám sát hoặc hỗ trợ Hệ thống theo hợp đồng và cấu hình triển khai.',
         'Cơ quan nhà nước có thẩm quyền: Chỉ cung cấp dữ liệu khi có văn bản yêu cầu chính thức theo quy định của pháp luật Việt Nam.',
       ],
-      note: 'Mọi bên thứ ba tham gia cung cấp dịch vụ kỹ thuật đều chịu ràng buộc bởi các cam kết bảo mật nghiêm ngặt và không được phép sử dụng dữ liệu cho mục đích riêng.',
+      note: 'Khi doanh nghiệp kết nối Meta, Zalo, Telegram hoặc nhà cung cấp khác, việc xử lý trên nền tảng đó còn tuân theo chính sách và điều khoản riêng của bên thứ ba.',
     },
     {
       id: 'luu-tru-thoi-han',
       title: '6. Lưu trữ và thời hạn lưu giữ',
       paragraphs: [
-        'Dữ liệu được lưu trữ trên hệ thống máy chủ an toàn với thời hạn lưu giữ phụ thuộc vào tính chất của từng loại thông tin:',
+        'Thời gian lưu giữ phụ thuộc vào mục đích sử dụng, trạng thái workspace, cấu hình dịch vụ và nghĩa vụ pháp lý. Doanh nghiệp cần rà soát dữ liệu CRM, hội thoại và thành viên theo nhu cầu thực tế:',
       ],
       table: {
         headers: ['Loại thông tin', 'Thời hạn lưu trữ tiêu chuẩn', 'Hành động khi hết hạn'],
         rows: [
           [
             'Nội dung tin nhắn hội thoại',
-            '12 đến 24 tháng kể từ lần tương tác gần nhất',
-            'Lưu trữ nén ngoại tuyến (Archive) hoặc xóa vĩnh viễn',
+            'Trong thời gian cần thiết để vận hành workspace hoặc theo thỏa thuận dịch vụ',
+            'Doanh nghiệp yêu cầu xử lý/xóa theo quy trình hỗ trợ; có thể lưu phần cần thiết để tuân thủ pháp luật',
           ],
           [
-            'Hồ sơ ứng viên đã nhập học',
-            'Theo niên khóa đào tạo và quy chế lưu trữ học bạ giáo dục',
-            'Chuyển sang hệ thống Quản lý Đào tạo chính quy',
+            'Hồ sơ khách hàng đang được chăm sóc',
+            'Theo mục đích chăm sóc khách hàng và thỏa thuận giữa doanh nghiệp với PolarisX',
+            'Doanh nghiệp rà soát và yêu cầu xóa khi không còn mục đích lưu giữ',
           ],
           [
-            'Hồ sơ ứng viên không theo học',
-            'Tối đa 12 tháng kể từ khi kết thúc đợt tuyển sinh',
-            'Ẩn danh hóa (Anonymization) phục vụ nghiên cứu thống kê',
+            'Hồ sơ khách hàng không còn hoạt động',
+            'Được rà soát định kỳ theo mục đích và thỏa thuận với đơn vị sử dụng',
+            'Xóa hoặc ẩn danh khi không còn cần thiết, trừ trường hợp phải lưu theo luật',
           ],
           [
             'Tài khoản nhân sự đã nghỉ việc',
-            'Khóa truy cập ngay lập tức; giữ nhật ký tối thiểu 6 tháng',
-            'Thu hồi toàn bộ phiên đăng nhập và xóa token',
+            'Trong phạm vi cần thiết cho an toàn, kiểm toán và nghĩa vụ pháp lý',
+            'Doanh nghiệp gỡ thành viên khỏi workspace; phiên truy cập được thu hồi theo quy trình hệ thống',
           ],
           [
             'Nhật ký hệ thống (Audit Logs)',
-            'Tối thiểu 12 tháng phục vụ đối soát an toàn thông tin',
-            'Tự động làm sạch định kỳ theo chính sách xoay vòng log',
+            'Theo chính sách bảo mật và thời hạn cần thiết cho mục đích vận hành',
+            'Xóa hoặc ẩn danh theo quy trình lưu giữ dữ liệu áp dụng',
           ],
         ],
       },
@@ -183,32 +183,32 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
       id: 'bao-mat-du-lieu',
       title: '7. Các biện pháp bảo mật kỹ thuật',
       paragraphs: [
-        'PolarisX Conversational CRM áp dụng các chuẩn mực bảo mật tiên tiến nhằm đảm bảo tính toàn vẹn và bí mật của dữ liệu:',
+        'Các biện pháp dưới đây gắn với cách Hệ thống xác thực người dùng và phân tách hoạt động giữa các workspace:',
       ],
       list: [
-        'Mã hóa truyền tải (In-transit Encryption): Toàn bộ lưu lượng giữa trình duyệt và máy chủ được mã hóa qua giao thức HTTPS với chứng chỉ TLS 1.3.',
-        'Bảo mật mật khẩu: Sử dụng thuật toán băm mật khẩu một chiều mạnh mẽ (bcrypt với chuỗi salt ngẫu nhiên), đảm bảo không ai có thể giải mã được mật khẩu gốc.',
-        'Quản lý phiên đăng nhập: Áp dụng JSON Web Token (JWT) có thời hạn ngắn, kèm cơ chế xoay vòng Refresh Token (Token Rotation) giúp ngăn chặn đánh cắp phiên.',
-        'Kiểm soát truy cập dựa trên vai trò (RBAC): Phân tách rành mạch quyền hạn giữa Quản trị viên (Admin) và Tư vấn viên (Staff), ngăn chặn nhân viên xem các dữ liệu vượt quyền.',
-        'Phòng vệ Broken Object Level Authorization (BOLA/IDOR): Mọi truy vấn theo mã định danh (Workspace ID, Conversation ID) đều qua bộ kiểm tra quyền sở hữu nghiêm ngặt trước khi trả về dữ liệu.',
-        'Sao lưu dữ liệu định kỳ: Cơ sở dữ liệu được sao lưu tự động hàng ngày và lưu trữ tại các vùng biệt lập phòng ngừa sự cố.',
+        'Bảo vệ thông tin xác thực: Mật khẩu được băm bằng Argon2; access token có thời hạn, còn refresh token được lưu dưới dạng hash và xoay vòng khi làm mới phiên.',
+        'Phân quyền theo workspace: Owner, Manager và Staff chỉ có quyền tương ứng trong workspace mà họ tham gia; tài khoản không được cấp quyền quản trị toàn cục.',
+        'Kiểm tra phạm vi dữ liệu: Các thao tác với workspace và hội thoại được kiểm tra quyền thành viên để hạn chế truy cập chéo giữa các workspace.',
+        'Nhật ký vận hành: Ghi nhận các sự kiện quản trị và thay đổi quyền cần thiết cho hỗ trợ, truy vết và rà soát sự cố.',
+        'Kết nối kênh: Token và thông tin tích hợp chỉ được sử dụng để duy trì kết nối, đồng bộ dữ liệu và gửi thông báo theo cấu hình doanh nghiệp.',
+        'Bảo vệ hạ tầng: PolarisX áp dụng biện pháp kỹ thuật và vận hành phù hợp để bảo vệ hệ thống; phạm vi mã hóa, sao lưu và thời hạn lưu log phụ thuộc cấu hình hạ tầng triển khai.',
       ],
     },
     {
       id: 'quyen-chu-the',
       title: '8. Quyền của chủ thể dữ liệu',
       paragraphs: [
-        'Căn cứ các nguyên tắc bảo vệ quyền riêng tư, mọi ứng viên và nhân sự đều có các quyền hợp pháp đối với dữ liệu của mình:',
+        'Chủ thể dữ liệu có thể thực hiện các quyền của mình theo điều kiện, trình tự và giới hạn quy định bởi pháp luật hiện hành:',
       ],
       list: [
         'Quyền được biết & Truy cập: Yêu cầu xác nhận về việc dữ liệu của mình có đang được xử lý hay không và xin bản sao dữ liệu.',
         'Quyền chỉnh sửa: Yêu cầu cập nhật, điều chỉnh số điện thoại, email hoặc các thông tin cá nhân chưa chính xác.',
-        'Quyền yêu cầu xóa dữ liệu: Yêu cầu xóa bỏ hồ sơ và lịch sử hội thoại khi không còn nhu cầu tìm hiểu khóa học.',
-        'Quyền hạn chế hoặc phản đối xử lý: Yêu cầu ngừng gọi điện tư vấn hoặc ngừng nhận tin nhắn chăm sóc tự động.',
+        'Quyền yêu cầu xóa dữ liệu: Gửi yêu cầu xóa dữ liệu cá nhân trong các trường hợp và theo trình tự pháp luật quy định.',
+        'Quyền hạn chế hoặc phản đối xử lý: Gửi yêu cầu liên quan đến việc tiếp tục xử lý dữ liệu theo quyền được pháp luật quy định.',
         'Quyền rút lại sự đồng ý: Rút lại sự đồng ý đã cấp trước đó mà không ảnh hưởng đến tính hợp pháp của các hoạt động xử lý trước thời điểm rút.',
       ],
       paragraphsAfter: [
-        `Để thực thi các quyền trên, chủ thể dữ liệu có thể gửi email bằng văn bản đến địa chỉ chuyên trách: ${ORGANIZATION_INFO.dpoEmail} hoặc ${ORGANIZATION_INFO.contactEmail}. Chúng tôi cam kết phản hồi và xử lý yêu cầu trong vòng tối đa 72 giờ làm việc.`,
+        `Để gửi yêu cầu, chủ thể dữ liệu có thể liên hệ qua ${ORGANIZATION_INFO.dpoEmail} hoặc ${ORGANIZATION_INFO.contactEmail}. Yêu cầu sẽ được xác minh và xử lý theo quy trình cùng thời hạn pháp luật áp dụng.`,
       ],
     },
     {
@@ -226,30 +226,30 @@ export const PRIVACY_POLICY_DATA: LegalDocument = {
     },
     {
       id: 'tre-em',
-      title: '10. Dữ liệu của người chưa thành niên (Học sinh)',
+      title: '10. Dữ liệu cá nhân của người chưa thành niên',
       paragraphs: [
-        'Trong hoạt động tuyển sinh các chương trình đào tạo cao đẳng, đại học và kỹ năng nghề, đối tượng tìm hiểu có thể bao gồm học sinh THPT dưới 18 tuổi.',
-        'Đối với nhóm đối tượng này, chúng tôi chỉ thu thập thông tin cơ bản liên quan đến định hướng học tập và khuyến khích có sự đồng hành, đồng thuận của cha mẹ hoặc người giám hộ hợp pháp trong quá trình đăng ký nhập học chính thức.',
+        'Dữ liệu của người chưa thành niên chỉ nên được đưa vào hệ thống khi cần thiết cho mục đích đã xác định và có căn cứ xử lý phù hợp.',
+        'Đơn vị sử dụng có trách nhiệm áp dụng biện pháp bảo vệ phù hợp, cung cấp thông tin cần thiết và thực hiện yêu cầu của cha mẹ, người giám hộ hoặc chủ thể dữ liệu theo quy định hiện hành.',
       ],
     },
     {
       id: 'chuyen-du-lieu-quoc-te',
       title: '11. Lưu trữ và chuyển dữ liệu quốc tế',
       paragraphs: [
-        'Cơ sở dữ liệu chính của PolarisX CRM được ưu tiên đặt tại các trung tâm dữ liệu nội địa Việt Nam.',
-        'Trong trường hợp sử dụng các dịch vụ đám mây toàn cầu (như máy chủ sao lưu hoặc dịch vụ gửi email chuyên nghiệp), dữ liệu chỉ được truyền qua các kênh mã hóa chuẩn quốc tế và đáp ứng các tiêu chuẩn an ninh tương đương.',
+        'Dữ liệu có thể được lưu trữ hoặc xử lý tại vị trí do nhà cung cấp hạ tầng dịch vụ sử dụng, bao gồm ngoài lãnh thổ Việt Nam nếu có.',
+        'Việc chuyển dữ liệu ra nước ngoài (nếu phát sinh) cần được đơn vị vận hành đánh giá và thực hiện theo yêu cầu pháp luật hiện hành.',
       ],
     },
     {
       id: 'su-co-du-lieu',
       title: '12. Quy trình ứng phó và thông báo sự cố dữ liệu',
       paragraphs: [
-        'Trong trường hợp phát hiện bất kỳ sự cố an ninh mạng nào có nguy cơ ảnh hưởng đến tính toàn vẹn hoặc bảo mật của dữ liệu cá nhân, Ban quản trị sẽ kích hoạt quy trình ứng cứu khẩn cấp:',
+        'Khi phát hiện sự cố có nguy cơ ảnh hưởng đến dữ liệu trong Hệ thống, PolarisX sẽ phối hợp khoanh vùng, giảm thiểu tác động và thông báo cho doanh nghiệp liên quan theo thỏa thuận và quy định áp dụng. Doanh nghiệp thông báo cho khách hàng của mình khi có nghĩa vụ:',
       ],
       list: [
-        'Cô lập vùng bị ảnh hưởng và ngăn chặn nguy cơ rò rỉ trong vòng 04 giờ kể từ khi phát hiện.',
-        'Báo cáo cho cơ quan quản lý nhà nước có thẩm quyền theo quy định của pháp luật.',
-        'Gửi thông báo công khai hoặc gửi thư trực tiếp cho các chủ thể dữ liệu bị ảnh hưởng kèm theo khuyến nghị phòng ngừa rủi ro.',
+        'Khoanh vùng sự cố, hạn chế truy cập trái phép và áp dụng biện pháp giảm thiểu ảnh hưởng.',
+        'Thông báo cho cơ quan có thẩm quyền và các bên liên quan trong trường hợp pháp luật yêu cầu.',
+        'Cung cấp thông tin cần thiết cho chủ thể dữ liệu bị ảnh hưởng theo quy định áp dụng.',
       ],
     },
     {

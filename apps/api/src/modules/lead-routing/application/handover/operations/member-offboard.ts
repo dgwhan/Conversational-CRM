@@ -47,7 +47,6 @@ export async function executeMemberOffboard(
   if (
     !isActorOwner &&
     (isTargetOwner ||
-      member.isWorkspaceManager ||
       member.role === WorkspaceRole.MANAGER)
   ) {
     throw new ForbiddenException(

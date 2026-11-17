@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { WorkspaceMemberRole } from '@prisma/client';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import {
   findUserByIdentifier as commonFindUser,
@@ -15,7 +16,7 @@ import {
 import { getStaffList } from './operations/staff-query.js';
 import { createStaff } from './operations/staff-invite.js';
 import { removeStaff } from './operations/staff-removal.js';
-import { getWorkspacePermissions, setWorkspaceManagerPermission } from './operations/staff-permissions.js';
+import { getWorkspacePermissions, setWorkspaceMemberRole } from './operations/staff-permissions.js';
 import { toggleStaffLock } from './operations/staff-lock.js';
 import {
   getInvitationDetails,
@@ -83,13 +84,13 @@ export class StaffManagementService {
     return getWorkspacePermissions(this.prisma, callerId, workspaceId);
   }
 
-  setWorkspaceManagerPermission(
+  setWorkspaceMemberRole(
     callerId: string,
     targetUserId: string,
-    isWorkspaceManager: boolean,
+    role: WorkspaceRole,
     workspaceId?: string,
   ) {
-    return setWorkspaceManagerPermission(this.prisma, callerId, targetUserId, isWorkspaceManager, workspaceId);
+    return setWorkspaceMemberRole(this.prisma, callerId, targetUserId, role as WorkspaceMemberRole, workspaceId);
   }
 
   /**

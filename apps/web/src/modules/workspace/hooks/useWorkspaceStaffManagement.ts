@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { ManagedStaffItem } from '../workspaceConfig.types.js';
-import { USER_ROLES } from '../../auth/userRole.types.js';
+import type { WorkspaceRole } from '../types/workspace-role.js';
+import { WORKSPACE_ROLES } from '../types/workspace-role.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { apiClient } from '../../../lib/api-client/index.js';
 
@@ -67,7 +68,7 @@ export const useWorkspaceStaffManagement = ({
   }, [isAuthenticated, effectiveOwnerId, staffId, fetchStaffList]);
 
   const createStaffMember = async (
-    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER },
+    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: WorkspaceRole },
     targetWsId?: string
   ) => {
     const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
@@ -178,9 +179,10 @@ export const useWorkspaceStaffManagement = ({
 
   const setWorkspaceManagerPermission = async (targetId: string, enabled: boolean, targetWsId?: string) => {
     const wsId = targetWsId || activeWorkspaceId || configWorkspaceId || '';
-    const result = await apiClient.patch<{ isWorkspaceManager: boolean }>(
-      `/workspaces/current/staff/${targetId}/permissions`,
-      { isWorkspaceManager: enabled },
+    const role = enabled ? WORKSPACE_ROLES.MANAGER : WORKSPACE_ROLES.STAFF;
+    await apiClient.patch<{ role: WorkspaceRole }>(
+      `/workspaces/current/staff/${targetId}/role`,
+      { role },
       {
         headers: {
           'x-workspace-id': wsId,
@@ -190,7 +192,7 @@ export const useWorkspaceStaffManagement = ({
       },
     );
     setStaffMembers((prev) => prev.map((member) =>
-      member.id === targetId ? { ...member, isWorkspaceManager: result.isWorkspaceManager } : member,
+      member.id === targetId ? { ...member, role } : member,
     ));
     notify.success(enabled ? 'Đã cấp quyền Quản lý workspace.' : 'Đã thu hồi quyền Quản lý workspace.');
   };

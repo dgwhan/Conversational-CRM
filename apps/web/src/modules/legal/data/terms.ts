@@ -6,7 +6,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
   subtitle:
     'Quy định quyền hạn, trách nhiệm và nguyên tắc vận hành hệ thống PolarisX Conversational CRM dành cho các đơn vị và người dùng',
   version: '1.0.0',
-  effectiveDate: '01/01/2026',
+  effectiveDate: '01/11/2026',
   lastUpdated: '10/11/2026',
   documentType: 'terms',
   quickSummary: [
@@ -17,8 +17,8 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
     },
     {
       iconName: 'database',
-      title: 'Sở hữu dữ liệu',
-      description: 'Đơn vị sử dụng giữ toàn quyền sở hữu đối với cơ sở dữ liệu học viên, tin nhắn và thông tin khách hàng của mình.',
+      title: 'Quản lý dữ liệu',
+      description: 'Đơn vị sử dụng quản lý dữ liệu khách hàng và nội dung hội thoại trong Workspace của mình.',
     },
     {
       iconName: 'scale',
@@ -37,7 +37,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       title: '1. Chấp nhận điều khoản',
       paragraphs: [
         `Chào mừng bạn đến với PolarisX Conversational CRM. Bằng việc truy cập, tạo tài khoản hoặc sử dụng bất kỳ tính năng nào thuộc Dịch vụ do ${ORGANIZATION_INFO.name} phát triển và vận hành, bạn xác nhận đã đọc, hiểu rõ và đồng ý bị ràng buộc bởi bản Điều khoản dịch vụ này.`,
-        'Nếu bạn đại diện cho một tổ chức giáo dục, trường học hoặc doanh nghiệp, bạn cam kết rằng mình có đầy đủ thẩm quyền pháp lý để ràng buộc tổ chức đó với các điều khoản này.',
+        'Nếu bạn đại diện cho một doanh nghiệp hoặc tổ chức, bạn xác nhận mình có thẩm quyền chấp thuận các điều khoản này thay mặt tổ chức đó.',
       ],
       note: 'Nếu bạn không đồng ý với bất kỳ nội dung nào trong điều khoản, vui lòng ngừng sử dụng Hệ thống ngay lập tức.',
     },
@@ -48,11 +48,13 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
         'Trong khuôn khổ văn bản này, các thuật ngữ dưới đây được hiểu theo nghĩa tương ứng:',
       ],
       list: [
-        'Dịch vụ (Hệ thống / PolarisX CRM): Nền tảng phần mềm quản lý hội thoại đa kênh, tiếp nhận tin nhắn, phân loại lead bằng AI, quản lý phễu tuyển sinh Kanban và báo cáo phân tích.',
-        'Đơn vị sử dụng (Khách hàng): Cơ sở đào tạo, trung tâm hoặc doanh nghiệp sở hữu không gian làm việc (Workspace) trên hệ thống.',
-        'Quản trị viên (Admin / Owner): Tài khoản có quyền cao nhất trong Workspace, được phép quản lý nhân sự, thiết lập kênh và phân bổ tài nguyên.',
-        'Tư vấn viên (Staff): Tài khoản thành viên được cấp quyền truy cập hộp thư hội thoại, trả lời tin nhắn và chăm sóc ứng viên.',
-        'Dữ liệu khách hàng: Toàn bộ thông tin, nội dung chat, tệp đính kèm và số điện thoại của ứng viên do Đơn vị tải lên hoặc đồng bộ về hệ thống.',
+        'Dịch vụ (Hệ thống / PolarisX CRM): Nền tảng quản lý hội thoại đa kênh, thông tin khách hàng, quy trình bán hàng và báo cáo vận hành.',
+        'Đơn vị sử dụng (Khách hàng): Doanh nghiệp hoặc tổ chức đăng ký và quản lý không gian làm việc (Workspace) trên hệ thống.',
+        'Owner: Chủ sở hữu của Workspace, có quyền cao nhất trong phạm vi Workspace đó.',
+        'Manager: Thành viên được Owner cấp quyền quản lý vận hành trong Workspace.',
+        'Staff: Thành viên xử lý hội thoại và công việc được phân công trong Workspace.',
+        'Tài khoản: Danh tính đăng nhập của một cá nhân. Tài khoản tự đăng ký không có vai trò toàn cục; Owner, Manager hoặc Staff chỉ được gán khi tài khoản tham gia một Workspace và có thể khác nhau giữa các Workspace.',
+        'Dữ liệu khách hàng: Thông tin liên hệ, nội dung hội thoại, tệp đính kèm và lịch sử tương tác do đơn vị sử dụng nhập hoặc đồng bộ vào hệ thống.',
         'Kênh tích hợp: Các nền tảng nhắn tin bên thứ ba được kết nối gồm Facebook Fanpage, Zalo Official Account (OA), Zalo cá nhân và Telegram Bot.',
       ],
     },
@@ -65,8 +67,8 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       list: [
         'Tính chính danh: Mỗi tài khoản người dùng phải gắn liền với một cá nhân xác thực trong tổ chức. Không được chia sẻ một tài khoản cho nhiều nhân viên sử dụng chung.',
         'Trách nhiệm bảo mật thông tin đăng nhập: Người dùng chịu hoàn toàn trách nhiệm duy trì tính bí mật của mật khẩu và các hoạt động phát sinh dưới tài khoản của mình.',
-        'Cơ chế phân quyền RBAC: Quản trị viên có nghĩa vụ rà soát và gán đúng vai trò cho nhân viên, định kỳ thu hồi quyền truy cập đối với các nhân sự đã chuyển công tác hoặc nghỉ việc.',
-        'Thông báo rủi ro: Khi phát hiện dấu hiệu lộ mật khẩu hoặc tài khoản bị xâm nhập trái phép, người dùng phải thông báo ngay cho Quản trị viên để tiến hành khóa phiên và cấp lại chứng thực.',
+        'Cơ chế phân quyền RBAC: Owner gán và rà soát vai trò Owner, Manager hoặc Staff trong từng Workspace; quyền không áp dụng toàn cục lên tài khoản và cần được thu hồi khi thành viên rời Workspace.',
+        'Thông báo rủi ro: Khi phát hiện dấu hiệu lộ mật khẩu hoặc tài khoản bị xâm nhập trái phép, người dùng cần thông báo cho Owner của Workspace liên quan hoặc bộ phận hỗ trợ để khóa phiên và bảo vệ dữ liệu.',
       ],
     },
     {
@@ -77,8 +79,8 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       ],
       list: [
         'Quyền sử dụng hợp pháp: Được khai thác đầy đủ các tính năng của Dịch vụ theo đúng phạm vi gói bản quyền hoặc thỏa thuận đã đăng ký.',
-        'Trách nhiệm về nội dung: Chịu trách nhiệm pháp lý đối với toàn bộ thông điệp tư vấn, tài liệu quảng bá tuyển sinh và thông tin khóa học gửi tới ứng viên.',
-        'Cam kết tính trung thực: Cung cấp thông tin tuyển sinh chính xác, không đưa thông tin sai lệch gây nhầm lẫn cho phụ huynh và học sinh.',
+        'Trách nhiệm về nội dung: Chịu trách nhiệm đối với thông tin, thông điệp tư vấn và nội dung kinh doanh gửi tới khách hàng.',
+        'Cam kết tính trung thực: Cung cấp thông tin chính xác, không gây nhầm lẫn cho khách hàng hoặc người liên hệ.',
         'Sao lưu định kỳ: Chủ động sao lưu dữ liệu xuất khẩu từ hệ thống theo kế hoạch nội bộ của Đơn vị.',
       ],
     },
@@ -90,7 +92,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       ],
       list: [
         'Phát tán tin nhắn rác (Spam): Gửi tin nhắn tiếp thị hàng loạt vi phạm chính sách chống thư rác của Facebook, Zalo hoặc pháp luật Việt Nam.',
-        'Khai thác dữ liệu trái phép (Data Scraping): Sử dụng bot tự động, công cụ trích xuất dữ liệu không qua giao diện được ủy quyền để thu thập thông tin ứng viên.',
+        'Khai thác dữ liệu trái phép (Data Scraping): Sử dụng bot hoặc công cụ không được ủy quyền để trích xuất dữ liệu khỏi hệ thống.',
         'Xâm phạm kiểm soát an ninh (Bypassing Access Control): Cố tình thao túng mã định danh URL (IDOR/BOLA) nhằm xem lén dữ liệu thuộc về Workspace hoặc tư vấn viên khác.',
         'Tải lên phần mềm độc hại: Truyền tải các tệp tin chứa virus, trojan, mã độc hoặc khai thác lỗ hổng kỹ thuật của hệ thống.',
         'Kỹ nghệ đảo ngược (Reverse Engineering): Dịch ngược, can thiệp mã nguồn hoặc sao chép kiến trúc giao diện nhằm mục đích cạnh tranh không lành mạnh.',
@@ -116,9 +118,9 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
         'Quyền sở hữu và vai trò của các bên đối với dữ liệu phát sinh trong quá trình vận hành được xác lập rõ ràng:',
       ],
       list: [
-        'Chủ sở hữu dữ liệu (Data Owner): Đơn vị sử dụng giữ quyền sở hữu tuyệt đối và toàn diện đối với toàn bộ Dữ liệu khách hàng, danh sách học sinh và nội dung trao đổi.',
-        'Bên xử lý dữ liệu (Data Processor): Ban quản trị PolarisX CRM chỉ đóng vai trò là bên cung cấp hạ tầng công nghệ và xử lý dữ liệu thay mặt Đơn vị theo đúng mục đích vận hành CRM.',
-        'Cam kết không chiếm dụng: Chúng tôi không sử dụng Dữ liệu khách hàng của Đơn vị cho các mục đích thương mại riêng hoặc chia sẻ cho các đối thủ cạnh tranh.',
+        'Quản lý dữ liệu khách hàng: Đơn vị sử dụng quyết định dữ liệu nào được nhập vào Workspace và chịu trách nhiệm về căn cứ, mục đích sử dụng dữ liệu đó.',
+        'Cung cấp dịch vụ: PolarisX xử lý dữ liệu trong phạm vi cần thiết để vận hành các tính năng theo thỏa thuận dịch vụ và cấu hình của đơn vị sử dụng.',
+        'Giới hạn sử dụng: Dữ liệu khách hàng không được sử dụng cho mục đích thương mại riêng ngoài phạm vi cung cấp dịch vụ.',
       ],
     },
     {
@@ -149,7 +151,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       ],
       list: [
         'Dịch vụ được cung cấp trên nguyên tắc "nguyên trạng" (As-Is) và "sẵn có" (As-Available).',
-        'Chúng tôi không chịu trách nhiệm đối với các thiệt hại gián tiếp, mất cơ hội kinh doanh, thiệt hại về danh tiếng hoặc mất mát lợi nhuận tuyển sinh phát sinh từ việc sử dụng hoặc không thể sử dụng Dịch vụ.',
+        'Chúng tôi không chịu trách nhiệm đối với các thiệt hại gián tiếp, mất cơ hội kinh doanh, thiệt hại về danh tiếng hoặc mất mát doanh thu phát sinh từ việc sử dụng hoặc không thể sử dụng Dịch vụ.',
         'Tổng mức trách nhiệm bồi thường tối đa (nếu có) phát sinh từ bất kỳ khiếu nại nào sẽ không vượt quá tổng số phí dịch vụ mà Đơn vị đã thanh toán trong vòng 03 tháng gần nhất.',
       ],
     },
@@ -162,7 +164,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
       list: [
         'Tạm ngưng khẩn cấp: Chúng tôi có quyền tạm khóa quyền truy cập của một Workspace nếu phát hiện lưu lượng bất thường có dấu hiệu tấn công DDoS hoặc tài khoản bị chiếm đoạt để phát tán mã độc.',
         'Chấm dứt do vi phạm: Đơn vị vi phạm nghiêm trọng Điều khoản sử dụng và không khắc phục trong vòng 07 ngày làm việc kể từ khi nhận văn bản cảnh báo.',
-        'Xuất dữ liệu khi chấm dứt: Khi hợp đồng dịch vụ kết thúc hợp pháp, Đơn vị được hỗ trợ xuất toàn bộ dữ liệu ứng viên dưới định dạng tiêu chuẩn (JSON/Excel) trong vòng 30 ngày trước khi dữ liệu được làm sạch khỏi hệ thống.',
+        'Xuất dữ liệu khi chấm dứt: Khi dịch vụ kết thúc, Đơn vị được hỗ trợ xuất dữ liệu Workspace theo định dạng hệ thống hỗ trợ trong vòng 30 ngày trước khi dữ liệu được làm sạch khỏi hệ thống.',
       ],
     },
     {
@@ -192,7 +194,7 @@ export const TERMS_OF_SERVICE_DATA: LegalDocument = {
         `Địa chỉ trụ sở: ${ORGANIZATION_INFO.address}`,
         `Hộp thư tiếp nhận: ${ORGANIZATION_INFO.contactEmail}`,
         `Số điện thoại hỗ trợ: ${ORGANIZATION_INFO.phone}`,
-        `Trang web chính thức: ${ORGANIZATION_INFO.website}`,
+        `Trang web chính thức của chúng tôi: [PolarisX](${ORGANIZATION_INFO.website})`,
       ],
     },
   ],

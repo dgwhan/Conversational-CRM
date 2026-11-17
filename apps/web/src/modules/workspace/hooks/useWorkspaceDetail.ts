@@ -4,7 +4,7 @@ import { notify } from '../../../components/feedback/toastEmitter.js';
 import { confirmDialog } from '../../../components/feedback/confirmDialog.js';
 import { translate } from '../../../i18n/translate.js';
 import { useUserRole } from '../../auth/index.js';
-import { StaffRole } from '../../../features/auth/constants/auth.constants.js';
+import { WORKSPACE_ROLES, type WorkspaceRole } from '../types/workspace-role.js';
 import {
   useWorkspaceConfig,
   WORKSPACE_MEMBER_STATUS,
@@ -96,7 +96,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     (member) => member.memberStatus === WORKSPACE_MEMBER_STATUS.ACTIVE,
   );
   const ownerStaff = effectiveStaffList.find(
-    (member) => (workspace.ownerId && member.id === workspace.ownerId) || member.role === StaffRole.OWNER,
+    (member) => (workspace.ownerId && member.id === workspace.ownerId) || member.role === WORKSPACE_ROLES.OWNER,
   );
   const resolvedAdminName = ownerStaff?.fullName ?? workspace.ownerName ?? (isOwner ? staffName : '') ?? '';
   // Chủ sở hữu có thể rời nếu có ít nhất 1 thành viên đang hoạt động khác để nhận chuyển giao quyền
@@ -174,7 +174,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string, memberRole?: string) => {
-    const isTargetOwner = memberRole === StaffRole.OWNER;
+    const isTargetOwner = memberRole === WORKSPACE_ROLES.OWNER;
     if (isTargetOwner && !canOwnerLeave) {
       notify.error('Không thể loại bỏ Chủ sở hữu. Không gian làm việc phải có ít nhất 1 Chủ sở hữu.');
       return;
@@ -243,7 +243,7 @@ export function useWorkspaceDetail(workspace: WorkspaceItem, onBack: () => void)
     }
   };
 
-  const handleInviteMember = async (identifier: string, role: StaffRole) => {
+  const handleInviteMember = async (identifier: string, role: WorkspaceRole) => {
     try {
       const isEmail = identifier.includes('@');
       await createStaffMember({

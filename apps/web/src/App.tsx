@@ -23,6 +23,7 @@ import { HttpErrorPage } from './pages/errors/HttpErrorPage.js';
 import { ROUTES, buildRoute } from './config/routes.js';
 import type { LoginResponse } from './features/auth/types/auth.types.js';
 import { LeadScoringConfigProvider } from './modules/inbox/context/LeadScoringConfigProvider.js';
+import LandingPageSkeleton from './modules/landing/components/LandingPageSkeleton.js';
 
 import { useTranslation } from './i18n/index.js';
 // Lazy load CRM internal pages and components for high performance initial load
@@ -294,10 +295,22 @@ function CRMAppRoutes() {
       <Suspense fallback={<AppSkeleton />}>
         <Routes>
           {/* 1. Trang công khai: Giới thiệu & Pháp lý */}
-          <Route path={ROUTES.LANDING} element={<LandingHomePage />} />
-          <Route path={ROUTES.HOME} element={<LandingHomePage />} />
-          <Route path={ROUTES.PRIVACY} element={<PrivacyPolicyPage />} />
-          <Route path={ROUTES.TERMS} element={<TermsOfServicePage />} />
+          <Route
+            path={ROUTES.LANDING}
+            element={<Suspense fallback={<LandingPageSkeleton />}><LandingHomePage /></Suspense>}
+          />
+          <Route
+            path={ROUTES.HOME}
+            element={<Suspense fallback={<LandingPageSkeleton />}><LandingHomePage /></Suspense>}
+          />
+          <Route
+            path={ROUTES.PRIVACY}
+            element={<Suspense fallback={<LandingPageSkeleton />}><PrivacyPolicyPage /></Suspense>}
+          />
+          <Route
+            path={ROUTES.TERMS}
+            element={<Suspense fallback={<LandingPageSkeleton />}><TermsOfServicePage /></Suspense>}
+          />
 
           {/* 2. Routes Xác thực */}
           <Route path={ROUTES.LOGIN} element={<AuthRoute />} />

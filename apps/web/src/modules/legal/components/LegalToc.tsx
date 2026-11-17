@@ -1,40 +1,38 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, List, Bookmark } from 'lucide-react';
+import { ChevronDown, List } from 'lucide-react';
 import type { LegalSection } from '../types/legal.types.js';
-import { scrollToSection } from '../hooks/useActiveSection.js';
 
 export interface LegalTocProps {
   sections: LegalSection[];
   activeId: string;
+  onSelect: (id: string) => void;
 }
 
-export const LegalToc: React.FC<LegalTocProps> = ({ sections, activeId }) => {
+export const LegalToc: React.FC<LegalTocProps> = ({ sections, activeId, onSelect }) => {
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
-
   const activeSection = sections.find((s) => s.id === activeId) || sections[0];
 
   const handleSelect = (id: string) => {
-    scrollToSection(id, 80);
+    onSelect(id);
     setIsMobileOpen(false);
   };
 
   return (
     <>
-      {/* Mobile Collapsible Dropdown (hiển thị trên màn hình nhỏ) */}
-      <div className="lg:hidden sticky top-16 z-30 mb-8 -mx-4 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800 shadow-sm">
+      {/* Mobile Collapsible Selector */}
+      <div className="xl:hidden sticky top-14 z-20 mb-6 -mx-4 px-4 py-2.5 bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <button
           type="button"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="w-full flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 text-xs font-bold text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700"
+          className="flex w-full items-center justify-between py-2 text-sm font-medium text-slate-800"
           aria-expanded={isMobileOpen}
-          aria-label="Mở mục lục văn bản"
         >
-          <div className="flex items-center gap-2 truncate">
-            <List className="w-4 h-4 text-blue-600 flex-shrink-0" />
+          <span className="flex items-center gap-2 truncate">
+            <List className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
             <span className="truncate">
-              Mục lục: <strong>{activeSection?.title || 'Chọn mục'}</strong>
+              Đang xem: <strong className="font-semibold">{activeSection?.title}</strong>
             </span>
-          </div>
+          </span>
           <ChevronDown
             className={`w-4 h-4 text-slate-500 transition-transform ${
               isMobileOpen ? 'rotate-180' : ''
@@ -43,7 +41,7 @@ export const LegalToc: React.FC<LegalTocProps> = ({ sections, activeId }) => {
         </button>
 
         {isMobileOpen && (
-          <div className="mt-2 max-h-60 overflow-y-auto rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 shadow-xl divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="mt-2 max-h-64 overflow-y-auto border-y border-slate-200 bg-white py-1">
             {sections.map((section) => {
               const isActive = section.id === activeId;
               return (
@@ -51,14 +49,13 @@ export const LegalToc: React.FC<LegalTocProps> = ({ sections, activeId }) => {
                   key={section.id}
                   type="button"
                   onClick={() => handleSelect(section.id)}
-                  className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors flex items-center justify-between ${
+                  className={`w-full text-left px-2 py-2 text-sm transition-colors ${
                     isActive
-                      ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-bold'
-                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      ? 'bg-slate-100 text-slate-900 font-semibold'
+                      : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  <span className="truncate">{section.title}</span>
-                  {isActive && <Bookmark className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />}
+                  {section.title}
                 </button>
               );
             })}
@@ -66,44 +63,33 @@ export const LegalToc: React.FC<LegalTocProps> = ({ sections, activeId }) => {
         )}
       </div>
 
-      {/* Desktop Sticky Sidebar Table of Contents */}
-      <aside className="hidden lg:block w-72 flex-shrink-0">
-        <nav
-          aria-label="Mục lục văn bản pháp lý"
-          className="sticky top-24 p-5 rounded-3xl bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-lg shadow-blue-950/5 max-h-[calc(100vh-8rem)] flex flex-col"
-        >
-          <div className="flex items-center gap-2 pb-3 mb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-            <List className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-              Mục lục nội dung
-            </span>
-          </div>
-
-          <div className="overflow-y-auto pr-1 space-y-1 text-xs">
-            {sections.map((section) => {
-              const isActive = section.id === activeId;
-              return (
+      {/* Desktop Right-Hand Section Switcher */}
+      <aside className="hidden xl:block w-60 flex-shrink-0 sticky top-14 py-10 pl-4">
+        <div className="text-xs font-semibold text-slate-900 mb-3">
+          Nội dung văn bản
+        </div>
+        <ul className="space-y-2 border-l border-slate-200 text-xs" role="tablist">
+          {sections.map((section) => {
+            const isActive = section.id === activeId;
+            return (
+              <li key={section.id} role="presentation">
                 <button
-                  key={section.id}
                   type="button"
+                  role="tab"
+                  aria-selected={isActive}
                   onClick={() => handleSelect(section.id)}
-                  className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center justify-between group ${
+                  className={`w-full text-left pl-3 -ml-px border-l-2 transition-colors leading-snug ${
                     isActive
-                      ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-600/20 translate-x-1'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60'
+                      ? 'border-slate-900 text-slate-900 font-semibold'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  <span className="truncate pr-2">{section.title}</span>
-                  <ChevronRight
-                    className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${
-                      isActive ? 'opacity-100 translate-x-0.5' : 'opacity-0 group-hover:opacity-100'
-                    }`}
-                  />
+                  {section.title}
                 </button>
-              );
-            })}
-          </div>
-        </nav>
+              </li>
+            );
+          })}
+        </ul>
       </aside>
     </>
   );

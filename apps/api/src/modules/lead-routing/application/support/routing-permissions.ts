@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { WorkspaceMemberStatus } from '@prisma/client';
+import { WorkspaceMemberRole, WorkspaceMemberStatus } from '@prisma/client';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import { Candidate, Db } from '../types/routing.types.js';
 
@@ -25,8 +25,7 @@ export async function hasWorkspaceManagementPermission(
                 status: WorkspaceMemberStatus.ACTIVE,
                 OR: [
                   { role: 'OWNER' },
-                  { role: 'MANAGER' },
-                  { isWorkspaceManager: true },
+                  { role: WorkspaceMemberRole.MANAGER },
                 ],
               },
             },

@@ -50,7 +50,7 @@ export async function updateWorkspace(
       userId: callerId,
       status: 'ACTIVE',
       isActive: true,
-      isWorkspaceManager: true,
+      role: WorkspaceRole.MANAGER,
     },
     select: { id: true },
   });
@@ -103,7 +103,7 @@ export async function updateWorkspace(
     id: updated.id,
     name: updated.name,
     slug: updated.slug,
-    role: isOwner ? WorkspaceRole.OWNER : WorkspaceRole.STAFF,
+    role: isOwner ? WorkspaceRole.OWNER : WorkspaceRole.MANAGER,
     isOwner,
     domain: data.domain?.trim() || updated.configuration?.domain,
     ownerId: updated.ownerId,

@@ -157,7 +157,7 @@ export class WorkspaceRolesGuard implements CanActivate {
           ownerId: true,
           members: {
             where: { userId, isActive: true, status: STAFF_STATUS.ACTIVE },
-            select: { role: true, isWorkspaceManager: true },
+            select: { role: true },
             take: 1,
           },
         },
@@ -165,7 +165,7 @@ export class WorkspaceRolesGuard implements CanActivate {
 
       const member = target?.members?.[0];
       const isOwner = target?.ownerId === userId || member?.role === WorkspaceRole.OWNER;
-      const isManager = isOwner || member?.role === WorkspaceRole.MANAGER || member?.isWorkspaceManager === true;
+      const isManager = isOwner || member?.role === WorkspaceRole.MANAGER;
 
       const allowed = requiredPermissions!.every((permission) => {
         switch (permission) {

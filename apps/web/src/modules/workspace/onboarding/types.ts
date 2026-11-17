@@ -15,12 +15,12 @@ export interface FanpageItem {
   selected: boolean;
 }
 
-import type { StaffRole } from '../../../features/auth/constants/auth.constants.js';
+import type { WorkspaceRole } from '../types/workspace-role.js';
 
 export interface StaffInvite {
   id: string;
   email: string;
-  role: StaffRole;
+  role: WorkspaceRole;
   fullName?: string;
   status?: string;
 }

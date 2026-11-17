@@ -52,7 +52,6 @@ export async function toggleStaffLock(
     select: {
       id: true,
       role: true,
-      isWorkspaceManager: true,
       status: true,
       isActive: true,
       assignmentLocked: true,
@@ -71,7 +70,7 @@ export async function toggleStaffLock(
   // Quản lý chỉ được khóa / mở khóa STAFF, không được khóa OWNER hoặc MANAGER khác
   if (
     actorRole === WorkspaceRole.MANAGER &&
-    (membership.role !== WorkspaceRole.STAFF || membership.isWorkspaceManager === true)
+    membership.role !== WorkspaceRole.STAFF
   ) {
     throw new ForbiddenException('Quản lý workspace chỉ được khóa hoặc mở khóa nhân viên tư vấn.');
   }

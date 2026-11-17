@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { WorkspaceItem, WorkspaceConfig, BusinessDomain } from '../workspaceConfig.types.js';
 import { CLIENT_INDUSTRY_PRESETS } from '../workspacePresets.js';
-import { USER_ROLES, type UserRole } from '../../auth/userRole.types.js';
+import type { WorkspaceRole } from '../types/workspace-role.js';
+import { WORKSPACE_ROLES } from '../types/workspace-role.js';
 import { apiClient } from '../../../lib/api-client/index.js';
 import { notify } from '../../../components/feedback/toastEmitter.js';
 import { STORAGE_KEYS } from '../../../config/storage-keys.js';
@@ -19,7 +20,7 @@ export interface UseWorkspaceManagerProps {
   fetchStaffList: (targetWsId?: string) => Promise<any>;
   setConfig: React.Dispatch<React.SetStateAction<WorkspaceConfig>>;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  onWorkspaceRoleChange?: (role: UserRole, ownerId?: string) => void;
+  onWorkspaceRoleChange?: (role: WorkspaceRole, ownerId?: string) => void;
 }
 
 export const useWorkspaceManager = ({
@@ -147,7 +148,7 @@ export const useWorkspaceManager = ({
   // Đồng bộ role từ Workspace hiện tại vào UserRoleContext
   useEffect(() => {
     if (activeWorkspace) {
-      onWorkspaceRoleChange?.(activeWorkspace.role as UserRole, activeWorkspace.ownerId);
+      onWorkspaceRoleChange?.(activeWorkspace.role as WorkspaceRole, activeWorkspace.ownerId);
     }
   }, [activeWorkspace?.id, activeWorkspace?.role, activeWorkspace?.ownerId, onWorkspaceRoleChange]);
 
@@ -250,7 +251,7 @@ export const useWorkspaceManager = ({
             id: res.id,
             name: res.name,
             slug: res.slug,
-            role: USER_ROLES.OWNER,
+            role: WORKSPACE_ROLES.OWNER,
             isOwner: true,
             domain: res.domain || 'EDUCATION',
             ownerId: res.ownerId || effectiveOwnerId,

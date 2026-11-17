@@ -182,7 +182,7 @@ export async function getCurrentUserAndRole(
     if (member?.role === WorkspaceRole.OWNER) {
       return { currentUser, role: WorkspaceRole.OWNER };
     }
-    if (member?.role === WorkspaceRole.MANAGER || (member as any)?.isWorkspaceManager === true) {
+    if (member?.role === WorkspaceRole.MANAGER) {
       return { currentUser, role: WorkspaceRole.MANAGER };
     }
   }

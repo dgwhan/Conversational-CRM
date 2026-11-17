@@ -91,7 +91,6 @@ export async function getStaffList(
               id: true,
               role: true,
               status: true,
-              isWorkspaceManager: true,
               assignmentLocked: true,
               invitedAt: true,
               joinedAt: true,
@@ -116,7 +115,6 @@ export async function getStaffList(
         : (membership?.status || WorkspaceMemberStatus.PENDING);
       const memberId: string | undefined = membership?.id;
       const assignmentLocked = membership?.assignmentLocked ?? false;
-      const isWorkspaceManager = membership?.isWorkspaceManager ?? false;
       const invitedAt: Date | null = isOwnerUser ? null : (membership?.invitedAt ?? null);
       const joinedAt: Date | null = membership?.joinedAt ?? (isOwnerUser ? targetWorkspace.createdAt : null);
       const invitedBy = isOwnerUser ? null : (membership?.invitedBy ?? null);
@@ -128,7 +126,6 @@ export async function getStaffList(
         memberStatus,
         memberId,
         assignmentLocked,
-        isWorkspaceManager,
         invitedAt,
         joinedAt,
         invitedBy,

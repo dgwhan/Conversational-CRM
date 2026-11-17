@@ -6,8 +6,7 @@ import {
   type ExecutionContext,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { StaffRoleSchema, type StaffRole } from '../../../../contracts/iam.js';
-import type { AuthUser } from '../../domain/types/auth-user.js';
+import { WORKSPACE_ROLES, type WorkspaceRole } from '../../../../contracts/roles.js';
 import { ROLES_KEY } from '../decorators/roles.decorator.js';
 
 @Injectable()
@@ -15,20 +14,21 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const roles = this.reflector.getAllAndOverride<StaffRole[]>(ROLES_KEY, [
+    const roles = this.reflector.getAllAndOverride<WorkspaceRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
     if (roles === undefined) return true;
 
-    const user = context.switchToHttp().getRequest<{ user?: AuthUser }>().user;
-
-    if (!user || !user.role || !StaffRoleSchema.safeParse(user.role).success) {
-      throw new UnauthorizedException();
+    const request = context.switchToHttp().getRequest<{ user?: { id: string }; workspace?: { role?: string } }>();
+    if (!request.user?.id) throw new UnauthorizedException();
+    const role = request.workspace?.role;
+    if (!role || !WORKSPACE_ROLES.includes(role as WorkspaceRole)) {
+      throw new UnauthorizedException('Không tìm thấy role trong workspace hiện tại.');
     }
 
-    if (!roles.includes(user.role)) {
+    if (!roles.includes(role as WorkspaceRole)) {
       throw new NotFoundException();
     }
 

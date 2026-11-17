@@ -33,7 +33,7 @@ export const TransferOwnershipModal: React.FC<TransferOwnershipModalProps> = ({
   const comboboxRef = useRef<HTMLDivElement>(null);
 
   const getDisplayLabel = (c: ManagedStaffItem) => {
-    const roleLabel = c.isWorkspaceManager ? 'Quản lý' : 'Nhân viên tư vấn';
+    const roleLabel = c.role === 'MANAGER' ? 'Quản lý' : 'Nhân viên';
     const name = c.fullName || c.email.split('@')[0];
     return `${name} (${c.email}) - ${roleLabel}`;
   };

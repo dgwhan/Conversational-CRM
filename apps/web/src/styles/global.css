@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "./tokens/index.css";
 
+/* Dark theme scoped to the landing page so its toggle does not affect the CRM. */
+@custom-variant landing-dark (&:where([data-landing-theme="dark"], [data-landing-theme="dark"] *));
+
 @layer base {
   *,
   *::before,

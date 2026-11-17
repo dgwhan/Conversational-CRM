@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { StaffInvite, OnboardingState } from '../types.js';
-import { StaffRole } from '../../../../features/auth/constants/auth.constants.js';
+import type { WorkspaceRole } from '../../types/workspace-role.js';
 import { notify } from '../../../../components/feedback/toastEmitter.js';
 import type { ManagedStaffItem } from '../../WorkspaceConfigContext.js';
 
@@ -13,7 +13,7 @@ export interface UseWorkspaceInvitesOptions {
   staffMembers: ManagedStaffItem[];
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
   createStaffMember: (
-    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: 'STAFF' | 'OWNER' },
+    data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: WorkspaceRole },
     targetWsId?: string,
   ) => Promise<void>;
   deleteStaffMember: (staffId: string, targetWsId?: string) => Promise<void>;
@@ -22,7 +22,7 @@ export interface UseWorkspaceInvitesOptions {
 
 /**
  * Hook chuyên biệt quản lý danh sách và lời mời nhân sự vào Không gian làm việc.
- * Sử dụng đúng 2 vai trò chính thức trong hệ thống: StaffRole.OWNER và StaffRole.STAFF.
+ * Vai trò được gán trên thành viên của workspace, không phải trên tài khoản.
  */
 export const useWorkspaceInvites = ({
   workspaceId,
@@ -51,7 +51,7 @@ export const useWorkspaceInvites = ({
         .map((s) => ({
           id: s.id,
           email: s.email,
-          role: s.role === StaffRole.OWNER ? StaffRole.OWNER : StaffRole.STAFF,
+          role: s.role as WorkspaceRole,
           fullName: s.fullName,
           status: s.status,
         }));
@@ -67,13 +67,13 @@ export const useWorkspaceInvites = ({
    * Mời nhân viên mới vào Workspace theo vai trò chuẩn (OWNER hoặc STAFF)
    * Chỉ cần nhập Email hoặc Số điện thoại
    */
-  const handleAddInvite = async (identifier: string, role: StaffRole) => {
+  const handleAddInvite = async (identifier: string, role: WorkspaceRole) => {
     const isEmail = identifier.includes('@');
     await createStaffMember({
       identifier,
       email: isEmail ? identifier : undefined,
       phoneNumber: !isEmail ? identifier : undefined,
-      role: role === StaffRole.OWNER ? StaffRole.OWNER : StaffRole.STAFF,
+      role,
     });
     await fetchStaffList(workspaceId);
   };

@@ -138,18 +138,18 @@ describe('WorkspaceConfigController HTTP Routing (/api/workspaces/current/config
     expect(res.statusCode).toBe(200);
   });
 
-  it('PATCH /api/workspaces/current/staff/:id/permissions is registered', async () => {
+  it('PATCH /api/workspaces/current/staff/:id/role validates workspace roles', async () => {
     const res = await app.inject({
       method: 'PATCH',
-      url: '/api/workspaces/current/staff/5b4fddab-19a7-4f09-8a17-19417ad13bce/permissions',
+      url: '/api/workspaces/current/staff/5b4fddab-19a7-4f09-8a17-19417ad13bce/role',
       headers: {
         authorization: `Bearer ${ownerToken()}`,
         'content-type': 'application/json',
       },
-      payload: JSON.stringify({ isWorkspaceManager: 'true' }),
+      payload: JSON.stringify({ role: 'ADMIN' }),
     });
 
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.payload).message).toContain('isWorkspaceManager');
+    expect(JSON.parse(res.payload).message).toContain('MANAGER hoặc STAFF');
   });
 });

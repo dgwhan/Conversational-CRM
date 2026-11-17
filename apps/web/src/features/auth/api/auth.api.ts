@@ -1,4 +1,5 @@
 import type {
+  AuthUser,
   LoginRequest,
   LoginResponse,
   RegisterRequest,
@@ -61,9 +62,9 @@ export async function login(input: LoginRequest): Promise<LoginResponse> {
     body === null ||
     !('accessToken' in body) ||
     typeof body.accessToken !== 'string' ||
-    !('staff' in body) ||
-    typeof body.staff !== 'object' ||
-    body.staff === null
+    !('user' in body) ||
+    typeof body.user !== 'object' ||
+    body.user === null
   ) {
     throw new AuthApiError(translate('auth.api.invalidLoginResponse', 'Phản hồi đăng nhập không hợp lệ.'), response.status);
   }
@@ -99,9 +100,9 @@ export async function register(
     body === null ||
     !('accessToken' in body) ||
     typeof body.accessToken !== 'string' ||
-    !('staff' in body) ||
-    typeof body.staff !== 'object' ||
-    body.staff === null
+    !('user' in body) ||
+    typeof body.user !== 'object' ||
+    body.user === null
   ) {
     throw new AuthApiError(translate('auth.api.invalidSignUpResponse', 'Phản hồi đăng ký không hợp lệ.'), response.status);
   }
@@ -161,7 +162,7 @@ export async function logout(): Promise<void> {
   }).catch(() => {});
 }
 
-export async function getMe(accessToken?: string): Promise<LoginResponse['staff']> {
+export async function getMe(accessToken?: string): Promise<AuthUser> {
   const headers: Record<string, string> = {};
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
@@ -176,6 +177,6 @@ export async function getMe(accessToken?: string): Promise<LoginResponse['staff'
     throw new AuthApiError(translate('auth.api.fetchMeFailed', 'Không thể lấy thông tin người dùng hiện tại.'), response.status);
   }
 
-  return response.json() as Promise<LoginResponse['staff']>;
+  return response.json() as Promise<AuthUser>;
 }
 

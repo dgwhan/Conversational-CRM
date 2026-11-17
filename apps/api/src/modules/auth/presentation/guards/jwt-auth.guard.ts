@@ -8,7 +8,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
-import { StaffRoleSchema } from '../../../../contracts/iam.js';
 import { PrismaService } from '../../../../platform/database/prisma.service.js';
 import { IS_PUBLIC_KEY } from '../../../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../domain/types/auth-user.js';
@@ -18,7 +17,6 @@ type AuthenticatedRequest = Request & { user?: AuthUser };
 type AccessTokenPayload = {
   sub?: unknown;
   tokenVersion?: unknown;
-  role?: unknown;
 };
 
 @Injectable()
@@ -87,8 +85,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    const payloadRole = typeof payload.role === 'string' ? StaffRoleSchema.safeParse(payload.role) : null;
-    request.user = { id: user.id, role: payloadRole?.success ? payloadRole.data : undefined };
+    request.user = { id: user.id };
     (request as { authVerified?: boolean }).authVerified = true;
     return true;
   }

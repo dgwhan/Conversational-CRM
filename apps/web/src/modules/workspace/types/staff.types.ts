@@ -26,7 +26,6 @@ export interface ManagedStaffItem {
   memberStatus?: WorkspaceMemberStatus;
   memberId?: string;
   assignmentLocked?: boolean;
-  isWorkspaceManager?: boolean;
   invitedAt?: string | null;
   joinedAt?: string | null;
   invitedBy?: { id: string; fullName: string; email: string } | null;

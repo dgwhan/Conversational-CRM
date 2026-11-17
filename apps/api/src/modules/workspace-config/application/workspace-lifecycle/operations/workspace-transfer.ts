@@ -94,7 +94,6 @@ export async function transferOwnership(
       },
       data: {
         role: WorkspaceMemberRole.OWNER,
-        isWorkspaceManager: false,
       },
     });
 
@@ -116,7 +115,6 @@ export async function transferOwnership(
         },
         update: {
           role: WorkspaceMemberRole.MANAGER,
-          isWorkspaceManager: true,
         },
         create: {
           workspaceId,
@@ -124,7 +122,6 @@ export async function transferOwnership(
           role: WorkspaceMemberRole.MANAGER,
           status: WorkspaceMemberStatus.ACTIVE,
           isActive: true,
-          isWorkspaceManager: true,
         },
       });
     }

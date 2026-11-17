@@ -16,6 +16,5 @@ export interface JwtUser {
   email: string;
   fullName?: string;
   username?: string;
-  role?: string;
   tokenVersion?: number;
 }

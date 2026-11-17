@@ -6,7 +6,7 @@ export interface CreateStaffRequestDto {
   phoneNumber?: string;
   fullName?: string;
   password?: string;
-  role: WorkspaceRole;
+  role?: WorkspaceRole;
 }
 
 export interface UpdateStaffRequestDto {
@@ -19,10 +19,6 @@ export interface UpdateStaffRequestDto {
 
 export interface ToggleStaffLockRequestDto {
   lock: boolean;
-}
-
-export interface UpdateStaffPermissionsRequestDto {
-  isWorkspaceManager: boolean;
 }
 
 // Aliases for compatibility

@@ -122,7 +122,7 @@ describe('Workspace Ownership Transfer (transferOwnership)', () => {
 
     const oldOwnerMember = mockPrisma._data.members.get('ws-1:owner-1');
     expect(oldOwnerMember.role).toBe('MANAGER');
-    expect(oldOwnerMember.isWorkspaceManager).toBe(true);
+    expect(oldOwnerMember).not.toHaveProperty('isWorkspaceManager');
 
     expect(mockPrisma._data.auditLogs.length).toBe(1);
     expect(mockPrisma._data.auditLogs[0].action).toBe('WORKSPACE_TRANSFERRED');

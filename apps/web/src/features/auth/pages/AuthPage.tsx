@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation, LanguageSwitcher } from '../../../i18n/index.js';
 import { ROUTES } from '../../../config/routes.js';
+import polarisxLogo from '../../../assets/logo/polarisx-logo.svg';
 
 export type AuthPageProps = {
   onLoginSuccess?: (session: LoginResponse, rememberMe?: boolean) => void;
@@ -55,7 +56,7 @@ export function AuthPage({
       <div className="flex flex-col items-center justify-center mb-6">
         <div className="relative p-2.5 rounded-2xl bg-white/85 border border-white shadow-[0_4px_16px_rgba(26,92,255,0.12),0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-md flex items-center justify-center">
           <img
-            src="/logo.svg"
+            src={polarisxLogo}
             alt="Conversational CRM Logo"
             className="h-12 w-12 object-contain rounded-xl"
             width={48}
@@ -160,19 +161,7 @@ export function AuthPage({
               className={hasInteracted ? 'animate-auth-slide-right' : ''}
             >
               <SignUpForm
-                onSuccess={(res: any) =>
-                  onLoginSuccess?.({
-                    ...res,
-                    staff: {
-                      id: res.staff?.id || res.id || 'staff-new',
-                      email: res.staff?.email || res.email || '',
-                      fullName: res.staff?.fullName || res.fullName || '',
-                      phoneNumber: res.staff?.phoneNumber || res.phoneNumber || null,
-                      ...res.staff,
-                      mustChangePassword: false,
-                    },
-                  }, false)
-                }
+                onSuccess={(res: any) => onLoginSuccess?.(res, false)}
                 onSwitchToLogin={() => handleTabChange(AUTH_TAB.LOGIN)}
               />
             </div>

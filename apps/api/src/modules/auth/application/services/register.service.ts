@@ -111,7 +111,6 @@ export class RegisterService {
             response: {
                 accessToken: outcome.accessToken,
                 user: userProfile,
-                staff: userProfile,
             },
             refreshToken: outcome.refreshToken,
             refreshTokenMaxAgeSeconds: refreshTtlDays * SECONDS_PER_DAY,

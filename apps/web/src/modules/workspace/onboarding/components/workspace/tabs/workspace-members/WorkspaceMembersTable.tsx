@@ -3,7 +3,7 @@ import { Lock, Mail, Users } from "lucide-react";
 import {
   WORKSPACE_MEMBER_STATUS,
 } from "../../../../../WorkspaceConfigContext.js";
-import { StaffRole } from "../../../../../../../features/auth/constants/auth.constants.js";
+import { WORKSPACE_ROLES } from "../../../../../types/workspace-role.js";
 import {
   ActionOverflowMenu,
   EmptyState,
@@ -107,7 +107,8 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
           </tr>
         ) : (
           members.map((member) => {
-            const isOwnerMember = member.role === StaffRole.OWNER;
+            const isOwnerMember = member.role === WORKSPACE_ROLES.OWNER;
+            const isManagerMember = member.role === WORKSPACE_ROLES.MANAGER;
             const isPending =
               member.memberStatus === WORKSPACE_MEMBER_STATUS.PENDING;
             const routingStatus = member.memberId
@@ -134,14 +135,14 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
             const canCancelInvitation =
               isPending &&
               canManageMembers &&
-              (isOwner || member.role !== StaffRole.OWNER);
+              (isOwner || member.role !== WORKSPACE_ROLES.OWNER);
             const canRemoveMember =
               !isPending &&
               !isCurrentUser &&
               (isOwner ||
                 (canManageMembers &&
                   !isOwnerMember &&
-                  !member.isWorkspaceManager)) &&
+                  !isManagerMember)) &&
               (!isOwnerMember || canOwnerLeave);
             const canLeaveWorkspace = !isPending && isCurrentUser;
             const hasActions =
@@ -187,11 +188,11 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
               if (onSetWorkspaceManagerPermission) {
                 memberMenuItems.push({
                   id: "toggle-manager-permission",
-                  label: member.isWorkspaceManager
+                  label: isManagerMember
                     ? "Chuyển về Nhân viên tư vấn"
                     : "Đặt làm Quản lý workspace",
                   onSelect: async () => {
-                    const enabled = !member.isWorkspaceManager;
+                    const enabled = !isManagerMember;
                     const actionText = enabled
                       ? `đặt "${displayName}" làm Quản lý workspace`
                       : `chuyển "${displayName}" về Nhân viên tư vấn`;
@@ -344,14 +345,14 @@ export const WorkspaceMembersTable: React.FC<WorkspaceMembersTableProps> = ({
                       className={`inline-block whitespace-nowrap rounded-md border px-2.5 py-0.5 text-[11px] font-semibold ${
                         isOwnerMember
                           ? "border-blue-200 bg-blue-50 text-blue-700"
-                          : member.isWorkspaceManager
+                          : member.role === WORKSPACE_ROLES.MANAGER
                           ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                           : "border-slate-200 bg-slate-100 text-slate-700"
                       }`}
                     >
                       {isOwnerMember
                         ? "Chủ sở hữu"
-                        : member.isWorkspaceManager
+                        : member.role === WORKSPACE_ROLES.MANAGER
                           ? "Quản lý workspace"
                           : "Nhân viên tư vấn"}
                     </span>

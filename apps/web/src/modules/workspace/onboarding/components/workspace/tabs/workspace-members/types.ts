@@ -1,4 +1,4 @@
-import type { StaffRole } from "../../../../../../../features/auth/constants/auth.constants.js";
+import type { WorkspaceRole } from "../../../../../types/workspace-role.js";
 import type { ManagedStaffItem } from "../../../../../WorkspaceConfigContext.js";
 
 export interface WorkspaceMembersTabProps {
@@ -16,7 +16,7 @@ export interface WorkspaceMembersTabProps {
     memberRole?: string,
   ) => Promise<void>;
   onLeaveWorkspace: () => Promise<void>;
-  onInviteMember: (identifier: string, role: StaffRole) => Promise<void>;
+  onInviteMember: (identifier: string, role: WorkspaceRole) => Promise<void>;
   onCancelInvitation?: (memberId: string, memberName: string) => Promise<void>;
   onSetWorkspaceManagerPermission?: (
     memberId: string,

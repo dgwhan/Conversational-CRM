@@ -1,4 +1,3 @@
-import { WorkspaceRole } from '../../../../contracts/roles.js';
 
 export const AUTH_VALIDATION = {
   MIN_PASSWORD_LENGTH: 8,
@@ -7,7 +6,6 @@ export const AUTH_VALIDATION = {
   MAX_FULLNAME_LENGTH: 100,
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   PHONE_REGEX: /^(0|\+84)[0-9]{9}$/,
-  DEFAULT_ROLE: WorkspaceRole.OWNER,
   MESSAGES: {
     EMAIL_REQUIRED: 'Vui lòng nhập email.',
     EMAIL_INVALID: 'Email không đúng định dạng.',

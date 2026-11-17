@@ -2,22 +2,16 @@ import React, { lazy, Suspense } from 'react';
 import { useLandingTheme } from '../hooks/useLandingInteractions.js';
 import { LandingNavbar } from '../components/LandingNavbar.js';
 import { HeroSection } from '../components/HeroSection.js';
-import { StatsStrip } from '../components/StatsStrip.js';
-import { BentoFeatures } from '../components/BentoFeatures.js';
+import LandingPageSkeleton from '../components/LandingPageSkeleton.js';
 
 // Lazy-load below-the-fold sections for blazing fast FCP and LCP
-const IndustriesSection = lazy(() =>
-  import('../components/IndustriesSection.js').then((m) => ({ default: m.IndustriesSection }))
-);
 const HowItWorksSection = lazy(() =>
   import('../components/HowItWorksSection.js').then((m) => ({ default: m.HowItWorksSection }))
 );
 const LiveDemoInbox = lazy(() =>
   import('../components/LiveDemoInbox.js').then((m) => ({ default: m.LiveDemoInbox }))
 );
-const DashboardPreviewSection = lazy(() =>
-  import('../components/DashboardPreviewSection.js').then((m) => ({ default: m.DashboardPreviewSection }))
-);
+
 const TestimonialsSection = lazy(() =>
   import('../components/TestimonialsSection.js').then((m) => ({ default: m.TestimonialsSection }))
 );
@@ -28,73 +22,58 @@ const LandingFooter = lazy(() =>
   import('../components/LandingFooter.js').then((m) => ({ default: m.LandingFooter }))
 );
 
-const SectionPlaceholder: React.FC = () => (
-  <div className="w-full min-h-[160px] animate-pulse bg-slate-100/50 dark:bg-slate-900/30 rounded-3xl my-8" />
-);
-
 export const LandingHomePage: React.FC = () => {
   const { isDark, toggleTheme } = useLandingTheme();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F19] text-slate-800 dark:text-slate-100 selection:bg-blue-600 selection:text-white font-sans antialiased relative transition-colors duration-300 overflow-x-hidden">
+    <div
+      data-landing-theme={isDark ? 'dark' : 'light'}
+      className="min-h-screen bg-slate-50 landing-dark:bg-[#0B0F19] text-slate-800 landing-dark:text-slate-100 selection:bg-blue-600 selection:text-white font-sans antialiased relative transition-colors duration-300 overflow-x-hidden"
+    >
       {/* Background ambient mesh gradient */}
       <div className="fixed inset-0 pointer-events-none -z-20 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-500/10 dark:bg-blue-600/15 blur-[120px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[45vw] h-[45vw] rounded-full bg-indigo-500/10 dark:bg-indigo-600/10 blur-[130px]" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[50vw] h-[50vw] rounded-full bg-cyan-500/10 dark:bg-cyan-600/10 blur-[140px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-blue-500/10 landing-dark:bg-blue-600/15 blur-[120px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[45vw] h-[45vw] rounded-full bg-indigo-500/10 landing-dark:bg-indigo-600/10 blur-[130px]" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[50vw] h-[50vw] rounded-full bg-cyan-500/10 landing-dark:bg-cyan-600/10 blur-[140px]" />
       </div>
 
       {/* Grid pattern overlay */}
       <div
-        className="fixed inset-0 pointer-events-none -z-10 opacity-[0.03] dark:opacity-[0.05]"
+        className="fixed inset-0 pointer-events-none -z-10 opacity-[0.03] landing-dark:opacity-[0.05]"
         style={{
           backgroundImage: `radial-gradient(currentColor 1px, transparent 1px)`,
           backgroundSize: '24px 24px',
         }}
       />
 
-      {/* 1. Sticky Glass Navbar */}
+      {/* Sticky navigation */}
       <LandingNavbar isDark={isDark} onToggleTheme={toggleTheme} />
 
       {/* Main Content Sections */}
       <main id="main-content">
-        {/* 2. Hero Section (Above the fold, Critical Rendering Path) */}
+        {/* Hero: above the fold */}
         <HeroSection />
 
-        {/* 3. Trusted Stats Strip */}
-        <StatsStrip />
-
-        {/* 4. Bento Grid Features (8 cards) */}
-        <BentoFeatures />
-
-        {/* 5-10. Below-the-fold Lazy Loaded Sections */}
-        <Suspense fallback={<SectionPlaceholder />}>
-          <IndustriesSection />
-        </Suspense>
-
-        <Suspense fallback={<SectionPlaceholder />}>
-          <HowItWorksSection />
-        </Suspense>
-
-        <Suspense fallback={<SectionPlaceholder />}>
+        {/* Interactive demo leads into the unified operating workflow. */}
+        <Suspense fallback={<LandingPageSkeleton variant="demo" />}>
           <LiveDemoInbox />
         </Suspense>
 
-        <Suspense fallback={<SectionPlaceholder />}>
-          <DashboardPreviewSection />
+        <Suspense fallback={<LandingPageSkeleton variant="steps" />}>
+          <HowItWorksSection />
         </Suspense>
 
-        <Suspense fallback={<SectionPlaceholder />}>
+        <Suspense fallback={<LandingPageSkeleton variant="testimonials" />}>
           <TestimonialsSection />
         </Suspense>
 
-        <Suspense fallback={<SectionPlaceholder />}>
+        <Suspense fallback={<LandingPageSkeleton variant="cta" />}>
           <FinalCtaSection />
         </Suspense>
       </main>
 
-      {/* 10. Footer */}
-      <Suspense fallback={<div className="h-20" />}>
+      {/* Footer */}
+      <Suspense fallback={<LandingPageSkeleton variant="footer" />}>
         <LandingFooter />
       </Suspense>
     </div>

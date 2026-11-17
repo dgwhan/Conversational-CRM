@@ -14,7 +14,8 @@ import type {
 
 export type IndustryId = 'education' | 'realEstate' | 'beauty' | 'retail' | 'b2b';
 
-export const INDUSTRY_ORDER: IndustryId[] = ['education', 'realEstate', 'beauty', 'retail', 'b2b'];
+// Lead with the general business scenario; sector examples remain optional in the picker.
+export const INDUSTRY_ORDER: IndustryId[] = ['b2b', 'realEstate', 'beauty', 'retail', 'education'];
 
 export interface IndustryCard {
   id: IndustryId;
@@ -143,14 +144,10 @@ export interface LandingContent {
     pill: string;
     titleLead: string;
     titleHighlight: string;
-    subtitle: string;
     industryPickerLabel: string;
-    cycleLabel: string;
-    reset: string;
-    pause: string;
-    resume: string;
+    channelFilterLabel: string;
+    channelFilters: { all: string; zalo: string; facebook: string };
     tabs: { chat: string; conversations: string; lead: string };
-    windowTitle: string;
     recentConversations: string;
     profileTitle: string;
     mergedFrom: string;
@@ -223,10 +220,8 @@ export interface LandingContent {
 const vi: LandingContent = {
   nav: {
     links: [
-      { label: 'Tính năng', href: '#features' },
-      { label: 'Ngành nghề', href: '#industries' },
-      { label: 'Quy trình', href: '#how-it-works' },
       { label: 'Demo trực tiếp', href: '#live-demo' },
+      { label: 'Quy trình', href: '#how-it-works' },
       { label: 'Đánh giá', href: '#testimonials' },
     ],
     homeAria: 'Trang chủ PolarisX Conversational CRM',
@@ -314,8 +309,8 @@ const vi: LandingContent = {
   ],
   industries: {
     pill: 'Một nền tảng, nhiều ngành hàng',
-    titleLead: 'Tự điều chỉnh theo',
-    titleHighlight: 'cách bạn bán hàng',
+    titleLead: 'CRM',
+    titleHighlight: 'Theo Ngành',
     subtitle:
       'Chọn mẫu ngành khi tạo workspace: giai đoạn phễu, thuật ngữ, danh mục sản phẩm và tiêu chí chấm điểm được thiết lập sẵn. Mỗi chi nhánh hay thương hiệu có thể là một workspace riêng.',
     stagesLabel: 'Phễu mẫu',
@@ -363,54 +358,54 @@ const vi: LandingContent = {
   },
   features: {
     pill: 'Hệ sinh thái tính năng',
-    titleLead: 'Mọi Công Cụ Bán Hàng & Chăm Sóc Khách Đều Nằm Trong',
+    titleLead: 'Tính Năng CRM',
     subtitle:
       'Dành cho mọi đội ngũ tư vấn và bán hàng qua tin nhắn: từ trung tâm đào tạo, sàn bất động sản, chuỗi spa đến shop online và doanh nghiệp B2B.',
     inbox: {
       badge: 'Kênh trung tâm',
-      title: 'Hộp Thư Hợp Nhất 3 Cột',
+      title: 'Hộp Thư Đa Kênh',
       description:
         'Gom toàn bộ tin nhắn từ Facebook Fanpage, Zalo OA và Zalo cá nhân về một giao diện 3 cột. Nhân viên trả lời mọi kênh ngay tại chỗ, không cần chuyển qua lại giữa các ứng dụng.',
       chips: ['Facebook Chat', 'Zalo OA & Cá nhân', 'Nhập Excel nhanh'],
     },
     scoring: {
-      title: 'Tự Động Phân Loại & Chấm Điểm',
+      title: 'Phân Loại & Chấm Điểm Khách Hàng',
       description:
         'Quét nội dung tin nhắn để gắn nhãn sản phẩm quan tâm, ngân sách, thời điểm mua và chấm điểm tiềm năng từ 0 đến 100 theo tiêu chí riêng của bạn.',
       meter: 'Khách nóng (85)',
     },
     pipeline: {
-      title: 'Phễu Bán Hàng Tùy Biến & SLA',
+      title: 'Phễu Bán Hàng & SLA',
       description:
         'Kéo thả khách hàng qua các giai đoạn do bạn định nghĩa. Đồng hồ SLA đếm ngược (15, 30 phút) giúp đội ngũ không để khách chờ.',
       footer: '⏱ SLA đếm ngược: còn 12 phút',
     },
     identity: {
-      title: 'Hợp Nhất Định Danh Đa Kênh',
+      title: 'Hồ Sơ Khách Hàng Hợp Nhất',
       description:
         'Tự động nhận diện và gộp hồ sơ trùng khi cùng một khách vừa nhắn Facebook, vừa hỏi qua Zalo bằng số điện thoại.',
       footer: '✓ Một hồ sơ duy nhất xuyên suốt mọi kênh',
     },
     timeline: {
-      title: 'Theo Dõi Toàn Trình Giao Dịch',
+      title: 'Lịch Sử Giao Dịch',
       description:
         'Lưu lịch sử trao đổi, ghi chú tư vấn, báo giá, hợp đồng và chứng từ đặt cọc ở một nơi, rõ ràng và an toàn.',
       footer: 'Nhật ký thay đổi theo thời gian thực (Audit Trail)',
     },
     alerts: {
-      title: 'Cảnh Báo Tức Thì Telegram / Email',
+      title: 'Cảnh Báo Telegram & Email',
       description:
         'Nhận thông báo qua bot Telegram khi khách để lại thông tin, đặt lịch, khi trễ SLA hoặc khi có khách nóng cần xử lý gấp.',
       footer: 'Thời gian gửi thông báo: < 1 giây',
     },
     reports: {
-      title: 'Báo Cáo & Thống Kê Realtime',
+      title: 'Báo Cáo Hiệu Suất',
       description:
         'Theo dõi tỷ lệ chuyển đổi, hiệu suất từng nhân viên, doanh thu dự kiến theo sản phẩm và xuất Excel / CSV chỉ với 1 cú nhấp.',
       footer: 'Xuất dữ liệu UTF-8 BOM, mở đúng trên Excel',
     },
     security: {
-      title: 'Bảo Mật RBAC & Ngăn Chặn BOLA',
+      title: 'Phân Quyền & Bảo Mật',
       description:
         'Tách biệt quyền Chủ sở hữu (Owner) và Nhân viên (Staff) theo từng workspace. Mọi truy cập trái phép đều bị chặn với mã 403.',
       footer: '✓ Kiểm soát quyền tại từng route có ID',
@@ -418,8 +413,8 @@ const vi: LandingContent = {
   },
   how: {
     pill: 'Quy trình vận hành thông minh',
-    titleLead: 'Từ tin nhắn đầu tiên đến',
-    titleHighlight: 'giao dịch thành công',
+    titleLead: 'Quy Trình',
+    titleHighlight: 'CRM',
     subtitleBefore: 'Chỉ với 4 bước tự động hóa khép kín, Polaris',
     subtitleAfter:
       ' CRM giúp đội ngũ tư vấn và bán hàng tăng năng suất gấp 3 lần và không còn để khách hàng phải chờ.',
@@ -427,7 +422,7 @@ const vi: LandingContent = {
     steps: [
       {
         step: 1,
-        title: 'Tiếp nhận đa kênh',
+        title: 'Tiếp Nhận Hội Thoại Đa Kênh',
         subtitle: 'Đồng bộ tức thời',
         description:
           'Gom toàn bộ tin nhắn từ Facebook Fanpage, Zalo OA, Zalo cá nhân và tệp Excel về chung một hộp thư hội thoại.',
@@ -436,7 +431,7 @@ const vi: LandingContent = {
       },
       {
         step: 2,
-        title: 'Tự động phân loại',
+        title: 'Phân Loại Khách Hàng',
         subtitle: 'Chấm điểm thông minh',
         description:
           'Hệ thống đọc nội dung tin nhắn, gắn nhãn theo sản phẩm hoặc dịch vụ khách quan tâm và tính điểm tiềm năng theo cấu hình của bạn.',
@@ -445,7 +440,7 @@ const vi: LandingContent = {
       },
       {
         step: 3,
-        title: 'Phân công theo SLA',
+        title: 'Phân Công Theo SLA',
         subtitle: 'Đúng người, đúng lúc',
         description:
           'Tự động chia khách theo vòng tròn (round-robin) hoặc theo chuyên môn của nhân viên, kèm đồng hồ đếm ngược thời gian phản hồi.',
@@ -454,7 +449,7 @@ const vi: LandingContent = {
       },
       {
         step: 4,
-        title: 'Chăm sóc & Chốt giao dịch',
+        title: 'Theo Dõi Cơ Hội Bán Hàng',
         subtitle: 'Tối ưu chuyển đổi',
         description:
           'Theo dõi từng khách trên phễu Kanban theo giai đoạn của ngành bạn, đặt lịch hẹn và ghi nhận đặt cọc, thanh toán.',
@@ -473,20 +468,15 @@ const vi: LandingContent = {
   },
   demo: {
     pill: 'Mô phỏng trải nghiệm thực tế',
-    titleLead: 'Hộp thư thông minh',
-    titleHighlight: 'cho từng ngành hàng',
-    subtitle:
-      'Chọn một ngành để xem hệ thống tự bắt tin nhắn, gắn nhãn nhu cầu và chấm điểm khách tiềm năng theo thời gian thực.',
-    industryPickerLabel: 'Chọn ngành mô phỏng',
-    cycleLabel: 'Chu trình tự động (Bước {current} / {total})',
-    reset: 'Làm lại',
-    pause: 'Tạm dừng',
-    resume: 'Tiếp tục',
+    titleLead: 'Vận hành linh hoạt',
+    titleHighlight: 'cho mọi mô hình kinh doanh',
+    industryPickerLabel: 'Xem tình huống theo ngành',
+    channelFilterLabel: 'Lọc theo kênh hội thoại',
+    channelFilters: { all: 'Tất cả hội thoại', zalo: 'Zalo OA', facebook: 'Facebook Messenger' },
     tabs: { chat: 'Chat', conversations: 'Hội thoại (3)', lead: 'Hồ sơ' },
-    windowTitle: 'Live Inbox Workspace',
     recentConversations: 'Hội thoại gần đây',
     profileTitle: 'Hồ sơ & Điểm',
-    mergedFrom: 'Đã hợp nhất với hồ sơ Zalo',
+    mergedFrom: 'Đã hợp nhất với hồ sơ khách hàng',
     scoreLabel: 'Điểm tiềm năng',
     closeChance: 'Khả năng chốt: Rất cao (89%)',
     autoTags: 'Nhãn tự động gán:',
@@ -494,7 +484,7 @@ const vi: LandingContent = {
     responseValue: '58 giây',
     inputPlaceholder: 'Nhập câu trả lời hoặc chọn mẫu có sẵn...',
     sendAria: 'Gửi phản hồi demo',
-    scoreSuffix: 'đ',
+    scoreSuffix: '/100',
     scenarios: {
       education: {
         label: 'Giáo dục',
@@ -565,20 +555,20 @@ const vi: LandingContent = {
         ],
       },
       b2b: {
-        label: 'B2B & SaaS',
-        sourceName: 'Website & Fanpage công ty',
-        customerName: 'Công ty Ánh Dương',
-        customerInitials: 'AD',
-        agentName: 'Sales Quốc Việt',
-        customerText: 'Bên mình cần phần mềm cho 50 nhân viên, có tích hợp hóa đơn điện tử không? Xin báo giá giúp.',
-        botText: 'Đã gắn nhãn doanh nghiệp 50 user, cần tích hợp và chuyển cho sales phụ trách khách hàng doanh nghiệp.',
-        agentText: 'Chào anh chị! Em gửi báo giá gói Business 50 user và đề xuất lịch demo 30 phút vào thứ Ba ạ.',
-        tags: ['50 user', 'Cần báo giá'],
-        followUpTag: 'Đã đặt lịch demo',
+        label: 'Doanh nghiệp',
+        sourceName: 'Zalo OA & Facebook Page',
+        customerName: 'Công ty Minh Phát',
+        customerInitials: 'MP',
+        agentName: 'Nhân viên tư vấn Quốc Việt',
+        customerText: 'Bên mình muốn tìm hiểu giải pháp phù hợp cho đội ngũ 50 người. Có thể gửi thông tin và báo giá không?',
+        botText: 'Đã ghi nhận nhu cầu tư vấn giải pháp và chuyển đến nhân viên phụ trách.',
+        agentText: 'Chào anh chị! Em gửi thông tin giải pháp phù hợp và đề xuất lịch trao đổi để nắm rõ nhu cầu doanh nghiệp nhé.',
+        tags: ['50 nhân sự', 'Yêu cầu báo giá'],
+        followUpTag: 'Chờ tư vấn',
         conversations: [
-          { id: 'b2-1', name: 'Công ty Ánh Dương', channel: 'facebook', snippet: 'Xin báo giá cho 50 nhân viên...', time: 'Vừa xong', score: 85, tags: ['50 user', 'Báo giá'] },
-          { id: 'b2-2', name: 'Logistics Phương Nam', channel: 'zalo', snippet: 'Bên em muốn dùng thử 14 ngày...', time: '18 phút', score: 81, tags: ['Dùng thử'] },
-          { id: 'b2-3', name: 'Agency Sao Mai', channel: 'facebook', snippet: 'Có API kết nối website không?', time: '50 phút', score: 62, tags: ['API'] },
+          { id: 'b2-1', name: 'Công ty Minh Phát', channel: 'facebook', snippet: 'Tư vấn giải pháp cho 50 nhân sự...', time: 'Vừa xong', score: 85, tags: ['Tư vấn', 'Báo giá'] },
+          { id: 'b2-2', name: 'Logistics Phương Nam', channel: 'zalo', snippet: 'Bên mình muốn tìm hiểu giải pháp...', time: '18 phút', score: 81, tags: ['Vận hành'] },
+          { id: 'b2-3', name: 'Agency Sao Mai', channel: 'facebook', snippet: 'Có thể tích hợp với hệ thống hiện tại?', time: '50 phút', score: 62, tags: ['Tích hợp'] },
         ],
       },
     },
@@ -614,8 +604,8 @@ const vi: LandingContent = {
   },
   testimonials: {
     pill: 'Niềm tin từ nhiều ngành hàng',
-    titleLead: 'Được tin dùng bởi',
-    titleHighlight: 'doanh nghiệp ở nhiều lĩnh vực',
+    titleLead: 'Đánh Giá',
+    titleHighlight: 'Khách Hàng',
     subtitleBefore: 'Chia sẻ từ những người trực tiếp vận hành đội ngũ tư vấn và bán hàng với Polaris',
     subtitleAfter: '.',
     items: [
@@ -666,17 +656,17 @@ const vi: LandingContent = {
   },
   cta: {
     pill: 'Sẵn sàng chuyển đổi số cùng PolarisX',
-    title: 'Bứt phá doanh số ngay hôm nay',
+    title: 'Dùng Thử PolarisX',
     subtitle:
-      'Trải nghiệm CRM hội thoại đa kênh hoàn chỉnh: gom tin nhắn tự động, phân loại tức thì, phễu bán hàng theo đúng ngành của bạn và tăng tốc độ chốt giao dịch lên gấp 3 lần.',
-    checklist: ['Triển khai nhanh dưới 24 giờ', 'Mẫu cấu hình cho từng ngành', 'Hỗ trợ kỹ thuật 24/7'],
+      'Gom tin nhắn, quản lý khách hàng và theo dõi cơ hội bán hàng trên một nền tảng — linh hoạt theo quy trình của doanh nghiệp.',
+    checklist: ['Triển khai nhanh dưới 24 giờ', 'Tùy chỉnh theo quy trình doanh nghiệp', 'Hỗ trợ kỹ thuật 24/7'],
     primary: 'Bắt đầu dùng thử miễn phí',
-    secondary: 'Tìm hiểu thêm các tính năng',
+    secondary: 'Khám phá quy trình',
     mascot: 'Sẵn sàng bứt phá! 🎉',
   },
   footer: {
     description:
-      'Nền tảng CRM hội thoại đa kênh, đa ngành: gom tin nhắn, chăm sóc và chốt giao dịch cho giáo dục, bất động sản, spa, bán lẻ và doanh nghiệp B2B.',
+      'Nền tảng CRM hội thoại đa kênh giúp doanh nghiệp hợp nhất tương tác, quản lý khách hàng và phối hợp đội ngũ trên cùng một hệ thống.',
     emailAria: 'Email liên hệ',
     portalAria: 'Cổng thông tin',
     featuresTitle: 'Tính năng nổi bật',
@@ -708,10 +698,8 @@ const vi: LandingContent = {
 const en: LandingContent = {
   nav: {
     links: [
-      { label: 'Features', href: '#features' },
-      { label: 'Industries', href: '#industries' },
-      { label: 'How it works', href: '#how-it-works' },
       { label: 'Live demo', href: '#live-demo' },
+      { label: 'How it works', href: '#how-it-works' },
       { label: 'Reviews', href: '#testimonials' },
     ],
     homeAria: 'PolarisX Conversational CRM home',
@@ -739,7 +727,7 @@ const en: LandingContent = {
       'Works smoothly on phone and desktop',
     ],
     floatingBadges: ['Zalo OA & Personal', 'Facebook Page', 'Telegram alerts'],
-    mascot: 'Hi from PolarisX! 👋',
+    mascot: 'Hi from PolarisX!',
     mock: {
       online: 'Live',
       conversations: 'Conversations (24)',
@@ -799,8 +787,8 @@ const en: LandingContent = {
   ],
   industries: {
     pill: 'One platform, many industries',
-    titleLead: 'Adapts to',
-    titleHighlight: 'the way you sell',
+    titleLead: 'CRM',
+    titleHighlight: 'By Industry',
     subtitle:
       'Pick an industry template when you create a workspace and get pipeline stages, terminology, product catalog and scoring rules set up for you. Each branch or brand can run in its own workspace.',
     stagesLabel: 'Sample pipeline',
@@ -848,54 +836,54 @@ const en: LandingContent = {
   },
   features: {
     pill: 'Everything in one place',
-    titleLead: 'Every Sales & Customer Care Tool You Need, Inside',
+    titleLead: 'CRM Features',
     subtitle:
       'Built for any team that sells and supports customers over chat: training centers, property agencies, spa chains, online shops and B2B companies.',
     inbox: {
       badge: 'Central hub',
-      title: 'Unified 3-Column Inbox',
+      title: 'Omnichannel Inbox',
       description:
         'All messages from Facebook Pages, Zalo OA and personal Zalo in one 3-column view. Reps reply on every channel from one screen, with no app switching.',
       chips: ['Facebook Chat', 'Zalo OA & Personal', 'Quick Excel import'],
     },
     scoring: {
-      title: 'Automatic Tagging & Lead Scoring',
+      title: 'Lead Classification & Scoring',
       description:
         'Reads each message to tag the product of interest, budget and buying timeline, then scores the lead from 0 to 100 using your own criteria.',
       meter: 'Hot lead (85)',
     },
     pipeline: {
-      title: 'Custom Sales Pipeline & SLA',
+      title: 'Sales Pipeline & SLA',
       description:
         'Drag customers through the stages you define. SLA countdowns (15 or 30 minutes) make sure no customer is left waiting.',
       footer: '⏱ SLA countdown: 12 min left',
     },
     identity: {
-      title: 'Cross-Channel Identity Merge',
+      title: 'Unified Customer Profiles',
       description:
         'Detects and merges duplicate profiles when the same customer messages on Facebook and asks again on Zalo with their phone number.',
       footer: '✓ One profile across every channel',
     },
     timeline: {
-      title: 'End-to-End Deal Timeline',
+      title: 'Deal History',
       description:
         'Keep chat history, rep notes, quotes, contracts and deposit receipts together, clear and secure.',
       footer: 'Real-time change log (audit trail)',
     },
     alerts: {
-      title: 'Instant Telegram / Email Alerts',
+      title: 'Telegram & Email Alerts',
       description:
         'Get a Telegram bot alert when a customer leaves their details, books an appointment, misses an SLA, or a hot lead needs attention.',
       footer: 'Alert delivery: < 1 second',
     },
     reports: {
-      title: 'Real-Time Reports & Analytics',
+      title: 'Performance Reports',
       description:
         'Track conversion rates, each rep’s performance and expected revenue by product, and export to Excel / CSV in one click.',
       footer: 'UTF-8 BOM export that opens correctly in Excel',
     },
     security: {
-      title: 'RBAC Security & BOLA Protection',
+      title: 'Access Control & Security',
       description:
         'Owner and Staff permissions are separated in every workspace. Unauthorized access is always blocked with a 403.',
       footer: '✓ Access checks on every ID-based route',
@@ -903,15 +891,15 @@ const en: LandingContent = {
   },
   how: {
     pill: 'How it works',
-    titleLead: 'From the first message to',
-    titleHighlight: 'a closed deal',
+    titleLead: 'CRM',
+    titleHighlight: 'Workflow',
     subtitleBefore: 'With 4 fully automated steps, Polaris',
     subtitleAfter: ' CRM helps sales and support teams work 3x faster and never keep a customer waiting.',
     stepLabel: 'Step',
     steps: [
       {
         step: 1,
-        title: 'Capture every channel',
+        title: 'Capture Every Channel',
         subtitle: 'Instant sync',
         description:
           'Collect every message from Facebook Pages, Zalo OA, personal Zalo and Excel files into one conversation inbox.',
@@ -920,7 +908,7 @@ const en: LandingContent = {
       },
       {
         step: 2,
-        title: 'Classify automatically',
+        title: 'Classify Leads',
         subtitle: 'Smart scoring',
         description:
           'The system reads each message, tags the product or service the customer wants and scores the lead using your configuration.',
@@ -929,7 +917,7 @@ const en: LandingContent = {
       },
       {
         step: 3,
-        title: 'Assign with SLAs',
+        title: 'Assign by SLA',
         subtitle: 'Right rep, right time',
         description:
           'Distribute customers round-robin or by rep expertise, with a countdown on every first response.',
@@ -938,7 +926,7 @@ const en: LandingContent = {
       },
       {
         step: 4,
-        title: 'Nurture & close',
+        title: 'Track Sales Opportunities',
         subtitle: 'Higher conversion',
         description:
           'Track each customer on a Kanban pipeline built for your industry, book appointments and record deposits and payments.',
@@ -957,20 +945,15 @@ const en: LandingContent = {
   },
   demo: {
     pill: 'Interactive simulation',
-    titleLead: 'A smart inbox',
-    titleHighlight: 'for every industry',
-    subtitle:
-      'Pick an industry to watch the system catch a message, tag the customer’s needs and score the lead in real time.',
-    industryPickerLabel: 'Choose an industry',
-    cycleLabel: 'Auto sequence (step {current} / {total})',
-    reset: 'Restart',
-    pause: 'Pause',
-    resume: 'Resume',
+    titleLead: 'One inbox for every',
+    titleHighlight: 'business',
+    industryPickerLabel: 'Explore industry examples',
+    channelFilterLabel: 'Filter conversations by channel',
+    channelFilters: { all: 'All conversations', zalo: 'Zalo OA', facebook: 'Facebook Messenger' },
     tabs: { chat: 'Chat', conversations: 'Chats (3)', lead: 'Profile' },
-    windowTitle: 'Live Inbox Workspace',
     recentConversations: 'Recent conversations',
     profileTitle: 'Profile & score',
-    mergedFrom: 'Merged with Zalo profile',
+    mergedFrom: 'Merged with customer profile',
     scoreLabel: 'Lead score',
     closeChance: 'Close likelihood: very high (89%)',
     autoTags: 'Auto-applied tags:',
@@ -978,7 +961,7 @@ const en: LandingContent = {
     responseValue: '58 seconds',
     inputPlaceholder: 'Type a reply or pick a template...',
     sendAria: 'Send demo reply',
-    scoreSuffix: ' pts',
+    scoreSuffix: '/100',
     scenarios: {
       education: {
         label: 'Education',
@@ -1049,20 +1032,20 @@ const en: LandingContent = {
         ],
       },
       b2b: {
-        label: 'B2B & SaaS',
-        sourceName: 'Company website & Facebook Page',
-        customerName: 'Anh Duong Co.',
-        customerInitials: 'AD',
-        agentName: 'Sales rep Quoc Viet',
-        customerText: 'We need software for 50 employees. Does it integrate with e-invoicing? Please send a quote.',
-        botText: 'Tagged as 50-seat company needing integration and routed to the enterprise sales rep.',
-        agentText: 'Hello! I’ve sent the Business plan quote for 50 seats and suggest a 30-minute demo on Tuesday.',
-        tags: ['50 seats', 'Needs quote'],
-        followUpTag: 'Demo scheduled',
+        label: 'Business',
+        sourceName: 'Zalo OA & Facebook Page',
+        customerName: 'Minh Phat Company',
+        customerInitials: 'MP',
+        agentName: 'Business advisor Quoc Viet',
+        customerText: 'We’re looking for a solution for a 50-person team. Could you share some information and a quote?',
+        botText: 'Business inquiry recorded and routed to the right team member.',
+        agentText: 'Of course. I’ll share a suitable solution and arrange a call to learn more about your business needs.',
+        tags: ['50-person team', 'Quote requested'],
+        followUpTag: 'Awaiting consultation',
         conversations: [
-          { id: 'b2-1', name: 'Anh Duong Co.', channel: 'facebook', snippet: 'Quote for 50 employees...', time: 'Just now', score: 85, tags: ['50 seats', 'Quote'] },
-          { id: 'b2-2', name: 'Phuong Nam Logistics', channel: 'zalo', snippet: 'We’d like a 14-day trial...', time: '18 min', score: 81, tags: ['Trial'] },
-          { id: 'b2-3', name: 'Sao Mai Agency', channel: 'facebook', snippet: 'Is there an API for our website?', time: '50 min', score: 62, tags: ['API'] },
+          { id: 'b2-1', name: 'Minh Phat Company', channel: 'facebook', snippet: 'Solution for a 50-person team...', time: 'Just now', score: 85, tags: ['Consultation', 'Quote'] },
+          { id: 'b2-2', name: 'Phuong Nam Logistics', channel: 'zalo', snippet: 'We’d like to learn about your solution...', time: '18 min', score: 81, tags: ['Operations'] },
+          { id: 'b2-3', name: 'Sao Mai Agency', channel: 'facebook', snippet: 'Can it work with our current system?', time: '50 min', score: 62, tags: ['Integration'] },
         ],
       },
     },
@@ -1098,8 +1081,8 @@ const en: LandingContent = {
   },
   testimonials: {
     pill: 'Trusted across industries',
-    titleLead: 'Trusted by',
-    titleHighlight: 'businesses in many fields',
+    titleLead: 'Customer',
+    titleHighlight: 'Reviews',
     subtitleBefore: 'Hear from the people who run their sales and support teams with Polaris',
     subtitleAfter: '.',
     items: [
@@ -1150,17 +1133,17 @@ const en: LandingContent = {
   },
   cta: {
     pill: 'Ready to go digital with PolarisX',
-    title: 'Grow your sales starting today',
+    title: 'Try PolarisX',
     subtitle:
-      'Get a complete multi-channel conversational CRM: automatic message capture, instant classification, a pipeline built for your industry and deals closed up to 3x faster.',
-    checklist: ['Up and running in under 24 hours', 'Templates for every industry', '24/7 technical support'],
+      'Bring conversations, customer management and sales opportunities together on one platform that adapts to your business workflows.',
+    checklist: ['Up and running in under 24 hours', 'Fits your business workflows', '24/7 technical support'],
     primary: 'Start your free trial',
-    secondary: 'Explore all features',
+    secondary: 'Explore the workflow',
     mascot: 'Ready to grow! 🎉',
   },
   footer: {
     description:
-      'A multi-channel, multi-industry conversational CRM to capture messages, nurture customers and close deals in education, real estate, spa, retail and B2B.',
+      'A multi-channel conversational CRM that brings customer interactions, customer management and team collaboration together in one system.',
     emailAria: 'Contact email',
     portalAria: 'Website',
     featuresTitle: 'Key features',

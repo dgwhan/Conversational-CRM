@@ -477,11 +477,32 @@ describe('StaffManagementService (Owner-Staff Relationship & RBAC Management)', 
     expect(invited.role).toBe('STAFF');
   });
 
-  it('should reject invite when role is OWNER or MANAGER', async () => {
+  it('should reject directly inviting an Owner; ownership is transferred separately', async () => {
     const ownerId = 'c0000000-0000-0000-0000-000000000001';
     await expect(
       service.createStaff(ownerId, { identifier: 'member@cusc.com', role: 'OWNER' } as any)
-    ).rejects.toThrow('Chỉ được mời thành viên mới với vai trò Nhân viên tư vấn (STAFF)');
+    ).rejects.toThrow('Không thể mời Owner trực tiếp. Hãy sử dụng chức năng chuyển quyền sở hữu workspace.');
+  });
+
+  it('should allow Owner to invite a Manager into the workspace', async () => {
+    const ownerId = 'c0000000-0000-0000-0000-000000000001';
+    await mockPrisma.user.create({
+      data: { id: ownerId, email: 'owner-manager-invite@cusc.com', fullName: 'Owner' },
+    });
+    await mockPrisma.workspace.create({
+      data: { id: 'ws-owner-manager-invite', ownerId, name: 'Workspace Manager Invite', isActive: true },
+    });
+    await mockPrisma.user.create({
+      data: { email: 'manager-invite@cusc.com', fullName: 'Workspace Manager' },
+    });
+
+    const invited = await service.createStaff(ownerId, {
+      identifier: 'manager-invite@cusc.com',
+      role: 'MANAGER',
+    });
+
+    expect(invited.role).toBe('MANAGER');
+    expect(invited.memberStatus).toBe('PENDING');
   });
 
   it('should reject invite when neither email nor phone is provided', async () => {

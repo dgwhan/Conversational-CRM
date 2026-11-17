@@ -1,4 +1,4 @@
-import type { USER_ROLES } from '../../auth/userRole.types.js';
+import type { WorkspaceRole } from './workspace-role.js';
 import type { BusinessDomain } from './domain.types.js';
 import type { WorkspaceTerminology } from './terminology.types.js';
 import type { PipelineStageConfig } from './pipeline.types.js';
@@ -23,7 +23,7 @@ export interface WorkspaceItem {
   id: string;
   name: string;
   slug: string;
-  role: typeof USER_ROLES.OWNER | typeof USER_ROLES.STAFF;
+  role: WorkspaceRole;
   isOwner: boolean;
   domain: string;
   ownerId?: string;
@@ -51,7 +51,7 @@ export interface WorkspaceConfigContextType {
   staffMembers: ManagedStaffItem[];
   isLoadingStaff?: boolean;
   fetchStaffList: (targetWsId?: string) => Promise<ManagedStaffItem[]>;
-  createStaffMember: (data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: typeof USER_ROLES.STAFF | typeof USER_ROLES.OWNER }, targetWsId?: string) => Promise<void>;
+  createStaffMember: (data: { identifier?: string; email?: string; fullName?: string; phoneNumber?: string; password?: string; role?: WorkspaceRole }, targetWsId?: string) => Promise<void>;
   deleteStaffMember: (staffId: string, targetWsId?: string, targetNewOwnerId?: string) => Promise<void>;
   transferOwnership?: (targetMemberId: string, leaveWorkspace?: boolean, targetWsId?: string) => Promise<any>;
   toggleStaffLock?: (targetId: string, lock: boolean, targetWsId?: string) => Promise<any>;

@@ -10,9 +10,9 @@ export const ORGANIZATION_INFO = {
   name: 'PolarisX Studio',
   tradingName: 'PolarisX Conversational CRM',
   address: 'Ninh Kiều, Cần Thơ',
-  contactEmail: 'ngnphcng@gmail.com | duongngochan205@gmail.com',
-  phone: '081 9449218 | 038 8071459',
+  contactEmail: 'ngnphcng@gmail.com hoặc duongngochan205@gmail.com',
+  phone: '081 9449218 hoặc 038 8071459',
   dpoEmail: '[EMAIL BẢO VỆ DỮ LIỆU]',
-  website: '[Website]',
+  website: 'https://polarisx.io.vn/',
   serviceScope: 'Hệ thống Quản lý Quan hệ Khách hàng & Khách hàng Hội thoại Đa kênh (PolarisX Conversational CRM)',
 } as const;

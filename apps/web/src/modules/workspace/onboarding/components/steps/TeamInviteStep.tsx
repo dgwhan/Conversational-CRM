@@ -10,7 +10,7 @@ import {
   Radio,
 } from 'lucide-react';
 import type { StaffInvite, BusinessSetupData, FanpageItem } from '../../types.js';
-import { StaffRole } from '../../../../../features/auth/constants/auth.constants.js';
+import { WORKSPACE_ROLES, type WorkspaceRole } from '../../../types/workspace-role.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { confirmDialog } from '../../../../../components/feedback/confirmDialog.js';
 import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.js';
@@ -19,7 +19,7 @@ export interface TeamInviteStepProps {
   business: BusinessSetupData;
   pages: FanpageItem[];
   invites: StaffInvite[];
-  onAddInvite: (identifier: string, role: StaffRole) => Promise<void> | void;
+  onAddInvite: (identifier: string, role: WorkspaceRole) => Promise<void> | void;
   onRemoveInvite: (id: string) => Promise<void> | void;
   onFinish: () => void;
   onBack: () => void;
@@ -39,7 +39,7 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
 }) => {
   const { t } = useTranslation();
   const [identifierInput, setIdentifierInput] = useState('');
-  const [roleInput, setRoleInput] = useState<StaffRole>(StaffRole.STAFF);
+  const [roleInput, setRoleInput] = useState<WorkspaceRole>(WORKSPACE_ROLES.STAFF);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -129,11 +129,11 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
           <div className="invite-role-field">
             <SearchableSelect
               value={roleInput}
-              onChange={(val) => setRoleInput(val as StaffRole)}
+              onChange={(val) => setRoleInput(val as WorkspaceRole)}
               disabled={isSubmitting}
               options={[
-                { value: StaffRole.STAFF, label: 'Nhân viên tư vấn (STAFF)' },
-                { value: StaffRole.OWNER, label: 'Quản lý / Đồng sở hữu (OWNER)' },
+                { value: WORKSPACE_ROLES.STAFF, label: 'Nhân viên (Staff)' },
+                { value: WORKSPACE_ROLES.MANAGER, label: 'Quản lý (Manager)' },
               ]}
               size="md"
               searchable={false}
@@ -204,12 +204,12 @@ export const TeamInviteStep: React.FC<TeamInviteStepProps> = ({
                     </td>
                     <td>
                       <span className={`role-badge ${inv.role.toLowerCase()}`}>
-                        {inv.role === StaffRole.OWNER ? 'Quản lý (OWNER)' : 'Tư vấn viên (STAFF)'}
+                        {inv.role === WORKSPACE_ROLES.OWNER ? 'Chủ sở hữu (Owner)' : inv.role === WORKSPACE_ROLES.MANAGER ? 'Quản lý (Manager)' : 'Nhân viên (Staff)'}
                       </span>
                     </td>
                     <td className="permission-desc">
                       <div>
-                        {inv.role === StaffRole.OWNER
+                        {inv.role === WORKSPACE_ROLES.OWNER || inv.role === WORKSPACE_ROLES.MANAGER
                           ? t('onboarding.step3.adminDesc')
                           : t('onboarding.step3.agentDesc')}
                       </div>
