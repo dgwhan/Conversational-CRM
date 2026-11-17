@@ -78,7 +78,6 @@ export const HeroSection: React.FC<{ isDark?: boolean }> = ({ isDark: _isDark = 
           </Reveal>
         </div>
 
-        {/* Showcase: desktop ở giữa, mobile gối lên mép trái */}
         <Reveal variant="slide-right" delay={300} className="relative mx-auto mt-14 w-full max-w-6xl pb-12 sm:mt-16 sm:pb-16">
           <div className="ml-auto w-[90%] sm:mx-auto sm:w-[80%]">
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white landing-dark:border-white/15 landing-dark:bg-[#0B1F3A]">

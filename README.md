@@ -1,8 +1,16 @@
-# POLARISX Recruitment CRM
+# PolarisX Conversational CRM
 
-Hệ thống CRM tuyển sinh đa kênh: gom tin nhắn Facebook Messenger và Zalo (OA và Zalo cá nhân) về một hộp thư chung, tự động tạo và phân loại khách hàng tiềm năng, quản lý phễu tuyển sinh (Kanban), deal, hoạt động chăm sóc và báo cáo. Mỗi đơn vị dùng hệ thống là một **workspace** độc lập với hai vai trò `OWNER` và `STAFF`.
+PolarisX là hệ thống CRM hội thoại đa kênh dành cho doanh nghiệp: hợp nhất tin nhắn, quản lý hồ sơ khách hàng, phân công chăm sóc và theo dõi cơ hội bán hàng trên cùng một workspace. Sản phẩm hỗ trợ nhiều mô hình kinh doanh; các ví dụ cấu hình không giới hạn hệ thống vào một ngành cụ thể. Tài khoản người dùng không có role toàn cục; quyền được xác định trong từng workspace với ba vai trò `OWNER`, `MANAGER` và `STAFF`.
 
 Monorepo pnpm gồm API NestJS (Fastify) và web React, dữ liệu trên PostgreSQL, hàng đợi và trạng thái dùng chung trên Redis.
+
+## Xem trước sản phẩm
+
+Landing page hỗ trợ tiếng Việt và tiếng Anh, có giao diện sáng/tối. Ảnh dưới đây là ảnh giới thiệu sản phẩm dành riêng cho README; phần Hero trên landing vẫn giữ bố cục hình desktop và mobile hiện tại.
+
+<p align="center">
+  <img src="apps/web/src/assets/images/hero/conversational-hero-img.png" alt="PolarisX Conversational CRM" width="100%" />
+</p>
 
 ---
 
@@ -29,9 +37,10 @@ Monorepo pnpm gồm API NestJS (Fastify) và web React, dữ liệu trên Postgr
 | :--- | :--- |
 | **Hộp thư hợp nhất** | Nhận tin qua webhook Facebook / Zalo OA, đồng bộ Zalo cá nhân (`zca-js`), nhập lịch sử từ CSV. Chống trùng theo `(channel, externalMessageId)`. Gửi trả lời và đánh dấu đã xem ngược về nền tảng. |
 | **Khách hàng & liên hệ** | Tự tạo khách hàng khi có tin mới, gộp liên hệ theo số điện thoại chuẩn hóa, ánh xạ nhãn nguồn (vd. *Facebook Lead*) sang nhãn và trạng thái lead nội bộ, ẩn danh hóa dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP. |
-| **Phễu tuyển sinh** | Kanban theo giai đoạn, deal, lịch và nhật ký hoạt động; cập nhật thời gian thực qua WebSocket / SSE. |
+| **Vòng đời khách hàng** | Kanban theo giai đoạn, cơ hội bán hàng, lịch và nhật ký chăm sóc; cập nhật thời gian thực qua WebSocket / SSE. |
 | **Phân loại & chấm điểm** | Bộ luật từ khóa theo workspace và engine NLP chấm điểm hội thoại. |
-| **Workspace & nhân sự** | Tạo workspace, mời nhân viên, phân công hội thoại; `STAFF` chỉ thấy khách hàng được giao. |
+| **Workspace & nhân sự** | Tạo workspace, mời nhân viên và phân công hội thoại. `OWNER`, `MANAGER` và `STAFF` là các quyền theo workspace; tài khoản đăng ký không mang role toàn cục. |
+| **Landing page** | Nội dung tiếng Việt / tiếng Anh, giao diện sáng / tối và bản xem trước sản phẩm responsive. |
 | **Vận hành** | Trả lời tự động ngoài giờ làm việc, giám sát hạn phiên Zalo cá nhân, chính sách lưu trữ và dọn dẹp tin nhắn, thông báo trong ứng dụng. |
 | **Bảo mật** | Xác thực JWT + refresh token xoay vòng, khóa tài khoản, khôi phục mật khẩu bằng OTP, cô lập dữ liệu theo workspace, xác thực chữ ký webhook, chống SSRF, rate limit dùng chung. Xem [SECURITY_STANDARDIZATION.md](docs/modules/SECURITY_STANDARDIZATION.md). |
 
