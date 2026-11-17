@@ -203,7 +203,7 @@ export const ConnectedChannelsList: React.FC<ConnectedChannelsListProps> = ({
                   </div>
                 </div>
 
-                {(canManageChannels || channel.channel === "ZALO") && (
+                {(canConnectChannels || channel.channel === "ZALO") && (
                   <div className="flex items-center gap-2">
                     {channel.channel === "ZALO" && (
                       <Button

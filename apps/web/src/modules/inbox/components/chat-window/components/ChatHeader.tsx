@@ -13,6 +13,7 @@ import { SearchableSelect } from '../../../../../components/ui/SearchableSelect.
 import { resolveChannelInfo } from '../../../../../lib/channel-meta.js';
 import { useTranslation } from '../../../../../i18n/index.js';
 import { useUserRole } from '../../../../auth/UserRoleContext.js';
+import { useWorkspaceConfig } from '../../../../workspace/WorkspaceConfigContext.js';
 import { getUnresponsiveStatus } from '../../../utils/index.js';
 
 export interface ChatHeaderProps {
@@ -40,6 +41,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
   const { t } = useTranslation();
   const { isOwner, staffId } = useUserRole();
+  const { canManageWorkspace } = useWorkspaceConfig();
+  const canAssignStaff = isOwner || canManageWorkspace;
   const channelMeta = resolveChannelInfo(conversation.channel);
   const { isOverdue, waitingMinutes } = getUnresponsiveStatus(conversation, alertThresholdMinutes);
 
@@ -146,7 +149,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
 
         {/* Phân công nhân viên - Tối ưu kích thước trên Mobile */}
-        {isOwner ? (
+        {canAssignStaff ? (
           <div className="shrink-0 min-w-[90px] xs:min-w-[120px] sm:min-w-[140px]">
             <SearchableSelect
               value={conversation.assignedStaff?.id || ''}
