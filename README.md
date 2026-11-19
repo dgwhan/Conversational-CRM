@@ -4,10 +4,6 @@ PolarisX là hệ thống CRM hội thoại đa kênh dành cho doanh nghiệp: 
 
 Monorepo pnpm gồm API NestJS (Fastify) và web React, dữ liệu trên PostgreSQL, hàng đợi và trạng thái dùng chung trên Redis.
 
-## Xem trước sản phẩm
-
-Landing page hỗ trợ tiếng Việt và tiếng Anh, có giao diện sáng/tối. Ảnh dưới đây là ảnh giới thiệu sản phẩm dành riêng cho README; phần Hero trên landing vẫn giữ bố cục hình desktop và mobile hiện tại.
-
 <p align="center">
   <img src="apps/web/src/assets/images/hero/conversational-hero-img.png" alt="PolarisX Conversational CRM" width="100%" />
 </p>
