@@ -6,7 +6,7 @@ import type {
   AuthorizeUrlResult,
   ExchangeTokenResult,
   OAuthDiscoveredPage,
-} from '../../../contracts/channel-connection.js';
+} from '../../../../contracts/channel-connection.js';
 
 @Injectable()
 export class OAuthService {

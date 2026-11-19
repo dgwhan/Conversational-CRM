@@ -16,6 +16,7 @@ import {
     TAG_SYNC_ERROR_TYPE,
     TAG_EVENT_SOURCE,
 } from "../domain/tag-mapping/index.js";
+import { CustomerLeadStatus, CustomerLeadStage } from "../../../contracts/crm-status.constants.js";
 
 /**
  * Các tác vụ phụ sau khi một tin webhook đã được lưu: đồng bộ khách hàng vào bảng customers,
@@ -124,8 +125,8 @@ export class InboundMessageSideEffects {
                             workspaceId: event.workspaceId || null,
                             fullName: customerName,
                             avatarUrl: customerAvatar,
-                            leadStatus: tagResult.suggestedLeadStatus || 'NEW',
-                            leadStage: tagResult.suggestedLeadStage || 'STAGE_NEW',
+                            leadStatus: tagResult.suggestedLeadStatus || CustomerLeadStatus.NEW,
+                            leadStage: tagResult.suggestedLeadStage || CustomerLeadStage.STAGE_NEW,
                             channelIdentities: {
                                 [event.channel.toLowerCase()]: event.senderExternalId,
                                 channel: event.channel,

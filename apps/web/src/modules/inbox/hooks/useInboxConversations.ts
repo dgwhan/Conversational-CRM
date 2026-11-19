@@ -230,20 +230,41 @@ export const useInboxConversations = ({
               : latestTimestamp;
           }, null);
 
+          const chMeta = (latest.channelAccount as any)?.metadata;
+          const matchedChannel: any = ((channelsRes as any[]) || []).find(
+            (c: any) =>
+              c.id === (latest as any).channelAccountId ||
+              c.id === (latest.channelAccount as any)?.id ||
+              (latest.channelAccount?.externalAccountId && c.externalAccountId === latest.channelAccount.externalAccountId)
+          );
+          const channelPhone =
+            chMeta?.phone ||
+            chMeta?.phoneNumber ||
+            matchedChannel?.metadata?.phone ||
+            matchedChannel?.metadata?.phoneNumber ||
+            matchedChannel?.phone ||
+            '';
+
           const isPersonalZalo = Boolean(
             latest.channel === 'ZALO' && (
               (latest.channelAccount as any)?.isPersonal ||
-              (latest.channelAccount as any)?.metadata?.isPersonal ||
-              (latest.channelAccount as any)?.metadata?.engine === 'zca-js' ||
+              chMeta?.isPersonal ||
+              chMeta?.engine === 'zca-js' ||
+              matchedChannel?.isPersonal ||
+              matchedChannel?.metadata?.isPersonal ||
               (latest as any).rawPayload?.isPersonal ||
               (latest as any).rawPayload?.engine === 'zca-js'
             )
           );
           const effectiveConvChannel: ChannelType = isPersonalZalo ? 'ZALO_PERSONAL' : (latest.channel as any);
-          const channelName =
+          const channelName: string = String(
             latest.channelAccount?.displayName && !latest.channelAccount.displayName.startsWith('Kênh ')
               ? latest.channelAccount.displayName
-              : (isPersonalZalo ? 'Zalo Cá nhân' : (latest.channel === 'ZALO' ? 'Zalo OA' : latest.channel));
+              : (matchedChannel?.displayName && !String(matchedChannel.displayName).startsWith('Kênh ')
+                ? matchedChannel.displayName
+                : (isPersonalZalo ? 'Zalo Cá nhân' : (latest.channel === 'ZALO' ? 'Zalo OA' : latest.channel)))
+          );
+          const channelAccountPhone = channelPhone ? String(channelPhone).trim() : undefined;
 
           const isLatestOut = latest.direction === 'OUTBOUND';
           const myExtId = latest.channelAccount?.externalAccountId;
@@ -391,6 +412,7 @@ export const useInboxConversations = ({
               ...existing,
               channel: effectiveConvChannel,
               channelAccountName: channelName,
+              channelAccountPhone: channelAccountPhone || existing.channelAccountPhone,
               channelAccountId: (latest as any).channelAccountId || (latest.channelAccount as any)?.id || existing.channelAccountId || undefined,
               snippet: latest.content || existing.snippet,
               lastMessageAt: latest.sentAt ? new Date(latest.sentAt).toISOString() : new Date().toISOString(),
@@ -404,6 +426,7 @@ export const useInboxConversations = ({
                   channelIdentities: identitiesList.length ? identitiesList : existing.customer.channelIdentities,
                   channel: effectiveConvChannel,
                   channelAccountName: channelName,
+                  channelAccountPhone: channelAccountPhone || existing.customer.channelAccountPhone,
                   fullName: rawCustomerName,
                   avatarUrl: rawCustomerAvatar,
                   phone: matchedCust?.phone || existing.customer.phone,
@@ -422,6 +445,7 @@ export const useInboxConversations = ({
                   channelIdentities: identitiesList.length ? identitiesList : existing.customer.channelIdentities,
                   channel: effectiveConvChannel,
                   channelAccountName: channelName,
+                  channelAccountPhone: channelAccountPhone || existing.customer.channelAccountPhone,
                   avatarUrl: shouldFixAvatar ? rawCustomerAvatar : existing.customer.avatarUrl,
                   leadStatus: (matchedCust?.leadStatus as any) || existing.customer.leadStatus,
                   leadStage: matchedCust?.leadStage || existing.customer.leadStage,
@@ -452,6 +476,7 @@ export const useInboxConversations = ({
               id: convId,
               channel: effectiveConvChannel,
               channelAccountName: channelName,
+              channelAccountPhone,
               channelAccountId: (latest as any).channelAccountId || (latest.channelAccount as any)?.id || (convCustomer as any)?.channelAccountId || undefined,
               snippet: latest.content || 'Tin nhắn mới',
               lastMessageAt: latest.sentAt ? new Date(latest.sentAt).toISOString() : new Date().toISOString(),
@@ -471,6 +496,7 @@ export const useInboxConversations = ({
                 socialId: latestSenderId,
                 channel: effectiveConvChannel,
                 channelAccountName: channelName,
+                channelAccountPhone,
                 leadStatus: (matchedCust?.leadStatus as any) || 'POTENTIAL',
                 leadStage: matchedCust?.leadStage || undefined,
                 tags: initialCustomerTags,
@@ -642,15 +668,33 @@ export const useInboxConversations = ({
             ? (msg as any).recipientName || (msg as any).customerName || `Khách hàng (${msg.channel})`
             : (!isCounselorName(msg.senderName) ? msg.senderName : `Khách hàng (${msg.channel})`);
 
-        const resolvedAccountName =
+        const matchedCh: any = ((channelAccounts as any[]) || []).find(
+          (ca: any) =>
+            ca.id === (msg as any).channelAccountId ||
+            ca.id === (msg as any).channelAccount?.id ||
+            ((msg as any).channelAccount?.externalAccountId && ca.externalAccountId === (msg as any).channelAccount.externalAccountId)
+        );
+        const resolvedAccountPhone =
+          (msg as any).channelAccount?.metadata?.phone ||
+          (msg as any).channelAccount?.metadata?.phoneNumber ||
+          matchedCh?.metadata?.phone ||
+          matchedCh?.metadata?.phoneNumber ||
+          matchedCh?.phone ||
+          undefined;
+
+        const resolvedAccountName: string = String(
           (msg as any).channelAccount?.displayName && !(msg as any).channelAccount.displayName.startsWith('Kênh ')
             ? (msg as any).channelAccount.displayName
-            : (isMsgPersonalZalo ? 'Zalo Cá nhân' : (msg.channel === 'ZALO' ? 'Zalo OA' : msg.channel));
+            : (matchedCh?.displayName && !String(matchedCh.displayName).startsWith('Kênh ')
+              ? matchedCh.displayName
+              : (isMsgPersonalZalo ? 'Zalo Cá nhân' : (msg.channel === 'ZALO' ? 'Zalo OA' : msg.channel)))
+        );
 
         const newConv: ConversationItem = {
           id: targetId,
           channel: effectiveMsgChannel,
           channelAccountName: resolvedAccountName,
+          channelAccountPhone: resolvedAccountPhone,
           channelAccountId: (msg as any).channelAccountId || (msg as any).channelAccount?.id || undefined,
           snippet: msg.content,
           lastMessageAt: 'Vừa xong',
@@ -674,6 +718,7 @@ export const useInboxConversations = ({
             socialId: (msg as any).senderExternalId || (msg as any).senderId || (msg as any).rawPayload?.uidFrom || (msg as any).rawPayload?.sender?.id || msg.id,
             channel: effectiveMsgChannel,
             channelAccountName: resolvedAccountName,
+            channelAccountPhone: resolvedAccountPhone,
             leadStatus: isFb ? 'POTENTIAL' : 'NEW',
             tags: defaultTags,
             interestCourses: [],

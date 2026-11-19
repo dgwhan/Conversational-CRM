@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
-import { OAuthService } from '../../src/modules/channel-connection/application/oauth.service.js';
-import { ChannelManagerService } from '../../src/modules/channel-connection/application/channel-manager.service.js';
+import { OAuthService } from '../../src/modules/channel-connection/application/oauth/oauth.service.js';
+import { ChannelManagerService } from '../../src/modules/channel-connection/application/channels/channel-manager.service.js';
 import { ChannelConnectorController } from '../../src/modules/channel-connection/presentation/channel-connector.controller.js';
 import { TokenEncryptionService } from '../../src/modules/channel-connection/infrastructure/token-encryption.service.js';
 

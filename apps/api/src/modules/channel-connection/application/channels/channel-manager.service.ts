@@ -6,23 +6,23 @@ import {
   Optional,
   Inject,
 } from '@nestjs/common';
-import { CUSTOMER_GATEWAY } from '../../messaging/domain/customer-gateway.port.js';
-import type { CustomerGateway } from '../../messaging/domain/customer-gateway.port.js';
-import { PrismaService } from '../../../platform/database/prisma.service.js';
-import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
-import { ZcaPersonalService } from './zca-personal.service.js';
-import { MessageRepository } from '../../messaging/infrastructure/message.repository.js';
-import { INBOUND_QUEUE, type InboundMessageQueue } from '../../messaging/domain/channel-adapter.port.js';
-import { RealtimeService } from '../../realtime/realtime.service.js';
-import { MessageDispatcherService, SendMessageInput, SendMessageResult } from './message-dispatcher.service.js';
+import { CUSTOMER_GATEWAY } from '../../../messaging/domain/customer-gateway.port.js';
+import type { CustomerGateway } from '../../../messaging/domain/customer-gateway.port.js';
+import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { TokenEncryptionService } from '../../infrastructure/token-encryption.service.js';
+import { ZcaPersonalService } from '../zca-personal/zca-personal.service.js';
+import { MessageRepository } from '../../../messaging/infrastructure/message.repository.js';
+import { INBOUND_QUEUE, type InboundMessageQueue } from '../../../messaging/domain/channel-adapter.port.js';
+import { RealtimeService } from '../../../realtime/realtime.service.js';
+import { MessageDispatcherService, SendMessageInput, SendMessageResult } from '../dispatch/message-dispatcher.service.js';
 import { ChannelSyncService, ChannelSyncResult } from './channel-sync.service.js';
-import { MediaArchiveService } from '../../messaging/application/media-archive.service.js';
-import { Channel } from '../../messaging/domain/channel.js';
+import { MediaArchiveService } from '../../../messaging/application/media-archive.service.js';
+import { Channel } from '../../../messaging/domain/channel.js';
 import type {
   ActivateChannelsBody,
   ActivateChannelsResult,
   ChannelAccountDto,
-} from '../../../contracts/channel-connection.js';
+} from '../../../../contracts/channel-connection.js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const normalizeWorkspaceId = (workspaceId?: string): string | undefined =>
@@ -446,6 +446,7 @@ export class ChannelManagerService {
 
     const identityMap = conv.customer?.channelIdentities as Record<string, unknown> | null;
     const channelKey = String(conv.channelAccount.channel).toLowerCase();
+    const isZaloChannel = channelKey.includes('zalo');
     const pageExtId = conv.channelAccount.externalAccountId;
     const candidates: string[] = [];
 
@@ -474,8 +475,10 @@ export class ChannelManagerService {
       addCandidate(sender?.id || sender?.userId || rp?.senderExternalId || rp?.fromId || rp?.uidFrom);
     }
 
-    // 3. Cuối cùng là channelIdentities của customer (dữ liệu cũ / fallback)
-    const channelIdentity = identityMap?.[channelKey];
+    // 3. channelIdentities của customer (hỗ trợ cả Zalo OA và Zalo Cá nhân, cả Object lẫn Array)
+    const channelIdentity = isZaloChannel
+      ? (identityMap?.zalo || identityMap?.zalo_personal)
+      : identityMap?.[channelKey];
     if (typeof channelIdentity === 'string') addCandidate(channelIdentity);
     else if (channelIdentity && typeof channelIdentity === 'object' && !Array.isArray(channelIdentity)) {
       const identity = channelIdentity as Record<string, unknown>;
@@ -485,7 +488,8 @@ export class ChannelManagerService {
     }
     if (Array.isArray(identityMap)) {
       for (const entry of identityMap as any[]) {
-        if (String(entry?.channel || '').toLowerCase() === channelKey) {
+        const entryCh = String(entry?.channel || '').toLowerCase();
+        if (entryCh === channelKey || (isZaloChannel && (entryCh === 'zalo' || entryCh === 'zalo_personal'))) {
           addCandidate(entry?.externalUserId || entry?.id);
         }
       }
@@ -495,10 +499,20 @@ export class ChannelManagerService {
       addCandidate(socialId);
     }
 
-    // 4. Quyết định người nhận
-    // 4. Quyết định người nhận
+    // 4. Bổ sung SĐT của khách hàng vào candidates (cho phép Zalo tra cứu theo SĐT)
+    if (conv.customer?.phone) addCandidate(conv.customer.phone);
+    if ((conv.customer as any)?.phoneNormalized) addCandidate((conv.customer as any).phoneNormalized);
+
+    // 5. Quyết định người nhận
     const normalizedInputExternal = normalizeExternalId(input.recipientId.trim());
     const matched = candidates.find((candidate) => candidate === normalizedInputExternal);
+
+    const isCustomerSelfId =
+      Boolean(conv.customerId && normalizedInputExternal === conv.customerId) ||
+      Boolean(conv.customer?.id && normalizedInputExternal === conv.customer.id) ||
+      normalizedInputExternal.startsWith('cust-') ||
+      normalizedInputExternal === 'khách' ||
+      normalizedInputExternal === 'anonymous';
 
     let resolvedRecipientId: string | undefined;
     if (channelKey === 'facebook') {
@@ -511,7 +525,19 @@ export class ChannelManagerService {
         );
       }
     } else {
-      resolvedRecipientId = matched ?? (candidates.length === 1 ? candidates[0] : undefined);
+      if (matched) {
+        resolvedRecipientId = matched;
+      } else if (isCustomerSelfId && candidates.length > 0) {
+        resolvedRecipientId = candidates[0];
+      } else if (candidates.length === 1) {
+        resolvedRecipientId = candidates[0];
+      } else if (isCustomerSelfId && conv.customer?.phone) {
+        resolvedRecipientId = conv.customer.phone;
+      } else if (isCustomerSelfId) {
+        resolvedRecipientId = normalizedInputExternal;
+      } else if (isZaloChannel && candidates.length > 0) {
+        resolvedRecipientId = candidates[0];
+      }
     }
 
     if (!resolvedRecipientId) {
@@ -588,6 +614,7 @@ export class ChannelManagerService {
 
   private mapToDto(account: any): ChannelAccountDto {
     const isPersonal = Boolean(account.metadata?.isPersonal || account.metadata?.engine === 'zca-js' || account.channel === 'ZALO_PERSONAL');
+    const phone = account.metadata?.phone || account.metadata?.phoneNumber || null;
     return {
       isPersonal,
       metadata: account.metadata || null,
@@ -597,6 +624,7 @@ export class ChannelManagerService {
       externalAccountId: account.externalAccountId,
       displayName: account.displayName,
       avatarUrl: account.avatarUrl,
+      phone,
       isActive: account.isActive,
       isWebhookSubscribed: account.isWebhookSubscribed,
       hasToken: !!account.encryptedAccessToken,

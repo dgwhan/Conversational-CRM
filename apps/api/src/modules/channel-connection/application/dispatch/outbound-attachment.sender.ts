@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import type { OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
-import { ZALO_OA_IMAGE_MAX_BYTES } from '../../messaging/domain/media/outbound-media-policy.js';
-import { shrinkJpeg } from '../../messaging/infrastructure/media-storage/image-optimizer.js';
+import type { OutboundMediaPayload } from '../../../messaging/application/outbound-media.service.js';
+import { ZALO_OA_IMAGE_MAX_BYTES } from '../../../messaging/domain/media/outbound-media-policy.js';
+import { shrinkJpeg } from '../../../messaging/infrastructure/media-storage/image-optimizer.js';
 
 /**
  * Gửi tệp đính kèm qua API chính thức của từng kênh.

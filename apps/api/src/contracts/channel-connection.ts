@@ -111,6 +111,7 @@ export interface ChannelAccountDto {
   tokenExpiresAt: Date | null;
   metadata?: Record<string, any> | null;
   isPersonal?: boolean;
+  phone?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

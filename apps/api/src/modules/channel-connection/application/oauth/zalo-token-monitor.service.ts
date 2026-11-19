@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap, Optional } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../../../platform/database/prisma.service.js';
-import { NotificationService } from '../../notification/notification.service.js';
-import { RealtimeService } from '../../realtime/realtime.service.js';
+import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { NotificationService } from '../../../notification/notification.service.js';
+import { RealtimeService } from '../../../realtime/realtime.service.js';
 import { NotificationType, NotificationSeverity } from '@prisma/client';
-import { DistributedLockService } from '../../../platform/redis/distributed-lock.service.js';
+import { DistributedLockService } from '../../../../platform/redis/distributed-lock.service.js';
 
 @Injectable()
 export class ZaloTokenMonitorService implements OnApplicationBootstrap {

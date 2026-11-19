@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MessageDispatcherService } from '../../src/modules/channel-connection/application/message-dispatcher.service.js';
+import { MessageDispatcherService } from '../../src/modules/channel-connection/application/dispatch/message-dispatcher.service.js';
 import { Channel } from '../../src/modules/messaging/domain/channel.js';
 import type { PrismaService } from '../../src/platform/database/prisma.service.js';
 import type { TokenEncryptionService } from '../../src/modules/channel-connection/infrastructure/token-encryption.service.js';

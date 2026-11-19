@@ -24,6 +24,7 @@ import { AuditAction } from '@prisma/client';
 import { AuditService } from '../../audit/audit.service.js';
 import { LeadRoutingService } from '../../lead-routing/index.js';
 import { WorkspaceRole } from '../../../contracts/roles.js';
+import { CustomerLeadStatus, CUSTOMER_LEAD_STATUSES } from '../../../contracts/crm-status.constants.js';
 import { resolveActiveMemberId } from '../../../common/auth/workspace-membership.js';
 import { assertStaffCanModify } from '../../../common/auth/staff-scope.js';
 import type { RequestIdentity } from '../../../common/auth/request-identity.js';
@@ -77,7 +78,6 @@ export class UpdateCustomerDto {
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CUSTOMER_LEAD_STATUSES = ['NEW', 'POTENTIAL', 'QUALIFIED', 'CONVERTED', 'UNQUALIFIED'] as const;
 
 @Injectable()
 export class CustomerService {
@@ -414,7 +414,7 @@ export class CustomerService {
         // STAFF tạo khách thì khách thuộc về chính họ; OWNER có thể phân công cho thành viên khác
         const assigneeRef = caller?.role === 'STAFF' ? caller.staffId : (body.assignedMemberId ?? body.assignedStaffId);
         const assignedMemberId = await this.resolveWorkspaceMemberId(assigneeRef, workspaceId);
-        const leadStatus = body.leadStatus || 'NEW';
+        const leadStatus = body.leadStatus || CustomerLeadStatus.NEW;
         const leadStage = body.leadStage || 'STAGE_NEW';
 
         const created = await this.prisma.customer.create({
@@ -499,7 +499,7 @@ export class CustomerService {
 
         const currentIdentities = (existing.channelIdentities as any) || {};
         // Null from the Inbox's unmark action means the record returns to intake status.
-        const normalizedLeadStatus = body.leadStatus === null ? 'NEW' : body.leadStatus;
+        const normalizedLeadStatus = body.leadStatus === null ? CustomerLeadStatus.NEW : body.leadStatus;
 
         // Xử lý danh sách tags và phát hiện các tag bị gỡ thủ công qua CRM
         let cleanTags: string[] | undefined;
@@ -657,7 +657,7 @@ export class CustomerService {
 
         return {
             ...updated,
-            leadStatus: updated.leadStatus || updatedIdentities.leadStatus || 'NEW',
+            leadStatus: updated.leadStatus || updatedIdentities.leadStatus || CustomerLeadStatus.NEW,
             leadStage: updated.leadStage || updatedIdentities.leadStage || null,
             interestCourses: updatedIdentities.interestCourses || [],
             estimatedValue: updatedIdentities.estimatedValue || 0,
@@ -713,7 +713,7 @@ export class CustomerService {
 
         return {
             ...customer,
-            leadStatus: customer.leadStatus || identities.leadStatus || 'NEW',
+            leadStatus: customer.leadStatus || identities.leadStatus || CustomerLeadStatus.NEW,
             leadStage: customer.leadStage || identities.leadStage || null,
             notes: customer.notes || identities.notes || null,
             interestCourses: identities.interestCourses || [],
@@ -1065,12 +1065,12 @@ export class CustomerService {
             phone: validPhone,
             phoneNormalized: parsePhoneInput(validPhone)?.phoneNormalized ?? null,
             email: validEmail,
-            leadStatus: body.leadStatus || 'NEW',
+            leadStatus: body.leadStatus || CustomerLeadStatus.NEW,
             leadStage: body.leadStage || 'STAGE_NEW',
             channelIdentities: {
                 socialId: cleanSocialId,
                 facebook: cleanSocialId,
-                leadStatus: body.leadStatus || 'NEW',
+                leadStatus: body.leadStatus || CustomerLeadStatus.NEW,
                 leadStage: body.leadStage || 'STAGE_NEW',
                 ...(body.interestCourses !== undefined ? { interestCourses: body.interestCourses } : {}),
                 ...(body.estimatedValue !== undefined ? { estimatedValue: body.estimatedValue } : {}),
@@ -1127,7 +1127,7 @@ export class CustomerService {
 
         return {
             ...newCust,
-            leadStatus: newCust.leadStatus || body.leadStatus || 'NEW',
+            leadStatus: newCust.leadStatus || body.leadStatus || CustomerLeadStatus.NEW,
             leadStage: newCust.leadStage || body.leadStage || 'STAGE_NEW',
             interestCourses: body.interestCourses || [],
             estimatedValue: body.estimatedValue || 0,

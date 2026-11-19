@@ -8,18 +8,19 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { attachmentsFromRawPayload, summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
-import { WorkingHoursService } from '../../messaging/application/working-hours.service.js';
-import { CUSTOMER_GATEWAY } from '../../messaging/domain/customer-gateway.port.js';
-import type { CustomerGateway } from '../../messaging/domain/customer-gateway.port.js';
-import { PrismaService } from '../../../platform/database/prisma.service.js';
-import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
-import { ZcaPersonalService } from './zca-personal.service.js';
-import { MessageRepository, pairInsertedWithEvents, type InsertedMessage } from '../../messaging/infrastructure/message.repository.js';
-import { INBOUND_QUEUE, type InboundMessageQueue } from '../../messaging/domain/channel-adapter.port.js';
-import { RealtimeService } from '../../realtime/realtime.service.js';
-import { InboundEvent } from '../../messaging/domain/inbound-event.js';
-import { Channel, MessageDirection } from '../../messaging/domain/channel.js';
+import { attachmentsFromRawPayload, summarizeAttachments } from '../../../messaging/domain/media/attachment-normalizer.js';
+import { WorkingHoursService } from '../../../messaging/application/working-hours.service.js';
+import { CUSTOMER_GATEWAY } from '../../../messaging/domain/customer-gateway.port.js';
+import type { CustomerGateway } from '../../../messaging/domain/customer-gateway.port.js';
+import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { TokenEncryptionService } from '../../infrastructure/token-encryption.service.js';
+import { ZcaPersonalService } from '../zca-personal/zca-personal.service.js';
+import { MessageRepository, pairInsertedWithEvents, type InsertedMessage } from '../../../messaging/infrastructure/message.repository.js';
+import { INBOUND_QUEUE, type InboundMessageQueue } from '../../../messaging/domain/channel-adapter.port.js';
+import { RealtimeService } from '../../../realtime/realtime.service.js';
+import { InboundEvent } from '../../../messaging/domain/inbound-event.js';
+import { Channel, MessageDirection } from '../../../messaging/domain/channel.js';
+import { ConversationStatus, CustomerLeadStatus } from '../../../../contracts/crm-status.constants.js';
 import {
   resolveTagMappings,
   CRM_LEAD_STATUS,
@@ -29,7 +30,7 @@ import {
   TAG_SYNC_STAGE,
   TAG_SYNC_ERROR_TYPE,
   TAG_EVENT_SOURCE,
-} from '../../messaging/domain/tag-mapping/index.js';
+} from '../../../messaging/domain/tag-mapping/index.js';
 
 export interface ChannelSyncResult {
   syncedCount: number;
@@ -672,7 +673,7 @@ export class ChannelSyncService {
                 workspaceId: targetWsId || null,
                 channelAccountId: account.id,
                 customerId: dbCustomer?.id || null,
-                status: 'OPEN',
+                status: ConversationStatus.OPEN,
                 snippet: latestMsg,
                 lastMessageAt: convTime,
                 lastCustomerMessageAt: lastInboundAt,

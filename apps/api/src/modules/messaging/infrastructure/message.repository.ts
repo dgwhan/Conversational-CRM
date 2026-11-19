@@ -11,6 +11,7 @@ import {
     META_SOURCE_TAGS,
 } from "../domain/tag-mapping/index.js";
 import { WorkspaceRole } from "../../../contracts/roles.js";
+import { ConversationStatus } from "../../../contracts/crm-status.constants.js";
 
 /** Tin vừa được chèn mới (đã bỏ qua tin trùng). channel + externalMessageId dùng để ghép lại đúng sự kiện gốc. */
 export interface InsertedMessage {
@@ -520,7 +521,7 @@ export class MessageRepository implements OnModuleInit {
                                 channelAccountId: accountId,
                                 customerId: customerId || null,
                                 assignedMemberId: initialAssignedMemberId,
-                                status: 'OPEN',
+                                status: ConversationStatus.OPEN,
                                 snippet: e.content || 'Tin nhắn mới',
                                 lastMessageAt: messageSentAt,
                                 lastCustomerMessageAt: !isOutbound ? messageSentAt : undefined,
@@ -760,7 +761,7 @@ export class MessageRepository implements OnModuleInit {
                         data: {
                             channelAccountId: msg.channelAccountId,
                             customerId: customerId || null,
-                            status: 'OPEN',
+                            status: ConversationStatus.OPEN,
                             snippet: msg.content || 'Tin nhắn',
                             lastMessageAt: msg.sentAt,
                             tags: tagResult.finalTags,

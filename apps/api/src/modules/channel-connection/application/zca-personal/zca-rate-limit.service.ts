@@ -1,5 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import type { ZcaSafetyConfig } from './zca-personal.service.js';
+import type { ZcaSafetyConfig } from '../../domain/types/zca.types.js';
+import { DEFAULT_ZCA_SAFETY_CONFIG } from '../../domain/constants/zca-safety.constants.js';
 
 /**
  * ZcaRateLimitService — Kiểm soát tần suất gửi tin nhắn Zalo Cá nhân
@@ -18,14 +19,7 @@ export class ZcaRateLimitService {
   private readonly logger = new Logger(ZcaRateLimitService.name);
 
   // Cấu hình an toàn chống khóa tài khoản Zalo cá nhân
-  private safetyConfig: ZcaSafetyConfig = {
-    enabled: true,
-    minIntervalMs: 2500, // 2.5s
-    maxIntervalMs: 4500, // 4.5s
-    maxMessagesPerMinute: 15,
-    maxStrangerPerDay: 40,
-    autoCooldownMinutes: 15,
-  };
+  private safetyConfig: ZcaSafetyConfig = { ...DEFAULT_ZCA_SAFETY_CONFIG };
 
   // Bộ nhớ theo dõi tần suất gửi tin theo tài khoản để Rate Limiting
   // Map<accountId, timestamp[]>

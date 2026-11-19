@@ -8,23 +8,23 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { PrismaService } from '../../../platform/database/prisma.service.js';
-import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
-import { ZcaPersonalService } from './zca-personal.service.js';
-import { MessageRepository } from '../../messaging/infrastructure/message.repository.js';
-import { RealtimeService } from '../../realtime/realtime.service.js';
-import { Channel, MessageDirection } from '../../messaging/domain/channel.js';
+import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { TokenEncryptionService } from '../../infrastructure/token-encryption.service.js';
+import { ZcaPersonalService } from '../zca-personal/zca-personal.service.js';
+import { MessageRepository } from '../../../messaging/infrastructure/message.repository.js';
+import { RealtimeService } from '../../../realtime/realtime.service.js';
+import { Channel, MessageDirection } from '../../../messaging/domain/channel.js';
 import type {
   ChannelType,
-} from '../../../contracts/channel-connection.js';
-import { OutboundMediaService, type OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
+} from '../../../../contracts/channel-connection.js';
+import { OutboundMediaService, type OutboundMediaPayload } from '../../../messaging/application/outbound-media.service.js';
 import {
   OutboundMediaRuleError,
   assertSendable,
   type OutboundChannel,
-} from '../../messaging/domain/media/outbound-media-policy.js';
-import { summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
-import type { NormalizedAttachment } from '../../messaging/domain/inbound-event.js';
+} from '../../../messaging/domain/media/outbound-media-policy.js';
+import { summarizeAttachments } from '../../../messaging/domain/media/attachment-normalizer.js';
+import type { NormalizedAttachment } from '../../../messaging/domain/inbound-event.js';
 import { sendFacebookAttachment, sendZaloOaAttachment } from './outbound-attachment.sender.js';
 
 const isUuid = (val?: string | null): val is string =>

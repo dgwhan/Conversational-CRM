@@ -97,6 +97,7 @@ export interface CustomerProfile {
   socialId: string;
   channel: ChannelType;
   channelAccountName: string;
+  channelAccountPhone?: string;
   leadStatus: LeadStatus;
   leadStage?: LeadStage;
   estimatedValue?: number; // Học phí dự kiến (VNĐ)
@@ -139,6 +140,7 @@ export interface ConversationItem {
   channel: ChannelType;
   channelAccountName: string;
   channelAccountId?: string;
+  channelAccountPhone?: string;
   snippet: string;
   lastMessageAt: string;
   lastCustomerMessageAt?: string | null; // Used to check the 24-hour Meta rule

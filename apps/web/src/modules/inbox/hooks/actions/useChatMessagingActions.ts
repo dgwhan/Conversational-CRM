@@ -63,21 +63,43 @@ export const extractFacebookRecipientId = (conv: ConversationItem): string => {
  * Phân giải Zalo recipientId (Zalo UID dạng số hoặc số điện thoại)
  */
 export const extractZaloRecipientId = (conv: ConversationItem): string => {
+  // 1. Ưu tiên kiểm tra tin nhắn INBOUND gần nhất trong hội thoại
+  const lastInbound = (conv.messages || [])
+    .slice()
+    .reverse()
+    .find((m) => m.direction === 'INBOUND' && ((m as any).senderExternalId || (m as any).rawPayload?.uidFrom));
+  const senderExt = (lastInbound as any)?.senderExternalId || (lastInbound as any)?.rawPayload?.uidFrom;
+  if (senderExt && /^\d+$/.test(String(senderExt).trim())) {
+    return String(senderExt).trim();
+  }
+
+  // 2. Tra cứu trong channelIdentities (hỗ trợ cả Object & Array, cả Zalo OA & Zalo Cá nhân)
   const identitiesObj = conv.customer.channelIdentities as any;
   const customerZaloId =
     identitiesObj?.zalo?.id ||
+    identitiesObj?.zalo_personal?.id ||
     (typeof identitiesObj?.zalo === 'string' ? identitiesObj.zalo : undefined) ||
+    (typeof identitiesObj?.zalo_personal === 'string' ? identitiesObj.zalo_personal : undefined) ||
     (Array.isArray(identitiesObj)
-      ? identitiesObj.find((id: any) => String(id.channel).toUpperCase() === 'ZALO')?.externalUserId
+      ? identitiesObj.find((id: any) => {
+          const ch = String(id?.channel || '').toUpperCase();
+          return ch === 'ZALO' || ch === 'ZALO_PERSONAL';
+        })?.externalUserId
       : undefined);
 
   if (customerZaloId && /^\d+$/.test(String(customerZaloId).trim())) {
     return String(customerZaloId).trim();
   }
 
+  // 3. Tra cứu socialId
   const socialId = conv.customer.socialId;
   if (socialId && socialId !== 'khách' && !socialId.startsWith('cust-')) {
     return socialId;
+  }
+
+  // 4. Tra cứu SĐT khách hàng nếu hợp lệ
+  if (conv.customer.phone && /^\d{9,11}$/.test(conv.customer.phone.replace(/\D/g, ''))) {
+    return conv.customer.phone;
   }
 
   return conv.customer.id;

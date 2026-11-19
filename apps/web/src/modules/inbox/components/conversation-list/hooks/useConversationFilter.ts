@@ -59,8 +59,11 @@ export function useConversationFilter({
           ca.isPersonal ||
           ca.metadata?.engine === 'zca-js';
         if (isZalo && ca.isActive !== false) {
+          const phone = ca.metadata?.phone || ca.metadata?.phoneNumber || ca.phone;
           const key = ca.id || ca.displayName;
-          const name = ca.displayName || 'Tài khoản Zalo';
+          const name = ca.displayName
+            ? `${ca.displayName}${phone ? ` (${phone})` : ''}`
+            : 'Tài khoản Zalo';
           if (key && !map.has(key)) {
             map.set(key, name);
           }
@@ -71,7 +74,9 @@ export function useConversationFilter({
     conversations.forEach((item) => {
       if (item.channel === 'ZALO' || item.channel === 'ZALO_PERSONAL') {
         const key = item.channelAccountId || item.channelAccountName;
-        const name = item.channelAccountName || item.customer.channelAccountName || 'Zalo';
+        const baseName = item.channelAccountName || item.customer.channelAccountName || 'Zalo';
+        const phone = item.channelAccountPhone || item.customer.channelAccountPhone;
+        const name = phone && !baseName.includes(phone) ? `${baseName} (${phone})` : baseName;
         if (key && !map.has(key)) {
           map.set(key, name);
         }

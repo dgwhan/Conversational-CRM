@@ -79,24 +79,34 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             {conversation.customer.fullName}
           </h3>
 
-          <div className="flex items-center gap-1 text-[11px] text-slate-500 mt-0.5 min-w-0">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5 min-w-0 flex-wrap">
             {channelMeta.iconUrl && (
               <img
                 src={channelMeta.iconUrl}
                 alt={channelMeta.label}
-                className="w-3 h-3 rounded-full object-cover shrink-0"
+                className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
               />
             )}
-            <span className="font-medium text-slate-600 truncate max-w-[70px] sm:max-w-[120px]">
+            <span className="font-semibold text-slate-700 shrink-0">
               {channelMeta.label}
             </span>
             {conversation.channelAccountName &&
               !conversation.channelAccountName.startsWith('Kênh ') &&
               conversation.channelAccountName.toLowerCase() !== channelMeta.label.toLowerCase() && (
                 <>
-                  <span className="text-slate-300 hidden sm:inline">•</span>
-                  <span className="text-slate-500 truncate hidden sm:inline max-w-[100px]">
-                    {conversation.channelAccountName}
+                  <span className="text-slate-300">•</span>
+                  <span
+                    className="text-slate-600 font-medium inline-flex items-center gap-1 max-w-[200px] sm:max-w-[300px] truncate"
+                    title={`Tài khoản tiếp nhận: ${conversation.channelAccountName}${
+                      conversation.channelAccountPhone ? ` (SĐT: ${conversation.channelAccountPhone})` : ''
+                    }`}
+                  >
+                    <span className="truncate">{conversation.channelAccountName}</span>
+                    {conversation.channelAccountPhone && (
+                      <span className="text-blue-700 bg-blue-50 border border-blue-200/60 text-[10px] px-1 py-0.2 rounded font-mono shrink-0">
+                        {conversation.channelAccountPhone}
+                      </span>
+                    )}
                   </span>
                 </>
               )}

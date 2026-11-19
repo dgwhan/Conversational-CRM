@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import sharp from 'sharp';
 import { sendFacebookAttachment, sendZaloOaAttachment } from './outbound-attachment.sender.js';
-import type { OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
+import type { OutboundMediaPayload } from '../../../messaging/application/outbound-media.service.js';
 
 const media = (overrides: Partial<OutboundMediaPayload> = {}): OutboundMediaPayload => ({
     assetId: 'a1',

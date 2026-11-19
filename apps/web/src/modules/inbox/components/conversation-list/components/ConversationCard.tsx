@@ -44,11 +44,14 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 
   const renderChannelIndicator = (channel: ChannelType) => {
     const meta = resolveChannelInfo(channel);
+    const titleText = `${meta.label}${
+      item.channelAccountName ? ` • ${item.channelAccountName}` : ''
+    }${item.channelAccountPhone ? ` (${item.channelAccountPhone})` : ''}`;
     return (
       <span
         className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full text-white text-[8px] font-bold flex items-center justify-center ring-1 ring-white overflow-hidden"
         style={{ backgroundColor: meta.badgeBg }}
-        title={meta.label}
+        title={titleText}
       >
         {meta.iconUrl ? (
           <img
@@ -177,6 +180,21 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
                 {tag}
               </span>
             ))}
+
+            {item.channelAccountName &&
+              !item.channelAccountName.startsWith('Kênh ') &&
+              item.channelAccountName !== 'Zalo OA' &&
+              item.channelAccountName !== 'Facebook Page' && (
+                <span
+                  className="text-[10px] text-blue-700 bg-blue-50/80 border border-blue-200/50 px-1 py-0.2 rounded truncate max-w-[85px] shrink-0"
+                  title={`Tài khoản Zalo nhận: ${item.channelAccountName}${
+                    item.channelAccountPhone ? ` (${item.channelAccountPhone})` : ''
+                  }`}
+                >
+                  {item.channelAccountName.split(' ')[0]}
+                  {item.channelAccountPhone ? ` (${item.channelAccountPhone.slice(-4)})` : ''}
+                </span>
+              )}
           </div>
 
           <div className="flex items-center gap-1 shrink-0 ml-auto">

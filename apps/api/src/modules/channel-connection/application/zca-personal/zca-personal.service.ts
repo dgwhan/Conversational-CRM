@@ -3,46 +3,33 @@ import { ModuleRef } from '@nestjs/core';
 import { randomBytes } from 'node:crypto';
 // @ts-ignore
 import { Zalo, LoginQRCallbackEventType, ThreadType } from 'zca-js';
-import { PrismaService } from '../../../platform/database/prisma.service.js';
-import { RealtimeService } from '../../realtime/realtime.service.js';
-import { TokenEncryptionService } from '../infrastructure/token-encryption.service.js';
-import { NotificationService } from '../../notification/notification.service.js';
+import { PrismaService } from '../../../../platform/database/prisma.service.js';
+import { RealtimeService } from '../../../realtime/realtime.service.js';
+import { TokenEncryptionService } from '../../infrastructure/token-encryption.service.js';
+import { NotificationService } from '../../../notification/notification.service.js';
 import { NotificationType, NotificationSeverity, Prisma } from '@prisma/client';
-import { WorkingHoursService } from '../../messaging/application/working-hours.service.js';
-import { Channel } from '../../messaging/domain/channel.js';
-import { normalizeZaloPersonalAttachments, summarizeAttachments } from '../../messaging/domain/media/attachment-normalizer.js';
-import { MediaArchiveService } from '../../messaging/application/media-archive.service.js';
-import type { OutboundMediaPayload } from '../../messaging/application/outbound-media.service.js';
+import { WorkingHoursService } from '../../../messaging/application/working-hours.service.js';
+import { Channel } from '../../../messaging/domain/channel.js';
+import { normalizeZaloPersonalAttachments, summarizeAttachments } from '../../../messaging/domain/media/attachment-normalizer.js';
+import { MediaArchiveService } from '../../../messaging/application/media-archive.service.js';
+import type { OutboundMediaPayload } from '../../../messaging/application/outbound-media.service.js';
+import { LeadRoutingService } from '../../../lead-routing/application/coordinator/lead-routing.service.js';
+import {
+  CustomerLeadStatus,
+  CustomerLeadStage,
+  ConversationStatus,
+  DEFAULT_CRM_CONFIG,
+} from '../../../../contracts/crm-status.constants.js';
+import { ZcaRateLimitService } from './zca-rate-limit.service.js';
+import type { ZcaSafetyConfig, QrLoginSession, ZcaSendMessageResult } from '../../domain/index.js';
 
-export interface ZcaSafetyConfig {
-  enabled: boolean;
-  minIntervalMs: number; // Giãn cách tối thiểu giữa 2 tin nhắn (mặc định 2500ms)
-  maxIntervalMs: number; // Giãn cách tối đa giữa 2 tin nhắn (mặc định 4500ms)
-  maxMessagesPerMinute: number; // Tối đa tin nhắn / phút (mặc định 15)
-  maxStrangerPerDay: number; // Tối đa tin nhắn người lạ / ngày (mặc định 40)
-  autoCooldownMinutes: number; // Thời gian làm mát khi nghi ngờ spam (mặc định 15)
-}
-
-export interface QrLoginSession {
-  sessionId: string;
-  qrCodeUrl: string;
-  status: 'PENDING' | 'SCANNED' | 'SUCCESS' | 'EXPIRED' | 'FAILED';
-  createdAt: number;
-  expiresAt: number;
-  account?: {
-    id: string;
-    externalAccountId: string;
-    displayName: string;
-    avatarUrl: string;
-    phone?: string;
-    accessToken: string;
-  };
-}
+export type { ZcaSafetyConfig, QrLoginSession, ZcaSendMessageResult };
 
 @Injectable()
 export class ZcaPersonalService implements OnModuleInit {
   private readonly logger = new Logger(ZcaPersonalService.name);
   private _workingHoursServiceInstance?: WorkingHoursService;
+  private _leadRoutingServiceInstance?: LeadRoutingService | null;
 
   // Bộ nhớ lưu các phiên quét mã QR đăng nhập
   private readonly qrSessions = new Map<string, QrLoginSession>();
@@ -50,6 +37,8 @@ export class ZcaPersonalService implements OnModuleInit {
   private readonly activeApis = new Map<string, any>();
   // Bộ nhớ lưu các Listener WebSocket đang hoạt động
   private readonly activeListeners = new Map<string, any>();
+
+  private readonly rateLimiter: ZcaRateLimitService;
 
   constructor(
     @Optional() private readonly prisma?: PrismaService,
@@ -59,8 +48,31 @@ export class ZcaPersonalService implements OnModuleInit {
     @Optional()
     @Inject(forwardRef(() => WorkingHoursService))
     private readonly injectedWorkingHoursService?: any,
+    @Optional()
+    @Inject(forwardRef(() => LeadRoutingService))
+    private readonly injectedLeadRoutingService?: any,
     @Optional() private readonly moduleRef?: ModuleRef,
-  ) {}
+    @Optional() rateLimitService?: ZcaRateLimitService,
+  ) {
+    this.rateLimiter = rateLimitService || new ZcaRateLimitService();
+  }
+
+  private get leadRoutingService(): LeadRoutingService | undefined {
+    if (this._leadRoutingServiceInstance !== undefined) return this._leadRoutingServiceInstance ?? undefined;
+    if (this.injectedLeadRoutingService) {
+      this._leadRoutingServiceInstance = this.injectedLeadRoutingService;
+      return this._leadRoutingServiceInstance ?? undefined;
+    }
+    if (this.moduleRef) {
+      try {
+        this._leadRoutingServiceInstance = this.moduleRef.get(LeadRoutingService, { strict: false }) ?? null;
+        return this._leadRoutingServiceInstance ?? undefined;
+      } catch {
+        this._leadRoutingServiceInstance = null;
+      }
+    }
+    return undefined;
+  }
 
   private get workingHoursService(): WorkingHoursService | undefined {
     if (this._workingHoursServiceInstance) return this._workingHoursServiceInstance;
@@ -301,6 +313,7 @@ export class ZcaPersonalService implements OnModuleInit {
               externalAccountId: targetId,
               displayName,
               avatarUrl,
+              phone: profileInfo?.phoneNumber || profileInfo?.phone || apiResult.userInfo?.phoneNumber || apiResult.userInfo?.phone || session.account?.phone || '',
               accessToken: savedCreds ? JSON.stringify(savedCreds) : session.account?.accessToken || `zca_token_${sessionId}`,
             };
 
@@ -675,6 +688,38 @@ export class ZcaPersonalService implements OnModuleInit {
     }
     this.activeListeners.set(targetId, api.listener);
 
+    // Tự động kiểm tra và cập nhật số điện thoại tài khoản nếu chưa có trong metadata
+    const prisma = this.prisma;
+    if (prisma?.channelAccount && targetId) {
+      (async () => {
+        try {
+          if (typeof api.fetchAccountInfo === 'function') {
+            const acc = await prisma.channelAccount.findFirst({
+              where: { externalAccountId: targetId },
+            });
+            const existingPhone = (acc?.metadata as any)?.phone || (acc?.metadata as any)?.phoneNumber;
+            if (acc && !existingPhone) {
+              const info = await api.fetchAccountInfo().catch(() => null);
+              const phone = info?.profile?.phoneNumber || info?.profile?.phone || info?.data?.phoneNumber;
+              if (phone) {
+                await prisma.channelAccount.update({
+                  where: { id: acc.id },
+                  data: {
+                    metadata: {
+                      ...((acc.metadata as any) || {}),
+                      phone,
+                      phoneNumber: phone,
+                    },
+                  },
+                });
+                this.logger.log(`[zca-js] Tự động cập nhật số điện thoại (${phone}) cho tài khoản ${acc.displayName}`);
+              }
+            }
+          }
+        } catch {}
+      })().catch(() => null);
+    }
+
     api.listener.on('connected', () => {
       this.logger.log(`[zca-js] WebSocket kết nối Zalo Web thành công cho tài khoản: ${targetId}`);
     });
@@ -951,10 +996,11 @@ export class ZcaPersonalService implements OnModuleInit {
               workspaceId: targetWsId,
               fullName: customerName,
               avatarUrl: customerAvatar,
-              leadStatus: 'NEW',
-              leadStage: 'TIẾP CẬN',
+              leadStatus: DEFAULT_CRM_CONFIG.DEFAULT_LEAD_STATUS,
+              leadStage: DEFAULT_CRM_CONFIG.DEFAULT_LEAD_STAGE,
               channelIdentities: {
                 zalo: customerZaloId,
+                zalo_personal: customerZaloId,
                 socialId: customerZaloId,
                 channel: 'ZALO',
                 name: customerName,
@@ -976,6 +1022,7 @@ export class ZcaPersonalService implements OnModuleInit {
                 channelIdentities: {
                   ...(dbCustomer.channelIdentities as any),
                   zalo: customerZaloId,
+                  zalo_personal: customerZaloId,
                   socialId: customerZaloId,
                   channel: 'ZALO',
                   id: customerZaloId,
@@ -1006,7 +1053,7 @@ export class ZcaPersonalService implements OnModuleInit {
               workspaceId: targetWsId,
               channelAccountId: channelAccount.id,
               customerId: dbCustomer?.id,
-              status: 'OPEN',
+              status: DEFAULT_CRM_CONFIG.DEFAULT_CONVERSATION_STATUS,
               snippet: content,
               unreadCount: isSelf ? 0 : 1,
               lastMessageAt: sentAt,
@@ -1084,12 +1131,14 @@ export class ZcaPersonalService implements OnModuleInit {
             content,
             sentAt,
             rawPayload: mergedPayload,
+            senderExternalId: isSelf ? myOwnUid : customerZaloId,
           },
           create: {
             channelAccountId: channelAccount.id,
             conversationId: dbConv?.id,
             channel: 'ZALO',
             direction: isSelf ? 'OUTBOUND' : 'INBOUND',
+            senderExternalId: isSelf ? myOwnUid : customerZaloId,
             content,
             externalMessageId,
             sentAt,
@@ -1148,6 +1197,19 @@ export class ZcaPersonalService implements OnModuleInit {
         });
       } catch (err) {
         this.logger.warn(`[zca-js] Lỗi xử lý ngoài giờ làm việc: ${(err as Error).message}`);
+      }
+    }
+
+    // 7. TỰ ĐỘNG PHÂN CA / ĐỊNH TUYẾN LEAD CHO HỘI THOẠI CHƯA ĐƯỢC PHÂN CÔNG
+    if (!isSelf && dbConv?.id && targetWsId && !dbConv.assignedMemberId && this.leadRoutingService) {
+      try {
+        const routeResult = await this.leadRoutingService.routeNewConversation(dbConv.id, targetWsId);
+        const assignedMemberId = routeResult && 'assignedMemberId' in routeResult ? (routeResult as any).assignedMemberId : undefined;
+        this.logger.log(
+          `[zca-js] Tự động phân ca cho hội thoại ${dbConv.id} (Workspace: ${targetWsId}) kết quả: ${routeResult?.status || 'UNKNOWN'}${assignedMemberId ? ` -> Thành viên: ${assignedMemberId}` : ''}`,
+        );
+      } catch (err) {
+        this.logger.warn(`[zca-js] Lỗi tự động phân ca cho hội thoại ${dbConv.id}: ${(err as Error).message}`);
       }
     }
   }
@@ -1298,124 +1360,35 @@ export class ZcaPersonalService implements OnModuleInit {
 
   /**
    * KIỂM TRA & THỰC THI GIỚI HẠN TẦN SUẤT (RATE LIMITING & ANTI-BAN GUARD)
-   * Đảm bảo an toàn tuyệt đối cho nick Zalo cá nhân:
-   * 1. Bắt buộc Human Delay ngẫu nhiên giữa 2 tin nhắn (2.5s - 4.5s)
-   * 2. Giới hạn tối đa 15 tin nhắn / phút
-   * 3. Giới hạn tin nhắn người lạ mỗi ngày
-   * 4. Kiểm tra Cooldown tự động
+   * Ủy quyền cho ZcaRateLimitService thực thi
    */
   async enforceRateLimitAndSafety(
     accountId: string,
     recipientId: string,
     isStranger: boolean = false,
   ): Promise<{ delayAppliedMs: number; remainingQuota: number }> {
-    if (!this.safetyConfig.enabled) {
-      return { delayAppliedMs: 0, remainingQuota: 999 };
-    }
-
-    const now = Date.now();
-
-    // 1. Kiểm tra Cooldown bảo vệ
-    const cooldownEnd = this.cooldownUntil.get(accountId) || 0;
-    if (now < cooldownEnd) {
-      const waitMinutes = Math.ceil((cooldownEnd - now) / 60000);
-      throw new BadRequestException(
-        `[Bảo vệ an toàn Zalo] Tài khoản đang trong thời gian giãn cách tạm dừng (${waitMinutes} phút nữa) để bảo vệ nick không bị Zalo quét khóa. Vui lòng thử lại sau.`,
-      );
-    }
-
-    // 2. Kiểm tra giới hạn số tin nhắn / phút (Messages Per Minute)
-    const timestamps = this.messageTimestamps.get(accountId) || [];
-    const recentTimestamps = timestamps.filter((t) => now - t < 60000);
-    this.messageTimestamps.set(accountId, recentTimestamps);
-
-    if (recentTimestamps.length >= this.safetyConfig.maxMessagesPerMinute) {
-      this.logger.warn(
-        `Rate limit exceeded for Zalo account ${accountId}: ${recentTimestamps.length}/${this.safetyConfig.maxMessagesPerMinute} msg/min`,
-      );
-      throw new BadRequestException(
-        `[Giới hạn tần suất] Bạn đã gửi quá ${this.safetyConfig.maxMessagesPerMinute} tin nhắn/phút. Hệ thống tự động chặn gửi để bảo vệ nick Zalo của bạn không bị khóa. Hãy chờ khoảng 30–60 giây trước khi gửi tiếp.`,
-      );
-    }
-
-    // 3. Kiểm tra hạn mức nhắn tin cho người lạ (Stranger quota)
-    if (isStranger) {
-      let strangers = this.strangerRecipientsToday.get(accountId);
-      if (!strangers) {
-        strangers = new Set<string>();
-        this.strangerRecipientsToday.set(accountId, strangers);
-      }
-
-      if (!strangers.has(recipientId) && strangers.size >= this.safetyConfig.maxStrangerPerDay) {
-        throw new BadRequestException(
-          `[Cảnh báo an toàn Zalo] Bạn đã đạt hạn mức nhắn tin cho ${this.safetyConfig.maxStrangerPerDay} người lạ hôm nay. Zalo có thuật toán khóa nick nếu tiếp tục mở chat mới với người lạ.`,
-        );
-      }
-    }
-
-    // 4. Áp dụng Human Delay (Mô phỏng khoảng thời gian gõ phím của người thật)
-    const lastSent = this.lastSentAt.get(accountId) || 0;
-    const timeSinceLast = now - lastSent;
-
-    // Tính khoảng delay ngẫu nhiên an toàn (2.5s - 4.5s)
-    const minDelay = this.safetyConfig.minIntervalMs;
-    const maxDelay = this.safetyConfig.maxIntervalMs;
-    const desiredDelay = Math.floor(Math.random() * (maxDelay - minDelay) + minDelay);
-
-    let delayApplied = 0;
-    if (timeSinceLast < desiredDelay && lastSent > 0) {
-      delayApplied = desiredDelay - timeSinceLast;
-      this.logger.log(
-        `[Human Typing Delay] Applying safety delay of ${delayApplied}ms for Zalo account ${accountId}`,
-      );
-      await this.sleep(delayApplied);
-    }
-
-    // Ghi nhận lịch sử gửi tin
-    const updatedNow = Date.now();
-    this.lastSentAt.set(accountId, updatedNow);
-    recentTimestamps.push(updatedNow);
-    this.messageTimestamps.set(accountId, recentTimestamps);
-
-    if (isStranger) {
-      const strangers = this.strangerRecipientsToday.get(accountId) || new Set<string>();
-      strangers.add(recipientId);
-      this.strangerRecipientsToday.set(accountId, strangers);
-    }
-
-    const remainingQuota = Math.max(0, this.safetyConfig.maxMessagesPerMinute - recentTimestamps.length);
-    return { delayAppliedMs: delayApplied, remainingQuota };
+    return this.rateLimiter.enforceRateLimitAndSafety(accountId, recipientId, isStranger);
   }
 
   /**
    * Kích hoạt chế độ Cooldown làm mát khẩn cấp nếu nhận cảnh báo từ Zalo
    */
   triggerEmergencyCooldown(accountId: string, reason: string): void {
-    const cooldownMs = this.safetyConfig.autoCooldownMinutes * 60 * 1000;
-    const until = Date.now() + cooldownMs;
-    this.cooldownUntil.set(accountId, until);
-    this.logger.warn(
-      `Triggered emergency cooldown for Zalo account ${accountId} until ${new Date(until).toISOString()}. Reason: ${reason}`,
-    );
+    this.rateLimiter.triggerEmergencyCooldown(accountId, reason);
   }
 
   /**
    * Lấy cấu hình bảo vệ hiện tại
    */
   getSafetyConfig(): ZcaSafetyConfig {
-    return { ...this.safetyConfig };
+    return this.rateLimiter.getSafetyConfig();
   }
 
   /**
    * Cập nhật cấu hình bảo vệ
    */
   updateSafetyConfig(updates: Partial<ZcaSafetyConfig>): ZcaSafetyConfig {
-    this.safetyConfig = {
-      ...this.safetyConfig,
-      ...updates,
-    };
-    this.logger.log(`Updated ZCA safety config: ${JSON.stringify(this.safetyConfig)}`);
-    return { ...this.safetyConfig };
+    return this.rateLimiter.updateSafetyConfig(updates);
   }
 
   /**

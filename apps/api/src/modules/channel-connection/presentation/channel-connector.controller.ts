@@ -18,9 +18,9 @@ import {
   Req,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/presentation/guards/jwt-auth.guard.js';
-import { OAuthService } from '../application/oauth.service.js';
-import { ChannelManagerService } from '../application/channel-manager.service.js';
-import { ZcaPersonalService } from '../application/zca-personal.service.js';
+import { OAuthService } from '../application/oauth/oauth.service.js';
+import { ChannelManagerService } from '../application/channels/channel-manager.service.js';
+import { ZcaPersonalService } from '../application/zca-personal/zca-personal.service.js';
 import { Roles } from '../../../common/decorators/roles.decorator.js';
 import { WorkspacePermission, WorkspacePermissions } from '../../../common/decorators/workspace-permissions.decorator.js';
 import { WorkspaceRolesGuard } from '../../../common/guards/workspace-roles.guard.js';
@@ -44,7 +44,7 @@ export class ChannelConnectorController {
     private readonly oauthService: OAuthService,
     private readonly channelManager: ChannelManagerService,
     @Optional() private readonly zcaService?: ZcaPersonalService,
-  ) {}
+  ) { }
 
   /**
    * GET /api/oauth/:channel/authorize-url
@@ -263,8 +263,8 @@ export class ChannelConnectorController {
     }
     const attachments = Array.isArray(body.attachments)
       ? body.attachments
-          .map((a) => ({ assetId: String(a?.assetId ?? '').trim() }))
-          .filter((a) => /^[0-9a-f-]{36}$/i.test(a.assetId))
+        .map((a) => ({ assetId: String(a?.assetId ?? '').trim() }))
+        .filter((a) => /^[0-9a-f-]{36}$/i.test(a.assetId))
       : [];
     if (!body.content?.trim() && attachments.length === 0) {
       throw new BadRequestException('Nội dung tin nhắn không được để trống');
